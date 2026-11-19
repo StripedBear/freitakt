@@ -36,7 +36,7 @@ static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
 static uint8_t acc_oct;
 /* the black keys cue variations (2026-10-27): the first 8 black keys from F#3 (key index from F3: F#3 G#3 A#3 C#4 D#4
  * F#4 G#4 A#4) queue variations 1..8 of the playing slot (project.c cue_var) on HOME (both modes) and the SEQ pages
- * (STEP, PATTERN, MOTION, SONG), STEPS on or off; not under KEYS, the menu, a dialog, NAME, the PRESETS list, the MUTE
+ * (STEP, PATTERN, MOTION), STEPS on or off; not under KEYS, the menu, a dialog, NAME, the PRESETS list, the MUTE
  * screen or PERFORM, nor on the other pages (the black keys keep their jobs there). Their LEDs there: the playing
  * variation lit, a queued one blinking, the rest dark (no dim level: the dim layers are MENU BACKLIGHT's). SAVE held
  * (the cue map, every page it opens on): the same keys, of the queued slot if one is (cue_keys) */
@@ -404,8 +404,6 @@ static void tracks_edit(uint32_t slot, int32_t steps)
         ml_knob(song.sel, P_LEVEL);                 /* (MIDI LEARN: picked) */
         return;
     }
-    if (slot == 2u && song_lock())                  /* LEN: a song's row */
-        return;
     id = slot == 1u ? P_LEVEL : slot == 2u ? P_SLEN : P_PAN;
     t->p[id] = (int16_t)clamp(t->p[id] + accel(EN_K1 + slot, steps, TP[id].max - TP[id].min), TP[id].min, TP[id].max);
     motion_capture(t, id);                          /* motion.c: LEVEL / PAN recorded (LEN never) */
@@ -440,8 +438,8 @@ static void rec_say(uint32_t k, const char *what)      /* "T3 REC ARMED" */
     m[1] = (char)('1' + k);
     ui_say(m, what);
 }
-static void rec_tap(void)                              /* a REC tap (the button, a learned REC, the SMC's REC); song_lock
-                                                        * and step record already passed */
+static void rec_tap(void)                              /* a REC tap (the button, a learned REC, the SMC's REC); step
+                                                        * record already passed */
 {
     uint32_t k = song.sel, bit = 1u << k;
     if (mix_mode()) {                                  /* TRACKS: the selected track */
@@ -485,64 +483,6 @@ static void motion_page_edit(uint32_t slot, int32_t steps)
     }
 }
 
-/* SONG page: KNOB 1 ROW (up to the + row), 2 SLOT, 3 REPEAT, 4 LOOP; on the + row a turn of 2 / 3 adds a row */
-static void song_edit(uint32_t slot, int32_t steps)
-{
-    chain_config_t *c = &chain.cfg;
-    uint32_t r;
-    if (ui.song_row > c->count)                       /* (a LOAD brought a shorter song) */
-        ui.song_row = c->count;
-    r = ui.song_row;
-    if (slot == 0u) {
-        ui.song_row = (uint8_t)clamp((int32_t)r + steps, 0, c->count < CHAIN_ROWS ? c->count : CHAIN_ROWS - 1u);
-        return;
-    }
-    if (song_lock())
-        return;
-    if (slot == 3u) {
-        c->loop = steps > 0;
-        return;
-    }
-    if (r >= c->count) {                              /* the + row: a row at the end */
-        r = c->count;
-        c->row[r].slot = r ? c->row[r - 1u].slot : 0u;
-        c->row[r].repeat = 1;
-        c->count = (uint8_t)(r + 1u);
-        return;
-    }
-    if (slot == 1u)
-        c->row[r].slot = (uint8_t)clamp((int32_t)c->row[r].slot + steps, 0, 3);
-    else
-        c->row[r].repeat = (uint8_t)clamp((int32_t)c->row[r].repeat + steps, 1, 16);
-}
-static void song_play(void)                         /* PLAY on SONG */
-{
-    uint32_t rc = chain_prepare();
-    if (rc >= 3u) {
-        char b[16] = "PATTERN A EMPTY";
-        b[8] = (char)('A' + rc - 3u);
-        ui_message(b);
-    } else if (rc == 1u) {
-        ui_message("ADD A SONG ROW");
-    } else if (rc == 2u) {
-        ui_message("STOP FIRST");
-    }
-    ui.force = 1;
-}
-static void song_rec_hold(void)                     /* REC held on SONG: delete the row / clear the song */
-{
-    if (song_lock())
-        return;
-    if (ui.song_row < chain.cfg.count)
-        ui.confirm = 3;
-    else if (chain.cfg.count)
-        ui.confirm = 4;
-    else
-        return;
-    ui.confirm_trk = ui.song_row;
-    ui.force = 1;
-}
-
 static void edit_param(uint32_t slot, int32_t steps)
 {
     int16_t *vp;
@@ -556,12 +496,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     }
     if (pg->graph == GR_MOTION) {                     /* the MOTION page's own knobs */
-        if (!song_lock())
-            motion_page_edit(slot, steps);
-        return;
-    }
-    if (pg->graph == GR_SONG) {
-        song_edit(slot, steps);
+        motion_page_edit(slot, steps);
         return;
     }
     if (pg->graph == GR_LDEST && slot == 0u) {        /* LFO DEST: KNOB 1 the slot */
@@ -579,8 +514,6 @@ static void edit_param(uint32_t slot, int32_t steps)
         ml_knob(song.sel, P_MODEL);                   /* (MIDI LEARN: NOT LEARNABLE) */
         return;
     }
-    if (pg->graph == GR_STEPS && song_lock())         /* PATTERN: a song's row */
-        return;
     if (pg->graph == GR_SLOTS && id == G_NAME) {      /* PROJECT, NAME: rename the selected slot */
         if (steps > 0)
             name_rename();
@@ -632,10 +565,6 @@ static void edit_param(uint32_t slot, int32_t steps)
     }
     if (!v || pg->scope != SC_GLOBAL)
         return;
-    if ((id == G_CLRSEQ || id == G_CLRALL || id == G_INITALL) && song_lock()) {
-        *vp = 0;
-        return;
-    }
     if ((id == G_LOAD || id == G_SAVE || id == G_CLRSEQ || id == G_INITSND || id == G_CLRALL || id == G_INITALL ||
          id == G_PASTE) && ui.arm != id) {
         *vp = 0;                                      /* one detent arms, a second one within ~1.5 s acts */
@@ -881,7 +810,7 @@ static void glo_input(uint32_t now, uint32_t notes)
  * then does nothing else. Every key pressed with SAVE is the map's until let go (seq.c keyboard_block, mute_mask: no note, no MIDI, nothing recorded). Pressed in the menu, a
  * confirm, NAME, the PRESETS list or the MUTE screen: dead until let go; with the PERFORM layer up or FX held: a plain
  * button (the release opens the projects page) */
-/* FILL (spec 2026-10-26): REC held FILL_HOLD_MS on any page but SEQ's (STEP, PATTERN, MOTION, SONG: there REC held is
+/* FILL (spec 2026-10-26): REC held FILL_HOLD_MS on any page but SEQ's (STEP, PATTERN, MOTION: there REC held is
  * their confirm) plays a fill while held (seq.c fill_on: FILL steps play, !FILL ones not), the top line FILL; its
  * release then is no tap (rec_t0's bit 1: btn_hold). A shorter press is the tap, on the release, as before. Not in the
  * menu, a confirm, NAME, the PRESETS list, the MUTE screen or MIDI LEARN. A learned REC and the SMC's REC are taps */
@@ -962,16 +891,14 @@ static void cue_input(uint32_t now, uint32_t notes)
                 (!(*t0 & (CUE_DEAD | CUE_PLAIN)) && !cue_dead() && !ui.layer && !ui.fx_t0 ? bit : 0u);
 }
 
-/* PLAY: start / stop (SONG: the song; PLAY / STOP during one stops it); step record ends */
+/* PLAY: start / stop; step record ends */
 static void play_press(void)
 {
     ui.srec = 0;
-    if (song.playing || chain_busy())
+    if (song.playing)
         transport_req = 2;
     else if (ui_locked())
         return;                                     /* (a web editor restore: no start) */
-    else if (!ui.home && cur_page()->graph == GR_SONG)
-        song_play();
     else
         transport_req = 1;
 }
@@ -985,7 +912,7 @@ static void play_press(void)
  * (FX held) end it. The ISR sounds the keys. */
 static int srec_ok(void)
 {
-    return keys_mode() && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing && !chain_busy();
+    return keys_mode() && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing;
 }
 static void srec_start(void)
 {
@@ -1293,20 +1220,16 @@ static void ui_input(void)
             menu_input(pressed);
         return;
     }
-    if (rec == BT_HOLD) {                               /* REC held on SEQ: "clear track n?"; SONG: its row */
-        if (!ui.home && cur_page()->graph == GR_SONG) {
-            song_rec_hold();
-        } else if (!song_lock()) {
-            ui.confirm = 1;
-            ui.confirm_trk = song.sel;
-            ui.force = 1;
-        }
+    if (rec == BT_HOLD) {                               /* REC held on SEQ: "clear track n?" */
+        ui.confirm = 1;
+        ui.confirm_trk = song.sel;
+        ui.force = 1;
     } else if (rec == BT_TAP && !ui.confirm) {          /* spec §4: REC arms on every screen */
         if (ui.srec) {
             ui.srec = 0;                                /* step record ends */
         } else if (srec_ok()) {
             srec_start();                               /* KEYS, STEP, stopped: step record */
-        } else if (!song_lock()) {
+        } else {
             rec_tap();                                  /* TRACKS: the selected track armed / disarmed; else REC ALL */
         }
     }
@@ -1314,18 +1237,7 @@ static void ui_input(void)
         if ((pressed >> panel.btn[B_OCTUP]) & 1u) {
             char m[12] = "1 CLEARED";
             m[0] = (char)('1' + ui.confirm_trk);
-            if (ui.confirm == 3u) {                     /* SONG: the row out, the later ones up */
-                uint32_t r = ui.confirm_trk, j;
-                for (j = r; j + 1u < chain.cfg.count; j++)
-                    chain.cfg.row[j] = chain.cfg.row[j + 1u];
-                if (r < chain.cfg.count)
-                    chain.cfg.count--;
-                ui_message("ROW DELETED");
-            } else if (ui.confirm == 4u) {              /* SONG: no rows */
-                memset(&chain.cfg, 0, sizeof chain.cfg);
-                ui.song_row = 0;
-                ui_message("SONG CLEARED");
-            } else if (ui.confirm == CONFIRM_OVERWRITE) {   /* SAVE onto a slot with unsaved edits: saved over them */
+            if (ui.confirm == CONFIRM_OVERWRITE) {   /* SAVE onto a slot with unsaved edits: saved over them */
                 ui.confirm = 0;
                 project_save_go(ui.confirm_trk & 3u);
             } else if (ui.confirm == CONFIRM_DISCARD) { /* LOAD: the slot's unsaved edits dropped, its saved one */
@@ -1528,7 +1440,7 @@ static void ui_input(void)
             lock_knob(k, s);
             continue;
         }
-        if (ui.home || pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_SONG || pg->graph == GR_LDEST ||
+        if (ui.home || pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_LDEST ||
             page_desc(pg, k, &hv)) {
             ui.hot_col = (uint8_t)k;
             ui.hot_t = 40;

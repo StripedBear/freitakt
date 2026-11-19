@@ -101,7 +101,7 @@ static void host_reset_fx(void)                     /* FX buses, master, metal: 
     perf_seq = 0;
     memset(perf_ord, 0, sizeof perf_ord);
     memset(&mo, 0, sizeof mo);                     /* MOTION: no events, nothing held */
-    memset(&chain, 0, sizeof chain);               /* SONG: none */
+    memset(&pname, 0, sizeof pname);               /* no project name */
     comp_reset();
     comp_was = NTRK;
 }

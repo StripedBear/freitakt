@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* Variations (spec docs/superpowers/specs/2026-10-26-cue-variations-fill-copy-design.md): a slot plays one of 8
- * variations, each its own steps and timing (LEN DIV SWG, song.c CHAIN_TIMING); variation 1 is the slot's record's
+ * variations, each its own steps and timing (LEN DIV SWG, cue.c PAT_TIMING); variation 1 is the slot's record's
  * steps (project.c), variations 2..8 are packed here, sparse, in one bank: the slot's flash object (storage.c
  * OBJ_VAR0 + slot; 3584 B at most, so its sector's +0xF00.. stays erased for the loader's scan). Pure data: no IRQ, no
  * flash; every read is bounded by the bank (a hostile flash copy is checked by var_valid, var_get never reads past it).

@@ -135,7 +135,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
 - **Values** are the knob's set value (what the knob shows), never the LFO / MOTION / lock modulation of the moment:
   GET, SET's reply, DUMP and CHANGED all report MOTION's base and, on a locked step, the value under the LOCK.
 - **PAGES** lists, in the device's order, the pages of its page table the editor may show, resolved for the
-  selected track **now**: the pages of scope track or global except the PROJECT / COPY (slots), MOTION and SONG pages
+  selected track **now**: the pages of scope track or global except the PROJECT / COPY (slots) and MOTION pages
   and the pages holding a knob past G_COUNT (TOOLS, GLOBAL 3/7: MUTE, METRO, THRU, QUANT — device settings, not
   project data). The GLO pages DLY (two), REVERB (TYPE ROOM / SPRNG / HALL, SIZE, DAMP) and CHORUS (RATE, DEPTH) are
   global pages like GLOBAL and SYSTEM (graphs 17..19: the device's drawings of the echoes, the tail, the sweep). A column is a parameter id or `3FFF` (empty). SOUND
@@ -168,9 +168,8 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   device: a SOUND knob always; one of the FX a user preset holds (§6: the sends, FILTER, INSERT, SRR) when the
   track was loaded from a user preset that holds its FX (not a factory or voice-only one; LEVEL, PAN, the
   LFOs never). MOTION's base (and a
-  locked step's value under the LOCK) moves when MOTION plays that knob. Two knobs answer rc 0 **unchanged**, as their
-  knobs on the device do: G_BPM while following an external clock (G_CLOCK not INT: the clock's tempo), and the
-  PATTERN knobs (P_SLEN P_SDIV P_SSWING) while a song plays (its rows set them). The reply is always the value
+  locked step's value under the LOCK) moves when MOTION plays that knob. G_BPM answers rc 0 **unchanged** while following
+  an external clock (G_CLOCK not INT: the clock's tempo), as its knob on the device does. The reply is always the value
   kept and its text: show it. No CHANGED push echoes the editor's SET.
 - **TEXT** formats a value of a knob for the track's current context without setting it (lock values, menus).
 - **DUMP**: the track's model, its preset id (`3FFF` none; ids as PRESET_LOAD's), edited (0 / 1), all pcount
@@ -216,8 +215,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   STEPS_CHANGED for the tracks that differ, never one for the steps written); playing, the switch is queued to the pattern's end (or already is) and the edit is refused with rc 5 detail
   32 "CUE FIRST": the page sends the same STEPS_SET again once a STATE push shows that variation playing — it must
   **not** send CUE for it (a second press of a queued key means "at the next step"). Also rc 5 detail 32: a slot is
-  queued (wait for its switch), or `slot` is another slot (CUE it first). A song plays: rc 2 detail 2 "STOP TO
-  EDIT". No slot loaded and another variation: rc 2 detail 22. A refused key: rc 2 with the cue's code (detail 1,
+  queued (wait for its switch), or `slot` is another slot (CUE it first). No slot loaded and another variation: rc 2 detail 22. A refused key: rc 2 with the cue's code (detail 1,
   8 + c). Edits are live (the slot's dirty bit) until SAVE. LEN / DIV / SWG are knobs (P_SLEN P_SDIV P_SSWING): SET
   them.
 - **Locks** belong to the slot and apply in every variation. **LOCKS_GET** lists a track's lock-bank events in the
@@ -233,7 +231,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   the switch happens at once. A slot cue plays that slot's last-played variation; a variation never used starts as
   a copy of the playing one. The reply's state shows the queue (qslot / qvar) or, stopped, the switch done; later
   switches arrive as STATE pushes. Refusals are rc 2 with the device's code and message: detail 1 VARIATIONS FULL,
-  2 STOP SONG TO CUE, 3 SAVE TO A SLOT FIRST, 4 SLOT c EMPTY, 8 + c SAVE c FIRST (c 0..3: the slot whose unsaved
+  3 SAVE TO A SLOT FIRST, 4 SLOT c EMPTY, 8 + c SAVE c FIRST (c 0..3: the slot whose unsaved
   variations hold the park).
 - **SAVE** is the device's SAVE of the loaded slot (variations, lock bank, then the record; ~0.2 s, allow 2 s):
   stopped only (rc 3 detail 42 "STOP TO SAVE"); rc 2 detail 22 nothing loaded, 28 no flash this boot (state flag
@@ -386,7 +384,7 @@ projects, the presets, the variations or the lock banks.
 | 3 | qslot | the queued slot 0..3; 7F none |
 | 4 | qvar | the queued variation 0..7; 7F none |
 | 5 | sel | the selected track 0..7 |
-| 6 | flags | 0x01 RESTORING, 0x02 SONG running (cues refused), 0x04 NOFLASH (backup / restore / SAVE refused) |
+| 6 | flags | 0x01 RESTORING, 0x02 reserved (0), 0x04 NOFLASH (backup / restore / SAVE refused) |
 | 7 | used | bit s: slot s holds a project |
 | 8 | dirty | bit s: slot s has unsaved changes (the device's "A*", its breathing slot key) |
 | 9..16 | vmask | 4 × u14 for slots A..D: bit v = variation v + 1 used (bit 0 always set) |
@@ -454,7 +452,7 @@ projects, the presets, the variations or the lock banks.
 | detail | Message (the device's) | detail | Message |
 | --- | --- | --- | --- |
 | 1 | VARIATIONS FULL (cue) | 21 | VARIATIONS FULL (SAVE) |
-| 2 | STOP SONG TO CUE; STOP TO EDIT (STEPS_SET) | 22 | SAVE TO A SLOT FIRST (nothing loaded) |
+| 2 | reserved (not sent) | 22 | SAVE TO A SLOT FIRST (nothing loaded) |
 | 3 | SAVE TO A SLOT FIRST | 23 | UPDATE THE FM-1 FIRST (a newer record) |
 | 4 | SLOT c EMPTY (cue) | 24 | NOT A HORTATOR OBJECT |
 | 8..11 | SAVE c FIRST (c = detail − 8) | 25 | CRC MISMATCH |
@@ -627,7 +625,7 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (byte 0 reserved, 0 (RESON's KEYF);
   bytes 1..6 track k's P_SRR + j − 1 as (value − its power-on value) mod 256 — SRR 0, ITYPE 0, IA 64, IB 96, IC 96, IMIX 127); xp2 8 × 4 B @3314 (track k's P_SATK + j, the SAMPLE model's ATK SUS REL LOOP, the same encoding — ATK 0,
   SUS 0, REL 40, LOOP 0; 0 in every record before them); xp3 8 × 2 B @3346 (track k's P_SPLAY + j: PLAY KEY 0 / CHOP 1,
-  CUT OFF 0 / ON 1, the same encoding); rsv_mo 400 B @3362 (0); song 36 B @3762; name 12 B @3798
+  CUT OFF 0 / ON 1, the same encoding); rsv_mo 400 B @3362 (0); rsv_song 36 B @3762 (0); name 12 B @3798
   (characters of `" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+"`, 0-padded); pre 8 × u16 @3810 (a factory preset's uid,
   0x8000 | a user slot, 0xFFFF none); pre_ed 8 × u8 @3826; sum u32 @3836 = FNV-1a (32 bit, offset basis 2166136261,
   prime 16777619) of bytes 0..3835 (padding bytes 0). Variation 1 is the record's steps with its tracks' LEN DIV SWG.

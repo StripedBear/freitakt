@@ -162,7 +162,7 @@ static void ed_state_get(uint8_t *s)       /* web/EDITOR_PROTOCOL.md section 3 *
     s[3] = cue.q_slot ? (uint8_t)(cue.q_slot - 1u) : ED_NONE;
     s[4] = cue.q_var ? (uint8_t)(cue.q_var - 1u) : ED_NONE;
     s[5] = song.sel;
-    s[6] = (chain_busy() ? ED_SF_SONG : 0u) | (flash_ok ? 0u : ED_SF_NOFLASH);
+    s[6] = flash_ok ? 0u : ED_SF_NOFLASH;
 #ifdef ED_HAS_BACKUP
     s[6] |= ed_restoring() ? ED_SF_RESTORING : 0u;
 #endif
@@ -338,10 +338,6 @@ static int ed_set(uint32_t cmd, const ed_knob_t *x, uint32_t scope, uint32_t id,
         ui.force = 1;
         return 0;
     }
-    if (id >= P_SLEN && id <= P_SSWING) {
-        if (chain_busy())
-            return 0;                      /* PATTERN while a song plays: its rows' */
-    }
     fm1_irq_off();
     if (preset_marks(t, id) && motion_rest(x->k, id) != v)
         preset_touch(t);                   /* presets.c: the preset edited (a SOUND knob; its FX: a user one) */
@@ -410,7 +406,7 @@ static int ed_page(uint32_t i, uint32_t s, uint16_t *ids)
     const page_t *pg = &PAGES[i];
     uint32_t c, any = 0;
     if ((pg->scope != SC_TRACK && pg->scope != SC_GLOBAL) || pg->graph == GR_SLOTS || pg->graph == GR_MOTION ||
-        pg->graph == GR_SONG || s >= (pg->graph == GR_LDEST ? LS_N : 1u))
+        s >= (pg->graph == GR_LDEST ? LS_N : 1u))
         return 0;
     for (c = 0; c < 4u; c++)
         if (pg->scope == SC_GLOBAL && pg->id[c] != 0xFFu && pg->id[c] >= G_COUNT)

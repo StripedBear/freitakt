@@ -173,11 +173,9 @@ static void smc_button(uint32_t n)
     uint32_t k = n & 7u;
     if (n < 0x20u) {
         if (n < 0x08u) {
-            if (!song_lock()) {                       /* as a REC tap; during REC ALL: it ends, track k toggled on
+            rec_all_drop();                           /* as a REC tap; during REC ALL: it ends, track k toggled on
                                                        * what the mixer shows (all armed: k disarmed, the rest stay) */
-                rec_all_drop();
-                track_rec_toggle(k);
-            }
+            track_rec_toggle(k);
         } else if (n < 0x10u) {
             track_solo_toggle(k);
         } else if (n < 0x18u) {
@@ -188,20 +186,19 @@ static void smc_button(uint32_t n)
         return;
     }
     switch (n) {
-    case 0x5Eu:                                       /* PLAY: stopped -> play (the FM-1's PLAY off SONG) */
-        if (!song.playing && !chain_busy()) {
+    case 0x5Eu:                                       /* PLAY: stopped -> play */
+        if (!song.playing) {
             ui.srec = 0;
             transport_req = 1;
         }
         break;
-    case 0x5Du:                                       /* STOP: playing, or a song armed */
-        if (song.playing || chain_busy())
+    case 0x5Du:                                       /* STOP: playing */
+        if (song.playing)
             transport_req = 2;
         break;
     case 0x5Fu:                                       /* REC: as the FM-1's REC tap (TRACKS: the selected track;
                                                        * elsewhere REC ALL, ui_input.c rec_tap) */
-        if (!song_lock())
-            rec_tap();
+        rec_tap();
         break;
     case 0x2Eu:
     case 0x30u:                                       /* BANK / CHANNEL <: the previous track */

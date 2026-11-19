@@ -120,7 +120,7 @@ static void bench_fx_clear(void)
 }
 
 /* the machine as at power-on, as the host tests' host_init (tests/drum_host.h host_reset_fx): FX buses, master,
- * PERFORM, MOTION, SONG, the song settings (zero, then the tempo), the tracks' power-on kit */
+ * PERFORM, MOTION, the song settings (zero, then the tempo), the tracks' power-on kit */
 static void bench_reset(void)
 {
     memset(dly_buf, 0, sizeof dly_buf);
@@ -155,7 +155,7 @@ static void bench_reset(void)
     perf_seq = 0;
     memset(perf_ord, 0, sizeof perf_ord);
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     comp_reset();
     comp_was = NTRK;
     {

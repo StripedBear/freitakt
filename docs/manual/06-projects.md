@@ -3,7 +3,7 @@
 
 ## Projects
 
-A project holds the eight tracks' sounds, patterns (with each step's NUDGE), timing, locks, motion, variations, effects settings (INSERT, SRR, delay MODE, REVERB TYPE), SAMPLE settings, Grids, compressor and song. SYNC and ROUT are saved with it. There are **four slots, A to D**, saved in the FM-1's flash. Tap [[SAVE]] (on the release) for **PROJECT 1/3**; **TOOLS 2/3** and **COPY 3/3** follow.
+A project holds the eight tracks' sounds, patterns (with each step's NUDGE), timing, locks, motion, variations, effects settings (INSERT, SRR, delay MODE, REVERB TYPE), SAMPLE settings, Grids and compressor. SYNC and ROUT are saved with it. There are **four slots, A to D**, saved in the FM-1's flash. Tap [[SAVE]] (on the release) for **PROJECT 1/3**; **TOOLS 2/3** and **COPY 3/3** follow.
 
 | Knob | Label | Behaviour |
 | --- | --- | --- |
@@ -33,8 +33,8 @@ TOOLS 2/3. All four are GO actions: the first right-turn detent arms (`AGAIN: <l
 | --- | --- | --- |
 | **KNOB 1** | CLRSQ | clears the selected track's steps, MOTION and locks (`PATTERN CLEARED`) |
 | **KNOB 2** | INIT | resets the selected track's sound to its model default, including FILTER (`SOUND INIT`) |
-| **KNOB 3** | CLR* | clears every track the same way (steps, MOTION and locks), resets LEN, DIV and SWG to defaults, and clears the song (`ALL PATTERNS CLEARED`); blocked during a song |
-| **KNOB 4** | INIT* | everything back to power-on: kit, sounds, patterns, FX, COMP, BPM, motion, song, PERFORM knobs; saved projects and device settings are untouched (`ALL INIT`) |
+| **KNOB 3** | CLR* | clears every track the same way (steps, MOTION and locks), resets LEN, DIV and SWG to defaults (`ALL PATTERNS CLEARED`) |
+| **KNOB 4** | INIT* | everything back to power-on: kit, sounds, patterns, FX, COMP, BPM, motion, PERFORM knobs; saved projects and device settings are untouched (`ALL INIT`) |
 
 ## COPY and PASTE
 
@@ -44,7 +44,7 @@ COPY 3/3 copies a whole slot.
 | --- | --- | --- |
 | **KNOB 1** | SLOT | A to D |
 | **KNOB 2** | COPY | remembers SLOT's slot (`COPIED A`; `EMPTY SLOT` if unused) |
-| **KNOB 3** | PASTE | turn twice: makes SLOT's slot a copy (kit, steps, locks, variations and song), named `... COPY`, unsaved until SAVE |
+| **KNOB 3** | PASTE | turn twice: makes SLOT's slot a copy (kit, steps, locks, and variations), named `... COPY`, unsaved until SAVE |
 
 PASTE again on the same slot before saving undoes it (`PASTE UNDONE`). Not while playing (`STOP TO PASTE`); `COPY A SLOT FIRST`, `SAME SLOT`. The tempo and other globals are kept when pasting onto the loaded slot.
 

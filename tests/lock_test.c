@@ -393,49 +393,6 @@ static void lock_dormant_off_step(void)
     stop();
     check("lock: dormant on a step turned off (kept), plays when it is on again", ok);
 }
-/* Review Focus 4: song rows of two slots, a lock in slot A's bank only */
-static step_t ST[2][NTRK][NSTEP];
-static lk_bank_t SB[2];
-static void lock_song_row_change(void)
-{
-    static const uint32_t RS[2] = {0, 1};
-    uint32_t s, k, r, b, ok = 1, seen[2] = {0, 0};
-    fresh();
-    memset(ST, 0, sizeof ST);
-    memset(SB, 0, sizeof SB);
-    for (s = 0; s < 2u; s++) {
-        lk_seal(&SB[s], s);
-        chain.src[s].m = &SB[s];
-        for (k = 0; k < NTRK; k++) {
-            chain.src[s].step[k] = ST[s][k];
-            chain.src[s].timing[k][0] = 16;
-            chain.src[s].timing[k][1] = 2;
-            chain.src[s].model[k] = (uint8_t)trk[k].p[P_MODEL];
-        }
-        for (k = 0; k < 16u; k++)
-            ST[s][0][k].on = 1;
-    }
-    chain.src[0].timing[0][0] = 5;                    /* slot A: T1 LEN 5, T2 (the ref) 16 */
-    lk_put(&SB[0], lk_key(0, 4, P_E1), 100, 1);
-    chain.cfg.count = 2;
-    chain.cfg.loop = 1;
-    for (r = 0; r < 2u; r++)
-        chain.cfg.row[r] = (chain_row_t){(uint8_t)RS[r], 1};
-    chain.armed = 1;
-    play();
-    for (b = 0; b < 3000u; b++) {                     /* two passes of both rows */
-        render_mix(0, 0, CTL);
-        if (chain.running && trk[0].seq_pos > 300u && trk[0].seq_pos < 5000u) {
-            int want = chain.slot == 0u && trk[0].seq_idx == 4u ? 100 : 64;
-            ok &= trk[0].p[P_E1] == want;
-            seen[want == 100] += chain.slot == 1u || want == 100;
-        }
-    }
-    stop();
-    ok &= trk[0].p[P_E1] == 64 && mo.b.count == 0u && SB[1].count == 0u && seen[0] && seen[1];
-    check("lock in a song: each row plays its slot's locks; none leaks into the next row; the working bank untouched", ok);
-    memset(&chain, 0, sizeof chain);
-}
 static void lock_turn_while_held(void)
 {
     int ok;
@@ -522,7 +479,6 @@ int main(void)
     lock_lfo_motion_same_knob();
     lock_lfo_fx_dest();
     lock_dormant_off_step();
-    lock_song_row_change();
     lock_turn_while_held();
     lock_stop_releases();
     lock_model_change();

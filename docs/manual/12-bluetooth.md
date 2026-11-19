@@ -107,7 +107,7 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 | BANK / CHANNEL left, right | the previous / next track (stops at 1 and 8) |
 | REW, FF, the arrows | nothing |
 
-- While a song plays or is armed, REC 1-8 and REC say `STOP TO EDIT`. While a dialog or NAME is on screen, the mixer's buttons and knobs do nothing.
+- While a dialog or NAME is on screen, the mixer's buttons and knobs do nothing.
 - **LEDs:** MUTE n lit = muted (or waiting for the next bar), SOLO n = soloed, REC n = armed, SELECT n = selected, PLAY = playing, STOP = stopped, REC = any track armed. They are sent again on every connection.
 - **Fader pickup:** a fader does nothing until it reaches its track's level (within 2, or passing it); until then the mixer blinks its LED. On every connection, and whenever a track's LEVEL changes some other way (knob, LOAD, INIT, LEVEL motion), that fader has to be picked up again.
 - **Solo:** while any track is soloed, only the soloed tracks are heard; several can be soloed. A silenced track is dimmed on HOME and TRACKS; the mutes are unchanged. Solo clears itself when the SMC-Mixer disconnects and when MODE leaves SMC DAW (nothing is cut). Solo is not saved: INIT and a power-on clear it too. It is the same solo as the MUTE screen's (hold GLO, black keys).

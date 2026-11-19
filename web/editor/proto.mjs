@@ -33,7 +33,7 @@ export const CMD = {
 export const PUSH = { CHANGED: 0x40, STATE: 0x41, STEPS_CHANGED: 0x42, LOCKS_CHANGED: 0x43 };
 export const RC = { OK: 0, BAD: 1, REFUSED: 2, STOP: 3, FLASH: 4, STALE: 5, BUSY: 6 };
 export const DETAIL = {
-  NONE: 0, CUE_FULL: 1, CUE_SONG: 2, CUE_NOSLOT: 3, CUE_EMPTY: 4, CUE_PARK: 8, // CUE_PARK + slot
+  NONE: 0, CUE_FULL: 1, CUE_NOSLOT: 3, CUE_EMPTY: 4, CUE_PARK: 8, // CUE_PARK + slot; 2 reserved (was CUE_SONG)
   EMPTY_SLOT: 16, PRESET_EMPTY: 17, ACID_CAP: 18, NOT_LOCKABLE: 19, LOCKS_FULL: 20, VARS_FULL: 21, NO_SLOT: 22,
   NEWER: 23, BAD_OBJECT: 24, CRC: 25, INVALID: 26, INCOMPLETE: 27, NO_FLASH: 28, BLOCKED: 29, NOT_PRESENT: 30,
   TOO_BIG: 31, CUE_FIRST: 32, CHANGED: 33, ORDER: 34, REFUSED_DATA: 35, RESTORING: 40, NOT_RESTORING: 41, STOP: 42,
@@ -61,7 +61,7 @@ export const SCOPE = { TRACK: 0, GLOBAL: 1, MODEL: 2 };
 export const ID = { MODEL: 0, ITYPE: 58, SYNC: 12 };
 export const GR = { LFO: 8 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
 export const DF = { SPLIT: 0x01, ORDER: 0x02, LOCK: 0x04, RO: 0x08, CONTEXT: 0x10 };
-export const SF = { RESTORING: 0x01, SONG: 0x02, NOFLASH: 0x04 };
+export const SF = { RESTORING: 0x01, NOFLASH: 0x04 }; // 0x02 reserved (was SONG)
 export const STEP = { ON: 0x01, ACC: 0x02, SLIDE: 0x04, TIE: 0x08, RAT_SHIFT: 4, NT_OFFSET: 60, MICRO_OFFSET: 64, MICRO_MAX: 50 };
 export const CUE = { SLOT: 0, VAR: 1 };
 export const LK = { SET: 0, CLEAR: 1, CLEAR_STEP: 2, CLEAR_TRACK: 3, MOTION: 1, LOCK: 2 };
@@ -97,7 +97,7 @@ export const LAYOUT = {
   uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
   timing: [18, 19, 20], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
   project: { size: 3840, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 3246, lk_link: 3248, var_link: 3252,
-    var_len: 3256, xp: 3258, xp2: 3314, xp3: 3346, song: 3762, name: 3798, pre: 3810, pre_ed: 3826, sum: 3836 },
+    var_len: 3256, xp: 3258, xp2: 3314, xp3: 3346, rsv_song: 3762, name: 3798, pre: 3810, pre_ed: 3826, sum: 3836 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
   vars: { slot: 4, used: 6, d: 8 },
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
@@ -605,11 +605,11 @@ export function decodeProject(b) {
   let name = "";
   for (let i = 0; i < LAYOUT.nameLen && b[L.name + i]; i++) name += String.fromCharCode(b[L.name + i]);
   if ([...name].some((c) => !NAME_SET.includes(c))) name = "";
-  return { magic, format: magicText(magic), old: f, full: true, ok, g, sel: b[L.sel], tracks, name, song: b.slice(L.song, L.song + 36),
+  return { magic, format: magicText(magic), old: f, full: true, ok, g, sel: b[L.sel], tracks, name,
     lk_n: v.getUint16(L.lk_n, true), lk_link: v.getUint32(L.lk_link, true), var_link: v.getUint32(L.var_link, true),
     var_len: v.getUint16(L.var_len, true), sum: v.getUint32(L.sum, true) };
 }
-/** p: { g[32], sel, tracks[8] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, song?, lk_n,
+/** p: { g[32], sel, tracks[8] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, lk_n,
  * lk_link, var_link, var_len } -> 3840 B with its sum; format "FDRF": the record an editor before NUDGE wrote (tests) */
 export function encodeProject(p, format = "FDRG") {
   const b = new Uint8Array(SZ.PROJECT), v = dv(b), L = LAYOUT.project, f = format === "FDRF", nx = LAYOUT.xpDef.length;
@@ -641,7 +641,6 @@ export function encodeProject(p, format = "FDRG") {
   v.setUint32(L.lk_link, p.lk_link || 0, true);
   v.setUint32(L.var_link, p.var_link || 0, true);
   v.setUint16(L.var_len, p.var_len || 0, true);
-  if (p.song) b.set(p.song.slice(0, 36), L.song);
   for (let i = 0; i < Math.min(LAYOUT.nameLen, (p.name || "").length); i++) b[L.name + i] = p.name.charCodeAt(i);
   v.setUint32(L.sum, fnv1a(b, L.sum), true);
   return b;

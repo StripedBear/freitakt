@@ -98,11 +98,6 @@ function xcheck(bin) {
   set("SET CHOKE (the retried write's first send)", 0, 0, P.CHOKE, 2, 100);
   dev("turn 0 12 3", () => m.turn(0, P.CHOKE, 3));
   set("SET CHOKE retried (same seq): its first reply byte for byte", 0, 0, P.CHOKE, 2, 100);
-  dev("song 1", () => m.setSong(true));
-  set("SET LEN while a song plays: rc 0, unchanged", 0, 0, P.SLEN, 32);
-  rq("STEPS_SET while a song plays: rc 2 2 STOP TO EDIT", CMD.STEPS_SET, { slot: NONE, var: 0, track: 0, first: 0, steps: [{ flags: 1, cond: 0, note: 60 }] });
-  rq("CUE while a song plays: rc 2 2", CMD.CUE, { kind: CUE.VAR, n: 1 });
-  dev("song 0", () => m.setSong(false));
   { /* the user sample slots (minor 3): an upload, its refusals, READ, RENAME, CLEAR */
     const pcm = Int16Array.from({ length: 2600 }, (_, i) => Math.round(9000 * Math.sin(i / 7) + 3000 * Math.sin(i / 2.3)));
     const S = encodeSample(pcm, 22050, "XKICK"), d = S.data, h = S.header, crc = crc32(d);

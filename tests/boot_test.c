@@ -1140,27 +1140,24 @@ static int fdr8_load_while_playing(void)
         render_mix(L, R, CTL);                       /* the stop the load asked for */
     return !song.playing && trk[0].p[P_E1] == 11;
 }
-/* the song and the name go through a save and a load (flash; FDRA) */
+/* the name goes through a save and a load (flash; FDRA); the removed song's bytes stored as 0 */
 static int fdr9_round_trip(void)
 {
+    uint32_t i, z = 0;
     memset(hflash, 0xFF, sizeof hflash);
     host_init();
     persist_boot();
-    chain.cfg.count = 2;
-    chain.cfg.loop = 1;
-    chain.cfg.row[0] = (chain_row_t){1, 4};
-    chain.cfg.row[1] = (chain_row_t){3, 16};
-    name_set(chain.name, "BREAK 2");
+    name_set(pname.name, "BREAK 2");
     project_save(2);
-    memset(&chain, 0, sizeof chain);
+    for (i = 0; i < sizeof proj_slot[2].rsv_song; i++)
+        z |= proj_slot[2].rsv_song[i];
+    memset(&pname, 0, sizeof pname);
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
     project_load(2);
-    return chain.cfg.count == 2u && chain.cfg.loop == 1u && chain.cfg.row[0].slot == 1u &&
-           chain.cfg.row[0].repeat == 4u && chain.cfg.row[1].slot == 3u && chain.cfg.row[1].repeat == 16u &&
-           str_eq(chain.name, "BREAK 2") && chain.from == 3u && sizeof(project_t) == 3840u;   /* (FDRE) */
+    return !z && str_eq(pname.name, "BREAK 2") && pname.from == 3u && sizeof(project_t) == 3840u;   /* (FDRE) */
 }
-/* an FDR9 record (3592 B): its values, steps, motion, song and name; the filter OFF */
+/* an FDR9 record (3592 B): its values, steps, motion and name; its song dropped (reserved, 0); the filter OFF */
 static int fdr9_converts(void)
 {
     project_v9_t v;
@@ -1180,8 +1177,7 @@ static int fdr9_converts(void)
     v.motion.count = 1;
     v.motion.on = 1;
     v.motion.ev[0] = (motion_event_t){0, 4, P_E1, 77};
-    v.song.count = 1;
-    v.song.row[0] = (chain_row_t){2, 3};
+    memset(v.rsv_song, 0x5A, sizeof v.rsv_song);     /* an old song: dropped */
     memcpy(v.name, "OLD ONE", 7);
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
@@ -1190,7 +1186,7 @@ static int fdr9_converts(void)
     trk[0].p[P_FTYPE] = FT_LP;                       /* before: the load sets the filter OFF */
     project_load(1);
     return sizeof v == 3592u && trk[1].p[P_E1] == 99 && trk[2].step[9].on && mo.b.count == 1u &&
-           chain.cfg.count == 1u && chain.cfg.row[0].slot == 2u && str_eq(chain.name, "OLD ONE") &&
+           !proj_slot[1].rsv_song[0] && !proj_slot[1].rsv_song[35] && str_eq(pname.name, "OLD ONE") &&
            trk[0].p[P_FTYPE] == FT_OFF && trk[0].p[P_FCUT] == 127 && trk[0].p[P_FDEC] == 40;
 }
 /* FDRA: the five filter knobs through a save and a load (flash) */
@@ -1267,7 +1263,7 @@ static int fdra_flash_converts(void)
     project_load(2);
     return sizeof v == 3672u && trk[3].p[P_FCUT] == 33 && trk[3].step[7].on && trk[3].step[7].acc &&
            trk[3].step[7].cond == 5u && trk[3].step[7].rat == 2u && trk[3].step[7].nt == 0 && !trk[3].step[7].slide &&
-           !trk[3].step[7].tie && !trk[3].step[8].on && trk[3].step[8].acc && str_eq(chain.name, "FDRA ONE");
+           !trk[3].step[7].tie && !trk[3].step[8].on && trk[3].step[8].acc && str_eq(pname.name, "FDRA ONE");
 }
 /* an FDRA image left in a RAM slot by 0.15.0 (.noinit, 3672 B a slot): FDRC's slots are larger, so the image is not
  * read; the slot is fetched from flash (its FDRA record converted) */
@@ -1301,7 +1297,7 @@ static int fdra_ram_refetched(void)
     return trk[6].step[3].on && trk[6].step[3].rat == 3u && trk[6].step[3].nt == 0 && song.g[G_BPM] == 133 &&
            trk[6].p[P_FCUT] == 33 && trk[7].step[NSTEP - 1u].on && trk[7].step[NSTEP - 1u].acc &&
            trk[7].step[NSTEP - 1u].cond == 4u && trk[7].step[NSTEP - 1u].rat == 1u && !trk[7].step[NSTEP - 1u].tie &&
-           !trk[6].step[4].on && str_eq(chain.name, "RAM FDRA") && trk[6].p[P_PRIO] == 0;
+           !trk[6].step[4].on && str_eq(pname.name, "RAM FDRA") && trk[6].p[P_PRIO] == 0;
 }
 /* FDRB: SLIDE, TIE and the note through a save and a load (flash) */
 static int fdrb_round_trip(void)
@@ -1340,7 +1336,7 @@ static int fdrb_clamps(void)
            trk[4].step[2].rat == 3u && ((const uint8_t *)&trk[4].step[2])[0] == 0x3Fu &&
            trk[4].step[2].micro == MICRO_MAX && trk[4].step[3].nt == NT_MAX && trk[4].step[5].nt == NT_MIN;
 }
-/* an FDR8 record (3544 B): its motion, an empty song, no name */
+/* an FDR8 record (3544 B): its motion, no name */
 static int fdr8_converts(void)
 {
     project_v8_t v;
@@ -1363,75 +1359,28 @@ static int fdr8_converts(void)
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
-    chain.cfg.count = 3;                             /* a song and a name in RAM before: the load replaces them */
-    name_set(chain.name, "OLD");
+                                                     /* a name in RAM before: the load replaces it */
+    name_set(pname.name, "OLD");
     project_load(1);
-    return trk[2].step[9].on && mo.b.count == 1u && mo.b.val[0] == 77 && chain.cfg.count == 0u &&
-           !chain.name[0] && sizeof v == 3544u;
+    return trk[2].step[9].on && mo.b.count == 1u && mo.b.val[0] == 77 &&
+           !pname.name[0] && sizeof v == 3544u;
 }
-/* a broken song or name: the project loads, they are dropped */
-static int fdr9_bad_song_name_dropped(void)
+/* a broken name: the project loads, the name is dropped */
+static int fdr9_bad_name_dropped(void)
 {
     project_t *p = &proj_slot[0];
     memset(hflash, 0xFF, sizeof hflash);
     host_init();
     persist_boot();
     trk[3].step[5].on = 1;
-    chain.cfg.count = 1;
-    chain.cfg.row[0] = (chain_row_t){0, 1};
-    name_set(chain.name, "OK");
+    name_set(pname.name, "OK");
     project_save(0);
-    p->song.row[0].repeat = 0;                       /* invalid */
     p->name[0] = 'a';                                /* outside the NAME set */
     p->sum = proj_sum(p);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     trk[3].step[5].on = 0;
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
-    return trk[3].step[5].on && chain.cfg.count == 0u && !chain.name[0];
-}
-/* chain_prepare: rows need used slots; the slots' garbage (cond, rat, timing, motion) is made safe */
-static int song_garbage_slot(void)
-{
-    project_t *p = &proj_slot[1];
-    uint32_t b, rc_empty, rc;
-    memset(hflash, 0xFF, sizeof hflash);
-    memset(proj_slot, 0, sizeof proj_slot);          /* (no slot left in RAM by the tests before) */
-    host_init();
-    persist_boot();
-    chain.cfg.count = 1;
-    chain.cfg.row[0] = (chain_row_t){1, 1};
-    rc_empty = chain_prepare();
-    project_save(1);
-    memset(p->t[0].step, 0xFF, sizeof p->t[0].step);  /* cond 255, rat 255, on 255 */
-    p->t[0].p[PR_P(P_SLEN)] = 999;
-    p->t[0].p[PR_P(P_SDIV)] = -7;
-    p->sum = proj_sum(p);
-    lk_slot[1].count = 1025;                         /* its bank broken */
-    rc = chain_prepare();
-    for (b = 0; b < 400u; b++)
-        render_mix(L, R, CTL);
-    transport_req = 2;
-    render_mix(L, R, CTL);
-    return rc_empty == 4u && rc == 0u && chain.src[1].timing[0][0] == NSTEP && chain.src[1].timing[0][1] == 0 &&
-           chain.src[1].m == &LK_NONE && !song.playing;
-}
-/* LOAD while a song plays: refused */
-static int song_blocks_load(void)
-{
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    trk[0].p[P_E1] = 11;
-    project_save(0);
-    trk[0].p[P_E1] = 64;
-    chain.cfg.count = 1;
-    chain.cfg.row[0] = (chain_row_t){0, 1};
-    chain_prepare();
-    render_mix(L, R, CTL);
-    project_load(0);
-    transport_req = 2;
-    render_mix(L, R, CTL);
-    return trk[0].p[P_E1] == 64 && str_eq(ui.msg, "STOP TO LOAD");
+    return trk[3].step[5].on && !pname.name[0];
 }
 /* a rename writes only the name (flash), and renames the current project when it is that slot */
 static int rename_slot(void)
@@ -1441,12 +1390,12 @@ static int rename_slot(void)
     host_init();
     persist_boot();
     trk[1].step[2].on = 1;
-    name_set(chain.name, "A NAME");
+    name_set(pname.name, "A NAME");
     project_save(3);
     project_rename(3, "INTRO");
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
-    return project_name(3, b) && str_eq(b, "INTRO") && proj_slot[3].t[1].step[2].on && str_eq(chain.name, "INTRO") &&
+    return project_name(3, b) && str_eq(b, "INTRO") && proj_slot[3].t[1].step[2].on && str_eq(pname.name, "INTRO") &&
            !project_name(2, b) && !b[0];
 }
 /* ---- FDRC (spec 2026-10-11 §10): PRIO per track; the older formats load with PRIO HIGH */
@@ -1467,8 +1416,7 @@ static void fdrb_of_live(project_vb_t *v)
         memcpy(v->t[k].step, trk[k].step, sizeof v->t[k].step);
     }
     v->motion = mo_legacy();
-    v->song = chain.cfg;
-    memcpy(v->name, chain.name, NAME_LEN);
+    memcpy(v->name, pname.name, NAME_LEN);
     v->sum = proj_hash(v, sizeof *v - 4u);
 }
 
@@ -1486,14 +1434,14 @@ static int all_prio_is(int16_t p)
     return (int)ok;
 }
 
-/* an FDRB record (0.16.0) loads: its steps (note, SLIDE, TIE), parameters, motion, song and name; PRIO HIGH */
+/* an FDRB record (0.16.0) loads: its steps (note, SLIDE, TIE), parameters, motion and name; PRIO HIGH */
 static int fdrb_converts(void)
 {
     static project_vb_t v;
     memset(hflash, 0xFF, sizeof hflash);
     host_init();
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     trk[2].step[4].on = 1;
     trk[2].step[4].slide = 1;
     trk[2].step[4].nt = -12;
@@ -1503,22 +1451,20 @@ static int fdrb_converts(void)
     song.g[G_BPM] = 91;
     song.sel = 5;
     motion_add(1, 3, P_E1, 50);
-    chain.cfg.count = 1;
-    chain.cfg.row[0] = (chain_row_t){2, 2};
-    name_set(chain.name, "FDRB ONE");
+    name_set(pname.name, "FDRB ONE");
     fdrb_of_live(&v);
     st_save(OBJ_PROJECT0 + 2u, &v, sizeof v);
     host_init();
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
     all_prio(1);                                     /* LOW before: the load sets HIGH */
     project_load(2);
     return sizeof v == 3672u && trk[2].step[4].on && trk[2].step[4].slide && trk[2].step[4].nt == -12 &&
            trk[2].step[5].tie && trk[5].p[P_FCUT] == 21 && trk[5].p[P_FDEC] == 99 && song.g[G_BPM] == 91 &&
-           song.sel == 5 && mo.b.count == 1u && mo.b.val[0] == 50 && chain.cfg.count == 1u &&
-           str_eq(chain.name, "FDRB ONE") && all_prio_is(0) && str_eq(ui.msg, "LOADED");
+           song.sel == 5 && mo.b.count == 1u && mo.b.val[0] == 50 &&
+           str_eq(pname.name, "FDRB ONE") && all_prio_is(0) && str_eq(ui.msg, "LOADED");
 }
 
 /* PRIO through a save and a load (flash; FDRC's, now FDRD's) */
@@ -1558,7 +1504,7 @@ static void pattern_kit(void)                        /* the power-on kit, a groo
     uint32_t s;
     host_init();
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     for (s = 0; s < 16u; s++) {
         trk[0].step[s].on = s % 4u == 0u;
         trk[1].step[s].on = s % 8u == 4u;
@@ -1653,8 +1599,7 @@ static void fdrd_of_live(project_vd_t *v)
         v->pre_ed[k] = trk[k].pre_ed;
     }
     v->motion = mo_legacy();
-    v->song = chain.cfg;
-    memcpy(v->name, chain.name, NAME_LEN);
+    memcpy(v->name, pname.name, NAME_LEN);
     v->sum = proj_hash(v, sizeof *v - 4u);
 }
 static int fdrd_lfo_converts(void)
@@ -1679,7 +1624,7 @@ static int fdrd_lfo_converts(void)
     trk[2].pre = (uint16_t)pre;
     trk[2].pre_ed = 1;
     motion_add(0, 2, P_LFO1 + LF_DEPTH, 12);         /* motion on LFO 1's DEPTH: slot 1's now */
-    name_set(chain.name, "LFO OLD");
+    name_set(pname.name, "LFO OLD");
     fdrd_of_live(&v);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
     project_save(0);                                 /* the same state as FDRE */
@@ -1695,7 +1640,7 @@ static int fdrd_lfo_converts(void)
     ok &= trk[0].p[P_LFO1 + LF_DEST] == 3 && trk[0].p[P_LFO1 + LF_DEPTH] == 40 && trk[0].p[P_LFO2 + LF_DEST] == 9 &&
           trk[0].p[P_LFO2 + LF_DEPTH] == -30 && trk[3].p[P_LFO2 + LF_DEST] == 10 && trk[3].p[P_LFO2 + LF_DEPTH] == 64;
     ok &= pre != PRE_NONE && trk[2].pre == pre && trk[2].pre_ed == 1u && mo.b.count == 1u && (mo.b.key[0] & 127u) == P_LFO1 + LF_DEPTH &&
-          str_eq(chain.name, "LFO OLD");
+          str_eq(pname.name, "LFO OLD");
     if (h != ref || !ok)
         printf("     FDRD -> FDRE: play %08x (FDRE save %08x), fields %u\n", h, ref, ok);
     return (int)ok && h == ref && sizeof v == 3712u && proj_slot[1].magic == PROJ_MAGIC && proj_ok(&proj_slot[1]);
@@ -1809,10 +1754,10 @@ static int fdrb_ram_refetched(void)
     memset(hflash, 0xFF, sizeof hflash);
     host_init();
     persist_boot();
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     for (k = 0; k < 4u; k++) {
         song.g[G_BPM] = (int16_t)(101 + k);
-        name_set(chain.name, k == 0u ? "FLASH A" : k == 1u ? "FLASH B" : k == 2u ? "FLASH C" : "FLASH D");
+        name_set(pname.name, k == 0u ? "FLASH A" : k == 1u ? "FLASH B" : k == 2u ? "FLASH C" : "FLASH D");
         fdrb_of_live(&v);
         if (k < 3u)
             st_save(OBJ_PROJECT0 + k, &v, sizeof v);   /* slot D: in RAM only */
@@ -1846,7 +1791,7 @@ static uint32_t power_on(int seq)
     memset(trk, 0, sizeof trk);
     memset(&ui, 0, sizeof ui);
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     rfill(&lastp, sizeof lastp);                     /* (persist_boot sets it: from the flash record or 0) */
     transport_req = 0;
     persist_boot();
@@ -1905,13 +1850,13 @@ static int last_project_loads(void)
     trk[3].step[6].on = 1;
     trk[2].p[P_PRIO] = 1;
     song.g[G_BPM] = 97;
-    name_set(chain.name, "LAST ONE");
+    name_set(pname.name, "LAST ONE");
     project_save(1);
     project_save(3);                                 /* the last one wins */
     ok = str_eq(ui.msg, "SAVED") && lastp.set == 1u && lastp.slot == 3u && lc_bits() == (2u | 1u << 2 | 3u << 3);
     irq = power_on(0);
     ok &= trk[3].p[P_E1] == 11 && trk[3].step[6].on && trk[2].p[P_PRIO] == 1 && song.g[G_BPM] == 97 &&
-          str_eq(chain.name, "LAST ONE") && chain.from == 4u && song.g[G_SLOT] == 4 && !song.playing &&
+          str_eq(pname.name, "LAST ONE") && pname.from == 4u && song.g[G_SLOT] == 4 && !song.playing &&
           str_eq(ui.msg, "LOADED") && !ui.confirm && irq == 0u && settings.lowcut == 2u && fx_lowcut == 2u &&
           lastp.set == 1u && lastp.slot == 3u;
     transport_req = 1;                               /* it plays after the boot */
@@ -2323,8 +2268,7 @@ static void fdre_of_live(project_ve_t *v)            /* the live state as 0.23.3
         v->pre_ed[i] = trk[i].pre_ed;
     }
     v->motion = mo_legacy();
-    v->song = chain.cfg;
-    memcpy(v->name, chain.name, NAME_LEN);
+    memcpy(v->name, pname.name, NAME_LEN);
     v->sum = proj_hash(v, sizeof *v - 4u);
 }
 static int fdre_migrates(void)
@@ -2343,7 +2287,7 @@ static int fdre_migrates(void)
     motion_add(2, 9, P_LEVEL, 3);
     motion_add(6, 63, P_SRR, 120);
     mo.b.on = 0x05;
-    name_set(chain.name, "OLD FDRE");
+    name_set(pname.name, "OLD FDRE");
     fdre_of_live(&v);
     memcpy(want, trk, sizeof trk);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
@@ -2356,7 +2300,7 @@ static int fdre_migrates(void)
     ok &= mo.b.count == 3u && lk_count(&mo.b, 0, LK_LOCK) + lk_count(&mo.b, 2, LK_LOCK) + lk_count(&mo.b, 6, LK_LOCK) == 0u;
     ok &= lk_find(&mo.b, lk_key(6, 63, P_SRR), 0) >= 0 && mo.b.on == 5u && !lk_lost && !(persist_note & PN_LOCKS);
     return (int)ok && sizeof v == 3840u && proj_slot[1].magic == PROJ_MAGIC && str_eq(ui.msg, "LOADED") &&
-           str_eq(chain.name, "OLD FDRE");
+           str_eq(pname.name, "OLD FDRE");
 }
 /* MICRO (spec 2026-10-31 §1): "FDRG" keeps every step's micro in its spare byte, and the 7 parameters past the block
  * (KEYF, SRR, the INSERT's TYPE A B C MIX) in the reserved area (7 B a track; FREITAKT removed RESON: KEYF's 0) */
@@ -2710,8 +2654,8 @@ int main(void)
     check("project: an FDR7 record (3028 B) loads with no motion", fdr7_converts());
     check("project: a broken motion block is dropped, the project loads", fdr8_bad_motion_dropped());
     check("project: a load while motion plays: the old base is not put back", fdr8_load_while_playing());
-    check("project: FDRA keeps the song and the name through a save and a load", fdr9_round_trip());
-    check("project: an FDR9 record loads, the filter OFF", fdr9_converts());
+    check("project: FDRA keeps the name through a save and a load, the song bytes 0", fdr9_round_trip());
+    check("project: an FDR9 record loads (its song dropped), the filter OFF", fdr9_converts());
     check("project: FDRA keeps the five filter knobs through a save and a load", fdra_round_trip());
     check("project: out-of-range filter values are clamped on load", fdra_clamps());
     check("project: FDRB's step layout (flags, cond, note offset) in 4 bytes", fdrb_step_layout());
@@ -2719,10 +2663,8 @@ int main(void)
     check("project: an FDRA image in a RAM slot (0.15.0's layout) is not read; the flash copy loads", fdra_ram_refetched());
     check("project: FDRB keeps SLIDE, TIE and the note through a save and a load", fdrb_round_trip());
     check("project: a stored step's reserved bits are cleared, its note and MICRO clamped", fdrb_clamps());
-    check("project: an FDR8 record (3544 B) loads with its motion, no song, no name", fdr8_converts());
-    check("project: a broken song or name is dropped, the project loads", fdr9_bad_song_name_dropped());
-    check("song: an empty slot refused; a slot's garbage made safe (ASan)", song_garbage_slot());
-    check("song: LOAD while a song plays: STOP TO LOAD", song_blocks_load());
+    check("project: an FDR8 record (3544 B) loads with its motion, no name", fdr8_converts());
+    check("project: a broken name is dropped, the project loads", fdr9_bad_name_dropped());
     check("project: a rename writes the name only, the current project's too", rename_slot());
     check("MEMB at every extreme: bounded (ASan)", memb_extremes());
     check("settings: MUTE NEXT BAR, ZOOM and KNOB ACCEL survive a power cycle (Felucca's settings format)", mutebar_persists());
@@ -2752,7 +2694,7 @@ int main(void)
           quant_persists());
     check("project: SYNC / ROUT load OFF / NOTE from older projects; ROUT in range; SYNC BLE / BOTH without Bluetooth: "
           "OFF / USB", sync_rout_load());
-    check("project: an FDRB record (0.16.0) loads with PRIO HIGH, its steps, motion, song and name", fdrb_converts());
+    check("project: an FDRB record (0.16.0) loads with PRIO HIGH, its steps, motion and name", fdrb_converts());
     check("project: PRIO kept through a save and a load (FDRE)", fdrc_round_trip());
     check("project: FDR1, FDRA and FDRB records load with PRIO HIGH and play as the FDRC save", old_formats_play_same());
     check("project: 0.16.0's RAM slots (FDRB) are not read; the flash records load (converted)", fdrb_ram_refetched());

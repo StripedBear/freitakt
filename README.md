@@ -49,7 +49,7 @@ firmware ([below](#back-to-the-official-firmware)).
   power-on kit drum.
 - **MOTION.** Knob turns recorded per step while a track plays, and played back with the pattern: up to 1024 events
   per project (shared by the 8 tracks).
-- **SONG and names.** Chain up to 16 rows of projects with repeats; name projects on the device.
+- **Names.** Name projects on the device.
 - **Compressor.** The Streams compressor keyed by any track, for ducking and pumping; GHOST keeps the pump with the
   key track muted.
 - **Movement.** Two LFOs per track, ten waves with a morph between them, synced to the tempo.
@@ -101,10 +101,10 @@ firmware ([below](#back-to-the-official-firmware)).
 | --- | --- |
 | **HOME** | two modes: **TRACKS** (levels, lengths, pans; the selected track's steps on the keys) and **HOME** (the scope, the selected track's first four knobs, the keys play the tracks; SELECT on to the compressor's pages). A HOME tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. Hold HOME for the menu |
 | **EDIT** | the selected track's sound: its model and knobs (on HOME, EDIT, FX and LFO the selected track's key is lit; a white key F3..F4 selects its track) |
-| **SEQ** | the steps on the white keys (a short tap: on / off, on the release; hold a step 0.3 s: an off step turns on at once, an on step stays as it is; while held KNOB 1 / 2 / 3 / 4: PROB / RATCH / ACCENT (right on, left off) / NUDGE, on STEP, PATTERN, MOTION, SONG and TRACKS alike (the page's own knobs rest while a step is held); hold OCT+ and tap a step: its accent; OCT+ alone / OCT-: the bank), then PATTERN, MOTION and SONG (each tap on its release); held: the TOOLS screen ([step tools](#step-tools): copy and paste steps, pages, selections, DUPLICATE, CLEAR) |
+| **SEQ** | the steps on the white keys (a short tap: on / off, on the release; hold a step 0.3 s: an off step turns on at once, an on step stays as it is; while held KNOB 1 / 2 / 3 / 4: PROB / RATCH / ACCENT (right on, left off) / NUDGE, on STEP, PATTERN, MOTION and TRACKS alike (the page's own knobs rest while a step is held); hold OCT+ and tap a step: its accent; OCT+ alone / OCT-: the bank), then PATTERN and MOTION (each tap on its release); held: the TOOLS screen ([step tools](#step-tools): copy and paste steps, pages, selections, DUPLICATE, CLEAR) |
 | **FX** | FILTER, FX (the sends), INSERT (and SRR); hold it for PERFORM |
 | **LFO** | the track's two LFOs, side by side on every page (LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4), then DEST: 4 slots, each a source (LFO 1 / LFO 2), a destination knob (the engine's knobs, LVL, PAN, the FILTER knobs, SRR, DST, the CHO / DLY / REV sends, the INSERT's MIX and its A B C) and its own depth |
-| **REC** | on TRACKS: arms / disarms the selected track for recording (`T3 REC ARMED` / `T3 REC OFF`; during REC ALL: REC ALL ends, the selected track armed). On every other screen: REC ALL on / off (every track armed, each white key records its own track; off: the arm state from before back). It never starts play: PLAY does. On STEP with KEYS on and stopped: step record. Held on a SEQ page: CLEAR TRACK; on SONG: DELETE ROW / CLEAR SONG |
+| **REC** | on TRACKS: arms / disarms the selected track for recording (`T3 REC ARMED` / `T3 REC OFF`; during REC ALL: REC ALL ends, the selected track armed). On every other screen: REC ALL on / off (every track armed, each white key records its own track; off: the arm state from before back). It never starts play: PLAY does. On STEP with KEYS on and stopped: step record. Held on a SEQ page: CLEAR TRACK |
 | **GLO** | a tap: global and system settings, then the delay, the reverb and the chorus; held: the MUTE screen ([mutes](#mutes); G4: [MIDI LEARN](#midi-learn)) |
 | **SAVE** | tap (on the release): projects (save, load, name) and tools; held: the cue map (live cue) |
 | **SCL** (labelled SEL in the web simulator) | KEYS: the keys play the selected track; OCT- / OCT+ set the octave (-2 to +2); on STEP, stopped, REC starts step record |
@@ -154,7 +154,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
 | Learn | How to pick it (LEARN on) | What it takes | What it does |
 | --- | --- | --- | --- |
 | a knob of a track | turn the knob (it edits as usual) | a CC | moves that knob of that track, 0..127 over its range |
-| PLAY | press PLAY (nothing plays) | a CC or a note | a press = a PLAY tap: play / stop (on SONG: the song) |
+| PLAY | press PLAY (nothing plays) | a CC or a note | a press = a PLAY tap: play / stop |
 | REC | press REC (nothing arms) | a CC or a note | a press = a REC tap, as the button: TRACKS the selected track, elsewhere REC ALL (step record as the button) |
 | NEXT TRACK / PREV TRACK | turn ALGORITHM right / left (the track stays) | a CC or a note | a press selects the next / previous track |
 | a PERFORM effect | hold FX, press its black key (nothing plays) | a CC or a note | held while the controller's button is held, as the key (FX need not be held) |
@@ -183,8 +183,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
   menu, a confirm, or NAME also end it; it is always off at power-on.
 - **What a CC does on a knob:** 0 to 127 spans the knob's whole range; a centred knob (PAN, an LFO's DEPTH, FILTER
   ENV) is 0 at 64; a list (FILTER TYPE, DIV, WAVE) steps through it in its order. A model's knob follows the track's
-  model (a model without that knob ignores it). An LFO on the same knob keeps moving it around the new value. During
-  a song, PATTERN's knobs stay as they are. CC moves are not recorded as motion.
+  model (a model without that knob ignores it). An LFO on the same knob keeps moving it around the new value. CC moves are not recorded as motion.
 - **A button:** a CC of 64 or more is a press, under 64 a release (only the change counts: a knob swept past 64
   presses once); a note on is a press, its note off (or velocity 0) the release. A learned note plays no drum. A
   PERFORM effect held this way follows the keys' rules (the last pressed buffer effect plays) and ends with the
@@ -241,7 +240,7 @@ unsaved edits (a PASTE, or edits kept when you left it) asks `OVERWRITE B*?` fir
 
 **COPY / PASTE a slot:** SAVE's third page, COPY (SAVE tapped three times): KNOB 1 SLOT, KNOB 2 COPY (remembers
 that slot: `COPIED A`, `#` after its letter), KNOB 3 PASTE (two detents: `AGAIN: PASTE`) onto SLOT's slot: its kit,
-steps, locks, variations and song become the copied slot's (the name gets ` COPY`), in RAM until SAVE (`B*`),
+steps, locks and variations become the copied slot's (the name gets ` COPY`), in RAM until SAVE (`B*`),
 including the copied slot's unsaved edits. PASTE again on the same slot before saving it undoes it (`PASTE UNDONE`).
 PASTE needs the transport stopped (`STOP TO PASTE`); onto the loaded slot the tempo and the other globals stay.
 
@@ -250,7 +249,7 @@ PASTE needs the transport stopped (`STOP TO PASTE`); onto the loaded slot the te
 Each project slot has **8 variations**: variation 1 is the slot's own steps; variations 2–8 each hold their own steps
 and timing (LEN, DIV, SWG, SRC per track) and share the slot's sounds and its locks (a lock plays on its step in every
 variation where that step plays). While a slot plays, the next slot (A–D) or another variation can be **queued**: it
-comes in exactly where the pattern ends (the longest track's LEN × DIV, as a SONG row ends), every track then from its
+comes in exactly where the pattern ends (the longest track's LEN × DIV), every track then from its
 step 0 on the same grid as before (swing and odd lengths keep their place). The same key again while queued switches
 at the next step; stopped, a cue switches at once. A slot switch changes everything of the slot (sounds, steps,
 timing, locks) but keeps the tempo, SWING, clock / MIDI / sync, the master FX, the mutes and the selected
@@ -259,14 +258,13 @@ steps and the timing; the voices ring on. A variation never used before starts a
 (steps and timing) the first time it is cued, and is a used variation from then on; when the slot's variations are
 full (about 7 typical ones fit; a dense one takes 1.6 KB) the cue says `VARIATIONS FULL` and the playing one plays
 on. A slot comes back on the variation it played last (after power-on: variation 1). Edits go to the playing
-variation and are kept when you cue away and back. While SONG plays a cue is refused (`STOP SONG TO CUE`); a SONG row
-plays its slot's variation 1. Following an external clock (CLK USB / TRS) the switch comes on the pulse that ends
+variation and are kept when you cue away and back. Following an external clock (CLK USB / TRS) the switch comes on the pulse that ends
 the pattern.
 Both versions, plain and Bluetooth, have the live cue and the variations, and read each other's saved projects with
 their variations.
 
 **The black keys are the variations.** The first 8 black keys from the left (F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4) queue
-variations 1–8 of the playing slot on HOME (both modes) and the SEQ pages (STEP, PATTERN, MOTION, SONG), with STEPS
+variations 1–8 of the playing slot on HOME (both modes) and the SEQ pages (STEP, PATTERN, MOTION), with STEPS
 on or off. There the playing variation's black key is lit, a queued one blinks and the rest are dark. With KEYS on,
 on the other pages, on the MUTE screen, under PERFORM, in the menu and in a dialog the black keys do what they did
 before.
@@ -278,8 +276,8 @@ key 2, then black key 3) queues both. The top line reads `CUE A3` (`CUE A3*` wit
 (`CUE>B`, `CUE>B3`, `CUE>A5`). The keys pressed with SAVE play no note, send no MIDI and record nothing.
 
 **FILL.** A step's PROB goes on past 8/8 to `FILL` and `!FILL`: a FILL step plays only while a fill is held, a !FILL
-step only when none is. **Hold REC** (0.4 s) on any page but SEQ's (STEP, PATTERN, MOTION, SONG: there REC held is
-their CLEAR / DELETE ROW as before) to play a fill for as long as you hold it (`FILL` in the top bar). A shorter REC
+step only when none is. **Hold REC** (0.4 s) on any page but SEQ's (STEP, PATTERN, MOTION: there REC held is
+their CLEAR as before) to play a fill for as long as you hold it (`FILL` in the top bar). A shorter REC
 press is the tap as before (TRACKS: arm the track; elsewhere REC ALL), on the release. A learned REC and the
 SMC-Mixer's REC are always taps. (An older firmware plays FILL / !FILL steps as 8/8.) A SAVE tap still opens the
 projects page, now on its release; SAVE does nothing in the menu, a dialog, NAME, the PRESETS list or the MUTE
@@ -400,7 +398,7 @@ clipboard and the step buffer hold, and each tool's result.
 A copied step is all of it: on, accent, PROB, ratchet, note, slide and tie, and its parameter locks (a pasted step's
 own locks are replaced). When the project's locks are full a paste brings what fits and says `LOCKS FULL`. The keys
 pressed with SEQ play nothing, send no MIDI and record nothing; the knobs rest (but START / END), PLAY works. Pastes
-are edits like any (SAVE keeps them); a playing song allows none (`STOP TO EDIT`). The clipboard stays until power-off,
+are edits like any (SAVE keeps them). The clipboard stays until power-off,
 also across projects. Let go of SEQ: back to the page you were on.
 
 ### Parameter locks
@@ -425,9 +423,8 @@ track's division and swing: +25 is a quarter of the step as it plays. A late hit
 locks as always, its RATCH hits spread over what is left of the step; an early hit plays in the step before (the
 sequencer looks one step ahead), its locks from the hit to the end of its own step. A nudged step has a mark against
 its box in the grid: on the left for early, on the right for late. A tap that turns a step off makes it plain again
-(NUDGE 0). NUDGE is part of the step: copied, saved and played with it everywhere (variations, the live cue, song
-rows, COPY / PASTE of a slot). In a song, an early first step does not reach into the row before it: a new row
-starts on the beat. Step record (KEYS, stopped) writes NUDGE 0.
+(NUDGE 0). NUDGE is part of the step: copied, saved and played with it everywhere (variations, the live cue,
+COPY / PASTE of a slot). Step record (KEYS, stopped) writes NUDGE 0.
 
 GLOBAL 3/7 **QUANT** sets where live recording puts a hit (keys, MIDI notes, the SMC-Mixer), on the track's own grid
 (exactly the 1/16 grid at DIV 1/16): **1/16** (the default) the nearest step, NUDGE 0, as before; **1/8** the
@@ -464,7 +461,7 @@ MENU (hold HOME) **BACKLIGHT** (the LED levels of upstream Felucca's MENU > LEDS
 DIM LO, DIM HI, INV, INV LO, INV HI. DIM LO (an older Hortator's BACKLIGHT ON): every key LED that is not lit and every
 idle button glows at about 3 % (a very short flash in every scan, about 900 a second: steady, also with
 Bluetooth on), so the panel can be found in the dark; on every screen where the white keys are the
-selected track's steps (STEP, PATTERN, MOTION and SONG while KEYS is off; HOME's TRACKS mode while no track is armed),
+selected track's steps (STEP, PATTERN, and MOTION while KEYS is off; HOME's TRACKS mode while no track is armed),
 the unlit steps 1, 5, 9 and 13 of the bank shown glow at about 25 % (bank 2: 17, 21, 25, 29), marking the beats. DIM
 HI: the same, brighter (about 6 %, the beats about 30 %). INV turns it around as the stock firmware does: the idle
 LEDs lit, the active ones (steps that are on, the playhead, held keys, the page's button) dark; INV LO / INV HI the
@@ -766,7 +763,7 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 | BANK ◀ / CHANNEL ◀, BANK ▶ / CHANNEL ▶ | the previous / next track (stops at 1 and 8) |
 | REW, FF, the arrows | nothing |
 
-While a song plays or is armed, REC 1–8 and REC say `STOP TO EDIT`, as the FM-1's REC does. An armed track records the
+An armed track records the
 FM-1's keys as live record does. While a dialog or NAME is on the screen, the mixer's buttons and knobs do nothing.
 
 - **LEDs:** MUTE n lit = track n muted (or a mute waiting for the next bar), SOLO n = soloed, REC n = armed,

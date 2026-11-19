@@ -182,8 +182,6 @@ static void tl_copy_step(uint32_t s)              /* COPY STEP: step s of the se
 static void tl_paste_step(uint32_t s)             /* PASTE STEP: the step buffer into step s */
 {
     uint32_t i;
-    if (song_lock())
-        return;
     tl_step_in(song.sel, s, &tl.st);
     for (i = 0; i < tl.st_n; i++)
         tl_lock_in(song.sel, s, tl.st_id[i], tl.st_v[i]);
@@ -193,7 +191,7 @@ static void tl_paste_step(uint32_t s)             /* PASTE STEP: the step buffer
 static void tl_paste_bank(int merge)
 {
     uint32_t a = ui.bank * 16u, len = tl_len(TSEL), j, n = tl.cn < 16u ? tl.cn : 16u;
-    if (!tl_clip_ok() || song_lock())
+    if (!tl_clip_ok())
         return;
     for (j = 0; j < n && a + j < len; j++)
         if (!merge || tl.cs[j].on)
@@ -203,7 +201,7 @@ static void tl_paste_bank(int merge)
 static void tl_fill(void)                         /* PASTE FILL: the clipboard over the pattern, again and again, to LEN */
 {
     uint32_t len = tl_len(TSEL), s, j = 0;
-    if (!tl_clip_ok() || song_lock())
+    if (!tl_clip_ok())
         return;
     for (s = 0; s < len; s++) {
         tl_clip_in(song.sel, s, j);
@@ -215,8 +213,6 @@ static void tl_fill(void)                         /* PASTE FILL: the clipboard o
 static void tl_paste_sel(uint32_t s)              /* PASTE SEL: the clipboard from step s on, clipped at 64 */
 {
     uint32_t j;
-    if (song_lock())
-        return;
     for (j = 0; j < tl.cn && s + j < NSTEP; j++)
         tl_clip_in(song.sel, s + j, j);
     tl_pasted("PASTED ", s, s + j - 1u);
@@ -227,8 +223,6 @@ static void tl_duplicate(void)
     uint8_t id[TL_SLK];
     int8_t v[TL_SLK];
     uint32_t k, s, i, n;
-    if (song_lock())
-        return;
     for (k = 0; k < NTRK; k++) {
         track_t *t = &trk[k];
         uint32_t len = tl_len(t), to = 2u * len > NSTEP ? NSTEP : 2u * len;
@@ -297,7 +291,7 @@ static void tl_keys(uint32_t hits)
     }
     if ((hits >> TL_K_DUP) & 1u)
         tl_duplicate();
-    if (((hits >> TL_K_CLEAR) & 1u) && !song_lock()) {   /* the dialog in the screen's place (ui_input.c: REC held) */
+    if ((hits >> TL_K_CLEAR) & 1u) {   /* the dialog in the screen's place (ui_input.c: REC held) */
         ui.confirm = 1;
         ui.confirm_trk = song.sel;
         tl_close();

@@ -266,7 +266,7 @@ static void draw_bt_icon(int32_t cx, uint32_t k)       /* the rune in BG lines, 
 }
 #endif
 /* the top bar (spec 2026-10-19-md-ui §5): an ink bar; in BG the state glyph (stop, play, REC armed elsewhere: an
- * outlined circle, the selected track armed: solid), BPM, FX (a PERFORM knob effect on), the mode or the song's row,
+ * outlined circle, the selected track armed: solid), BPM, FX (a PERFORM knob effect on), the mode,
  * T<n>, the CPU chip (steady for 2 s after an overload), USB, battery. Messages are a popup (draw_msg). */
 static void draw_head(void)
 {
@@ -279,7 +279,7 @@ static void draw_head(void)
     uint32_t blink = cpu;                             /* steady for its 2 s (cpu_alert) */
     uint32_t sig = (uint32_t)song.playing * 3u + rec * 5u + song.sel * 13131u + (uint32_t)song.g[G_BPM] * 101u +
                    (uint32_t)batt_shown() * 7777u + (usb.config && !usb.suspended) * 99991u +
-                   (chain.running ? (chain.row + 1u) * 104729u : 0u) + ui.keys * 7919u +
+                   ui.keys * 7919u +
                    (uint32_t)(song.octave + 2) * 1009u + ui.srec * 3571u + ui.sr_cur * 211u + pfx * 6151u +
                    (lock_view_step() + 1u) * 92821u + ui.env * 15485863u + fill_on * 7907u + ui.tools * 1299709u +
                    (ui.cue_map ? (1u + cue.q_slot + cue.q_var * 7u + var_cur * 61u +
@@ -303,11 +303,7 @@ static void draw_head(void)
         x += 22;
     }
     if (head_mode(m)) {
-        x = md_text(x + 6, 3, &MD_F3, 2, m, C_BG);    /* KEYS / STEP REC: before the song's row */
-    } else if (chain.running) {                       /* a song: its row */
-        str_cpy(b, "SONG ", sizeof b);
-        fmt_int(b + 5, (int32_t)chain.row + 1);
-        x = md_text(x + 6, 3, &MD_F3, 2, b, C_BG);
+        x = md_text(x + 6, 3, &MD_F3, 2, m, C_BG);    /* KEYS / STEP REC */
     }
     b[0] = 'T';
     b[1] = (char)('1' + song.sel);
@@ -837,7 +833,7 @@ static void graph_grid(const track_t *t, uint16_t c)
     if (ui.srec) {                             /* step record: the ways on and out */
         md_text(4, 84, &MD_F3, 2, "EDIT: REST  REC: END", C_INK);
     } else if (keys_mode()) {                         /* KEYS: the keys are notes; REC: step record where a tap starts
-                                                       * it (stopped; playing, a song: a tap arms the track) */
+                                                       * it (stopped; playing: a tap arms the track) */
         md_text(4, 84, &MD_F3, 2, srec_ok() ? "KEYS  REC: STEP RECORD" : "KEYS", C_INK);
     } else if (held_line(t, 84)) {
     } else {
@@ -867,7 +863,7 @@ static int32_t pr_row_y(int32_t n) { return PR_Y0 + ((int32_t)proll.lo + PR_ROWS
 /* the step whose note sounds at si: si when ON, the ON step before a run of TIEs (NSTEP: none) */
 static uint32_t pr_src(const track_t *t, uint32_t si, uint32_t len)
 {
-    const step_t *st = seq_steps(t);
+    const step_t *st = t->step;
     uint32_t k;
     for (k = 0; k < len && st[si].tie; k++)
         si = (si + len - 1u) % len;
@@ -877,7 +873,7 @@ static uint32_t pr_src(const track_t *t, uint32_t si, uint32_t len)
 /* the bank's sounding notes into nn (a TIE: its source's, pr_src); their count */
 static uint32_t pr_notes(const track_t *t, int32_t *nn)
 {
-    const step_t *st = seq_steps(t);
+    const step_t *st = t->step;
     uint32_t i, s, n = 0, len = view_len(t), base = ui.bank * 16u;
     for (i = 0; i < 16u && base + i < len; i++)
         if ((s = pr_src(t, base + i, len)) != NSTEP)
@@ -916,7 +912,7 @@ static void roll_view(const track_t *t)
         lo = proll.lo;                                /* as good as the best: no jump */
     if (ui.srec) {
         s = ui.sr_cur < len ? pr_src(t, ui.sr_cur, len) : NSTEP;
-        cn = s == NSTEP ? 0 : 60 + seq_steps(t)[s].nt;
+        cn = s == NSTEP ? 0 : 60 + t->step[s].nt;
         if (cur && (s == NSTEP || (cn >= proll.lo && cn < proll.lo + PR_ROWS)))
             lo = proll.lo;                            /* the cursor's note in the view, or a rest: no move */
         else if (s != NSTEP && cn < lo)
@@ -964,7 +960,7 @@ static void pr_bar(int32_t x, int32_t y, int32_t w, int acc, uint16_t c, uint32_
 
 static void graph_roll(const track_t *t, uint16_t c)
 {
-    const step_t *st = seq_steps(t);
+    const step_t *st = t->step;
     uint32_t i, len = view_len(t), base = ui.bank * 16u, ncol = base < len ? (len - base < 16u ? len - base : 16u) : 0u;
     int32_t r, ybot = PR_Y0 + PR_ROWS * PR_RH, gw = (int32_t)ncol * PR_CW + 1;
     int32_t gx1 = PR_X0 + (int32_t)ncol * PR_CW, top = (int32_t)proll.lo + PR_ROWS - 1;
@@ -1119,9 +1115,9 @@ static void graph_slots(void)
         str_cpy(row + 3, f, sizeof row - 3);
         list_row(2, 237, 22 + (int32_t)i * 16, row, 0, sel);
     }
-    if (chain.name[0]) {
+    if (pname.name[0]) {
         md_text(6, 92, &MD_F3, 2, "NOW", C_INK);
-        md_fit(f, chain.name, sizeof f, 180);
+        md_fit(f, pname.name, sizeof f, 180);
         md_text(40, 92, &MD_F3, 2, f, C_INK);
     }
 }
@@ -1733,7 +1729,7 @@ static uint32_t graph_signature(void)
             h = str_hash(h, nb);
         }
         h ^= slots_dirty() * 0x9E3779B1u + copy_src * 0x85EBCA6Bu;
-        h = str_hash(h, chain.name);
+        h = str_hash(h, pname.name);
     }
     if (pg->graph == GR_STEPS || pg->graph == GR_GRID)
         h ^= steps_hash(t) + (song.playing ? view_idx(t) + 1u : 0u) * 31u;
@@ -1977,91 +1973,6 @@ static void motion_columns(void)
     draw_column(3, "CLEAR", "", "", CV_NORM, -1);
 }
 
-/* SONG: 4 rows of the list ("2  B  x4  BREAK"), the + row after the last; the playing row marked, its repeats left */
-static void graph_song(void)
-{
-    const chain_config_t *c = &chain.cfg;
-    uint32_t sel = ui.song_row < c->count ? ui.song_row : c->count, first = sel > 2u ? sel - 2u : 0u, i,
-             sig = 2166136261u, last, nw, wi;
-    char b[16], nm[NAME_LEN + 1u];
-    for (i = 0; i < c->count; i++)
-        sig = (sig ^ (c->row[i].slot | (uint32_t)c->row[i].repeat << 2)) * 16777619u;
-    for (i = 0; i < 4u; i++) {
-        project_name(i, nm);
-        sig = str_hash(sig, nm) + (uint32_t)project_used(i) * (i + 3u);
-    }
-    sig += c->count * 7u + sel * 1009u + c->loop * 13u +
-           (chain.running ? (chain.row + 1u) * 104729u + chain.left * 65537u : 0u);
-    for (nw = rg_plan(&ui.graph_sig, sig, 0, Y_GRAPH, 240, H_GRAPH), wi = 0; wi < nw; wi++) {
-        rg_win(wi, Y_GRAPH, C_BG);
-        cv_oy = 0;
-        last = c->count < CHAIN_ROWS ? c->count : CHAIN_ROWS - 1u;
-        for (i = first; i <= last && i < first + 4u; i++) {   /* the cursor's row inverted; the playing row: a play
-                                                           * mark */
-            int32_t y = 6 + (int32_t)(i - first) * 28;
-            int s = i == sel, play = chain.running && i == chain.row;
-            uint16_t pen = s ? C_BG : C_INK;
-            if (s)
-                cv_rect(1, y - 3, 238, 16, C_INK);
-            if (play)
-                md_text(4, y, &MD_ICON, 2, "p", pen);
-            if (i >= c->count) {
-                md_text(16, y, &MD_F3, 2, "+", pen);
-                if (!c->count)
-                    md_text(44, y, &MD_F3, 2, "KNOB 2: ADD A ROW", pen);
-                continue;
-            }
-            fmt_int(b, (int32_t)i + 1);
-            md_text(16, y, &MD_F3, 2, b, pen);
-            b[0] = (char)('A' + c->row[i].slot);
-            b[1] = 0;
-            md_text(48, y, &MD_F3, 2, b, pen);
-            b[0] = 'x';
-            fmt_int(b + 1, c->row[i].repeat);
-            md_text(70, y, &MD_F3, 2, b, pen);
-            if (play) {
-                fmt_int(b, chain.left);
-                str_cpy(b + str_len(b), " LEFT", 8);
-                md_text(234 - md_text_w(&MD_F3, 2, b), y, &MD_F3, 2, b, pen);
-            } else if (project_name(c->row[i].slot, nm) && nm[0]) {
-                char f[NAME_LEN + 1u];
-                md_fit(f, nm, sizeof f, 124);
-                md_text(108, y, &MD_F3, 2, f, pen);
-            }
-        }
-        cv_vdot(40, 3, 112, C_INK);                       /* the column rules: row | slot | repeats | name (from the */
-        cv_vdot(64, 3, 112, C_INK);                       /* first row's bar down) */
-        cv_vdot(100, 3, 112, C_INK);
-        cv_rect(0, 0, 1, H_GRAPH, C_INK);
-        cv_rect(239, 0, 1, H_GRAPH, C_INK);
-        cv_blit(0, Y_GRAPH);
-    }
-}
-/* SONG: KNOB 1 ROW, 2 SLOT, 3 REPS, 4 LOOP */
-static void song_columns(void)
-{
-    const chain_config_t *c = &chain.cfg;
-    uint32_t r = ui.song_row < c->count ? ui.song_row : c->count;
-    char v[12], u[8];
-    if (r >= c->count) {
-        draw_column(0, "ROW", "+", "", HOT(0u), -1);
-        draw_column(1, "SLOT", "--", "", CV_DIM, -1);
-        draw_column(2, "REPS", "--", "", CV_DIM, -1);
-    } else {
-        fmt_int(v, (int32_t)r + 1);
-        u[0] = '/';
-        fmt_int(u + 1, c->count);
-        draw_column(0, "ROW", v, u, HOT(0u), -1);
-        v[0] = (char)('A' + c->row[r].slot);
-        v[1] = 0;
-        draw_column(1, "SLOT", v, "", HOT(1u), c->row[r].slot * 1000 / 3);
-        v[0] = 'x';
-        fmt_int(v + 1, c->row[r].repeat);
-        draw_column(2, "REPS", v, "", HOT(2u), (c->row[r].repeat - 1) * 1000 / 15);
-    }
-    draw_column(3, "LOOP", c->loop ? "ON" : "OFF", "", HOT(3u), -1);
-}
-
 /* HOME's scope (y 69..180) in the canvas or a window of it: the tab, the wave (fresh: a new snapshot), ZOOM */
 static void scope_paint(int fresh)
 {
@@ -2181,11 +2092,6 @@ static void draw_graph(void)
         ui.graph_top = 1;
         return;
     }
-    if (!ui.home && pg->graph == GR_SONG) {            /* SONG: the rows */
-        graph_song();
-        ui.graph_top = 1;
-        return;
-    }
     if (!ui.home && pg->graph == GR_MIX) {
         draw_mix();
         ui.graph_top = 1;
@@ -2230,12 +2136,12 @@ static void draw_graph(void)
 }
 
 /* the footer's note (spec §7): step record's cursor step, else the step held on the grid, in the steps the roll and
- * the grid show (a song's row while a song runs): "C#3", + " ACC" " SLD"; a TIE the note it holds (pr_src) "C#3 TIE",
+ * the grid show: "C#3", + " ACC" " SLD"; a TIE the note it holds (pr_src) "C#3 TIE",
  * after a rest "TIE"; 0 (b "") when neither, or the step is empty */
 static int foot_note(char *b)
 {
     const track_t *t = TSEL;
-    const step_t *st = seq_steps(t), *s;
+    const step_t *st = t->step, *s;
     uint32_t si, src, len = view_len(t);
     b[0] = 0;
     if (ui.srec)
@@ -2346,11 +2252,7 @@ static void draw_foot(void)
     }
     if (song.playing && view_idx(t) / 16u == ui.bank)
         ph = view_idx(t) % 16u;
-    {                                                 /* STEPS: the bank's locked steps marked (a song's row: its
-                                                       * slot's bank) */
-        const lk_bank_t *lb = chain.running && chain.src[chain.slot].m ? chain.src[chain.slot].m : &mo.b;
-        lmask = env_steps() ? lk_step_mask(lb, song.sel, ui.bank * 16u) : 0u;
-    }
+    lmask = env_steps() ? lk_step_mask(&mo.b, song.sel, ui.bank * 16u) : 0u;   /* STEPS: the bank's locked steps marked */
     sig = on | acc << 16;                             /* the trig strip (all it shows: on, acc, n; the playhead):
                                                        * whole when the steps change, else the playhead's old box and
                                                        * its new */
@@ -2600,10 +2502,7 @@ static void draw_home_strip(void)
         }
     }
     m[0] = 0;
-    if (!head_mode(m) && chain.running) {
-        str_cpy(m, "SONG ", sizeof m);
-        fmt_int(m + 5, (int32_t)chain.row + 1);
-    }
+    head_mode(m);
     if (lock_view_step() < NSTEP && 4 + md_text_w(&MD_F3, 2, m) > 61) {   /* the left block's 58 px (LEV's column
                                                        * paints over more): "LOCK 5" (the top bar has LOCK STEP 5) */
         str_cpy(m, "LOCK ", sizeof m);
@@ -2612,7 +2511,7 @@ static void draw_home_strip(void)
     pj[0] = 'P', pj[1] = 'R', pj[2] = 'O', pj[3] = 'J', pj[4] = ' ';
     pj[5] = (char)('A' + (uint32_t)(song.g[G_SLOT] > 0 ? song.g[G_SLOT] - 1 : 0) % 4u);
     pj[6] = 0;
-    md_fit(nm, chain.name[0] ? chain.name : "NEW", sizeof nm, 54);
+    md_fit(nm, pname.name[0] ? pname.name : "NEW", sizeof nm, 54);
     lx1 = m[0] ? 4 + md_text_w(&MD_F3, 2, m) : 0;
     rg_region(0, Y_KNOB, 240, 52);
     if (ui.force) {                                   /* whole, but LEV's column (its own canvas, next) */
@@ -2715,10 +2614,6 @@ static void draw_columns(void)
         return;
     if (!ui.home && pg->graph == GR_MOTION) {          /* MOTION: PLAY EVENT - CLEAR */
         motion_columns();
-        return;
-    }
-    if (!ui.home && pg->graph == GR_SONG) {            /* SONG: ROW SLOT REPS LOOP */
-        song_columns();
         return;
     }
     if (ui.home) {                                    /* HOME: the MD strip */
@@ -2841,12 +2736,6 @@ __attribute__((always_inline)) static inline void ui_draw(void)
             if (ui.confirm == 2u) {
                 str_cpy(b, "CLEAR MOTION T1?", sizeof b);
                 b[14] = (char)('1' + ui.confirm_trk);
-            } else if (ui.confirm == 3u) {
-                str_cpy(b, "DELETE ROW ", sizeof b);
-                fmt_int(b + 11, (int32_t)ui.confirm_trk + 1);
-                str_cpy(b + str_len(b), "?", 4);
-            } else if (ui.confirm == 4u) {
-                str_cpy(b, "CLEAR SONG?", sizeof b);
             } else if (ui.confirm == 6u) {              /* MIDI LEARN (ui_learn.c ML_CONFIRM) */
                 str_cpy(b, "CLEAR ALL LEARNED?", sizeof b);
             } else if (ui.confirm == 5u) {              /* the power-on load failed (project.c project_boot) */

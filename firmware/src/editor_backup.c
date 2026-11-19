@@ -294,7 +294,7 @@ static int edb_valid(void)
 /* flash may be written now (BEGIN, COMMIT): 1, else refused (replied) */
 static int edb_can_write(uint32_t kind)
 {
-    if (transport_busy() || chain_busy())
+    if (transport_busy())
         ed_fail(ED_RESTORE, ED_E_STOP, ED_D_STOP, "STOP FIRST");
     else if (kind == ED_RK_PROJECT && (var_blocked || lk_blocked))
         ed_fail(ED_RESTORE, ED_E_REFUSED, ED_D_BLOCKED, var_blocked ? "USR2 ERROR: NO SAVE" : "USR3 CLAMP FAILED");

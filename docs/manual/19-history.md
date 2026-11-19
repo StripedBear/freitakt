@@ -20,7 +20,7 @@ The full changelog is `CHANGELOG.md` in the repository. This is a feature map by
 - **Step tools** (hold SEQ): copy and paste a step, a page or a selection; replace, merge, fill, duplicate and clear.
 - **REPEAT STEP** on the PERFORM keys replaces the track mutes there (use the MUTE screen); the last four white keys pick the rate.
 - **Solo** on the MUTE screen (black keys), toggle or momentary.
-- **Step editing on every step page**: holding a step turns KNOB 1 to 4 into PROB, RATCH, ACCENT and NUDGE on TRACKS, PATTERN, MOTION and SONG too.
+- **Step editing on every step page**: holding a step turns KNOB 1 to 4 into PROB, RATCH, ACCENT and NUDGE on TRACKS, PATTERN and MOTION too.
 - **USB audio 10 CH**: the tracks T1..T8 now come first (channels 1 to 8) and the stereo pair is on 9 and 10. Re-pick the inputs in your DAW if you set them up before.
 - **Fewer dropouts under heavy load**: a voice is stopped when an audio block takes more than 85 % of its time (was 95 %).
 - Projects saved by 1.0.0 do not load on 0.26.0 or older (they show an empty slot there).

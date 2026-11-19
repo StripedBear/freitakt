@@ -79,7 +79,6 @@ assert, 2 a library reset request, 3 a BT task's stack overflow) and the crash o
    - REC: arms / disarms the selected track (REC lit while any track is armed).
    - BANK ◀ / CHANNEL ◀ and BANK ▶ / CHANNEL ▶: the previous / next track; they stop at tracks 1 and 8. REW, FF and
      the arrows do nothing.
-   - With a song playing (SONG), REC n and REC show `STOP TO EDIT` and do nothing, as the FM-1's REC does.
 9. **Record:** stopped, SELECT 2, then REC 2. Expected: the transport starts, track 2 armed. Play track 2 on the
    FM-1's keys as for live record now. Expected: the hits are written to track 2's steps. Turn knob 2 a few clicks,
    and move fader 2 once it is picked up: both recorded as motion (SEQ → MOTION shows it). REC 2 again disarms;

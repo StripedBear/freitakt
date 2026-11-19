@@ -3,6 +3,7 @@
 /* ACID (dm_acid.c, spec docs/superpowers/specs/2026-10-09-acid-design.md §4): the pitch, the filter's stability and
  * self-oscillation, the band-limited oscillator, gate, slide, accent, the level, the extremes. One line per test;
  * any failure exits 1. Built with UBSan: a signed overflow aborts. */
+#define HOST_PROJECT 1                                /* (proj_cue_apply below: a cue switch's staged steps) */
 #include "drum_host.h"
 
 static int fails;
@@ -488,42 +489,40 @@ static void test_hit_gate(void)
           t->gate_n == 0u);
 }
 
-/* Review Focus 1: a song's row change restarts every track: an ACID gate held into it closes (a TIE at the new row's
- * step 0 holds nothing) */
-static step_t ROW[2][NSTEP], NONE[NSTEP];
-static void test_row_change(void)
+/* Review Focus 1: a queued cue (a slot / variation switch) restarts every track (cue.c cue_switch: seq_restart,
+ * acid_gates_close): an ACID gate held into it closes (a TIE at the new pattern's step 0 holds nothing) */
+static step_t NEXT[NSTEP];
+static uint32_t cue_applied;
+static int proj_cue_apply(void)                       /* (project.c's stand-in: the switch swaps track 0's steps in) */
+{
+    memcpy(trk[0].step, NEXT, sizeof NEXT);
+    cue_applied++;
+    return 0;
+}
+static void test_cue_switch(void)
 {
     track_t *t = acid();
-    uint32_t s, k, i;
-    memset(ROW, 0, sizeof ROW);
-    memset(NONE, 0, sizeof NONE);
-    ROW[0][15].on = 1;
-    ROW[0][15].slide = 1;                              /* row 1's last step slides into row 2 */
-    ROW[1][0].tie = 1;
+    uint32_t i;
+    memset(t->step, 0, sizeof t->step);
+    memset(NEXT, 0, sizeof NEXT);
+    t->p[P_SLEN] = 16;
+    t->p[P_SDIV] = 2;
+    t->step[15].on = 1;
+    t->step[15].slide = 1;                            /* the last step slides into the next pattern */
+    NEXT[0].tie = 1;
     song.g[G_BPM] = 120;
-    for (s = 0; s < 2u; s++)
-        for (k = 0; k < NTRK; k++) {
-            chain.src[s].step[k] = k ? NONE : ROW[s];   /* track 0 only */
-            chain.src[s].m = &LK_NONE;
-            chain.src[s].timing[k][0] = 16;
-            chain.src[s].timing[k][1] = 2;
-            chain.src[s].model[k] = (uint8_t)trk[k].p[P_MODEL];
-        }
-    chain.cfg.count = 2;
-    chain.cfg.row[0].slot = 0;
-    chain.cfg.row[0].repeat = 1;
-    chain.cfg.row[1].slot = 1;
-    chain.cfg.row[1].repeat = 1;
-    chain.armed = 1;
+    cue_applied = 0;
     transport_req = 1;
-    for (i = 0; i < 4u * 22050u - 2000u; i += CTL) /* just before row 2 */
+    render_mix(0, 0, CTL);
+    cue.q_var = 2;                                    /* variation 2 queued: the switch at the pattern's end */
+    for (i = CTL; i < 4u * 22050u - 2000u; i += CTL) /* just before the boundary (1 bar at 120 BPM) */
         render_mix(0, 0, CTL);
-    check("acid: row 1's last step slides (its gate held)", t->v[0].active && (t->v[0].x[2] & 1) &&
-          t->gate_n == GATE_HELD);
-    for (; i < 4u * 22050u + 2000u; i += CTL)          /* into row 2's step 0 (a TIE) */
+    check("acid: the pattern's last step slides (its gate held)", t->v[0].active && (t->v[0].x[2] & 1) &&
+          t->gate_n == GATE_HELD && !cue_applied);
+    for (; i < 4u * 22050u + 2000u; i += CTL)          /* into the new steps' step 0 (a TIE) */
         render_mix(0, 0, CTL);
-    check("acid: a song's row change closes the held gate (the next row's TIE holds nothing)",
-          chain.row == 1u && !(t->v[0].x[2] & 1) && t->gate_n == 0u);
+    check("acid: a cue switch closes the held gate (the new pattern's TIE holds nothing)",
+          cue_applied == 1u && !cue.q_var && !(t->v[0].x[2] & 1) && t->gate_n == 0u);
     seq_stop();
 }
 
@@ -728,7 +727,7 @@ int main(void)
     test_seq_drum_tie();
     test_hit_gate();
     test_live_hit_playing();
-    test_row_change();
+    test_cue_switch();
     test_steal_held();
     test_shed_held();
     test_shed_held_prio();

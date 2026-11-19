@@ -11,7 +11,7 @@ export function headerModel(s) {
   const st = s.state || {}, info = s.info || {};
   const slots = SLOTS.map((n, i) => ({ name: n, used: !!(st.used >> i & 1), dirty: !!(st.dirty >> i & 1),
     loaded: st.slot === i, queued: st.qslot === i, text: n + (st.dirty >> i & 1 ? "*" : "") }));
-  const status = s.asleep ? ASLEEP_MSG : s.busy ? BUSY_MSG : st.flags & SF.RESTORING ? "RESTORING" : st.flags & SF.SONG ? "SONG" : "";
+  const status = s.asleep ? ASLEEP_MSG : s.busy ? BUSY_MSG : st.flags & SF.RESTORING ? "RESTORING" : "";
   return {
     device: "HORTATOR FM-1", port: s.port?.name || "", firmware: (info.firmware || "") + (info.ble ? " BT" : ""),
     play: st.playing ? "PLAY" : "STOP", playing: !!st.playing,

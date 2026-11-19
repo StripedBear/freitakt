@@ -97,7 +97,7 @@ static void ed_state(void)
     ed_b(cue.q_slot ? cue.q_slot - 1u : ED_NONE);
     ed_b(cue.q_var ? cue.q_var - 1u : ED_NONE);
     ed_b(song.sel);
-    ed_b((restoring ? ED_SF_RESTORING : 0u) | (chain_busy() ? ED_SF_SONG : 0u));
+    ed_b(restoring ? ED_SF_RESTORING : 0u);
     for (s = 0; s < 4u; s++) {
         used |= (uint32_t)proj_ok(&proj_slot[s]) << s;
         dirty |= (uint32_t)slot_dirty(s) << s;
@@ -187,7 +187,6 @@ static void wipe_ram(void)
     memset(var_buf, 0, sizeof var_buf);
     memset(var_who, 0, sizeof var_who);
     memset(&cue, 0, sizeof cue);
-    memset(&chain, 0, sizeof chain);
     var_play = 0;
     var_cur = 0;
     var_dirty = 0;
@@ -443,9 +442,6 @@ static void steps_set_live(void)
     OK(refused(steps_set(ED_NONE, 0, 2, 63, 2, two), ED_E_BAD, ED_D_RANGE));
     OK(refused(steps_set(ED_NONE, 0, 2, 0, 0, two), ED_E_BAD, ED_D_RANGE));
     OK(refused(steps_set(ED_NONE, 0, 8, 0, 1, two), ED_E_BAD, ED_D_RANGE));
-    chain.running = 1;
-    OK(refused(steps_set(ED_NONE, 0, 2, 20, 1, two), ED_E_REFUSED, ED_D_CUE_SONG) && !trk[2].step[20].on);
-    chain.running = 0;
     restoring = 1;
     OK(refused(steps_set(ED_NONE, 0, 2, 20, 1, two), ED_E_BUSY, ED_D_RESTORING) && !trk[2].step[20].on);
     restoring = 0;
@@ -453,7 +449,7 @@ static void steps_set_live(void)
     OK(steps_set(ED_NONE, 0, 1, 4, 1, two + 3) == ED_OK && trk[1].step[4].on);
     OK(refused(steps_set(ED_NONE, 1, 1, 4, 1, two + 3), ED_E_REFUSED, ED_D_NO_SLOT));
     check("STEPS_SET: the playing variation's live steps, values clamped, the slot marked unsaved, no flash; NUDGE sent "
-          "(clamped) or kept (a step written empty: 0); another slot (CUE FIRST), bad lengths / ranges, a song, RESTORING "
+          "(clamped) or kept (a step written empty: 0); another slot (CUE FIRST), bad lengths / ranges, RESTORING "
           "refused", (int)ok);
 }
 static void steps_set_switch_stopped(void)
@@ -519,7 +515,7 @@ static cue_snap_t snap(int rc)
     s.level = (uint32_t)trk[0].p[P_LEVEL];
     return s;
 }
-enum { SC_VAR_STOP, SC_SLOT_STOP, SC_VAR_PLAY, SC_SLOT_CANCEL, SC_SONG, SC_EMPTY, SC_NOSLOT, SC_N };
+enum { SC_VAR_STOP, SC_SLOT_STOP, SC_VAR_PLAY, SC_SLOT_CANCEL, SC_EMPTY, SC_NOSLOT, SC_N };
 static int cue_go(int cmd, uint32_t kind, uint32_t n)   /* the editor's CUE (its rc: 0, else the detail), or the key */
 {
     if (!cmd)
@@ -558,11 +554,6 @@ static cue_snap_t cue_case(uint32_t sc, int cmd)
         rc = cue_go(cmd, 0, 1);
         rc |= cue_go(cmd, 0, 0) << 8;
         break;
-    case SC_SONG:
-        chain.running = 1;
-        rc = cue_go(cmd, 0, 1);
-        rc |= cue_go(cmd, 1, 1) << 8;
-        break;
     case SC_EMPTY:
         rc = cue_go(cmd, 0, 3);
         break;
@@ -572,7 +563,6 @@ static cue_snap_t cue_case(uint32_t sc, int cmd)
     }
     {
         cue_snap_t s = snap(rc);
-        chain.running = 0;
         if (transport_busy())
             stop();
         return s;
@@ -580,7 +570,7 @@ static cue_snap_t cue_case(uint32_t sc, int cmd)
 }
 static void cue_equals_keys(void)
 {
-    static const uint32_t WANT[SC_N] = {0, 0, 0, 0, CUE_E_SONG | CUE_E_SONG << 8, CUE_E_EMPTY, CUE_E_NOSLOT};
+    static const uint32_t WANT[SC_N] = {0, 0, 0, 0, CUE_E_EMPTY, CUE_E_NOSLOT};
     uint32_t ok = 1, sc;
     for (sc = 0; sc < SC_N; sc++) {
         cue_snap_t a = cue_case(sc, 1), b = cue_case(sc, 0);
@@ -609,7 +599,7 @@ static void cue_equals_keys(void)
     OK(refused(RQ(ED_CUE, 1, 1), ED_E_BUSY, ED_D_RESTORING) && !cue.q_var && var_cur == 0u);
     restoring = 0;
     check("CUE: exactly the cue keys (stopped at once; playing queued, again at the next step, the playing key "
-          "cancels; SONG / empty slot / no slot refused with the device's code and message); the reply's state shows it",
+          "cancels; empty slot / no slot refused with the device's code and message); the reply's state shows it",
           (int)ok);
 }
 

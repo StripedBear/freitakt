@@ -221,8 +221,8 @@ static int edp_steps_get(uint32_t cmd, const uint8_t *a)
         const step_t *st = live ? trk[k].step : proj_slot[s].t[k].step;
         ed_b(1);
         ed_b(live ? 1u : 0u);
-        for (j = 0; j < CHAIN_NT; j++) {
-            uint32_t id = CHAIN_TIMING[j];
+        for (j = 0; j < PAT_NT; j++) {
+            uint32_t id = PAT_TIMING[j];
             ed_b((uint32_t)clamp(live ? trk[k].p[id] : proj_slot[s].t[k].p[PR_P(id)], TP[id].min, TP[id].max));
         }
         ed_b(0);                                 /* (once Grids' SRC) */
@@ -251,7 +251,7 @@ static int edp_steps_get(uint32_t cmd, const uint8_t *a)
         ed_b(used);
         ed_b(0);
         for (j = 0; j < 4u; j++)
-            ed_b(used && j < CHAIN_NT ? (uint32_t)clamp(b->d[p + k * VAR_TRK + j], TM_MIN[j], TM_MAX[j]) : 0u);
+            ed_b(used && j < PAT_NT ? (uint32_t)clamp(b->d[p + k * VAR_TRK + j], TM_MIN[j], TM_MAX[j]) : 0u);
         for (i = 0; i < NSTEP; i++) {
             step_t x;
             memset(&x, 0, sizeof x);
@@ -290,8 +290,6 @@ static int edp_steps_set(uint32_t cmd, const uint8_t *a, uint32_t n)
         return 1;
     if (v >= VAR_N || k >= NTRK || !cnt || first + cnt > NSTEP || (a[0] != ED_NONE && a[0] > 3u))
         return edp_fail(cmd, ED_E_BAD, ED_D_RANGE, "OUT OF RANGE");
-    if (chain_busy())                            /* (ui.c song_lock: a song's patterns stay as they are) */
-        return edp_fail(cmd, ED_E_REFUSED, ED_D_CUE_SONG, "STOP TO EDIT");
     if (ld < 0 && v != var_cur)
         return edp_fail(cmd, ED_E_REFUSED, ED_D_NO_SLOT, "SAVE TO A SLOT FIRST");
     if (a[0] != ED_NONE && (int32_t)a[0] != ld)

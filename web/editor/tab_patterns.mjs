@@ -68,7 +68,6 @@ export function cueKeys(st) {
 
 /** a refusal in plain words: the device's message, then what it means */
 const HINT = {
-  [`${RC.REFUSED}:${DETAIL.CUE_SONG}`]: "a song is playing: stop it to edit or cue",
   [`${RC.REFUSED}:${DETAIL.NO_FLASH}`]: "this FM-1 started without flash: nothing can be saved until it restarts",
   [`${RC.REFUSED}:${DETAIL.NO_SLOT}`]: "the power-on kit is loaded: save it to a slot on the FM-1 first",
   [`${RC.REFUSED}:${DETAIL.VARS_FULL}`]: "the variations do not fit: clear one on the FM-1",

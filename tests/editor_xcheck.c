@@ -7,7 +7,7 @@
  *   flash upr|rec S|lk S|var S <hex>   a storage object written (storage.c st_save), as the mock's flash holds it
  *   boot                               a power cycle (persist_boot: the slots and user presets from flash)
  *   load S                             LOAD of slot S (the device's own)
- *   play | stop | song 0/1 | noflash 0/1 | park S|- | otarace | turn K ID V | advance MS
+ *   play | stop | noflash 0/1 | park S|- | otarace | turn K ID V | advance MS
  *   frame <hex>                        a request through the SysEx path, one main-loop pass: prints its reply's hex
  *                                      ("-": none)
  *   pushes MS                          MS ms of main-loop passes (every 5 ms), then prints every push frame sent since
@@ -96,7 +96,7 @@ static void power_on(void)
     memset(var_buf, 0, sizeof var_buf);
     memset(var_who, 0, sizeof var_who);
     memset(&cue, 0, sizeof cue);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     var_play = 0;
     var_cur = 0;
     var_dirty = 0;
@@ -143,9 +143,6 @@ int main(void)
         } else if (!strcmp(w, "stop")) {
             song.playing = 0;
             cue_cancel();
-        } else if (!strcmp(w, "song")) {
-            sscanf(line, "%*s %d", &a);
-            chain.running = (uint8_t)a;
         } else if (!strcmp(w, "noflash")) {
             sscanf(line, "%*s %d", &a);
             flash_ok = !a;

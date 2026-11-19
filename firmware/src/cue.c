@@ -2,8 +2,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Live cue (spec docs/superpowers/specs/2026-10-26-cue-variations-fill-copy-design.md): the next slot (A..D) or a
  * variation (1..8) of the playing slot queued while it plays, switched exactly where the pattern ends (the longest
- * track's: as SONG rows end), every track then from its step 0 on the grid a plain loop would be on (song.c
- * seq_restart); the same key again: at the next step. The behaviour follows mono2k by Iñigo Hernández (an FM-1
+ * track's), every track then from its step 0 on the grid a plain loop would be on (seq_restart); the same key again: at the next step. The behaviour follows mono2k by Iñigo Hernández (an FM-1
  * firmware, GPL-3.0-only: its queued pattern switch); no code of it is copied.
  * This file is the ISR's part (seq.c events_block): the boundary, the switch, a slot switch's 5 ms fade (fx.c
  * mix_part). The main loop stages a queued switch beforehand and files the outgoing state after it; the slots' data
@@ -11,11 +10,57 @@
  * tests/drum_host.h's stub). */
 #define CUE_SW_SLOT 1u                     /* cue.done: a slot switch / a variation switch happened */
 #define CUE_SW_VAR 2u
-enum { CUE_E_FULL = 1, CUE_E_SONG, CUE_E_NOSLOT, CUE_E_EMPTY, CUE_E_SAME, CUE_E_PARK = 8 };   /* + c: SAVE C FIRST */
+enum { CUE_E_FULL = 1, CUE_E_NOSLOT = 3, CUE_E_EMPTY, CUE_E_SAME, CUE_E_PARK = 8 };   /* + c: SAVE C FIRST (2: reserved,
+                                                   * was the song's STOP SONG TO CUE) */
 #define CUE_FADE (FS * 5u / 1000u)         /* a slot switch's fade out: 5 ms */
 #define CUE_FSTEP (32767u / CUE_FADE + 1u) /* .. its gain step a sample (Q15) */
 #define CUE_LEAD (CUE_FADE + 2u * CTL)     /* own clock: it starts this far ahead of the boundary (done before the
                                             * boundary's block, whatever the phase of the blocks) */
+/* a pattern's timing: LEN DIV SWG (a variation's, the editor's 4th byte: Grids' SRC, gone: 0) */
+#define PAT_NT 3u
+static const uint8_t PAT_TIMING[PAT_NT] = {P_SLEN, P_SDIV, P_SSWING};
+/* the grid a plain loop is on */
+#define B24_WRAP 768u                              /* a multiple of 24 and of every division's two steps in 1/24 beats */
+static uint32_t step24(uint32_t div, uint32_t *den)   /* a step of DIV div in 1/24 beats (1/32: 3 .. 4BAR: 384) */
+{
+    uint32_t num = div_num_den(div, den);
+    return num * 24u / *den;
+}
+static uint32_t pattern_beats(const track_t *t, uint32_t *den)   /* t's pattern: num / den beats */
+{
+    uint32_t len = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP);
+    return len * div_num_den((uint32_t)t->p[P_SDIV], den);
+}
+/* every track at its step 0, x samples into this block (seq_tick: cue.cut keeps the block's rest), on the grid a
+ * plain loop would be on: each track's step remainder and swing pair phase from b24 (1/24 beats since PLAY: every
+ * division's step is a whole number of them). Returns the reference: the longest track (LEN x DIV; ties: the lowest) */
+static uint32_t seq_restart(uint32_t x, uint32_t b24)
+{
+    uint32_t k, best = 0, bn = 0, bd = 1;
+    for (k = 0; k < NTRK; k++) {
+        track_t *t = &trk[k];
+        uint32_t n, d;
+        t->seq_idx = (uint16_t)(t->p[P_SLEN] - 1);
+        t->seq_pos = 0x7FFFFFFFu - x;              /* step 0, x samples into the block (seq_tick, cue.cut) */
+        t->seq_cnt = 0xFFFFFFFFu;
+        {                                          /* the grid since PLAY: its remainder, its swing pair phase */
+            uint32_t den, s24 = step24((uint32_t)t->p[P_SDIV], &den);
+            t->seq_par = (uint8_t)((b24 / s24) & 1u);
+            t->seq_rem = (uint8_t)(b24 * beat_samples() % 24u * den / 24u);
+        }
+        t->rskip = 0;
+        t->rat_n = 0;
+        t->mic = 0;                                /* (MICRO: no early hit pending, seq.c) */
+        n = pattern_beats(t, &d);
+        if (n * bd > bn * d) {                     /* the longest; ties: the lowest track */
+            best = k;
+            bn = n;
+            bd = d;
+        }
+    }
+    return best;
+}
+
 static uint8_t var_cur;                    /* the variation playing: 0 = variation 1 (the slot's record's steps) */
 static struct {
     volatile uint8_t q_slot, q_var;        /* queued: slot + 1 / variation + 1, 0 none (main writes, the ISR takes) */
@@ -30,6 +75,7 @@ static struct {
     uint8_t stg_pre_ed[NTRK], out_pre_ed[NTRK];
     uint8_t fade;                          /* 0 none, 1 fading out to the boundary, 2 ramping back up (a cancel) */
     uint16_t fg;                           /* the fade's gain at the next block's start (Q15) */
+    uint8_t cut;                           /* a switch restarted the tracks this block (seq_tick) */
 } cue;
 
 static int proj_cue_apply(void);           /* project.c: the staged state in, the outgoing one out (0, or nothing
@@ -64,7 +110,7 @@ static __attribute__((noinline)) int cue_switch(uint32_t x, uint32_t k)
     cue.b24 = (uint16_t)b24;
     if (song.playing) {
         seq_restart(x, cue.b24);
-        chain.cut = 1;                             /* (seq_tick: the block's rest after x) */
+        cue.cut = 1;                               /* (seq_tick: the block's rest after x) */
         acid_gates_close();
     }
     if (cue.fade == 1u) {                          /* this block: the old voices were cut before it renders */
@@ -106,7 +152,7 @@ static uint32_t cue_longest(void)
     uint32_t k, best = 0, bn = 0, bd = 1;
     for (k = 0; k < NTRK; k++) {
         uint32_t m, d;
-        m = chain_beats(&trk[k], &d);
+        m = pattern_beats(&trk[k], &d);
         if (m * bd > bn * d) {
             best = k;
             bn = m;
@@ -115,7 +161,7 @@ static uint32_t cue_longest(void)
     }
     return best;
 }
-/* before the block's seq_ticks (events_block), playing, no song: the queued switch's boundary in this block -> the
+/* before the block's seq_ticks (events_block), playing: the queued switch's boundary in this block -> the
  * switch. adv: the sequencer's advance this block (following a clock: the clock's), lead: how far ahead a slot
  * switch's fade starts (own clock CUE_LEAD; following, a pulse at least: the boundary's last pulse), n: the block */
 static __attribute__((noinline)) void cue_tick(uint32_t n, uint32_t adv, uint32_t lead)   /* (noinline: the
@@ -124,7 +170,7 @@ static __attribute__((noinline)) void cue_tick(uint32_t n, uint32_t adv, uint32_
     uint32_t k, best = NTRK, dist = 0xFFFFFFFFu;
     if (!cue.q_slot && !cue.q_var)
         return;
-    if (!song.playing || chain.running)
+    if (!song.playing)
         return;
     if (cue.now) {                                 /* the soonest next step of any track */
         for (k = 0; k < NTRK; k++) {

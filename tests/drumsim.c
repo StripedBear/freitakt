@@ -381,42 +381,6 @@ static void write_micro(const char *dir)
     write_demo(dir, "micro.wav", 8, micro_bar);
 }
 
-/* SONG: A (four on the floor + hats) x2, B (a broken kick + snare) x1, LOOP ON: 6 bars, the rows change on the bar */
-static step_t song_st[2][NTRK][NSTEP];
-static void song_bar(uint32_t b) { (void)b; }
-static void write_song(const char *dir)
-{
-    static const char *const PAT[2][3] = {{"X...x...x...x...", "................", "x.x.x.x.x.x.x.x."},
-                                          {"X.....x...x.....", "....X.......X..x", "x.xxx.x.x.xxx.x."}};
-    uint32_t s, i, k;
-    sp_kit();
-    memset(song_st, 0, sizeof song_st);
-    for (s = 0; s < 2u; s++) {
-        chain.src[s].m = &LK_NONE;
-        for (k = 0; k < NTRK; k++) {
-            chain.src[s].step[k] = song_st[s][k];
-            chain.src[s].timing[k][0] = 16;
-            chain.src[s].timing[k][1] = 2;
-            chain.src[s].timing[k][2] = 0;
-            chain.src[s].model[k] = (uint8_t)trk[k].p[P_MODEL];
-        }
-        for (i = 0; i < 3u; i++)
-            for (k = 0; k < 16u; k++) {
-                song_st[s][i][k].on = PAT[s][i][k] != '.';
-                song_st[s][i][k].acc = PAT[s][i][k] == 'X';
-            }
-    }
-    chain.cfg.count = 2;
-    chain.cfg.loop = 1;
-    chain.cfg.row[0] = (chain_row_t){0, 2};
-    chain.cfg.row[1] = (chain_row_t){1, 1};
-    chain.armed = 1;
-    write_demo(dir, "song_a2_b1_loop.wav", 6, song_bar);
-    transport_req = 2;
-    render_mix(L, R, CTL);
-    memset(&chain, 0, sizeof chain);
-}
-
 /* PHYS: MEMB voicings, 4 bars each of a 1/4 pattern on track 1 */
 static void phys_bar(uint32_t b) { (void)b; }
 static void phys_demo(const char *dir, const char *name, uint32_t model, const int16_t *e)
@@ -915,7 +879,6 @@ int main(int argc, char **argv)
     write_locks(dir, 0);
     write_locks(dir, 1);
     write_micro(dir);
-    write_song(dir);
     write_phys(dir);
     write_filter(dir);
     write_fm(dir);

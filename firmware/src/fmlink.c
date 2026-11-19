@@ -229,7 +229,7 @@ static uint32_t fml_block(fml_t *f, uint32_t t, uint32_t n, uint32_t bpm, uint32
         }
         req = ui_req;
     } else if (f->role == FML_LEADER) {
-        if (playing && !f->playing && !f->pending) {   /* started by other means (a count-in's end, SONG): from here */
+        if (playing && !f->playing && !f->pending) {   /* started by other means (a count-in's end): from here */
             f->playing = 1;
             f->beats = f->rem = 0;
             f->announce = 1;

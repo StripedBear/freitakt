@@ -225,7 +225,7 @@ static void ml_poll(void)
                 break;
             }
     }
-    ml_pick_check();                                  /* (a MODEL changed otherwise: a load, a song's row) */
+    ml_pick_check();                                  /* (a MODEL changed otherwise: a load, a cue) */
     s = ml_heard;
     if (!s)
         return;

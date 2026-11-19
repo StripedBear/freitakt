@@ -162,7 +162,6 @@ static int step_plays(track_t *t, const step_t *s, uint32_t len)
     return loop % b == a - 1u;
 }
 
-static const step_t *seq_steps(const track_t *t);   /* song.c: a song's row, else the track's own */
 
 /* ACID's GATE knob: 10..100 % of len (samples) */
 static uint32_t acid_gate_len(const track_t *t, uint32_t len)
@@ -207,7 +206,7 @@ static void rep_hit(uint32_t k)
 static __attribute__((noinline)) void rep_take(track_t *t, uint32_t k)
 {
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
-    const step_t *s = &seq_steps(t)[t->seq_idx % len];
+    const step_t *s = &t->step[t->seq_idx % len];
     int on = s->on && !s->tie;
     rp.nt[k] = (int8_t)(on ? clamp(s->nt, NT_MIN, NT_MAX) : t->nt);
     rp.vel[k] = (uint8_t)(on && s->acc ? 127u : 96u);
@@ -261,7 +260,7 @@ static __attribute__((noinline)) void rep_grid(uint32_t cnt, uint32_t half)
             rep_hit(k);
 }
 
-/* STOP, PLAY again, a song's row change: every gated track's note ends, nothing slides into the next step */
+/* STOP, PLAY again, a cue's restart: every gated track's note ends, nothing slides into the next step */
 static __attribute__((noinline)) void acid_gates_close(void)
 {
     uint32_t i;
@@ -275,7 +274,7 @@ static __attribute__((noinline)) void acid_gates_close(void)
 static const step_t *seq_next(const track_t *t)
 {
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
-    return &seq_steps(t)[(t->seq_idx + 1u) % len];
+    return &t->step[(t->seq_idx + 1u) % len];
 }
 
 /* the gate of the ACID note just started (hit rat_k of the step's rat_n): GATE of a hit's length, held into the next
@@ -336,7 +335,7 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
  * now (rat_due plays the others). A drum's TIE step plays nothing. */
 static void step_fire(track_t *t, uint32_t len_s)
 {
-    const step_t *s = &seq_steps(t)[t->seq_idx];
+    const step_t *s = &t->step[t->seq_idx];
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
     t->rat_off = 0;                                 /* (a nudged hit's roll: its callers set where it began) */
     if ((rp.on >> trk_index(t)) & 1u) {             /* REPEAT STEP holds the track: its steps paused */
@@ -728,7 +727,29 @@ static void midi_block(void)
 #include "varpack.c"                /* the variations 2..8 of a slot, packed (spec 2026-10-26 cue / variations) */
 #include "motion.c"                 /* knob moves per step (upstream 1.0's motion recording) */
 static void seq_stop(void);
-#include "song.c"                   /* SONG: rows of the four slots (upstream 1.0's song chain) */
+/* the project's name (project.c, ui_name.c) and the slot loaded or saved last */
+#define NAME_LEN 12u
+static const char NAME_SET[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+";
+static struct {
+    char name[NAME_LEN + 1u];              /* the project's name, "" = none */
+    uint8_t from;                          /* the slot loaded or saved last + 1, 0 = none (its rename renames this) */
+} pname;
+static int name_char_ok(char c)
+{
+    uint32_t i;
+    for (i = 0; NAME_SET[i]; i++)
+        if (NAME_SET[i] == c)
+            return 1;
+    return 0;
+}
+static void name_set(char *d, const char *s)      /* d: NAME_LEN + 1 bytes, 0-padded */
+{
+    uint32_t i;
+    for (i = 0; i <= NAME_LEN; i++)
+        d[i] = 0;
+    for (i = 0; i < NAME_LEN && s[i]; i++)
+        d[i] = s[i];
+}
 #include "cue.c"                    /* the live cue of slots and variations (spec 2026-10-26) */
 #include "midi_learn.c"             /* MIDI LEARN: a learned CC sets its parameter, a CC / note its action (upstream
                                      * 1.5's, adapted) */
@@ -758,7 +779,6 @@ static void seq_start(void)
     song.playing = 1;
     motion_begin();
     cue_start();                                    /* cue.c: the grid's time from PLAY */
-    chain_start();                                  /* song.c: an armed song from row 1 */
     mout_start();                                   /* midi_out.c: SYNC's Start */
 }
 
@@ -772,22 +792,17 @@ static void seq_stop(void)
                 dv_cut(&trk[i], &trk[i].v[j]);
     acid_gates_close();                             /* ACID: no note drones on */
     motion_end();                                   /* motion.c: the patch back */
-    chain_stop();                                   /* song.c: the timing and REC back */
     cue_stop();                                     /* cue.c: a queued cue dropped */
     mout_stop();                                    /* midi_out.c: SYNC's Stop */
 }
 
-/* MICRO (spec 2026-10-31 §1): a song's row or a queued cue restarts every track within rem samples (no early hit
+/* MICRO (spec 2026-10-31 §1): a queued cue restarts every track within rem samples (no early hit
  * across it: the new step 0 plays at the restart) */
 static __attribute__((noinline)) int seq_cut_ahead(uint32_t rem)
 {
     const track_t *r;
     uint32_t len, cur;
-    if (chain.running) {
-        if (chain.left > 1u)
-            return 0;                               /* (a repeat: the tracks just loop) */
-        r = &trk[chain.ref];
-    } else if (cue.q_slot || cue.q_var) {
+    if (cue.q_slot || cue.q_var) {
         if (cue.now)
             return 1;                               /* (at the soonest next step) */
         r = &trk[cue_longest()];
@@ -805,7 +820,7 @@ static __attribute__((noinline)) int seq_cut_ahead(uint32_t rem)
  * then the hit (PROB decided then), its roll over the rest of the step */
 static __attribute__((noinline)) void mic_due(track_t *t, uint32_t cur)
 {
-    int32_t m = step_micro(&seq_steps(t)[t->seq_idx]);
+    int32_t m = step_micro(&t->step[t->seq_idx]);
     uint32_t at = m > 0 ? cur * (uint32_t)m / 100u : 0u;
     if (t->seq_pos < at)
         return;
@@ -822,7 +837,7 @@ static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
 {
     uint32_t div = (uint32_t)t->p[P_SDIV], len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
     uint32_t cnt = t->seq_cnt + 1u, nx = cnt % len, idx = t->seq_idx, at, nl;
-    int32_t m = step_micro(&seq_steps(t)[nx]);
+    int32_t m = step_micro(&t->step[nx]);
     if (m >= 0)
         return;
     at = cur * (uint32_t)(100 + m) / 100u;
@@ -877,7 +892,7 @@ static void seq_tick(track_t *t, uint32_t n)
         if (t->seq_pos >= 0x7FFFFFFFu) {            /* PLAY: step 0 (its remainder 0); following a clock, the advance
                                                      * into it counts (it began on the pulse), else the steps sit that
                                                      * far behind the clock's grid for good */
-            t->seq_pos = CLK_FOLLOWS() || chain.cut ? t->seq_pos - 0x7FFFFFFFu : 0;   /* (a song's row change: the
+            t->seq_pos = CLK_FOLLOWS() || cue.cut ? t->seq_pos - 0x7FFFFFFFu : 0;   /* (a cue's restart: the
                                                      * block's rest after it, as the clock's) */
         } else {
             t->seq_pos -= cur_len;
@@ -891,7 +906,7 @@ static void seq_tick(track_t *t, uint32_t n)
             continue;
         }
         t->mic = 0;
-        late = seq_steps(t)[t->seq_idx].micro > 0 && !(t->rskip && t->rskip_idx == t->seq_idx);
+        late = t->step[t->seq_idx].micro > 0 && !(t->rskip && t->rskip_idx == t->seq_idx);
         motion_step(t, t->seq_idx, late ? MS_REL | MS_MOT : MS_ALL);   /* motion.c: its knobs at this step (before
                                                      * the hit; a late hit's locks at the hit) */
         if (t->rskip && t->rskip_idx == t->seq_idx) {
@@ -946,13 +961,13 @@ static __attribute__((noinline)) uint32_t mute_bar(uint32_t adv, uint32_t lead)
     return pr;
 }
 
-/* cue.c (spec 2026-10-26), every block before the steps: the mix gain of a slot switch's fade; playing (run), no
- * song: a queued switch's boundary in this block -> the switch (its fade's lead: CUE_LEAD, following a clock a pulse at
+/* cue.c (spec 2026-10-26), every block before the steps: the mix gain of a slot switch's fade; playing (run):
+ * a queued switch's boundary in this block -> the switch (its fade's lead: CUE_LEAD, following a clock a pulse at
  * least). noinline: the audio ISR's loops stay as they were (target_budget.py) */
 static __attribute__((noinline)) void cue_block(uint32_t n, uint32_t adv, uint32_t run)
 {
     cue_fade_tick(n);
-    if (run && !chain.running)
+    if (run)
         cue_tick(n, adv, song.g[G_CLOCK] && midi_clock.pulse_samples > CUE_LEAD ? midi_clock.pulse_samples : CUE_LEAD);
 }
 
@@ -1021,12 +1036,10 @@ static void events_block(uint32_t n)
                                                      * pulse; stopped, seq_tick counts ACID's gates in real time */
     cue_block(n, seq_n, run);                        /* cue.c: this block's fade; a queued switch's boundary */
     if (run) {
-        if (chain.running)
-            chain_tick(seq_n);                       /* song.c: a row ends in this block -> the next one */
         for (i = 0; i < NTRK; i++)
             seq_tick(&trk[i], seq_n);
         gclk_tick(seq_n);
-        chain.cut = 0;
+        cue.cut = 0;
     }
     mout_block(n, run);                             /* midi_out.c: SYNC's Clocks on the own clock (after gclk_tick) */
     if (song.playing)

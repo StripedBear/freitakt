@@ -73,7 +73,7 @@ const fresh = (o) => createMockDevice(data, o);
   ok(Object.entries(DETAIL).every(([k, v]) => E[`ED_D_${toC(k)}`] === v), "header: detail codes");
   ok(Object.entries(CAP).every(([k, v]) => E[`ED_CAP_${k}`] === v), "header: capability bits");
   ok(Object.entries(P.DF).every(([k, v]) => E[`ED_DF_${k === "RO" ? "RO" : k}`] === v) && E.ED_SF_RESTORING === P.SF.RESTORING
-    && E.ED_SF_SONG === P.SF.SONG && E.ED_SF_NOFLASH === P.SF.NOFLASH, "header: DESC / state flags");
+    && E.ED_SF_NOFLASH === P.SF.NOFLASH && E.ED_SF_SONG === undefined && E.ED_D_CUE_SONG === undefined, "header: DESC / state flags");
   ok(E.ED_H0 === P.HDR[0] && E.ED_H1 === P.HDR[1] && E.ED_H2 === P.HDR[2] && E.ED_PROTO_MAJOR === P.PROTO.major
     && E.ED_PROTO_MINOR === P.PROTO.minor && E.ED_SEQ_PUSH === P.SEQ_PUSH && E.ED_NONE === NONE && E.ED_U14_NONE === U14_NONE
     && E.ED_REQ_MAX === P.LIMITS.req && E.ED_REPLY_MAX === P.LIMITS.reply && E.ED_PIECE === P.LIMITS.piece
@@ -123,7 +123,7 @@ const fresh = (o) => createMockDevice(data, o);
   const lay = data.layout, c = data.consts;
   ok(Object.entries(P.LAYOUT.project).every(([n, v]) => lay.project[n] === v) && Object.entries(P.LAYOUT.locks).every(([n, v]) => lay.locks[n] === v)
     && Object.entries(P.LAYOUT.vars).every(([n, v]) => lay.vars[n] === v) && lay.presets.size === P.LAYOUT.presets.size
-    && lay.presets.slot === P.LAYOUT.presets.slot && lay.songSize === 36, "layout: object offsets = the firmware's structs");
+    && lay.presets.slot === P.LAYOUT.presets.slot && lay.songSize === undefined, "layout: object offsets = the firmware's structs");
   ok(same(lay.presets, P.LAYOUT.presets) && P.SZ.PRESETS === lay.presets.size && P.SZ.PRESETS_V1 === lay.presets.sizeV1
     && same(data.uprFx, P.LAYOUT.uprFx) && same(data.uprFb, P.LAYOUT.uprFb) && P.LAYOUT.uprNfb === c.UPR_NFB
     && same(P.LAYOUT.uprFxDef, data.uprFx.map((id) => data.tp[id].def))
@@ -217,9 +217,9 @@ const q = (cmd, args) => m.request(cmd, args);
     if (first >= r.total || !r.pages.length) break;
   }
   const t0 = q(CMD.DUMP, { track: NONE });
-  ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "SONG", "STEP", "TRACKS"].includes(p.title))
+  ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "STEP", "TRACKS"].includes(p.title))
     && pages[0].title === "SOUND" && same(pages[0].ids, [0, 1, 2, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
-  "PAGES: paged, DEST x 4, no slot / motion / song / tools pages, SOUND list, DLY MODE");
+  "PAGES: paged, DEST x 4, no slot / motion / tools pages, SOUND list, DLY MODE");
   ok(t0.p.length === 69 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
     "DUMP: 69 parameters, 32 globals, the model");
   const names = [];
@@ -289,10 +289,6 @@ const q = (cmd, args) => m.request(cmd, args);
   const now = q(CMD.STEPS_SET, { slot: 0, var: 2, track: 7, first: 0, steps: [st] });
   ok(now.rc === RC.OK && m.state().var === 2 && same(q(CMD.STEPS_GET, { slot: NONE, var: 2, track: 7 }).steps[0], st),
     "STEPS_SET stopped, another variation: switched at once (its key), the edit lands, rc 0");
-  m.setSong(true);
-  const sng = q(CMD.STEPS_SET, { slot: NONE, var: 2, track: 7, first: 0, steps: [st] });
-  m.setSong(false);
-  ok(sng.rc === RC.REFUSED && sng.detail === DETAIL.CUE_SONG && sng.msg === "STOP TO EDIT", "STEPS_SET while a song plays: rc 2 detail 2 STOP TO EDIT");
   const lk = q(CMD.LOCKS_GET, { slot: NONE, track: 2, first: 0 });
   const set = q(CMD.LOCK_EDIT, { op: LK.SET, track: 2, step: 0, param: 2, value: 500 });
   const mute = q(CMD.LOCK_EDIT, { op: LK.SET, track: 2, step: 0, param: data.P.indexOf("MUTE"), value: 1 });
@@ -304,17 +300,14 @@ const q = (cmd, args) => m.request(cmd, args);
     && q(CMD.LOCKS_GET, { slot: 0, track: 3, first: 0 }).total === 4, "LOCK_EDIT: clear one, a step, a track (MOTION events stay)");
   ok(q(CMD.CUE, { kind: P.CUE.SLOT, n: 3 }).detail === DETAIL.CUE_EMPTY && /SLOT D EMPTY/.test(m.request(CMD.CUE, { kind: 0, n: 3 }).msg),
     "CUE: an empty slot refused with the device's message");
-  m.setSong(true);
-  const song = q(CMD.CUE, { kind: P.CUE.VAR, n: 0 });
-  m.setSong(false);
   m.faults.cueFull = true;
   const full = q(CMD.CUE, { kind: P.CUE.VAR, n: 0 });
   m.faults.cueFull = false;
   m.faults.cuePark = 2;
   const park = q(CMD.CUE, { kind: P.CUE.SLOT, n: 1 });
   m.faults.cuePark = -1;
-  ok(song.detail === DETAIL.CUE_SONG && full.detail === DETAIL.CUE_FULL && park.detail === DETAIL.CUE_PARK + 2 && park.msg === "SAVE C FIRST",
-    "CUE: SONG, VARIATIONS FULL, SAVE c FIRST refusals");
+  ok(full.detail === DETAIL.CUE_FULL && park.detail === DETAIL.CUE_PARK + 2 && park.msg === "SAVE C FIRST",
+    "CUE: VARIATIONS FULL, SAVE c FIRST refusals");
   ok(q(CMD.SAVE, { slot: NONE }).rc === 0 && !(m.state().dirty & 1), "SAVE: stopped, A saved");
   m.play();
   const qd = q(CMD.CUE, { kind: P.CUE.SLOT, n: 1 });

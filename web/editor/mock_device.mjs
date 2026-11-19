@@ -14,7 +14,7 @@
 //   m.feed(frame) -> frames       one frame in, what the device answers in that pass (reply, then pushes)
 //   m.request(cmd, args) -> obj   encode, feed, decode (tests); m.poll() -> push frames of one main-loop pass
 //   device side: m.turn(track, id, v) m.turnGlobal(id, v) m.select(t) m.play() m.stop() m.boundary()
-//                m.editStep(track, step, s) m.lockOnDevice(track, step, param, v) m.setSong(on) m.advance(ms)
+//                m.editStep(track, step, s) m.lockOnDevice(track, step, param, v) m.advance(ms)
 //   faults:      m.faults.noReply = n (the next n requests unanswered), m.faults.refuse[cmd] = { rc, detail, msg, after }
 //                (once, after `after` more requests of cmd),
 //                m.faults.flashError, m.faults.cueFull, m.faults.cuePark = slot (the park holds that slot's unsaved
@@ -23,7 +23,7 @@
 //                failed this boot; 2: USR3's), m.updateFrame(), m.otaReq()
 //   samples:     m.smp.flash[k] (the slot's flash bytes), m.smp.up (the upload running), m.smp.writes (every erase /
 //                program: { slot, off, n }), m.seedSample(k, header, data), m.powerCut({ inHeader: header })
-//   m.g[G.CLOCK] (following an external clock: BPM stays the clock's) and m.song (a song plays) as the firmware
+//   m.g[G.CLOCK] (following an external clock: BPM stays the clock's) as the firmware
 // tests/editor_wire.mjs runs one request script through this mock and the firmware's (tests/editor_xcheck.c) and
 // compares the replies byte for byte.
 // opts: name ("Hortator"), editor (false: an FM-1 without the editor, it never answers), firmware ("1.0.0"),
@@ -52,7 +52,7 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 const N_NOTE = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const RO_G = ["MIDI", "INFO", "SLOT", "NAME", "LOAD", "SAVE", "CLRSEQ", "INITSND"];
 const MSG = {
-  [DETAIL.CUE_FULL]: "VARIATIONS FULL", [DETAIL.CUE_SONG]: "STOP SONG TO CUE", [DETAIL.CUE_NOSLOT]: "SAVE TO A SLOT FIRST",
+  [DETAIL.CUE_FULL]: "VARIATIONS FULL", [DETAIL.CUE_NOSLOT]: "SAVE TO A SLOT FIRST",
   [DETAIL.PRESET_EMPTY]: "EMPTY SLOT", [DETAIL.ACID_CAP]: "ACID ON 2 TRACKS", [DETAIL.NOT_LOCKABLE]: "NOT LOCKABLE",
   [DETAIL.LOCKS_FULL]: "LOCKS FULL", [DETAIL.VARS_FULL]: "VARIATIONS FULL", [DETAIL.NO_SLOT]: "SAVE TO A SLOT FIRST",
   [DETAIL.NEWER]: "UPDATE THE FM-1 FIRST", [DETAIL.BAD_OBJECT]: "NOT A HORTATOR OBJECT", [DETAIL.CRC]: "CRC MISMATCH",
@@ -109,7 +109,6 @@ export class MockDevice {
     this.last = null; // the duplicate rule: { cmd, seq, frame, at }
     this.restore = null;
     this.playing = false;
-    this.song = false;
     this.q = { slot: -1, var: -1, now: false };
     this.lastVar = [0, 0, 0, 0];
     this.flash = { upr: null, rec: [null, null, null, null], lk: [null, null, null, null], vr: [null, null, null, null] };
@@ -232,7 +231,7 @@ export class MockDevice {
     if (img.old) return { record: img.old, locks: null, vars: null };
     const vars = img.vars.some(Boolean) ? encodeVars({ slot, entries: img.vars }) : null;
     const locks = img.locks.length ? encodeLocks({ slot, on: img.lockOn, events: img.locks }) : null;
-    const record = encodeProject({ g: img.g, sel: img.sel, name: img.name, song: img.song,
+    const record = encodeProject({ g: img.g, sel: img.sel, name: img.name,
       tracks: img.tracks.map((t, k) => ({ p: t.p, steps: img.steps1[k], pre: this.preRec(t.pre), preEd: t.preEd })),
       lk_n: locks ? img.locks.length : 0, lk_link: locks ? lockLink(locks) : 0, var_link: vars ? varLink(vars) : 0,
       var_len: vars ? vars.length : 0 });
@@ -246,7 +245,7 @@ export class MockDevice {
       img.old = Uint8Array.from(record);
       return img;
     }
-    return { name: p.name, g: p.g, sel: p.sel, song: [...p.song], old: null,
+    return { name: p.name, g: p.g, sel: p.sel, old: null,
       tracks: p.tracks.map((t) => ({ p: t.p, pre: this.preDec(t.pre), preEd: t.preEd })),
       steps1: p.tracks.map((t) => t.steps), vars: vars ? decodeVars(vars).entries : Array(7).fill(null),
       locks: locks ? decodeLocks(locks).events : [], lockOn: locks ? decodeLocks(locks).on : 0 };
@@ -364,7 +363,7 @@ export class MockDevice {
     const dirty = [0, 1, 2, 3].reduce((m, i) => m | (this.slotDirty(i) ? 1 << i : 0), 0);
     return { playing: this.playing ? 1 : 0, slot: this.loaded < 0 ? NONE : this.loaded, var: this.varCur,
       qslot: this.q.slot < 0 ? NONE : this.q.slot, qvar: this.q.var < 0 ? NONE : this.q.var, sel: this.sel,
-      flags: (this.restore ? 1 : 0) | (this.song ? 2 : 0) | (this.faults.noFlash ? 4 : 0), used, dirty, vmask: [0, 1, 2, 3].map((s) => this.vmask(s)) };
+      flags: (this.restore ? 1 : 0) | (this.faults.noFlash ? 4 : 0), used, dirty, vmask: [0, 1, 2, 3].map((s) => this.vmask(s)) };
   }
 
   /* knobs ---------------------------------------------------------------------- */
@@ -454,7 +453,6 @@ export class MockDevice {
       t.preEd = 0;
       return v;
     }
-    if (id >= P.SLEN && id <= P.SSWING && this.song) return t.p[id]; // a song's rows set PATTERN
     // presets.c preset_marks: a SOUND knob; an FX knob of a user preset that holds them
     if (((id >= P.E0 && id <= P.E7) || (id >= P.SATK && id <= P.SCUT) || (LAYOUT.uprFx.includes(id) && this.uprFx(t.pre))) && t.p[id] !== v) t.preEd = 1;
     t.p[id] = v;
@@ -645,7 +643,6 @@ export class MockDevice {
         this.busy();
         if (a.track > 7 || a.var > 7 || a.first > 63 || !a.steps.length || a.first + a.steps.length > 64) refuse(RC.BAD, DETAIL.RANGE);
         const s = this.slotArg(a.slot);
-        if (this.song) refuse(RC.REFUSED, DETAIL.CUE_SONG, "STOP TO EDIT"); // a song's patterns stay as they are
         if (this.loaded < 0 && a.var !== this.varCur) refuse(RC.REFUSED, DETAIL.NO_SLOT);
         if (s !== this.loaded) refuse(RC.STALE, DETAIL.CUE_FIRST);
         if (a.var !== this.varCur) { // switch-to-edit: the variation's key pressed (stopped: at once; playing: queued)
@@ -720,7 +717,7 @@ export class MockDevice {
       snd.push(P.SATK, P.SSUS, P.SREL, P.SLOOP);
     }
     for (const pg of d.pages) {
-      if (pg.scope > d.sc.GLOBAL || [d.gr.SLOTS, d.gr.MOTION, d.gr.SONG].includes(pg.graph)) continue;
+      if (pg.scope > d.sc.GLOBAL || [d.gr.SLOTS, d.gr.MOTION].includes(pg.graph)) continue;
       if (pg.scope === d.sc.GLOBAL && pg.id.some((x) => x !== 255 && x >= d.gp.length)) continue;
       if (pg.graph === d.gr.LDEST) {
         d.lsId.forEach((ids, s) => out.push({ title: `DEST ${s + 1}`, scope: SCOPE.TRACK, graph: pg.graph, ids: [...ids, U14_NONE] }));
@@ -763,7 +760,6 @@ export class MockDevice {
 
   /* the cue keys (project.c cue_slot / cue_var) -------------------------------------- */
   cueSlot(s) {
-    if (this.song) refuse(RC.REFUSED, DETAIL.CUE_SONG);
     if (this.loaded < 0) refuse(RC.REFUSED, DETAIL.CUE_NOSLOT);
     if (!this.slots[s]) refuse(RC.REFUSED, DETAIL.CUE_EMPTY, `SLOT ${"ABCD"[s]} EMPTY`);
     if (this.q.slot === s) { this.q.now = true; return; }
@@ -771,7 +767,6 @@ export class MockDevice {
     this.cueQueue(s, -1);
   }
   cueVar(v) {
-    if (this.song) refuse(RC.REFUSED, DETAIL.CUE_SONG);
     if (this.loaded < 0) refuse(RC.REFUSED, DETAIL.CUE_NOSLOT);
     if (this.q.var === v) { this.q.now = true; return; }
     if (this.q.slot < 0 && v === this.varCur) { this.q.var = -1; this.q.now = false; return; }
@@ -1093,7 +1088,6 @@ export class MockDevice {
   select(t) { this.sel = t; return this.kick(); }
   play() { this.playing = true; return this.kick(); }
   stop() { this.playing = false; this.q = { slot: -1, var: -1, now: false }; return this.kick(); }
-  setSong(on) { this.song = !!on; return this.kick(); }
   editStep(track, step, s) { this.tracks[track].steps[step] = { ...emptyStep(), ...s }; return this.kick(); }
   lockOnDevice(track, step, param, value) {
     this.img().locks.push({ track, step, param, kind: LK.LOCK, value });

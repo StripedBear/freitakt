@@ -17,15 +17,12 @@
  * dormant); entering the next step the knob snaps back to that value (under). Locks play whatever MOTION's PLAY says
  * and MOTION CLEAR leaves them. */
 /* (the store's types, MOTION_MAX and MO_W: lockbank.c) */
-static const step_t *seq_steps(const track_t *t);   /* song.c: the steps a track plays */
 
 static struct {
     lk_bank_t b;                     /* the events and PLAY bits (saved as the project's lock bank) */
     int16_t base[NTRK][P_COUNT];     /* every knob as set, while motion plays */
     uint32_t act[NTRK][MO_W];        /* the knobs motion moved off the base (bit = id) */
     uint8_t base_ok, full;           /* tracks whose base is taken; a turn found no free place (the UI says so) */
-    const lk_bank_t *src;            /* a song's row: its slot's bank (song.c), 0 = mo.b */
-    const uint8_t *model;            /* .. its slot's models: a track's model now another one skips its P_E events */
     uint32_t lact[NTRK][MO_W];       /* the knobs a lock holds now (this step) */
     int16_t under[NTRK][P_COUNT];    /* .. the value each goes back to */
     uint8_t lfull;                   /* a lock found the bank full (the UI says so) */
@@ -132,7 +129,7 @@ static void motion_end(void)                      /* seq_stop: the patch back */
 static __attribute__((noinline)) void motion_step(track_t *t, uint32_t s, uint32_t what)
 {
     uint32_t k = (uint32_t)(t - trk), i, at = k << 6 | s, moved, play;
-    const lk_bank_t *m = mo.src ? mo.src : &mo.b;
+    const lk_bank_t *m = &mo.b;
     int on;
     moved = what & MS_REL ? (uint32_t)lock_release(k) : 0u;
     play = (m->on >> k) & 1u;
@@ -147,14 +144,13 @@ static __attribute__((noinline)) void motion_step(track_t *t, uint32_t s, uint32
     i = lk_seek(m, k, s);
     if (i >= m->count || (uint32_t)(m->key[i] >> 7) != at)
         goto done;                                  /* (most steps: no event) */
-    on = seq_steps(t)[s].on;
+    on = t->step[s].on;
     for (; i < m->count && (uint32_t)(m->key[i] >> 7) == at; i++) {   /* the step's events: motion before lock */
         uint32_t id = m->key[i] & 127u;
         int lock = lk_is_lock(m, i);
         const param_desc_t *d;
         int16_t *slot;
-        if ((lock ? !on || !(what & MS_LOCK) : !play || !(what & MS_MOT)) ||
-            (mo.model && mo.model[k] != t->p[P_MODEL] && id >= P_E0 && id <= P_E7))
+        if (lock ? !on || !(what & MS_LOCK) : !play || !(what & MS_MOT))
             continue;
         d = track_desc(t, id);
         slot = !lock && lock_held(k, id) ? &mo.under[k][id] : motion_slot(t, id);   /* (MS_ALL: no lock held yet) */

@@ -88,8 +88,6 @@ static __attribute__((noinline)) void ml_set(track_t *t, uint32_t id, uint32_t v
     int32_t nv;
     if (!ml_knob_real(d))
         return;                                     /* the model has no such knob */
-    if (id >= P_SLEN && id <= P_SSWING && chain_busy())
-        return;                                     /* PATTERN while a song plays (or is armed): its rows' */
     nv = ml_value(d, v);
     if ((mo.base_ok >> k) & 1u)
         mo.base[k][id] = (int16_t)nv;

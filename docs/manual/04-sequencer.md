@@ -5,7 +5,7 @@
 
 Each of the eight tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
 
-Press [[SEQ]] for the sequencer. It has four pages, reached by pressing [[SEQ]] again or turning [[SELECT]]: **STEP 1/4**, **PATTERN 2/4**, **MOTION 3/4** and **SONG 4/4**. On every SEQ page (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
+Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]] again or turning [[SELECT]]: **STEP 1/3**, **PATTERN 2/3** and **MOTION 3/3**. On every SEQ page (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
 
 ## STEP: tapping in a pattern
 
@@ -23,7 +23,7 @@ Press [[SEQ]] for the sequencer. It has four pages, reached by pressing [[SEQ]] 
 - **Banks:** [[KNOB 1]] on STEP shows `BANK n/m`. [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
 - **Piano roll:** on an ACID track the STEP page is a piano roll; notes, SLIDE and TIE are described under *Playing and recording*.
 - **Clear:** hold [[REC]] 0.7 s on a SEQ page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
-- **Where the held-step knobs work:** STEP, PATTERN, MOTION, SONG and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
+- **Where the held-step knobs work:** STEP, PATTERN, MOTION and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
 
 ## Fills
 
@@ -37,7 +37,7 @@ A step with PROB **FILL** plays only while a fill is active; **!FILL** plays onl
 | **KNOB 2** | DIV | 4BAR, 2BAR, 1/1, 1/2, 1/4, 1/8, 8T, 1/16 (default), 16T, 1/32 |
 | **KNOB 3** | SWG | 0 to 100 %. The effective swing is this plus GLOBAL SWG, capped at 100 |
 
-PATTERN edits are blocked while a song plays (`STOP TO EDIT`). TRACKS' LEN knob is the same length.
+TRACKS' LEN knob is the same length.
 
 ## MOTION: recorded knob turns
 
@@ -51,22 +51,6 @@ MOTION records knob turns per step while a track is armed and playing, and plays
 | **KNOB 4** | CLEAR | a right turn asks `CLEAR MOTION T<n>?`; [[OCT+]] confirms. Clears motion only, not locks |
 
 Up to **1024 events** per project are shared by all tracks and by parameter locks (`MOTION FULL`, `LOCKS FULL`). The graph shows the track's steps with event marks: solid when PLAY is on, dithered when off. Fader and knob moves from the SMC-Mixer and MIDI LEARN are recorded as motion only where stated in their sections. LFO RATE, MORPH and DEPTH knobs are recordable; SRC and DEST are not.
-
-## SONG: chaining projects
-
-SONG chains up to **16 rows**. Each row plays one project slot a number of times.
-
-| Knob | Label | Values |
-| --- | --- | --- |
-| **KNOB 1** | ROW | `n/count`, or `+` for the add-row position |
-| **KNOB 2** | SLOT | A to D |
-| **KNOB 3** | REPS | x1 to x16 |
-| **KNOB 4** | LOOP | OFF, ON |
-
-- Turn [[KNOB 2]] or [[KNOB 3]] on the `+` row to add a row.
-- Hold [[REC]] on a row: `DELETE ROW n?`; on the `+` row: `CLEAR SONG?` ([[OCT+]] yes).
-- [[PLAY]] on SONG plays the song. A row ends when its longest track has played its repeats. Each row plays its slot's variation 1 and its own project's locks.
-- Messages: `ADD A SONG ROW`, `PATTERN A EMPTY`, `STOP FIRST`, `STOP TO EDIT` (an edit during a song), `STOP SONG TO CUE`.
 
 ## Tempo, swing, clock
 
@@ -91,7 +75,7 @@ On a step page hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hit move
 
 - A late hit keeps its PROB, RATCH and locks (its ratchet hits spread over what is left of the step). An early hit plays in the step before, its locks from the hit to the end of its own step.
 - A nudged step has a mark beside its box in the grid: on the left if early, on the right if late. A tap that turns a step off makes it plain again.
-- NUDGE is part of the step: copied, saved and played everywhere (variations, live cue, song rows, slot COPY / PASTE). In a song an early first step does not reach into the row before. Step record writes NUDGE 0. All steps start at 0 and play exactly as before.
+- NUDGE is part of the step: copied, saved and played everywhere (variations, live cue, slot COPY / PASTE). Step record writes NUDGE 0. All steps start at 0 and play exactly as before.
 
 ## QUANT: where live recording lands
 
@@ -121,4 +105,4 @@ Hold [[SEQ]] (0.4 s, or press a key with it) for the **TOOLS** screen for the se
 | **C#5** DUPLICATE | every track's pattern twice as long, up to 64 steps, the new half a copy (`DUPLICATED`) |
 | **D#5** CLEAR | `CLEAR TRACK n?` ([[OCT+]] yes, [[OCT-]] no) |
 
-A copied step keeps everything: accent, PROB, ratchet, note, slide and tie, its NUDGE and its parameter locks. With the locks full a paste brings what fits and says `LOCKS FULL`. Other messages: `COPIED a-b`, `COPIED, LOCKS CUT`, `CLIPBOARD EMPTY`. Keys pressed with SEQ play nothing, send nothing and record nothing; [[PLAY]] works. While a song plays, pastes are refused (`STOP TO EDIT`), copies are fine. The clipboard is kept until power-off, across projects. Holding SEQ while switching on is still the safe start.
+A copied step keeps everything: accent, PROB, ratchet, note, slide and tie, its NUDGE and its parameter locks. With the locks full a paste brings what fits and says `LOCKS FULL`. Other messages: `COPIED a-b`, `COPIED, LOCKS CUT`, `CLIPBOARD EMPTY`. Keys pressed with SEQ play nothing, send nothing and record nothing; [[PLAY]] works. The clipboard is kept until power-off, across projects. Holding SEQ while switching on is still the safe start.

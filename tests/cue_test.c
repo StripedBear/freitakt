@@ -109,7 +109,7 @@ static uint32_t power_on(void)                        /* main.c's boot after a p
     memset(trk, 0, sizeof trk);
     memset(&ui, 0, sizeof ui);
     memset(&mo, 0, sizeof mo);
-    memset(&chain, 0, sizeof chain);
+    memset(&pname, 0, sizeof pname);
     memset(var_buf, 0, sizeof var_buf);
     memset(var_who, 0, sizeof var_who);
     var_play = 0;
@@ -376,8 +376,8 @@ static void four_slots(void)                          /* A..D saved, each its ow
         trk[0].p[P_LEVEL] = (int16_t)(10 + 10 * (int32_t)s);
         memset(trk[1].step, 0, sizeof trk[1].step);
         trk[1].step[s].on = 1;
-        chain.name[0] = (char)('A' + s);
-        chain.name[1] = 0;
+        pname.name[0] = (char)('A' + s);
+        pname.name[1] = 0;
         project_save(s);
     }
     project_load(0);
@@ -535,7 +535,7 @@ static void save_as_moves_edits(void)
     fb = flash_bank(1);
     ok = str_eq(ui.msg, "SAVED") && f.t[2].p[P_LEVEL] == 99 && f.t[0].p[P_LEVEL] == 10 && f.t[1].step[0].on &&
          !f.t[7].step[15].on && fb && var_get(fb, 1, VRP, VTR) == 1 && VR[7][15].on == 1u && f.var_len;
-    ok &= image_is_flash(0) && !slot_dirty(0) && !slot_dirty(1) && chain.from == 2u && var_who[var_play] == 2u;
+    ok &= image_is_flash(0) && !slot_dirty(0) && !slot_dirty(1) && pname.from == 2u && var_who[var_play] == 2u;
     var_cur = 0;
     check("RAM model: SAVE to another slot stores the live state and variations there; the old slot is its flash "
           "version again", (int)ok);
@@ -965,17 +965,6 @@ static void cue_park_refused(void)                    /* Review Focus 5 */
     check("cue: the park holds C's unsaved variations: a cue of another slot is refused when queued (SAVE C FIRST), "
           "whether the playing slot's are unsaved or not; a cue of C brings them back", (int)ok);
 }
-static void cue_song_refused(void)
-{
-    uint32_t ok;
-    four_slots();
-    chain.running = 1;
-    ok = cue_slot(1) == CUE_E_SONG && cue_var(1) == CUE_E_SONG && !cue.q_slot && !cue.q_var &&
-         str_eq(ui.msg, "STOP SONG TO CUE");
-    chain.running = 0;
-    OK(cue_slot(1) == 0);
-    check("cue: SONG playing: STOP SONG TO CUE, nothing queued", (int)ok);
-}
 static void cue_never_writes_flash(void)           /* Review Focus 1 */
 {
     uint32_t ok = 1, i, f;
@@ -1108,28 +1097,6 @@ static void cue_fade(void)
           "20 ms before), B's step-0 hit then sounds as a fresh PLAY of B (within 1 %); a variation switch changes "
           "nothing up to the boundary", (int)ok);
 }
-static void song_plays_var1(void)
-{
-    uint32_t ok = 1, f, a;
-    pattern_slot(16, 2);
-    cue_var(1);                                       /* A on variation 2 (track 0 step 1) */
-    proj_writeback();
-    chain.cfg.count = 1;
-    chain.cfg.loop = 1;
-    chain.cfg.row[0].slot = 0;
-    chain.cfg.row[0].repeat = 1;
-    OK(chain_prepare() == 0);
-    now_s = 0;
-    run_blk();
-    a = hit_age(&trk[0]);
-    OK(chain.running && chain.src[0].step[0][0].on && !chain.src[0].step[0][1].on && a != 0u);   /* variation 1 */
-    for (f = 0; f < 10u; f++)
-        run_blk();
-    stop();
-    OK(!chain.running && var_cur == 1u && trk[0].step[1].on && !trk[0].step[0].on);
-    check("cue: a SONG row plays its slot's variation 1; STOP returns to the live variation", (int)ok);
-}
-
 /* Review Focus 2: cueing while following an external clock (CLK USB / TRS): the switch comes from the clock's real
  * advance, in the block whose pulse ends the pattern (where a plain loop's next step 0 is), never late, never missed;
  * a slot switch's fade starts on the boundary's last pulse. (Here, not in midi_clock_test.c: the cue needs project.c) */
@@ -1211,8 +1178,8 @@ static int cue_follow(double bpm, uint32_t src, int slot)
     }
     OK(sw_blk == wrap_blk && (slot ? proj_loaded() == 1 : var_cur == 1u));
     if (!slot) {                                      /* (the step remainder from the grid's time: a measured
-                                                       * tempo's fraction may put it one sample off the plain loop's,
-                                                       * as a SONG row's; the next pulse re-anchors it) */
+                                                       * tempo's fraction may put it one sample off the plain loop's;
+                                                       * the next pulse re-anchors it) */
         seqst_t q = seqst(0);
         OK(q.idx == r0.idx && q.cnt == r0.cnt && q.par == r0.par && q.pos + 1u >= r0.pos && q.pos <= r0.pos + 1u);
     }
@@ -1360,9 +1327,9 @@ static uint32_t page_named(const char *n)
             return i;
     return 0;
 }
-enum { PG_HOME, PG_TRACKS, PG_STEP, PG_PATTERN, PG_MOTION, PG_SONG, PG_OK_N,   /* the black keys' pages */
+enum { PG_HOME, PG_TRACKS, PG_STEP, PG_PATTERN, PG_MOTION, PG_OK_N,   /* the black keys' pages */
        PG_SOUND = PG_OK_N, PG_FX, PG_LFO, PG_COMP, PG_GLOBAL, PG_PROJECT, PG_N };
-static const char *const PG_NAME[PG_N] = {"HOME", "TRACKS", "STEP", "PATTERN", "MOTION", "SONG",
+static const char *const PG_NAME[PG_N] = {"HOME", "TRACKS", "STEP", "PATTERN", "MOTION",
                                           "SOUND", "FX", "LFO", "COMP", "GLOBAL", "PROJECT"};
 static void go_page(uint32_t p)
 {
@@ -1413,17 +1380,8 @@ static void cue_black_keys_queue(void)
     OK(var_cur == 2u && !cue.q_var);
     black(0);
     OK(var_cur == 0u && !cue.q_var);
-    play();                                           /* SONG plays: refused as before */
-    chain.running = 1;                                /* (the input alone: no song's rows to draw) */
-    keys(1u << BK[2]);
-    ui_input();
-    keys(0);
-    ui_input();
-    OK(!cue.q_var && str_eq(ui.msg, "STOP SONG TO CUE"));
-    chain.running = 0;
-    stop();
-    check("black keys: F#3 .. A#4 queue variations 1..8 on HOME, TRACKS, STEP, PATTERN, MOTION, SONG (STEPS on or "
-          "off); again: at the next step; stopped: at once; SONG: STOP SONG TO CUE", (int)ok);
+    check("black keys: F#3 .. A#4 queue variations 1..8 on HOME, TRACKS, STEP, PATTERN, MOTION (STEPS on or off); "
+          "again: at the next step; stopped: at once", (int)ok);
 }
 static void cue_black_keys_elsewhere(void)
 {
@@ -1591,17 +1549,14 @@ static void fill_steps_saved(void)
 }
 
 /* ---- Task 8: COPY / PASTE / undo of a slot */
-static void beat_slot_a(void)                         /* A: a kit, steps, a lock, variation 2, a song, name BEAT; B, C,
+static void beat_slot_a(void)                         /* A: a kit, steps, a lock, variation 2, name BEAT; B, C,
                                                        * D saved plain; A loaded */
 {
     four_slots();
     trk[4].p[P_E1] = 33;
     trk[4].step[8].on = 1;
     lk_put(&mo.b, lk_key(4, 8, P_E1), 90, 1);
-    chain.cfg.count = 1;
-    chain.cfg.row[0].slot = 0;
-    chain.cfg.row[0].repeat = 2;
-    name_set(chain.name, "BEAT");
+    name_set(pname.name, "BEAT");
     var_make(111, 150);
     var_put(live_bank(), 1, VSP, VTM);
     project_save(0);
@@ -1786,9 +1741,9 @@ static void cue_load_race(void)
     for (b = 0; b < 2u; b++)
         if (var_who[b] == 1u && var_is(&var_buf[b], 2))
             kept = 1;
-    OK(kept && proj_loaded() == 2 && chain.from == 3u && trk[0].p[P_LEVEL] == 30 && !cue.q_slot && slot_dirty(0));
+    OK(kept && proj_loaded() == 2 && pname.from == 3u && trk[0].p[P_LEVEL] == 30 && !cue.q_slot && slot_dirty(0));
     if (!ok)
-        printf("     LOAD race: kept %u loaded %d from %u level %d who %u %u\n", kept, proj_loaded(), chain.from,
+        printf("     LOAD race: kept %u loaded %d from %u level %d who %u %u\n", kept, proj_loaded(), pname.from,
                trk[0].p[P_LEVEL], var_who[0], var_who[1]);
     stop();
     check("cue: LOAD C while B is queued (the switch due at once): the cue is dropped first, A's unsaved variations "
@@ -1986,10 +1941,8 @@ int main(void)
     cue_var_edits_while_queued();
     cue_var_full();
     cue_park_refused();
-    cue_song_refused();
     cue_never_writes_flash();
     cue_fade();
-    song_plays_var1();
     cue_follow_all();
     cue_map_leds();
     cue_top_line();

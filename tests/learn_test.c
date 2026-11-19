@@ -3,7 +3,7 @@
 /* MIDI LEARN (spec docs/superpowers/specs/2026-10-13-midi-learn-design.md) on the host, built with FELUCCA_BLE=1 (the
  * Bluetooth MIDI input in MIDI and SMC DAW mode) and the host flash (the map's own object): GLO + G4, a knob picks, a
  * CC binds, OCT- / OCT+, the rules, a learned CC in the audio interrupt (range, enum, bipolar, its track, the LFOs'
- * base, motion's base, a song's lock), every input, the flash record. Screens: build/ui_shots/learn/. */
+ * base, motion's base), every input, the flash record. Screens: build/ui_shots/learn/. */
 #define FELUCCA_FLASH 1
 #include <stdint.h>
 static uint8_t hflash[0x100000];
@@ -497,12 +497,6 @@ static void test_ranges(void)
     check("LEN: 127 -> 64", trk[0].p[P_SLEN] == 64);
     send_cc(84, 0);
     check("LEN: 0 -> 1", trk[0].p[P_SLEN] == 1);
-    chain.armed = 1;                                 /* (a song armed: chain_busy, as while it plays) */
-    send_cc(84, 127);
-    check("a song plays: LEN (PATTERN) stays", trk[0].p[P_SLEN] == 1);
-    send_cc(80, 0);
-    check("a song plays: PAN still moves", trk[0].p[P_PAN] == -64);
-    chain.armed = 0;
 }
 
 static void test_bound_track(void)

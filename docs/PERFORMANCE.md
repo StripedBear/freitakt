@@ -99,5 +99,4 @@ Costs, measured:
   1487.6 (the worst case as a hit decays; it sets the models directly, over the cap, to measure).
 
 The cap, by user decision (2026-10-09): the MODEL knob of a 3rd track skips ACID (`ACID: 2 TRACKS MAX`); a loaded
-project keeps ACID on its first 2 ACID tracks and the others return to their power-on kit model. Neither a song row
-nor the motion nor the LFOs change a track's model, so only the knob and the load need the cap.
+project keeps ACID on its first 2 ACID tracks and the others return to their power-on kit model. Neither the motion nor the LFOs change a track's model, so only the knob and the load need the cap.

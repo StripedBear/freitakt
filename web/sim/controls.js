@@ -9,7 +9,7 @@ export const BTN = [
   { c: 'B_EDIT', label: 'EDIT', tip: 'the selected track\'s sound' }, { c: 'B_GLO', label: 'GLO', tip: 'tap: GLOBAL; hold: the MUTE screen' },
   { c: 'B_HOME', label: 'HOME', tip: 'TRACKS / HOME (a tap switches); hold for the menu' },
   { c: 'B_SAVE', label: 'SAVE', tip: 'tap: projects and tools; hold: the cue map (white keys 1-4 slots, black keys variations)' }, { c: 'B_ARP', label: 'ARP', tip: 'unused' },
-  { c: 'B_SEQ', label: 'SEQ', tip: 'steps, PATTERN, MOTION, SONG' },
+  { c: 'B_SEQ', label: 'SEQ', tip: 'steps, PATTERN, MOTION' },
   { c: 'B_PLAY', label: 'PLAY', tip: 'play / stop' }, { c: 'B_REC', label: 'REC', tip: 'arm the selected track to record, on any page; hold off SEQ: FILL' },
   { c: 'B_OCTDN', label: 'OCT-' }, { c: 'B_OCTUP', label: 'OCT+' },
 ];

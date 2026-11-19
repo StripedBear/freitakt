@@ -343,8 +343,8 @@ export async function runPageTests(log = console.log, mods = {}) {
     ok(headerModel(r09.session).firmware === "0.9.9" && headerModel(r09.session).port === "Hortator",
       "header: the firmware version is INFO's (not written in the page), then the port's name");
     r09.session.close();
-    ok(fake(SF.RESTORING, false).status === "RESTORING" && fake(0, true).status === BUSY_MSG && fake(SF.SONG, false).status === "SONG",
-      "header: RESTORING, FM-1 busy (update?), SONG");
+    ok(fake(SF.RESTORING, false).status === "RESTORING" && fake(0, true).status === BUSY_MSG && fake(0x02, false).status === "",
+      "header: RESTORING, FM-1 busy (update?); flag 0x02 reserved");
 
     /* the update silence */
     const busy = [], resync = [];

@@ -123,7 +123,7 @@ Report what you saw first; we'll go through it together.
   step rolls three hits.
 - ARP: GRIDS 1/2 (MODE X Y CHAOS; MODE EUCL: LEN K S H) and 2/2 (FIL K S H, routing line). PATTERN KNOB 4 SRC
   `G-KCK` / `G-SNR` / `G-HAT` makes a track follow Grids; its STEP grid shows the pattern, keys do nothing.
-- Every SEQ page (STEP, PATTERN, MOTION, SONG): the white keys are the selected track's steps (tap: on / off, OCT+
+- Every SEQ page (STEP, PATTERN, MOTION): the white keys are the selected track's steps (tap: on / off, OCT+
   held + tap: accent), OCT+ (let go alone) / OCT- the bank; the footer strip shows them; ALGO picks the track (no sound).
 - TRACKS (HOME's first mode): the white keys are the selected track's steps (as on STEP: tap on / off, OCT+ held +
   tap: accent; OCT+ / OCT- the bank; no sound); KNOB 1 or ALGO picks the track. With a track armed (REC tap on TRACKS) the white
@@ -139,7 +139,7 @@ Report what you saw first; we'll go through it together.
   half filled and silent while playing; the same key again unsolos (`F# SOLO TGL` on the last line). Top F#5:
   `SOLO: MOMENTARY` (F#5 lit, `F# SOLO MOM`): a solo key now solos only while held, also when GLO is let go first;
   F#5 again: `SOLO: TOGGLE`. Power off and on: the mode kept, nothing soloed.
-- Step tools: a quick SEQ tap still turns STEP -> PATTERN -> MOTION -> SONG (on the release). Hold SEQ (0.4 s, or
+- Step tools: a quick SEQ tap still turns STEP -> PATTERN -> MOTION (on the release). Hold SEQ (0.4 s, or
   SEQ + a key at once): `STEP TOOLS` in the top bar, the bank's steps on screen and on the white keys, the tools on
   the black keys (`build/ui_shots/seqtools/01_tools.png`); keys pressed with SEQ play no sound and record nothing,
   even with REC ALL armed and playing. Let go: the page before. Holding SEQ while switching on is still SAFE START.
@@ -311,19 +311,13 @@ Report what you saw first; we'll go through it together.
 - Turn DECAY without REC while it plays: that is the new value the loop comes back to.
 - Save the project (stopped), power off and on, load it: the motion plays again.
 
-### SONG / NAME (check on the FM-1)
+### NAME (check on the FM-1)
 - SAVE > PROJECT, slot A, SAVE twice: saved at once (USED). KNOB 2 NAME: the NAME screen opens ("PROJECT A"). Type
   a name on the keys (a white key again within 0.8 s: its next letter; F# / A# move, G# space, C# deletes, D#
   digits); KNOB 1 / 2 move and change a character; OCT+ writes it, OCT- cancels. The keys make no sound while it is
   open. PROJECT shows the name next to A; SAVE again keeps it.
 - Make another pattern, save it to B and name it the same way.
-- SEQ > SONG: KNOB 2 on the `+` row adds a row; rows A x2, B x1; KNOB 4 LOOP ON. PLAY: A twice, then B, then A
-  again; the rows change on the bar, the header shows SONG and the row, the playing row "n LEFT".
-- LOOP OFF: it stops after B. STOP during a song: the current pattern (LEN etc.) is as before.
-- In a slot, a 16-step kick with a 64-step hats track: the row lasts the hats' 4 bars.
-- While a song plays: STEP / PATTERN edits say STOP TO EDIT; LOAD says STOP TO LOAD. REC held on a SONG row:
-  DELETE ROW; on the `+` row: CLEAR SONG.
-- Save, power off and on, load: the song and the name are there.
+- Save, power off and on, load: the name is there.
 
 ### PHYS (check on the FM-1)
 - A track to SKIN (SOUND, MODEL after HISS): TUNE / DECAY / TONE / HEAD on HOME. HEAD from a tom (0) to a tabla
@@ -677,7 +671,7 @@ The screens: `build/ui_shots/presets/`. The factory banks (151 presets; `tools/p
   While OCT+ is held the keys show only the accented steps. A step key held 1 s: no accent, an on step as it was
   (Unreleased: a hold never turns a step off, see "Step keys: tap or hold" below); held + KNOB 1 / 2 / 3: PROB /
   RATCH / accent. OCT+ tapped alone (32 steps): bank 2 when let go; OCT+ held while
-  accenting: the bank stays. The same on PATTERN, MOTION, SONG and TRACKS (unarmed). Play: accented steps louder.
+  accenting: the bank stays. The same on PATTERN, MOTION and TRACKS (unarmed). Play: accented steps louder.
 - Track keys (item 2): on HOME (the HOME screen), EDIT (SOUND and LAYER pages), FX (every page) and LFO the selected track's white key is lit (track 1: F3, track 2: G3 .. track 8: F4); ALGORITHM moves it, a
   white key selects its track and its key stays lit (on CHORUS, DLY and REVERB, the global bus pages on GLO, a white key only
   plays its drum: the selection stays, as before). KEYS on (SCL): no track key, the keyboard as before. COMP: the
@@ -738,7 +732,7 @@ The screens: `build/ui_shots/fixes/rec_all.png` (the `REC ALL` message on FX), `
 - A REC tap off TRACKS during REC ALL: it ends; `REC OFF` (nothing was armed before) or `T3 REC ARMED` (track 3 was
   armed before: armed again). On TRACKS during REC ALL: it ends, the selected track armed (`T3 REC ARMED`).
 - On STEP with KEYS on, stopped: REC tap = step record on, again = off (no REC ALL). REC held on a SEQ page: CLEAR
-  TRACK, as before. While a song plays: REC says `STOP TO EDIT`.
+  TRACK, as before.
 - SMC-Mixer: REC acts as the FM-1's REC on the page shown (REC ALL: REC 1-8 all lit); REC 3 during REC ALL: it ends,
   track 3 dark, the others lit. A learned REC (MIDI LEARN) acts as the button.
 
@@ -783,7 +777,7 @@ ACC`).
   the step stays on when let go. An off step with KNOB 3 turned right at once: on and accented. KNOB 4: nothing.
 - OCT+ held + a step key: its accent flips at once, as before (let go: no further change). Hold one step, tap
   another: the tapped one toggles, the held one not.
-- The same tap / hold on PATTERN, MOTION, SONG and TRACKS (unarmed); there the knobs stay the page's (PATTERN KNOB 3
+- The same tap / hold on PATTERN, MOTION and TRACKS (unarmed); there the knobs stay the page's (PATTERN KNOB 3
   SWING, not the accent). KEYS on (SCL): the keys play notes, no step changes; step record (KEYS on, stopped, REC) as
   before.
 
@@ -818,8 +812,6 @@ ACC`).
 - With the project full (1024 events), a lock turn says `LOCKS FULL`.
 - Locks on two tracks and a few pages, SAVE the project (stopped), power off and on, LOAD it: every lock plays as
   before; `LOADED` (not `LOCKS LOST`).
-- A song of two rows, slot A (with locks) and slot B (without): PLAY on SONG: A's rows play their locks, B's rows play
-  the knobs' own values, and nothing of A's locks is left on in B.
 - Optional (downgrade is not supported): on an older Hortator (0.23.x) a project saved now reads as an empty slot
   (`EMPTY SLOT` on LOAD; `LOAD FAILED` at power-on if it was the last one saved); nothing else breaks; back on this
   build it loads.
@@ -847,12 +839,12 @@ ACC`).
 - Variations on the black keys: on A, on HOME, playing, press G#3 (variation 2): G#3 blinks, F#3 stays lit; at the
   pattern's end it plays variation 2, a copy of variation 1 (G#3 lit, F#3 dark). Edit some steps, LEN of a track.
   F#3: back to variation 1 at the boundary (the edits stay in variation 2: G#3 brings them back). G#3 twice: at the
-  next step. The same on TRACKS (HOME tap), STEP, PATTERN, MOTION and SONG, and with STEPS on (ENV): the steps and
+  next step. The same on TRACKS (HOME tap), STEP, PATTERN and MOTION, and with STEPS on (ENV): the steps and
   the selected track's key light as before. On SOUND, FX, LFO, COMP, GLOBAL, PROJECT or GRIDS, with KEYS on (SCL:
   the black keys play notes), on the MUTE screen (GLO held: top C# / D# NOW / NEXT BAR as before) and under PERFORM
   (FX held: the effects) the black keys cue nothing. Fill several variations with dense patterns until
   `VARIATIONS FULL` shows (the playing one plays on). SAVE + white key 2 then black key A#4 (8): `CUE>B8`, on any
-  page. Stopped, a cue switches at once. During SONG: `STOP SONG TO CUE`.
+  page. Stopped, a cue switches at once.
 - Edited slots: edit A, cue B, cue A: the edit is still there; the PROJECTS list shows `A*`; SAVE A: the `*` goes.
   With C's variations edited and left unsaved (cue away from C), cueing any slot but C says `SAVE C FIRST`.
 - SAVE onto an edited slot that is not loaded (`B*`): `OVERWRITE B*?`; OCT- nothing, OCT+ saved. LOAD A after only

@@ -52,7 +52,7 @@ With ACCEL ON, a knob turned in one direction over a wide value (more than 32 st
 ### BACKLIGHT
 
 - **OFF**: LEDs lit or dark, as before.
-- **DIM LO**: every key LED that is not lit and every idle button glows at about 3 % (a very short flash about 900 times a second: steady, also with Bluetooth on) so the panel can be found in the dark. Where the white keys are the selected track's steps (STEP, PATTERN, MOTION and SONG with KEYS off; TRACKS while no track is armed) the unlit steps 1, 5, 9 and 13 of the bank shown glow at about 25 % (bank 2: 17, 21, 25, 29), marking the beats.
+- **DIM LO**: every key LED that is not lit and every idle button glows at about 3 % (a very short flash about 900 times a second: steady, also with Bluetooth on) so the panel can be found in the dark. Where the white keys are the selected track's steps (STEP, PATTERN, and MOTION with KEYS off; TRACKS while no track is armed) the unlit steps 1, 5, 9 and 13 of the bank shown glow at about 25 % (bank 2: 17, 21, 25, 29), marking the beats.
 - **DIM HI**: the same, brighter (about 6 %, the beats about 30 %).
 - **INV**: as the stock firmware does: idle LEDs lit, active ones (steps that are on, the playhead, held keys, the page's button) dark. **INV LO / INV HI**: the same with the idle ones at about 10 % / 25 %.
 - In every mode [[OCT-]] / [[OCT+]] **breathe** (fade in and out) where pressing them would do something: the next / previous bank, LAYER from SOUND, the LFO pages' RATE MODE, YES in a dialog, OK in the menu, NAME's RENAME, MIDI LEARN's DONE, the PRESETS list's LOAD (and DELETE on a used user slot). A way back (NO, CANCEL, BACK, LAYER's OCT-) is lit; KEYS' octave shift is lit.

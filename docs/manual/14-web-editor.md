@@ -15,7 +15,7 @@ Open it at <https://deadactive.github.io/hortator/webapp/editor/> (the site's "E
 4. The page asks each port named Hortator, Felucca or FM-1 who it is, and connects to the first that answers as a Hortator. This works even when the computer still shows the FM-1 under an old name such as "Felucca" or "FM-1". Nothing is sent before you click Connect, and other MIDI gear receives nothing unless you click Search other MIDI ports.
 5. If nothing answered, the page says so and offers **Search other MIDI ports**, which asks every other port the same question. An FM-1 that does not answer (stock firmware, Felucca or a Hortator before 1.0.0) gets a link to the installer.
 
-While connected, the **header bar** stays on top: the FM-1 and its firmware and port, PLAY or STOP, the four project slots A to D (`*` unsaved changes, a dashed box a queued slot, a dim one an empty slot), the variation (`VAR 3`, with an arrow to the queued slot or variation), a status (RESTORING, SONG, or busy), and the eight track buttons 1 to 8. A track button selects that track on the page and on the FM-1; selecting on the FM-1 moves it in the page too.
+While connected, the **header bar** stays on top: the FM-1 and its firmware and port, PLAY or STOP, the four project slots A to D (`*` unsaved changes, a dashed box a queued slot, a dim one an empty slot), the variation (`VAR 3`, with an arrow to the queued slot or variation), a status (RESTORING or busy), and the eight track buttons 1 to 8. A track button selects that track on the page and on the FM-1; selecting on the FM-1 moves it in the page too.
 
 The tabs are **Sound**, **Presets**, **Projects**, **Patterns** and **Samples**. The tab you used last opens next time. A tab appears only if the FM-1's firmware has what it needs.
 
@@ -68,7 +68,7 @@ Restores and copies run only while the FM-1 is **stopped**. During a restore the
 
 The Patterns tab edits the sequence of the **loaded slot**.
 
-- **CUE.** The keys A to D and VAR 1 to 8 queue a slot or variation exactly as the FM-1's cue keys do, with the same refusals (`VARIATIONS FULL`, `STOP SONG TO CUE` ...). The playing one is lit, a queued one blinks, `*` is unsaved.
+- **CUE.** The keys A to D and VAR 1 to 8 queue a slot or variation exactly as the FM-1's cue keys do, with the same refusals (`VARIATIONS FULL` ...). The playing one is lit, a queued one blinks, `*` is unsaved.
 - **SHOW** picks which slot and variation the grid displays (not what plays). Only the loaded slot is editable; another slot is read-only ("cue it to edit"). **Follow the FM-1** puts the grid back on what plays.
 - **The grid** has 8 tracks by 64 steps. A cell shows the step: on, accent, a ratchet count, `%` for a PROB below 100 %, `F` / `!` for FILL / !FILL, and marks for NUDGE (left early, right late) and locks. Click a step to turn it on or off; shift-click selects it without changing it. Steps past the track's LEN are dimmed.
 - **The step panel** edits the selected step: ON, ACC, SLIDE and TIE (ACID tracks), NOTE (0 to 127, shown as a note name), PROB (0 % to 95 %, 100 %, 1-SHOT, the fractions 1/2 to 8/8, FILL, !FILL), RATCH (1 to 4) and NUDGE (a slider, -50 to +50 hundredths of a step, in the FM-1's own reading).

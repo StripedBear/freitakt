@@ -137,7 +137,7 @@ static void ed_sample_poll(void)
 /* flash may be written now for slot k (BEGIN, END, CLEAR, RENAME): 1, else refused (replied) */
 static int eds_can_write(uint32_t cmd, uint32_t k, const char *stop)   /* k 3: no slot's clamp asked */
 {
-    if (transport_busy() || chain_busy())
+    if (transport_busy())
         ed_fail(cmd, ED_E_STOP, ED_D_STOP, stop);
     else if (ed_restoring())
         ed_fail(cmd, ED_E_BUSY, ED_D_RESTORING, "RESTORING");
@@ -204,7 +204,7 @@ static void eds_data(const uint8_t *a, uint32_t n)
     uint8_t *p = usr_head;
     if (!eds.on || k != eds.slot)
         EDS_NO(ED_SMP_DATA, ED_E_BAD, ED_D_NOT_RESTORING, "NO UPLOAD");
-    if (transport_busy() || chain_busy())
+    if (transport_busy())
         EDS_NO(ED_SMP_DATA, ED_E_STOP, ED_D_STOP, "STOP TO UPLOAD");
     if (off != eds.got && off + 1u != eds.last)     /* (only the next piece or the last one again: below the length,
                                                      * on a piece's offset) */
@@ -249,7 +249,7 @@ static void eds_end(const uint8_t *a, uint32_t n)
     smp_user_hdr_t *h = (smp_user_hdr_t *)(void *)st_buf;
     if (!eds.on || k != eds.slot)
         EDS_NO(ED_SMP_END, ED_E_BAD, ED_D_NOT_RESTORING, "NO UPLOAD");
-    if (transport_busy() || chain_busy())
+    if (transport_busy())
         EDS_NO(ED_SMP_END, ED_E_STOP, ED_D_STOP, "STOP TO UPLOAD");
     cue_cancel();
     if (ed_unpack7(a + 1, n - 1u, st_buf, ED_SMP_HDR) != ED_SMP_HDR)

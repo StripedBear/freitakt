@@ -16,7 +16,7 @@
  * into the bank as motion events. "FDRE" (the 14th): the globals (with the COMP's GHOST and the reverb TYPE), the selected track, per track every
  * parameter and its 64 steps (with PROB / RATCH, each step's note offset, SLIDE and TIE (ACID), DUCK, the COMP settings,
  * the LFOs and their 4 DEST slots, RESON, the FILTER, PRIO), the motion
- * (motion.c, 128 events), the song and the project's name (song.c), each track's preset id and edited mark (presets.c).
+ * (motion.c, 128 events), 36 reserved bytes (the removed SONG's rows: 0), the project's name (seq.c pname), each track's preset id and edited mark (presets.c).
  * M1's "FDR1", M2's "FDR2", M3's "FDR3", the LFOs' "FDR4" RESON's "FDR5", GHOST's "FDR6", the sound pack's
  * "FDR7", motion's "FDR8", the song's "FDR9", the FILTER's "FDRA", ACID's "FDRB", PRIO's "FDRC" and the presets' "FDRD"
  * records (in flash) are converted on load (the FILTER OFF, the steps at NOTE C4 with no SLIDE / TIE, PRIO HIGH, no
@@ -96,7 +96,7 @@ typedef struct {
                                                  * before them: the power-on values; an older firmware ignores them) */
     uint8_t xp3[NTRK][PROJ_XP3];                /* FDRG (1.0.0): PLAY CUT (as xp2; 0 before them: KEY, OFF) */
     uint8_t rsv_mo[504 - NTRK * (PROJ_XP + PROJ_XP2 + PROJ_XP3)];   /* FDRF: reserved, 0 */
-    chain_config_t song;                        /* FDR9: the song (song.c) */
+    uint8_t rsv_song[36];                       /* FDR9: the song (SONG, removed in FREITAKT): reserved, 0 */
     char name[NAME_LEN];                        /* FDR9: the name (NAME_SET, 0-padded; "" = none) */
     uint16_t pre[NTRK];                         /* FDRD: each track's preset: a factory one's uid, 0x8000 | a user
                                                  * slot, PRE_NONE none (presets.c preset_rec_enc: not the id) */
@@ -141,7 +141,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint16_t pre[NTRK];
     uint8_t pre_ed[NTRK];
@@ -149,9 +149,9 @@ typedef struct {
 } project_ve_t;
 typedef char project_ve_size[sizeof(project_ve_t) == 3840u &&
                              __builtin_offsetof(project_ve_t, motion) == __builtin_offsetof(project_t, lk_n) &&
-                             __builtin_offsetof(project_ve_t, song) == __builtin_offsetof(project_t, song) ? 1 : -1];
+                             __builtin_offsetof(project_ve_t, rsv_song) == __builtin_offsetof(project_t, rsv_song) ? 1 : -1];
 /* each slot's lock bank (lockbank.c): the one its record links (persist_boot, a LOAD's fetch, a SAVE); .bss (the
- * slots' records are .noinit: a reset finds them, the banks come from flash again). A SONG row plays its slot's */
+ * slots' records are .noinit: a reset finds them, the banks come from flash again). */
 static lk_bank_t lk_slot[4];
 static uint8_t lk_dirty;                            /* bit per slot: its RAM bank is not in flash (an older record converted
                                                      * at boot, or its SAVE failed): a record written alone (RENAME) writes
@@ -222,7 +222,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_va_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint32_t sum;
 } project_va_t;
@@ -238,7 +238,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_vb_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint32_t sum;
 } project_vb_t;
@@ -255,7 +255,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_vd_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint32_t sum;
 } project_vc_t;
@@ -266,7 +266,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_vd_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint16_t pre[NTRK];
     uint8_t pre_ed[NTRK];
@@ -354,7 +354,7 @@ typedef struct {
     proj_trk_v9_t t[NTRK];
     uint32_t sum;
 } project_v7_t;
-/* motion's format: everything but the song and the name. 3544 B */
+/* motion's format: everything but the song (reserved now) and the name. 3544 B */
 typedef struct {
     uint32_t magic, size;
     int16_t g[PR_NG];
@@ -370,7 +370,7 @@ typedef struct {
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     motion_store_t motion;
-    chain_config_t song;
+    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
     char name[NAME_LEN];
     uint32_t sum;
 } project_v9_t;
@@ -422,6 +422,7 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
         memcpy(q, &proj_old.ve, sizeof *q);
         q->magic = PROJ_MAGIC;
         memset(&q->lk_n, 0, sizeof proj_old.ve.motion);
+        memset(q->rsv_song, 0, sizeof q->rsv_song);       /* (the removed SONG's rows) */
         proj_old_bank(q, b, &proj_old.ve.motion);
         proj_xp_move(q);
         q->sum = proj_sum(q);
@@ -441,7 +442,6 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
             memcpy(q->t[k].step, o->t[k].step, sizeof q->t[k].step);
         }
         proj_old_bank(q, b, &o->motion);
-        q->song = o->song;
         memcpy(q->name, o->name, NAME_LEN);
         if (ver == 12u) {
             proj_old_done(q);
@@ -478,7 +478,6 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
         proj_old_bank(q, b, ver == 8u ? &proj_old.v8.motion : ver == 9u ? &proj_old.v9.motion
                           : ver == 10u ? &proj_old.va.motion : &proj_old.vb.motion);
         if (ver >= 9u) {
-            q->song = ver == 9u ? proj_old.v9.song : ver == 10u ? proj_old.va.song : proj_old.vb.song;
             memcpy(q->name, ver == 9u ? proj_old.v9.name : ver == 10u ? proj_old.va.name : proj_old.vb.name, NAME_LEN);
         }
         proj_old_done(q);
@@ -649,7 +648,7 @@ static int32_t proj_loaded(void)
 }
 /* slot's record <- the live state with the knobs at rest (what STOP leaves: motion's base, a held lock's value under
  * it, an LFO's resting copy: motion.c motion_rest), its lock bank <- mo.b. Playing a variation other than 1, the
- * steps and the timing (CHAIN_TIMING) stay variation 1's, from the loaded slot's image (p itself, or the loaded slot's
+ * steps and the timing (PAT_TIMING) stay variation 1's, from the loaded slot's image (p itself, or the loaded slot's
  * for a SAVE to another one). globals 0: the image's globals and selected track kept (a cue keeps the live ones). The
  * variation link and the sum: the caller's. Main loop with the IRQ off, or the ISR */
 static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, int globals)
@@ -669,10 +668,10 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     p->size = sizeof *p;
     p->rsv[1] = p->rsv[2] = 0;
     for (k = 0; k < NTRK; k++) {
-        int16_t tm[CHAIN_NT], mute = p->t[k].p[PR_P(P_MUTE)];
+        int16_t tm[PAT_NT], mute = p->t[k].p[PR_P(P_MUTE)];
         int keep = !globals && ok;                      /* (a write-back: the mutes are the performance's, kept) */
-        for (j = 0; j < CHAIN_NT; j++)
-            tm[j] = v1 ? v1->t[k].p[PR_P(CHAIN_TIMING[j])] : 0;
+        for (j = 0; j < PAT_NT; j++)
+            tm[j] = v1 ? v1->t[k].p[PR_P(PAT_TIMING[j])] : 0;
         for (i = 0; i < P_NSTORED; i++)
             p->t[k].p[PR_P(i)] = motion_rest(k, i);
         p->t[k].p[PR_SRCP] = 0;                         /* (SRC's place) */
@@ -684,8 +683,8 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
         if (v1) {
             if (p != v1)
                 memcpy(p->t[k].step, v1->t[k].step, sizeof p->t[k].step);
-            for (j = 0; j < CHAIN_NT; j++)
-                p->t[k].p[PR_P(CHAIN_TIMING[j])] = tm[j];
+            for (j = 0; j < PAT_NT; j++)
+                p->t[k].p[PR_P(PAT_TIMING[j])] = tm[j];
         } else {
             memcpy(p->t[k].step, trk[k].step, sizeof p->t[k].step);
         }
@@ -696,8 +695,8 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     }
     lk_slot[slot & 3u] = mo.b;                          /* the bank: the motion and the locks (sealed: proj_seal) */
     memset(p->rsv_mo, 0, sizeof p->rsv_mo);
-    p->song = chain.cfg;
-    memcpy(p->name, chain.name, NAME_LEN);
+    memset(p->rsv_song, 0, sizeof p->rsv_song);
+    memcpy(p->name, pname.name, NAME_LEN);
 }
 static void proj_var_link(project_t *p, const var_bank_t *b)   /* the record links b (none used: no object) */
 {
@@ -733,8 +732,8 @@ static __attribute__((noinline)) int var_pack_live(uint32_t slot)
         return 0;
     for (k = 0; k < NTRK; k++) {
         var_sp[k] = trk[k].step;
-        for (j = 0; j < CHAIN_NT; j++)
-            var_tm[k][j] = trk[k].p[CHAIN_TIMING[j]];
+        for (j = 0; j < PAT_NT; j++)
+            var_tm[k][j] = trk[k].p[PAT_TIMING[j]];
     }
     r = var_put(&var_buf[var_play], var_cur, var_sp, var_tm);
     if (r == 0)
@@ -783,7 +782,7 @@ static int live_globals_edited(void)
     return 0;
 }
 /* the live state's fingerprint: what a write-back would store (the knobs at rest, the steps, the presets' marks, the
- * lock bank, the song, the variation playing; not the globals, not the name: RENAME keeps that in step) */
+ * lock bank, the variation playing; not the globals, not the name: RENAME keeps that in step) */
 static uint32_t live_sum(void)
 {
     uint32_t h = 2166136261u, k, i;
@@ -797,8 +796,6 @@ static uint32_t live_sum(void)
         for (b = (const uint8_t *)trk[k].step, i = 0; i < sizeof trk[k].step; i++)
             h = (h ^ b[i]) * 16777619u;
     for (b = (const uint8_t *)&mo.b, i = 0; i < sizeof mo.b; i++)
-        h = (h ^ b[i]) * 16777619u;
-    for (b = (const uint8_t *)&chain.cfg, i = 0; i < sizeof chain.cfg; i++)
         h = (h ^ b[i]) * 16777619u;
     return (h ^ var_cur) * 16777619u;
 }
@@ -895,7 +892,7 @@ static void project_save_go(uint32_t slot)
     vb->slot = (uint8_t)slot;                           /* the live variations become this slot's */
     var_who[var_play] = (uint8_t)(slot + 1u);
     proj_seal(slot);
-    chain.from = (uint8_t)(slot + 1u);
+    pname.from = (uint8_t)(slot + 1u);
     proj_dirty |= (uint8_t)(1u << slot);                /* (until written) */
     var_dirty |= (uint8_t)(1u << slot);
     if (ld >= 0 && (uint32_t)ld != slot)                /* "save as": the old slot is its flash version again (its
@@ -1025,10 +1022,6 @@ static int proj_load(uint32_t slot, int irq)
 {
     project_t *p = &proj_slot[slot & 3u];
     uint32_t i;
-    if (chain_busy()) {                                 /* a song reads the slots */
-        ui_message("STOP TO LOAD");
-        return 0;
-    }
 #if FELUCCA_FLASH
     if (flash_ok && !proj_ok(p))
         proj_fetch(slot);
@@ -1051,12 +1044,8 @@ static int proj_load(uint32_t slot, int irq)
     else
         memset(&mo.b, 0, sizeof mo.b);
     motion_forget();                                    /* the new knobs are the base: the stop puts nothing back */
-    if (chain_valid(&p->song))                          /* the song and the name: broken ones dropped */
-        chain.cfg = p->song;
-    else
-        memset(&chain.cfg, 0, sizeof chain.cfg);
-    proj_name_get(chain.name, p->name);
-    chain.from = (uint8_t)((slot & 3u) + 1u);
+    proj_name_get(pname.name, p->name);                 /* the name: a broken one dropped */
+    pname.from = (uint8_t)((slot & 3u) + 1u);
     song.sel = (uint8_t)(p->sel < NTRK ? p->sel : 0u);
     cue.q_slot = cue.q_var = cue.now = 0;               /* (a cue queued: dropped) */
     cue.last[slot & 3u] = 0;                            /* (LOAD plays variation 1) */
@@ -1088,10 +1077,6 @@ static void proj_load_from(uint32_t slot)
     slot &= 3u;
     if (ui_locked())
         return;
-    if (chain_busy()) {                                 /* a song reads the slots */
-        ui_message("STOP TO LOAD");
-        return;
-    }
     cue_cancel();                                       /* a queued cue dropped first (no switch under the LOAD) */
     ld = proj_loaded();
     if (ld >= 0 && (uint32_t)ld != slot && proj_ok(&proj_slot[slot])) {
@@ -1120,7 +1105,7 @@ static void project_load(uint32_t slot)
 {
     if (ui_locked())
         return;
-    if (!chain_busy() && (slot_dirty(slot) || ((int32_t)(slot & 3u) == proj_loaded() && live_globals_edited()))) {
+    if ((slot_dirty(slot) || ((int32_t)(slot & 3u) == proj_loaded() && live_globals_edited()))) {
         ui.confirm = CONFIRM_DISCARD;
         ui.confirm_trk = (uint8_t)(slot & 3u);
         ui.force = 1;
@@ -1237,8 +1222,8 @@ static int cue_stage(uint32_t s, uint32_t v)
             } else {                                  /* variation 1: the record's */
                 for (k = 0; k < NTRK; k++) {
                     proj_steps_to(g->st[k], proj_slot[s].t[k].step);
-                    for (j = 0; j < CHAIN_NT; j++) {
-                        uint32_t id = CHAIN_TIMING[j];
+                    for (j = 0; j < PAT_NT; j++) {
+                        uint32_t id = PAT_TIMING[j];
                         g->tm[k][j] = (int16_t)clamp(proj_slot[s].t[k].p[PR_P(id)], TP[id].min, TP[id].max);
                     }
                 }
@@ -1278,8 +1263,8 @@ static int cue_stage(uint32_t s, uint32_t v)
                 var_lp[k] = g->st[k];
             (void)var_get(nb, w, var_lp, g->tm);
             for (k = 0; k < NTRK; k++)
-                for (j = 0; j < CHAIN_NT; j++)
-                    g->p[k][CHAIN_TIMING[j]] = g->tm[k][j];
+                for (j = 0; j < PAT_NT; j++)
+                    g->p[k][PAT_TIMING[j]] = g->tm[k][j];
         } else {
             for (k = 0; k < NTRK; k++)
                 proj_steps_to(g->st[k], proj_slot[s].t[k].step);
@@ -1334,9 +1319,9 @@ static __attribute__((noinline)) int proj_cue_apply(void)
             if (song.lfo_in)
                 lfo_restore_track(t);
             mem_swap(t->step, g->st[k], sizeof t->step);
-            for (j = 0; j < CHAIN_NT; j++) {
-                int16_t x = t->p[CHAIN_TIMING[j]];
-                t->p[CHAIN_TIMING[j]] = g->tm[k][j];
+            for (j = 0; j < PAT_NT; j++) {
+                int16_t x = t->p[PAT_TIMING[j]];
+                t->p[PAT_TIMING[j]] = g->tm[k][j];
                 g->tm[k][j] = x;
             }
         }
@@ -1380,7 +1365,7 @@ static __attribute__((noinline)) int proj_cue_apply(void)
     return 0;
 }
 /* main loop, after a switch: the outgoing state (in the staging area) filed — the variation it played packed into its
- * bank (variation 1: into its record), a slot's knobs, steps, presets, lock bank, song and name into its record */
+ * bank (variation 1: into its record), a slot's knobs, steps, presets, lock bank and name into its record */
 static void cue_file_out(void)
 {
     cue_stage_t *g = cue_stg();
@@ -1396,8 +1381,8 @@ static void cue_file_out(void)
         for (k = 0; k < NTRK; k++) {
             for (i = 0; i < P_NSTORED; i++) {
                 int timing = 0;
-                for (j = 0; j < CHAIN_NT; j++)
-                    timing |= i == CHAIN_TIMING[j];
+                for (j = 0; j < PAT_NT; j++)
+                    timing |= i == PAT_TIMING[j];
                 if (i != P_MUTE && !(timing && ov))   /* (another variation's timing: its, not the record's) */
                     p->t[k].p[PR_P(i)] = g->p[k][i];
             }
@@ -1408,8 +1393,8 @@ static void cue_file_out(void)
             p->pre[k] = (uint16_t)preset_rec_enc(cue.out_pre[k]);
             p->pre_ed[k] = cue.out_pre_ed[k];
             var_sp[k] = g->st[k];
-            for (j = 0; j < CHAIN_NT; j++)
-                var_tm[k][j] = g->p[k][CHAIN_TIMING[j]];
+            for (j = 0; j < PAT_NT; j++)
+                var_tm[k][j] = g->p[k][PAT_TIMING[j]];
         }
         if (ov && var_who[var_play ^ 1u] == a + 1u) {
             int r = var_put(ab, ov, var_sp, var_tm);
@@ -1419,29 +1404,24 @@ static void cue_file_out(void)
                 ui_message("VARIATIONS FULL");
         }
         lk_slot[a] = lk_slot[ld];                     /* (its bank, swapped out at the switch) */
-        p->song = chain.cfg;
-        memcpy(p->name, chain.name, NAME_LEN);
+        memcpy(p->name, pname.name, NAME_LEN);
         proj_seal(a);
-        if (chain_valid(&proj_slot[ld].song))         /* the new slot's song and name */
-            chain.cfg = proj_slot[ld].song;
-        else
-            memset(&chain.cfg, 0, sizeof chain.cfg);
-        proj_name_get(chain.name, proj_slot[ld].name);
-        chain.from = (uint8_t)(ld + 1);
+        proj_name_get(pname.name, proj_slot[ld].name);
+        pname.from = (uint8_t)(ld + 1);
     } else if (out == STG_VAR || out == STG_COPY) {
         project_t *p = &proj_slot[ld];
         for (k = 0; k < NTRK; k++) {
             var_sp[k] = out == STG_VAR ? g->st[k] : trk[k].step;
-            for (j = 0; j < CHAIN_NT; j++)
-                var_tm[k][j] = out == STG_VAR ? g->tm[k][j] : trk[k].p[CHAIN_TIMING[j]];
+            for (j = 0; j < PAT_NT; j++)
+                var_tm[k][j] = out == STG_VAR ? g->tm[k][j] : trk[k].p[PAT_TIMING[j]];
         }
         if (!ov) {                                    /* variation 1 lives in the record */
             for (k = 0; k < NTRK; k++) {
                 memcpy(p->t[k].step, var_sp[k], sizeof p->t[k].step);
                 for (i = P_NSTORED; i < P_COUNT; i++)
                     proj_xp_set(p, k, i, motion_rest(k, i));
-                for (j = 0; j < CHAIN_NT; j++)
-                    p->t[k].p[PR_P(CHAIN_TIMING[j])] = var_tm[k][j];
+                for (j = 0; j < PAT_NT; j++)
+                    p->t[k].p[PR_P(PAT_TIMING[j])] = var_tm[k][j];
             }
         } else {
             int r = var_put(&var_buf[var_play], ov, var_sp, var_tm);
@@ -1469,8 +1449,6 @@ static void cue_say(int e)                          /* a refusal's message */
         ui_message(m);
     } else if (e == CUE_E_FULL) {
         ui_message("VARIATIONS FULL");
-    } else if (e == CUE_E_SONG) {
-        ui_message("STOP SONG TO CUE");
     } else if (e == CUE_E_NOSLOT) {
         ui_message("SAVE TO A SLOT FIRST");
     }
@@ -1573,11 +1551,7 @@ static void proj_live_from(uint32_t s)
     var_cur = 0;
     cue.last[s] = 0;
     fm1_irq_on();
-    if (chain_valid(&proj_slot[s].song))
-        chain.cfg = proj_slot[s].song;
-    else
-        memset(&chain.cfg, 0, sizeof chain.cfg);
-    proj_name_get(chain.name, proj_slot[s].name);
+    proj_name_get(pname.name, proj_slot[s].name);
     live_sum0 = live_sum();
     ui.force = 1;
 }
@@ -1593,7 +1567,7 @@ static void project_copy(uint32_t s)              /* COPY: slot s remembered (al
     m[7] = (char)('A' + s);
     ui_message(m);
 }
-/* PASTE onto slot t: its image, lock bank, song and variations become the copied slot's (the loaded source's live
+/* PASTE onto slot t: its image, lock bank and variations become the copied slot's (the loaded source's live
  * edits written back first; the name + " COPY"), in RAM only (flash at SAVE), t marked; t loaded: the live tracks too
  * (the globals kept); t not loaded: its variations in the park (SAVE C FIRST when that holds another slot's unsaved
  * ones). Again on the same target before its SAVE: undone (t's flash version back). Stopped only */
@@ -1607,7 +1581,7 @@ static void project_paste(uint32_t t)
     t &= 3u;
     if (ui_locked())
         return;
-    if (transport_busy() || chain_busy()) {
+    if (transport_busy()) {
         ui_message("STOP TO PASTE");
         return;
     }
@@ -1731,9 +1705,7 @@ static int cue_slot(uint32_t s)
     int32_t ld = proj_loaded();
     int r = 0;
     s &= 3u;
-    if (chain_busy())
-        r = CUE_E_SONG;
-    else if (ld < 0)
+    if (ld < 0)
         r = CUE_E_NOSLOT;
     else if (!proj_ok(&proj_slot[s]))
         r = CUE_E_EMPTY;
@@ -1764,7 +1736,7 @@ static int cue_slot(uint32_t s)
  * Stopped: at once */
 static int cue_var(uint32_t v)
 {
-    int r = chain_busy() ? CUE_E_SONG : proj_loaded() < 0 ? CUE_E_NOSLOT : 0;
+    int r = proj_loaded() < 0 ? CUE_E_NOSLOT : 0;
     v &= 7u;
     if (r) {
         cue_say(r);
@@ -2270,8 +2242,8 @@ static void project_rename(uint32_t slot, const char *name)   /* only the name; 
         name_set(n, name);
         memcpy(p->name, n, NAME_LEN);
         p->sum = proj_sum(p);
-        if (chain.from == (slot & 3u) + 1u)
-            name_set(chain.name, n);
+        if (pname.from == (slot & 3u) + 1u)
+            name_set(pname.name, n);
         if (dirty) {                                    /* unsaved edits: the name with them, in RAM (flash keeps its
                                                          * version whole) */
             ui_message("RENAMED (SAVE TO KEEP)");
@@ -2304,43 +2276,6 @@ static void project_rename(uint32_t slot, const char *name)   /* only the name; 
     proj_fsum[slot & 3u] = p->sum;
     ui_message("RENAMED (RAM)");
 }
-/* PLAY on SONG (main loop): the rows' slots -> chain.src, armed; the ISR starts it (seq_start). 0 armed, 1 no rows,
- * 2 busy, 3 + s slot s empty. A slot's steps are safe as stored (step_fire bounds PROB and RATCH); its timing is put
- * inside the ranges, a broken motion plays none */
-static uint32_t chain_prepare(void)
-{
-    uint32_t i, k, j, used = 0;
-    if (transport_busy() || chain_busy())
-        return 2;
-    if (!chain.cfg.count || !chain_valid(&chain.cfg))
-        return 1;
-    for (i = 0; i < chain.cfg.count; i++) {
-        uint32_t s = chain.cfg.row[i].slot;
-        if (!project_used(s))
-            return 3u + s;
-        used |= 1u << s;
-    }
-    fm1_irq_off();
-    for (i = 0; i < 4u; i++)
-        if ((used >> i) & 1u) {
-            const project_t *p = &proj_slot[i];
-            chain_src_t *d = &chain.src[i];
-            d->m = lk_valid(&lk_slot[i], i) ? &lk_slot[i] : &LK_NONE;
-            for (k = 0; k < NTRK; k++) {
-                d->step[k] = p->t[k].step;
-                d->model[k] = (uint8_t)p->t[k].p[PR_P(P_MODEL)];
-                for (j = 0; j < CHAIN_NT; j++) {
-                    uint32_t id = CHAIN_TIMING[j];
-                    d->timing[k][j] = (int16_t)clamp(p->t[k].p[PR_P(id)], TP[id].min, TP[id].max);
-                }
-            }
-        }
-    chain.armed = 1;
-    fm1_irq_on();
-    transport_req = 1;
-    return 0;
-}
-
 static void settings_save(void)                    /* asked for while playing: written once stopped (settings_poll) */
 {
     if (transport_busy()) {

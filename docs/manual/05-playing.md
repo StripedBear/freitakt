@@ -32,7 +32,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 - **What gets written.** A key writes a step as QUANT says (the nearest step by default; see Sequencer). A key held into later steps writes TIEs; a legato overlap writes a SLIDE (TIE and SLIDE on ACID tracks only).
 - **MIDI notes** into an armed track while playing are recorded, with their pitch on ROUT SEL and TRACK.
 - **Motion.** Knob turns on an armed, playing track are recorded as MOTION (see below).
-- While a song plays or is armed, REC says `STOP TO EDIT`. REC ALL is not saved in projects.
+- REC ALL is not saved in projects.
 
 ## Step record
 
@@ -49,7 +49,7 @@ Start in KEYS mode, on the STEP page, with the transport **stopped**, by a [[REC
 
 ## Clearing with REC
 
-Hold [[REC]] on a SEQ page: **CLEAR TRACK**. On SONG: DELETE ROW / CLEAR SONG. Hold [[REC]] (0.4 s) on any other page to play a **fill** while you hold it (`FILL` on top).
+Hold [[REC]] on a SEQ page: **CLEAR TRACK**. Hold [[REC]] (0.4 s) on any other page to play a **fill** while you hold it (`FILL` on top).
 
 ## Mutes and solo
 
@@ -114,7 +114,7 @@ In STEPS, on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVE
 - Hold the step and tap [[OCT-]] to clear its locks on this page's knobs (`STEP 5 LOCKS CLEARED`); hold [[OCT-]] 0.6 s to clear all its locks (`STEP 5 ALL CLEARED`).
 - A step turned off keeps its locks for when it is on again. In STEPS the footer underlines each locked step.
 - Locks and MOTION share **1024 events per project** (`LOCKS FULL`). Locks always play; MOTION's PLAY and CLEAR apply to recorded motion only.
-- STOP, a model change, a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's. Each SONG row plays its own project's locks.
+- STOP, a model change, a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's.
 
 ## MOTION
 

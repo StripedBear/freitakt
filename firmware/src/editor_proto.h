@@ -92,7 +92,8 @@ enum { ED_OK, ED_E_BAD, ED_E_REFUSED, ED_E_STOP, ED_E_FLASH, ED_E_STALE, ED_E_BU
 /* detail codes (an error reply: rc, detail, message). 1..11: cue.c CUE_E_* as they are (CUE_E_PARK + c: SAVE c FIRST) */
 enum {
     ED_D_NONE = 0,
-    ED_D_CUE_FULL = 1, ED_D_CUE_SONG = 2, ED_D_CUE_NOSLOT = 3, ED_D_CUE_EMPTY = 4, ED_D_CUE_PARK = 8,   /* + slot */
+    ED_D_CUE_FULL = 1, ED_D_CUE_NOSLOT = 3,   /* (2: reserved, the removed SONG's) */
+    ED_D_CUE_EMPTY = 4, ED_D_CUE_PARK = 8,   /* + slot */
     ED_D_EMPTY_SLOT = 16, ED_D_PRESET_EMPTY, ED_D_ACID_CAP, ED_D_NOT_LOCKABLE, ED_D_LOCKS_FULL, ED_D_VARS_FULL,
     ED_D_NO_SLOT, ED_D_NEWER, ED_D_BAD_OBJECT, ED_D_CRC, ED_D_INVALID, ED_D_INCOMPLETE, ED_D_NO_FLASH, ED_D_BLOCKED,
     ED_D_NOT_PRESENT, ED_D_TOO_BIG,                     /* 16..31 (rc 2) */
@@ -122,7 +123,7 @@ enum { ED_SC_TRACK, ED_SC_GLOBAL, ED_SC_MODEL };      /* DESC / GET / SET / TEXT
 #define ED_DF_CONTEXT 0x10u         /*   depends on the track's MODEL / INSERT TYPE: re-read after them */
 #define ED_DESC_ORDER 0x7Fu         /* DESC first: the shown order instead of names */
 #define ED_SF_RESTORING 0x01u       /* state flags */
-#define ED_SF_SONG 0x02u
+                                    /* (0x02: reserved, the removed SONG's) */
 #define ED_SF_NOFLASH 0x04u
 #define ED_STATE_N 17u              /* playing slot var qslot qvar sel flags used dirty, vmask 4 x u14 */
 #define ED_STEP_ON 0x01u            /* a step on the wire: flags, cond (0..58), note (nt + 60) */

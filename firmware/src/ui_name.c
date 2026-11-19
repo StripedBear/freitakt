@@ -208,8 +208,8 @@ static void name_input(uint32_t pressed, uint32_t notes, uint32_t now, uint32_t 
         name_close();
         return;
     }
-    if (((pressed >> panel.btn[B_PLAY]) & 1u) && (song.playing || chain_busy() || !ui_locked()))
-        transport_req = song.playing || chain_busy() ? 2 : 1;
+    if (((pressed >> panel.btn[B_PLAY]) & 1u) && (song.playing || !ui_locked()))
+        transport_req = song.playing ? 2 : 1;
     if (nm.key && now - nm.t >= NM_T(NM_TAP_MS))
         nm_commit();
     for (k = 0; k < 27u; k++) {

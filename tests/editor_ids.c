@@ -177,9 +177,9 @@ int main(void)
         printf(", \"fam\": %u, \"scope\": %u, \"graph\": %u, \"id\": [%u, %u, %u, %u]}", g->fam, g->scope, g->graph,
                g->id[0], g->id[1], g->id[2], g->id[3]);
     }
-    printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"SONG\": %u, \"LDEST\": %u, "
+    printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"LDEST\": %u, "
            "\"LFO\": %u},\n",
-           SND_SLOT, GR_SLOTS, GR_MOTION, GR_SONG, GR_LDEST, GR_LFO);
+           SND_SLOT, GR_SLOTS, GR_MOTION, GR_LDEST, GR_LFO);
     printf("\"sc\": {\"TRACK\": %u, \"GLOBAL\": %u}, \"preNone\": %u, \"preRecUser\": %u,\n", SC_TRACK, SC_GLOBAL,
            PRE_NONE, PRE_REC_USER);
     printf("\"conds\": [");                         /* the PROB knob, position by position: stored code, name */
@@ -209,11 +209,11 @@ int main(void)
 #define OFF(t, f) (unsigned)offsetof(t, f)
     printf(" \"project\": {\"size\": %u, \"magic\": %u, \"sizeField\": %u, \"g\": %u, \"sel\": %u, \"rsv\": %u, "
            "\"t\": %u, \"trk\": %u, \"trkP\": %u, \"trkStep\": %u, \"lk_n\": %u, \"lk_link\": %u, \"var_link\": %u, "
-           "\"var_len\": %u, \"xp\": %u, \"xp2\": %u, \"xp3\": %u, \"rsv_mo\": %u, \"song\": %u, \"name\": %u, \"pre\": %u, \"pre_ed\": %u, \"sum\": %u},\n",
+           "\"var_len\": %u, \"xp\": %u, \"xp2\": %u, \"xp3\": %u, \"rsv_mo\": %u, \"rsv_song\": %u, \"name\": %u, \"pre\": %u, \"pre_ed\": %u, \"sum\": %u},\n",
            (unsigned)sizeof(project_t), OFF(project_t, magic), OFF(project_t, size), OFF(project_t, g),
            OFF(project_t, sel), OFF(project_t, rsv), OFF(project_t, t), (unsigned)sizeof(proj_trk_t),
            OFF(proj_trk_t, p), OFF(proj_trk_t, step), OFF(project_t, lk_n), OFF(project_t, lk_link),
-           OFF(project_t, var_link), OFF(project_t, var_len), OFF(project_t, xp), OFF(project_t, xp2), OFF(project_t, xp3), OFF(project_t, rsv_mo), OFF(project_t, song),
+           OFF(project_t, var_link), OFF(project_t, var_len), OFF(project_t, xp), OFF(project_t, xp2), OFF(project_t, xp3), OFF(project_t, rsv_mo), OFF(project_t, rsv_song),
            OFF(project_t, name), OFF(project_t, pre), OFF(project_t, pre_ed), OFF(project_t, sum));
     printf(" \"locks\": {\"size\": %u, \"magic\": %u, \"slot\": %u, \"on\": %u, \"count\": %u, \"key\": %u, "
            "\"val\": %u, \"lock\": %u},\n",
@@ -222,9 +222,9 @@ int main(void)
     printf(" \"vars\": {\"size\": %u, \"magic\": %u, \"slot\": %u, \"used\": %u, \"d\": %u},\n",
            (unsigned)sizeof(var_bank_t), OFF(var_bank_t, magic), OFF(var_bank_t, slot), OFF(var_bank_t, used),
            OFF(var_bank_t, d));
-    printf(" \"presets\": {\"size\": %u, \"slot\": %u, \"fx\": %u, \"mv\": %u, \"sizeV1\": %u},\n \"songSize\": %u\n}\n}\n",
+    printf(" \"presets\": {\"size\": %u, \"slot\": %u, \"fx\": %u, \"mv\": %u, \"sizeV1\": %u}\n}\n}\n",
            (unsigned)sizeof(upr_rec_t), (unsigned)sizeof(upr_slot_t), OFF(upr_slot_t, f), OFF(upr_rec_t, mv),
-           (unsigned)UPR1_SIZE, (unsigned)sizeof(chain_config_t));
+           (unsigned)UPR1_SIZE);
 #undef OFF
     return 0;
 }

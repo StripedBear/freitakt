@@ -5,7 +5,7 @@
 //   node web/editor/test_tab_patterns.mjs          (also run by node web/test_web.mjs)
 // - the grid is what STEPS_GET says; an edit is a STEPS_SET and the device's steps match
 // - owner decision 3: a variation not playing, stopped -> the FM-1 switches at once; playing -> rc 5, the page waits
-//   for the STATE push and sends the edit again, never CUE; a song playing -> "STOP TO EDIT"; other slots read-only
+//   for the STATE push and sends the edit again, never CUE; other slots read-only
 // - STEPS_CHANGED / LOCKS_CHANGED keep it live; LOCK_EDIT set / clear one / step / track
 // - the cue keys: CUE sent, queued -> playing from STATE, refusals shown; copy variation = the source; SAVE refusals
 // - NUDGE (minor 1): shown and edited per step as the FM-1 shows it; copies carry it; a firmware without it: not sent
@@ -143,17 +143,9 @@ export async function runPatternTests(log = console.log) {
     await settle(s, pm);
     ok(J(pm.tracks[0].steps[2]) === was && cues(m, c1) === 0, "... the grid shows the device's steps again; still no CUE");
 
-    /* a song plays: STOP TO EDIT */
+    /* RESTORING */
     await pm.followNow();
     await settle(s, pm);
-    m.setSong(true);
-    const before = J(m.tracks[0].steps[1]);
-    ok(!(await pm.toggle(0, 1)) && /STOP TO EDIT/.test(pm.note) && J(m.tracks[0].steps[1]) === before, "a song plays: STEPS_SET refused, 'STOP TO EDIT' shown");
-    await settle(s, pm);
-    ok(J(pm.tracks[0].steps[1]) === before, "... the grid shows the device's step again");
-    m.setSong(false);
-
-    /* RESTORING */
     m.faults.refuse[CMD.STEPS_SET] = { rc: RC.BUSY, detail: DETAIL.RESTORING, msg: "RESTORING" };
     ok(!(await pm.toggle(0, 1)) && /RESTORING: a restore is running/.test(pm.note), "RESTORING: the refusal shown plainly");
     await settle(s, pm);

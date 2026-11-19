@@ -25,7 +25,6 @@ perf_begin 28
 perf_pre 26
 perf_block 793
 perf_harm 0
-chain_apply 174
 memb_render 290
 px_memb_block 106
 trk_filter 228

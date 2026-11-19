@@ -888,7 +888,7 @@ static void t_old_record(void)
     ve = proj_slot[0];                                /* as 0.23.x saved it: FDRE, no motion */
     ve.magic = PROJ_MAGIC_VE;
     memset((uint8_t *)&ve + __builtin_offsetof(project_t, lk_n), 0,
-           __builtin_offsetof(project_t, song) - __builtin_offsetof(project_t, lk_n));
+           __builtin_offsetof(project_t, rsv_song) - __builtin_offsetof(project_t, lk_n));
     ve.sum = proj_sum(&ve);
     memset(&o, 0, sizeof o);
     o.d[0] = (const uint8_t *)&ve;

@@ -23,14 +23,14 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | --- | --- |
 | **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the scope, the track's first four knobs, the keys play the tracks; SELECT goes on to the compressor's pages). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
 | **EDIT** | The selected track's sound: its model and knobs. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
-| **SEQ** | The steps on the white keys, then PATTERN, MOTION and SONG (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a key with it) for the step TOOLS screen. |
+| **SEQ** | The steps on the white keys, then PATTERN and MOTION (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a key with it) for the step TOOLS screen. |
 | **FX** | The track's FILTER, FX (the sends), INSERT (with SRR): 5 pages. **Hold FX** for PERFORM. |
 | **LFO** | The track's two LFOs side by side, then DEST. |
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | KEYS: the keys play the selected track chromatically. Labelled SEL in the web simulator. |
 | **GLO** | A tap: GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **Hold GLO**: the MUTE screen (mutes, solo, MIDI LEARN on G4). |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages). **Hold SAVE**: the cue map. |
-| **PLAY** | Play and stop. On SONG, plays the song. |
+| **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s off the SEQ pages: a fill. Hold 0.7 s on a SEQ page: CLEAR TRACK. See *Playing and recording*. |
 | **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS; NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
 
@@ -65,7 +65,7 @@ The screen has an inverted **top bar** (title, track T1 to T8, tempo icon, messa
 ## Common rules
 
 - **Step keys.** A step toggles only on a short tap (released within 0.3 s with no knob turned), on the release. Held 0.3 s, an off step turns on at once, ready to edit; an on step stays on.
-- **Held step.** While a step is held, [[KNOB 1]] / [[KNOB 2]] / [[KNOB 3]] / [[KNOB 4]] set its PROB / RATCH / ACCENT / NUDGE (-50 to +50). This works on STEP, PATTERN, MOTION, SONG and TRACKS; the page's own knobs rest while a step is held. [[OCT+]] held plus a step toggles that step's accent.
+- **Held step.** While a step is held, [[KNOB 1]] / [[KNOB 2]] / [[KNOB 3]] / [[KNOB 4]] set its PROB / RATCH / ACCENT / NUDGE (-50 to +50). This works on STEP, PATTERN, MOTION and TRACKS; the page's own knobs rest while a step is held. [[OCT+]] held plus a step toggles that step's accent.
 - **Bank.** With KEYS off, [[OCT+]] alone (on its release) and [[OCT-]] move to the next / previous bank of 16. While [[OCT+]] is held the keys show the bank's accents.
 - **Knob acceleration.** With MENU ACCEL ON, turning a knob fast over a wide value speeds it up (see Settings).
 - **Safe start.** Hold [[SEQ]] while powering on: nothing is loaded, every LED is dark, USB audio is 2 CH, Bluetooth does not autostart.
