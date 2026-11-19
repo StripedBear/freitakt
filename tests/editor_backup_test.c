@@ -628,7 +628,6 @@ static int tools_edit(int edit)
     ui.confirm = 0;
     ui.bank = 0;
     trk[s].p[P_SLEN] = 16;
-    trk[s].p[P_SRC] = 0;
     trk[s].step[1].on = 1;
     trk[s].step[1].micro = 9;
     memcpy(tl_keep[s], trk[s].step, sizeof tl_keep[s]);

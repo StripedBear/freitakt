@@ -1,5 +1,5 @@
 /* WAV renders for listening: one file per model, the kit demo, the demo kits (808, 909, Plaits, mixed) and the
- * M2 demos (Grids map / Euclidean, PROB / RATCH).
+ * M2 demos (PROB / RATCH).
  * drumsim OUTDIR */
 #include "drum_host.h"
 #include <sys/stat.h>
@@ -97,9 +97,7 @@ static void write_kit(const char *dir, const demo_kit_t *kit)
     printf("drumsim: %s\n", path);
 }
 
-/* M2 demos, 120 BPM through the whole mix. grids_map.wav: kick / snare / hats on Grids MAP at four map points
- * (2 bars each, chaos off) then the same with chaos 100; grids_euclid.wav: EUCLID 16/12/8 then 5/7/3 (4 bars each);
- * prob_ratch.wav: a kit with 50 % hats, 3-hit rolls, a 1/2 and 2/2 snare fill and a 1-SHOT crash (8 bars) */
+/* M2 demos, 120 BPM through the whole mix. prob_ratch.wav: a kit with 50 % hats, 3-hit rolls, a 1/2 and 2/2 snare fill and a 1-SHOT crash (8 bars) */
 static void write_demo(const char *dir, const char *name, uint32_t bars, void (*bar)(uint32_t b))
 {
     char path[256];
@@ -122,40 +120,6 @@ static void write_demo(const char *dir, const char *name, uint32_t bars, void (*
     }
     fclose(f);
     printf("drumsim: %s\n", path);
-}
-
-static void grids_kit(void)                          /* 808 kick / snare / closed hat on the three channels */
-{
-    host_init();
-    old_set_model(&trk[0], DM_K808);
-    old_set_model(&trk[1], DM_S808);
-    old_set_model(&trk[2], DM_HATC);
-    trk[0].p[P_SRC] = 1;
-    trk[1].p[P_SRC] = 2;
-    trk[2].p[P_SRC] = 3;
-    trk[1].p[P_REV] = 40;
-    song.g[G_GFILL1] = 80;
-    song.g[G_GFILL2] = 70;
-    song.g[G_GFILL3] = 100;
-}
-
-static void map_bar(uint32_t b)
-{
-    static const int16_t XY[4][2] = {{64, 64}, {0, 0}, {127, 30}, {30, 127}};
-    song.g[G_GX] = XY[(b / 2u) % 4u][0];
-    song.g[G_GY] = XY[(b / 2u) % 4u][1];
-    song.g[G_GCHAOS] = b < 8u ? 0 : 100;
-}
-
-static void euclid_bar(uint32_t b)
-{
-    static const int16_t LN[2][3] = {{16, 12, 8}, {5, 7, 3}};
-    uint32_t k;
-    song.g[G_GMODE] = 1;
-    for (k = 0; k < 3u; k++) {
-        song.g[G_GLEN1 + k] = LN[b / 4u % 2u][k];
-        song.g[G_GFILL1 + k] = (int16_t)(b / 4u ? 60 : 40);
-    }
 }
 
 static void prob_bar(uint32_t b) { (void)b; }
@@ -457,7 +421,6 @@ static void write_song(const char *dir)
             chain.src[s].timing[k][0] = 16;
             chain.src[s].timing[k][1] = 2;
             chain.src[s].timing[k][2] = 0;
-            chain.src[s].timing[k][3] = 0;
             chain.src[s].model[k] = (uint8_t)trk[k].p[P_MODEL];
         }
         for (i = 0; i < 3u; i++)
@@ -952,10 +915,6 @@ int main(int argc, char **argv)
     }
     for (i = 0; i < sizeof KITS / sizeof KITS[0]; i++)
         write_kit(dir, &KITS[i]);
-    grids_kit();
-    write_demo(dir, "grids_map.wav", 16, map_bar);
-    grids_kit();
-    write_demo(dir, "grids_euclid.wav", 8, euclid_bar);
     prob_kit();
     write_demo(dir, "prob_ratch.wav", 8, prob_bar);
     pump_kit(0, 45, 0, 26);

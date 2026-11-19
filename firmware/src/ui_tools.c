@@ -281,8 +281,7 @@ static void tl_keys(uint32_t hits)
             uint32_t a = ui.bank * 16u;
             tl.sel = 1;
             tl.s0 = (uint8_t)a;
-            tl.s1 = (uint8_t)(a + 16u < len ? a + 15u : len > a ? len - 1u : a);   /* (a Grids track's
-                                                         * banks follow its lane: past LEN, START alone) */
+            tl.s1 = (uint8_t)(a + 16u < len ? a + 15u : len > a ? len - 1u : a);   /* (past LEN: START alone) */
         } else {                                    /* again: START..END copied */
             tl.sel = 0;
             tl_copied(tl.s0, tl.s1 - tl.s0 + 1u, tl_copy(song.sel, tl.s0, tl.s1 - tl.s0 + 1u));

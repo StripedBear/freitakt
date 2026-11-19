@@ -2,7 +2,7 @@
 // Drum machine fork: 2026 DEADACTIVE
 // The landing page's lab (docs/superpowers/specs/2026-10-09-websim-features-lab-design.md): the firmware's own DSP
 // (tests/sim_lab.c in fm1sim.wasm) driven directly for the feature pieces. One class, two uses: the analyser in the
-// page (silent: a voice's waveform, the Grids lanes, the sequencer's dice) and the player in an AudioWorklet
+// page (silent: a voice's waveform, the sequencer's dice) and the player in an AudioWorklet
 // (worklet.js 'fm1lab': the same calls, heard live). Ids come from lab_ids.json, made from the firmware's enums.
 import { Fm1Sim } from './engine.js';
 
@@ -44,8 +44,6 @@ export class Lab {
     return this.sim.view(Float32Array, this.x.lab_buf(), frames).slice();
   }
 
-  // the Grids lanes for the globals now: 3 x 32 bytes, bit 0 a hit, bit 1 an accent
-  grids() { return this.sim.view(Uint8Array, this.x.lab_grids(), 96).slice(); }
 
   // the transport running: what track t played on each of 16 steps for the next `bars` bars (hits per step; a ratchet
   // counts each), from the probes

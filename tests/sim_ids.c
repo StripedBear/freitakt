@@ -70,7 +70,7 @@ int main(void)
     ID(P_, MODEL); ID(P_, E0); ID(P_, E1); ID(P_, E2); ID(P_, E3); ID(P_, E4); ID(P_, E5); ID(P_, E6); ID(P_, E7);
     ID(P_, LEVEL); ID(P_, PAN); ID(P_, MUTE); ID(P_, DIST); ID(P_, CHOR); ID(P_, DLY); ID(P_, REV);
     ID(P_, SLCR); ID(P_, SLPAT); ID(P_, SLRATE); ID(P_, SLDEPTH); ID(P_, SLEN); ID(P_, SDIV); ID(P_, SSWING);
-    ID(P_, SRC); ID(P_, DUCK); ID(P_, LFO1); ID(P_, LFO2);
+    ID(P_, DUCK); ID(P_, LFO1); ID(P_, LFO2);
     ID(P_, RMODEL); ID(P_, RTUNE); ID(P_, RDECAY); ID(P_, RMIX); ID(P_, RTONE); ID(P_, RSTRCT); ID(P_, RPOS);
     ID(P_, FTYPE); ID(P_, FCUT); ID(P_, FRESO); ID(P_, FENV); ID(P_, FDEC);
     printf("},\n\"LF\": {");
@@ -80,7 +80,6 @@ int main(void)
     first = 1;
     ID(G_, BPM); ID(G_, SWING); ID(G_, CLOCK);
     ID(G_, CSRC); ID(G_, CTHR); ID(G_, CRAT); ID(G_, CREL); ID(G_, CATK); ID(G_, CKNEE); ID(G_, CMKUP); ID(G_, CGHOST);
-    ID(G_, GMODE); ID(G_, GX); ID(G_, GY); ID(G_, GCHAOS); ID(G_, GFILL1); ID(G_, GFILL2); ID(G_, GFILL3);
     ID(G_, DTIME); ID(G_, DFDBK); ID(G_, DMIX); ID(G_, RSIZE); ID(G_, RDAMP); ID(G_, RTYPE); ID(G_, CRATE); ID(G_, CDEPTH);
     printf("},\n\"PF\": {");
     first = 1;
@@ -106,7 +105,6 @@ int main(void)
     printf("},\n\"gp\": {");
     first = 1;
     GPD(BPM); GPD(CSRC); GPD(CTHR); GPD(CRAT); GPD(CREL); GPD(CATK); GPD(CMKUP); GPD(CGHOST);
-    GPD(GMODE); GPD(GX); GPD(GY); GPD(GCHAOS); GPD(GFILL1); GPD(GFILL2); GPD(GFILL3);
     GPD(DTIME); GPD(DFDBK); GPD(DMIX); GPD(RSIZE); GPD(RDAMP); GPD(RTYPE); GPD(CRATE); GPD(CDEPTH);
     printf("},\n\"models\": [");
     for (m = 0; m < NMODELS; m++) {

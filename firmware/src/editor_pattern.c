@@ -221,10 +221,11 @@ static int edp_steps_get(uint32_t cmd, const uint8_t *a)
         const step_t *st = live ? trk[k].step : proj_slot[s].t[k].step;
         ed_b(1);
         ed_b(live ? 1u : 0u);
-        for (j = 0; j < 4u; j++) {
+        for (j = 0; j < CHAIN_NT; j++) {
             uint32_t id = CHAIN_TIMING[j];
-            ed_b((uint32_t)clamp(live ? trk[k].p[id] : proj_slot[s].t[k].p[id], TP[id].min, TP[id].max));
+            ed_b((uint32_t)clamp(live ? trk[k].p[id] : proj_slot[s].t[k].p[PR_P(id)], TP[id].min, TP[id].max));
         }
+        ed_b(0);                                 /* (once Grids' SRC) */
         for (i = 0; i < NSTEP; i++) {
             edp_step(&st[i]);
             mic[i] = st[i].micro;
@@ -250,7 +251,7 @@ static int edp_steps_get(uint32_t cmd, const uint8_t *a)
         ed_b(used);
         ed_b(0);
         for (j = 0; j < 4u; j++)
-            ed_b(used ? (uint32_t)clamp(b->d[p + k * VAR_TRK + j], TM_MIN[j], TM_MAX[j]) : 0u);
+            ed_b(used && j < CHAIN_NT ? (uint32_t)clamp(b->d[p + k * VAR_TRK + j], TM_MIN[j], TM_MAX[j]) : 0u);
         for (i = 0; i < NSTEP; i++) {
             step_t x;
             memset(&x, 0, sizeof x);

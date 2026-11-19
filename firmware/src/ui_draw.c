@@ -801,7 +801,7 @@ static int held_line(const track_t *t, int32_t y)
 }
 
 /* STEP page: the bank's 16 steps as the keys show them; bank n/m on the left. Hint line: a held step's PROB /
- * RATCH, or a Grids track's channel (its grid is read-only) */
+ * RATCH */
 static void graph_grid(const track_t *t, uint16_t c)
 {
     uint32_t i, len = view_len(t);
@@ -834,10 +834,7 @@ static void graph_grid(const track_t *t, uint16_t c)
     fmt_int(b + str_len(b), (int32_t)bank_count());
     md_text(4, 6, &MD_F3, 2, "BANK", C_INK);
     md_text(44, 6, &MD_F3, 2, b, C_INK);
-    if (view_src(t)) {
-        static const char *const GN[3] = {"GRIDS KICK", "GRIDS SNARE", "GRIDS HATS"};
-        md_text(4, 84, &MD_F3, 2, GN[view_src(t) - 1u], C_INK);
-    } else if (ui.srec) {                             /* step record: the ways on and out */
+    if (ui.srec) {                             /* step record: the ways on and out */
         md_text(4, 84, &MD_F3, 2, "EDIT: REST  REC: END", C_INK);
     } else if (keys_mode()) {                         /* KEYS: the keys are notes; REC: step record where a tap starts
                                                        * it (stopped; playing, a song: a tap arms the track) */
@@ -1018,9 +1015,6 @@ static void graph_roll(const track_t *t, uint16_t c)
     }
 }
 
-/* GRIDS pages. MAP: the 5 x 5 node map (faint) with the X / Y point, and the three channels' 32 steps without
- * chaos (accent tall, playhead underlined). EUCLID: three rings of LEN positions (accent large, playhead marked).
- * Page 2 adds the routing: which tracks play each channel. */
 /* OFF (a type / model switched off): F3 at 6x centred, a 3-row dither band above and below it (graph rows) */
 static void off_word(void)
 {
@@ -1043,84 +1037,6 @@ static void hmeter(int32_t x, int32_t y, int32_t w, int32_t v, int dith)
     for (t = x; t <= x + w; t += 6) {
         cv_rect(t, y - 3, 1, 2, C_INK);
         cv_rect(t, y + 10, 1, 2, C_INK);
-    }
-}
-
-static void graph_grids(uint16_t c, int routing)
-{
-    static const char *const CH[3] = {"K", "S", "H"};
-    uint32_t ch, i;
-    (void)c;
-    if (!song.g[G_GMODE]) {
-        int32_t px = 6 + song.g[G_GX] * 72 / 127, py = 6 + song.g[G_GY] * 72 / 127;
-        for (i = 0; i < 25u; i++)                    /* the node map: 2x2 dots, the X / Y point a 7x7 block */
-            cv_rect(5 + (int32_t)(i % 5u) * 18, 5 + (int32_t)(i / 5u) * 18, 2, 2, C_INK);
-        cv_rect(px - 4, py - 4, 9, 9, C_BG);
-        cv_rect(px - 3, py - 3, 7, 7, C_INK);
-        for (ch = 0; ch < 3u; ch++) {
-            int32_t y = 4 + (int32_t)ch * 24;
-            md_text(92, y + 4, &MD_F3, 2, CH[ch], C_INK);
-            for (i = 0; i < 32u; i++) {
-                uint32_t b = grids_preview(ch, i);
-                int32_t x = 106 + (int32_t)i * 4 + (int32_t)(i / 8u) * 2;
-                int ph = song.playing && i == grids.last;
-                if (b & 1u)
-                    cv_rect(x, (b & 2u) ? y : y + 8, 3, (b & 2u) ? 18 : 10, C_INK);
-                else
-                    cv_rect(x + 1, y + 17, 1, 1, C_INK);
-                if (ph)
-                    cv_rect(x, y + 20, 3, 2, C_INK);
-            }
-        }
-    } else {
-        for (ch = 0; ch < 3u; ch++) {
-            uint32_t len = grids_len(ch);
-            int32_t cx = 40 + (int32_t)ch * 80, cy = 36;
-            char b[8];
-            cv_ring(cx, cy, 28, C_INK);
-            for (i = 0; i < len; i++) {
-                uint32_t ph = i * (0xFFFFFFFFu / len), bb = grids_preview(ch, i);
-                int32_t x = cx + sine_i(ph) * 28 / 32768, y = cy - sine_i(ph + 0x40000000u) * 28 / 32768;
-                if (bb & 2u)                          /* an accent: 7x7 solid; a hit: 5x5 solid; none: a 3x3 hole */
-                    cv_rect(x - 3, y - 3, 7, 7, C_INK);
-                else if (bb & 1u)
-                    cv_rect(x - 2, y - 2, 5, 5, C_INK);
-                else
-                    cv_frame(x - 1, y - 1, 3, 3, C_INK);
-                if (song.playing && i == grids.elast[ch])
-                    cv_rect(x - 4, y + 5, 9, 2, C_INK);
-            }
-            str_cpy(b, CH[ch], sizeof b);
-            str_cpy(b + 1, " ", sizeof b - 1);
-            fmt_int(b + 2, (int32_t)len);
-            md_text(cx - md_text_w(&MD_F3, 2, b) / 2, 70, &MD_F3, 2, b, C_INK);
-        }
-    }
-    if (routing) {                                   /* "K: T1 T6  S: T2  H: -" */
-        char r[48];
-        uint32_t n = 0, k;
-        r[0] = 0;
-        for (ch = 0; ch < 3u; ch++) {
-            uint32_t any = 0;
-            str_cpy(r + n, ch ? "  " : "", sizeof r - n);
-            n = str_len(r);
-            str_cpy(r + n, CH[ch], sizeof r - n);
-            str_cpy(r + str_len(r), ":", sizeof r - str_len(r));
-            n = str_len(r);
-            for (k = 0; k < NTRK && n + 4u < sizeof r; k++)
-                if (trk[k].p[P_SRC] == (int16_t)(ch + 1u)) {
-                    r[n++] = ' ';
-                    r[n++] = 'T';
-                    r[n++] = (char)('1' + k);
-                    r[n] = 0;
-                    any = 1;
-                }
-            if (!any && n + 3u < sizeof r) {
-                str_cpy(r + n, " -", sizeof r - n);
-                n = str_len(r);
-            }
-        }
-        md_text(4, 86, &MD_F3, 2, r, C_INK);
     }
 }
 
@@ -1913,16 +1829,6 @@ static uint32_t graph_signature(void)
         preset_name_of(preset_of(t), nb);             /* the preset's line (its user slot may change) */
         h = str_hash(h ^ t->pre_ed * 7919u, nb);
     }
-    if (pg->graph == GR_GRIDS) {
-        for (i = G_GMODE; i <= G_GLEN3; i++)
-            h = (h ^ (uint32_t)song.g[i]) * 16777619u;
-        for (i = 0; i < NTRK; i++)
-            h = (h ^ (uint32_t)trk[i].p[P_SRC]) * 16777619u;
-        h ^= ui.page * 389u;
-        if (song.playing)
-            h ^= (grids.last + 1u + (grids.elast[0] | grids.elast[1] << 8 | (uint32_t)grids.elast[2] << 16) * 64u) *
-                 2654435761u;
-    }
     if (pg->graph == GR_COMP) {
         for (i = G_CSRC; i <= G_CGHOST; i++)
             h = (h ^ (uint32_t)song.g[i]) * 16777619u;
@@ -2273,7 +2179,7 @@ static uint32_t graph_paint(int whole)
         graph_steps(t, c);
         break;
     case GR_GRID:
-        if (trk_model(t)->gate && !view_src(t)) {
+        if (trk_model(t)->gate) {
             if (whole)
                 roll_view(t);                         /* (the graph changed: the view chosen again) */
             graph_roll(t, c);
@@ -2288,9 +2194,6 @@ static uint32_t graph_paint(int whole)
         break;
     case GR_SLCR:
         graph_slicer(t, c);
-        break;
-    case GR_GRIDS:
-        graph_grids(c, pg->id[0] == G_GFILL1);
         break;
     case GR_COMP:
         graph_comp(c, pg->id[0] == G_CATK);
@@ -2534,7 +2437,7 @@ static void draw_foot(void)
     {                                                 /* STEPS: the bank's locked steps marked (a song's row: its
                                                        * slot's bank) */
         const lk_bank_t *lb = chain.running && chain.src[chain.slot].m ? chain.src[chain.slot].m : &mo.b;
-        lmask = env_steps() && !view_src(t) ? lk_step_mask(lb, song.sel, ui.bank * 16u) : 0u;
+        lmask = env_steps() ? lk_step_mask(lb, song.sel, ui.bank * 16u) : 0u;
     }
     sig = on | acc << 16;                             /* the trig strip (all it shows: on, acc, n; the playhead):
                                                        * whole when the steps change, else the playhead's old box and

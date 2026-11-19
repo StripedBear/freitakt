@@ -15,7 +15,6 @@ const PIECES = {                                     // data-piece -> its module
   comp: () => import('./lab_comp.js'),
   lfo: () => import('./lab_lfo.js'),
   seq: () => import('./lab_seq.js'),
-  grids: () => import('./lab_grids.js'),
   fx: () => import('./lab_fx.js'),
   ble: () => import('./lab_ble.js'),
 };
@@ -28,7 +27,6 @@ const PAGES = {
   comp: [{ tap: 'HOME' }, { enc: 'SELECT' }],                   // the HOME screen, SELECT on: COMP 2/3
   lfo: [{ sel: 0 }, { tap: 'LFO' }],                           // LFO 1
   seq: [{ sel: 1 }, { tap: 'SEQ' }],                           // STEP 1/4
-  grids: [{ tap: 'ARP' }],                                      // GRIDS 1/2
   fx: [{ sel: 1 }, { hold: 'FX' }],                            // the PERFORM layer, FX held
   ble: [],                                                      // no page: TRACKS, as it stays
 };

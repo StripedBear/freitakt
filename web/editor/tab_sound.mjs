@@ -137,7 +137,7 @@ export class SoundModel {
     if (scope === SCOPE.TRACK && id === ID.MODEL) this.model = v.value;
     this.emit("value", { scope, id });
   }
-  needsTrack(scope, id) { return scope === SCOPE.TRACK ? TRACK_CONTEXT.has(id) : id === ID.GMODE; }
+  needsTrack(scope, id) { return scope === SCOPE.TRACK && TRACK_CONTEXT.has(id); }
 
   /** the page turns a knob: SET (a queued SET of the same knob takes the newer value), the device's text back */
   async set(scope, id, value) {

@@ -412,7 +412,7 @@ static void test_user_save_deferred_and_cut(void)
 static void test_fdrc_converts(void)
 {
     static project_vc_t old;
-    uint32_t k, ok = 1;
+    uint32_t k, i, ok = 1;
     fresh();
     trk[3].p[P_CHOKE] = trk[4].p[P_CHOKE] = 1;
     trk[3].p[P_E1] = 33;
@@ -421,9 +421,10 @@ static void test_fdrc_converts(void)
     old.magic = PROJ_MAGIC_VC;
     old.size = sizeof old;
     for (k = 0; k < G_NSTORED; k++)
-        old.g[k] = song.g[k];
+        old.g[PR_G(k)] = song.g[k];
     for (k = 0; k < NTRK; k++) {
-        memcpy(old.t[k].p, trk[k].p, sizeof old.t[k].p);
+        for (i = 0; i <= P_PRIO; i++)
+            old.t[k].p[PR_P(i)] = trk[k].p[i];
         memcpy(old.t[k].step, trk[k].step, sizeof old.t[k].step);
     }
     old.sum = proj_hash(&old, sizeof old - 4u);
@@ -433,8 +434,11 @@ static void test_fdrc_converts(void)
     host_init();                                     /* a fresh kit: no choke, every track on a preset */
     check("loads", proj_load(1, 1) == 1);
     check("the hats keep CHOKE 1", trk[3].p[P_CHOKE] == 1 && trk[4].p[P_CHOKE] == 1);
-    for (k = 0; k < NTRK; k++)
-        ok &= trk[k].pre == PRE_NONE && !trk[k].pre_ed && !memcmp(trk[k].p, old.t[k].p, sizeof old.t[k].p);
+    for (k = 0; k < NTRK; k++) {
+        ok &= trk[k].pre == PRE_NONE && !trk[k].pre_ed;
+        for (i = 0; i <= P_PRIO; i++)
+            ok &= trk[k].p[i] == old.t[k].p[PR_P(i)];
+    }
     check("every track: no preset, not edited, every parameter as stored (sound unchanged)", ok);
     check("the converted slot is an FDRE one now", proj_slot[1].magic == PROJ_MAGIC && proj_ok(&proj_slot[1]));
 }

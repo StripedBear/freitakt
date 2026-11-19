@@ -5,7 +5,7 @@
  * SYNC (song.g[G_SYNC], a project global: SY_ bits, OFF 0, USB 1, and in the Bluetooth build BLE 2, BOTH 3; the FM-1's
  * TRS jack is MIDI IN only, so there is no TRS out). On the own clock (CLK INT): Start on PLAY (PLAY while playing:
  * Stop, Start; Hortator has no resume, so never Continue), 24 Clocks a beat while playing, Stop on STOP. The Clocks
- * come from the sequencer's time: Grids' clock (seq.c gclk), whose 1/8s (an even 1/16 and the odd one after it) never
+ * come from the sequencer's time: the global 1/16 clock (seq.c gclk), whose 1/8s (an even 1/16 and the odd one after it) never
  * swing: 12 Clocks evenly over each 1/8, the 1/8's first on its start, so they stay on the steps' grid through tempo
  * changes and do not swing. Following a clock (CLK USB / TRS / BLE): that input's Clock, Start, Continue and Stop are
  * forwarded as they are read (mout_scan, on receipt: nothing regenerated) to the SYNC outputs, never back to the port
@@ -107,7 +107,7 @@ static void mout_clock(uint32_t off)
     if (song.g[G_SYNC])
         mout_push(0xF8u, off);
 }
-/* the Clocks of this block (adv samples, after grids_tick): the 1/8's j-th at j / 24 of a beat into it */
+/* the Clocks of this block (adv samples, after gclk_tick): the 1/8's j-th at j / 24 of a beat into it */
 static void mout_pulses(uint32_t adv)
 {
     uint32_t beat = beat_samples(), pair = gclk.cnt >> 1, base = 0, p, x;

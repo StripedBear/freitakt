@@ -253,9 +253,8 @@ static void t_pages(void)
 {
     const frame_t *f;
     rd_t r;
-    uint32_t total, first, n, i, c, seen = 0, ok = 1, dest = 0, sound = 0, grids_len = 0, banned = 0;
+    uint32_t total, first, n, i, c, seen = 0, ok = 1, dest = 0, sound = 0, banned = 0;
     ed_reset();
-    song.g[G_GMODE] = 1;                               /* EUCLID: GRIDS shows LEN K / S / H */
     for (first = 0;;) {
         f = req1(ED_PAGES, first);
         r = rd_of(f, 7);
@@ -278,8 +277,6 @@ static void t_pages(void)
             }
             if (!strcmp(title, "SOUND") && !sound++)
                 ok &= ids[0] == P_MODEL && ids[1] == P_E0 && ids[2] == P_E1 && ids[3] == P_E2 && graph == GR_MODEL;
-            if (graph == GR_GRIDS && ids[1] == G_GLEN1 && ids[2] == G_GLEN2 && ids[3] == G_GLEN3)
-                grids_len = 1;
             banned |= !strcmp(title, "PROJECT") || !strcmp(title, "TOOLS") || !strcmp(title, "MOTION") ||
                       !strcmp(title, "SONG") || !strcmp(title, "STEP") || !strcmp(title, "TRACKS") ||
                       !strcmp(title, "COPY") || graph == GR_SLOTS;
@@ -291,8 +288,8 @@ static void t_pages(void)
         first += n;
     }
     check("PAGES: the device's pages for the selected track, cut to fit 400 B and read on from `first`; SOUND = MODEL "
-          "E0.., DEST 1..4 = the LFO slots, GRIDS in EUCLID = LEN K / S / H; no PROJECT / TOOLS / MOTION / SONG / STEP",
-          ok && seen == total && total > 20u && dest == 4u && sound >= 2u && grids_len && !banned && first > 0u);
+          "E0.., DEST 1..4 = the LFO slots; no PROJECT / TOOLS / MOTION / SONG / STEP",
+          ok && seen == total && total > 20u && dest == 4u && sound >= 2u && !banned && first > 0u);
 }
 static void t_desc(void)
 {

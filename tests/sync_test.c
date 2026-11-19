@@ -271,7 +271,7 @@ static void test_transport(void)
     check("transport: no USB host: nothing queued", mo_w == mo_r && nsent == 0u);
 }
 
-/* a tempo walk (BPM every 40 ms, swing on): 6 Clocks for each 1/16 the sequencer's grid (Grids' clock) has started,
+/* a tempo walk (BPM every 40 ms, swing on): 6 Clocks for each 1/16 the sequencer's grid (the global clock) has started,
  * at every block: no drift, none lost or extra */
 static void test_tempo_changes(void)
 {

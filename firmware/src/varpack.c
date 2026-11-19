@@ -1,13 +1,13 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* Variations (spec docs/superpowers/specs/2026-10-26-cue-variations-fill-copy-design.md): a slot plays one of 8
- * variations, each its own steps and timing (LEN DIV SWG SRC, song.c CHAIN_TIMING); variation 1 is the slot's record's
+ * variations, each its own steps and timing (LEN DIV SWG, song.c CHAIN_TIMING); variation 1 is the slot's record's
  * steps (project.c), variations 2..8 are packed here, sparse, in one bank: the slot's flash object (storage.c
  * OBJ_VAR0 + slot; 3584 B at most, so its sector's +0xF00.. stays erased for the loader's scan). Pure data: no IRQ, no
  * flash; every read is bounded by the bank (a hostile flash copy is checked by var_valid, var_get never reads past it).
  *
  * The bank's d: variations 2..8 in order, each an entry: u16 n (little endian; 0 = empty, never used: 2 B), then n
- * bytes: per track LEN DIV SWG SRC (a byte each), its 64-bit step map (8 B, little endian, bit i = step i set: any
+ * bytes: per track LEN DIV SWG and a 0 (once Grids' SRC; a byte each), its 64-bit step map (8 B, little endian, bit i = step i set: any
  * field not 0), then 3 B per set step in step order: flags (on | acc << 1 | slide << 2 | tie << 3 | rat << 4 | a micro
  * follows << 6), cond, nt, and the step's MICRO (int8) when bit 6 is set (micro != 0 only: spec 2026-10-31 §1; banks
  * from before never set it). n = 96 + 3 x the set steps + the nudged ones (a used variation keeps its timing even with
@@ -84,7 +84,7 @@ static int var_enc(uint8_t *d, int cmp, const step_t *const st[NTRK], const int1
         x[0] = (uint8_t)clamp(tm[k][0], 1, NSTEP);
         x[1] = (uint8_t)clamp(tm[k][1], 0, 9);
         x[2] = (uint8_t)clamp(tm[k][2], 0, 100);
-        x[3] = (uint8_t)clamp(tm[k][3], 0, 3);
+        x[3] = 0;                               /* (Grids' SRC, gone) */
         for (j = 0; j < 4u; j++)
             VAR_PUT(x[j]);
         for (j = 0; j < 8u; j++) {
@@ -157,7 +157,7 @@ static int var_get(const var_bank_t *b, uint32_t v, step_t *const st[NTRK], int1
         tm[k][0] = (int16_t)clamp(t[0], 1, NSTEP);
         tm[k][1] = (int16_t)clamp(t[1], 0, 9);
         tm[k][2] = (int16_t)clamp(t[2], 0, 100);
-        tm[k][3] = (int16_t)clamp(t[3], 0, 3);
+        tm[k][3] = 0;
         for (i = 0; i < NSTEP; i++) {
             step_t *s = &st[k][i];
             uint32_t f, mb;

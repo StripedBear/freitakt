@@ -741,7 +741,7 @@ static void test_kill_keeps_knobs(void)
     perf_kill = 0;
 }
 
-/* the 1/16: REPEAT pressed mid-1/16 starts in the block where the Grids clock's next 1/16 starts */
+/* the 1/16: REPEAT pressed mid-1/16 starts in the block where the global clock's next 1/16 starts */
 static void test_sixteenth(void)
 {
     uint32_t b, cnt, on_blk = 0, cnt_blk = 0;

@@ -270,7 +270,7 @@ export async function runPageTests(log = console.log, mods = {}) {
     ok(!titles.includes("LFO") && lfoNames(1) === "LFO1_WAVE,LFO1_RATE,LFO1_MORPH,LFO1_PHASE,LFO1_TRIG,LFO1_MODE"
       && lfoNames(2) === lfoNames(1).replaceAll("LFO1", "LFO2") && P.GR.LFO === data.gr.LFO
       && new Set(lfo(1).map((id) => labelOf(SCOPE.TRACK, id))).size === 6, "LFO: two groups, LFO 1 and LFO 2, each knob once");
-    ok(ID.MODEL === m.P.MODEL && ID.RMODEL === m.P.RMODEL && ID.ITYPE === m.P.ITYPE && ID.GMODE === m.G.GMODE,
+    ok(ID.MODEL === m.P.MODEL && ID.RMODEL === m.P.RMODEL && ID.ITYPE === m.P.ITYPE,
       "the ids the page names = core.h (device_data.json)");
     const md = snd.descOf(SCOPE.TRACK, ID.MODEL);
     ok(md.names.length === data.models.length && md.order && md.order.length === data.models.length
@@ -321,9 +321,6 @@ export async function runPageTests(log = console.log, mods = {}) {
     const ra = await snd.set(SCOPE.TRACK, ID.MODEL, acid);
     ok(ra === null && errors.includes("ACID ON 2 TRACKS") && snd.value(SCOPE.TRACK, 0).value === before && m.tracks[7].p[0] === before,
       "a refusal: the device's message, the value as the device kept it");
-    m.turnGlobal(m.G.GMODE, 1);
-    await until(() => !snd.loading && byTitle("GRIDS")?.ids.includes(m.G.GLEN1));
-    ok(byTitle("GRIDS").ids.includes(m.G.GLEN1), "G_GMODE changed: PAGES read again (GRIDS shows LEN)");
     const pid = snd.preset === 5 ? 6 : 5;
     m.tracks[7].pre = pid; // what PRESET_LOAD changes and no push carries (the preset id)
     m.tracks[6].pre = 0;

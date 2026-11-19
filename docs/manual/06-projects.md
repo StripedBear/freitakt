@@ -33,8 +33,8 @@ TOOLS 2/3. All four are GO actions: the first right-turn detent arms (`AGAIN: <l
 | --- | --- | --- |
 | **KNOB 1** | CLRSQ | clears the selected track's steps, MOTION and locks (`PATTERN CLEARED`) |
 | **KNOB 2** | INIT | resets the selected track's sound to its model default, including FILTER (`SOUND INIT`) |
-| **KNOB 3** | CLR* | clears every track the same way (steps, MOTION and locks), resets LEN, DIV, SWG and SRC to defaults, and clears the song (`ALL PATTERNS CLEARED`); blocked during a song |
-| **KNOB 4** | INIT* | everything back to power-on: kit, sounds, patterns, FX, Grids, COMP, BPM, motion, song, PERFORM knobs; saved projects and device settings are untouched (`ALL INIT`) |
+| **KNOB 3** | CLR* | clears every track the same way (steps, MOTION and locks), resets LEN, DIV and SWG to defaults, and clears the song (`ALL PATTERNS CLEARED`); blocked during a song |
+| **KNOB 4** | INIT* | everything back to power-on: kit, sounds, patterns, FX, COMP, BPM, motion, song, PERFORM knobs; saved projects and device settings are untouched (`ALL INIT`) |
 
 ## COPY and PASTE
 

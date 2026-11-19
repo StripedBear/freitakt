@@ -614,7 +614,6 @@ static void pattern_slot(uint32_t len, uint32_t div)  /* A: track 0 LEN len, ste
         trk[k].p[P_SLEN] = (int16_t)len;
         trk[k].p[P_SDIV] = (int16_t)div;
         trk[k].p[P_SSWING] = 0;
-        trk[k].p[P_SRC] = 0;
     }
     trk[1].p[P_SLEN] = (int16_t)(len > 1u ? len - 1u : 1u);
     trk[0].step[0].on = 1;
@@ -784,7 +783,7 @@ static void cue_globals_kept(void)
     song.g[G_SWING] = 7;
     song.g[G_DTIME] = 5;
     song.g[G_RSIZE] = 99;
-    song.g[G_GX] = 17;
+    song.g[G_CTHR] = 17;
     trk[3].p[P_MUTE] = 1;
     song.sel = 5;
     play();
@@ -802,7 +801,7 @@ static void cue_globals_kept(void)
     for (k = 0; k < NTRK; k++)
         OK(trk[k].p[P_MUTE] == mute[k]);
     stop();
-    check("cue: a slot switch keeps the globals (BPM, SWING, delay, reverb, Grids), the mutes and the selected track",
+    check("cue: a slot switch keeps the globals (BPM, SWING, delay, reverb, COMP), the mutes and the selected track",
           (int)ok);
 }
 static void cue_round_trip_edits(void)
@@ -1362,9 +1361,9 @@ static uint32_t page_named(const char *n)
     return 0;
 }
 enum { PG_HOME, PG_TRACKS, PG_STEP, PG_PATTERN, PG_MOTION, PG_SONG, PG_OK_N,   /* the black keys' pages */
-       PG_SOUND = PG_OK_N, PG_FX, PG_LFO, PG_COMP, PG_GLOBAL, PG_PROJECT, PG_GRIDS, PG_N };
+       PG_SOUND = PG_OK_N, PG_FX, PG_LFO, PG_COMP, PG_GLOBAL, PG_PROJECT, PG_N };
 static const char *const PG_NAME[PG_N] = {"HOME", "TRACKS", "STEP", "PATTERN", "MOTION", "SONG",
-                                          "SOUND", "FX", "LFO", "COMP", "GLOBAL", "PROJECT", "GRIDS"};
+                                          "SOUND", "FX", "LFO", "COMP", "GLOBAL", "PROJECT"};
 static void go_page(uint32_t p)
 {
     if (p == PG_HOME) {
@@ -1484,7 +1483,7 @@ static void cue_black_keys_elsewhere(void)
     OK(!cue.q_var);
     ui.menu = 0;
     stop();
-    check("black keys: no cue on SOUND, FX, LFO, COMP, GLOBAL, PROJECT, GRIDS, under KEYS, the MUTE screen, PERFORM "
+    check("black keys: no cue on SOUND, FX, LFO, COMP, GLOBAL, PROJECT, under KEYS, the MUTE screen, PERFORM "
           "or the menu", (int)ok);
 }
 static void cue_black_leds(void)

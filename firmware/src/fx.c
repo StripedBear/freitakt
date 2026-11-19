@@ -147,8 +147,8 @@ static volatile uint8_t fx_lowcut;     /* settings (MENU SPEAKER EQ): 0 FLAT, 1 
                                         * small speaker): 12 dB/oct ~220 Hz plus the harmonics of the bass (spk_bass) */
 static int32_t lc_l1, lc_l2, lc_r1, lc_r2, dc_l, dc_r, dce_l, dce_r;
 /* METRO (GLOBAL 3/7, a device setting: project.c keeps it in the settings record's lowcut bits 5..6; not .noinit, so
- * only the flash record sets it): 0 OFF, 1 LOW, 2 MID, 3 HIGH. While playing, seq.c grids_tick marks each quarter of
- * Grids' clock (gclk.cnt % 4 == 0; bar: the bar's first, % 16): due = 1 + how far the clock had run past the quarter
+ * only the flash record sets it): 0 OFF, 1 LOW, 2 MID, 3 HIGH. While playing, seq.c gclk_tick marks each quarter of
+ * the global clock (gclk.cnt % 4 == 0; bar: the bar's first, % 16): due = 1 + how far the clock had run past the quarter
  * when the block's advance (adv) ended. metro_block starts the click at that point mapped onto the block, a block less
  * a sample after it (own clock: always n - 1 samples, 0.7 ms): in the block whose start fires the beat's steps, and
  * exactly a beat after the click before */

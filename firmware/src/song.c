@@ -2,7 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE (the slots read in place, a row as long as its longest track, LOOP, FDR9) */
 /* SONG (upstream Felucca 1.0's song_chain.c, adapted): rows of {project slot, repeat} played in order with the sounds
- * loaded now. A row plays, per track, the slot's steps, its LEN DIV SWG SRC (CHAIN_TIMING) and its motion, read in
+ * loaded now. A row plays, per track, the slot's steps, its LEN DIV SWG (CHAIN_TIMING) and its motion, read in
  * place from the slot: project.c chain_prepare (main loop, before PLAY) points chain.src at proj_slot[]. The row ends
  * when its longest track (chain.ref) has played its pattern `repeat` times; every track then starts the next row's
  * step 0 together, at that sample (chain.cut: seq_tick keeps the block's rest), on the grid a plain loop would be
@@ -13,16 +13,18 @@
  * while it is off (chain_busy). */
 #define CHAIN_ROWS 16u
 #define NAME_LEN 12u
+#define CHAIN_NT 3u                            /* a pattern's timing: LEN DIV SWG (a variation's, the editor's 4th
+                                                * byte: Grids' SRC, gone: 0) */
 typedef struct { uint8_t slot, repeat; } chain_row_t;                 /* slot 0..3 (A..D), repeat 1..16 */
 typedef struct { uint8_t count, loop, rsv[2]; chain_row_t row[CHAIN_ROWS]; } chain_config_t;   /* saved (FDR9) */
 typedef char chain_config_size[sizeof(chain_config_t) == 36u ? 1 : -1];
 typedef struct {                           /* a slot as its rows play it */
     const step_t *step[NTRK];
     const lk_bank_t *m;                    /* its lock bank: motion and locks (LK_NONE: none, or a broken one) */
-    int16_t timing[NTRK][4];               /* CHAIN_TIMING, inside their ranges */
+    int16_t timing[NTRK][CHAIN_NT];               /* CHAIN_TIMING, inside their ranges */
     uint8_t model[NTRK];                   /* its models: another model now = its P_E events skipped (motion.c) */
 } chain_src_t;
-static const uint8_t CHAIN_TIMING[4] = {P_SLEN, P_SDIV, P_SSWING, P_SRC};
+static const uint8_t CHAIN_TIMING[CHAIN_NT] = {P_SLEN, P_SDIV, P_SSWING};
 static const lk_bank_t LK_NONE;
 static const char NAME_SET[] = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+";
 static struct {
@@ -30,7 +32,7 @@ static struct {
     char name[NAME_LEN + 1u];              /* the project's name, "" = none */
     uint8_t from;                          /* the slot loaded or saved last + 1, 0 = none (its rename renames this) */
     chain_src_t src[4];                    /* the slots (chain_prepare) */
-    int16_t keep[NTRK][4];                 /* the timing before the song (STOP puts it back) */
+    int16_t keep[NTRK][CHAIN_NT];                 /* the timing before the song (STOP puts it back) */
     volatile uint8_t armed, running;       /* PLAY on SONG: armed until seq_start takes it; running */
     uint8_t row, left, ref, slot;          /* the row playing, its repeats left (this one too), its longest track, slot */
     uint8_t rec, cut;                      /* REC before the song; a row changed this block */
@@ -123,7 +125,7 @@ static void chain_apply(uint32_t x)                /* row chain.row starts x sam
     for (k = 0; k < NTRK; k++) {
         lock_release(k);                           /* the last row's locks and motion off (motion.c) */
         motion_restore(k);
-        for (j = 0; j < 4u; j++)
+        for (j = 0; j < CHAIN_NT; j++)
             trk[k].p[CHAIN_TIMING[j]] = s->timing[k][j];
     }
     chain.ref = (uint8_t)seq_restart(x, chain.b24);
@@ -135,7 +137,7 @@ static void chain_start(void)                      /* seq_start: an armed song f
         return;
     if (!chain.running) {
         for (k = 0; k < NTRK; k++)
-            for (j = 0; j < 4u; j++)
+            for (j = 0; j < CHAIN_NT; j++)
                 chain.keep[k][j] = trk[k].p[CHAIN_TIMING[j]];
         chain.rec = song.rec;
         song.rec = 0;
@@ -154,7 +156,7 @@ static void chain_stop(void)                       /* seq_stop: the timing and R
         return;
     chain.running = 0;
     for (k = 0; k < NTRK; k++)
-        for (j = 0; j < 4u; j++)
+        for (j = 0; j < CHAIN_NT; j++)
             trk[k].p[CHAIN_TIMING[j]] = chain.keep[k][j];
     song.rec = chain.rec;
     mo.src = 0;

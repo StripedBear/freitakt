@@ -27,9 +27,6 @@ static const act_t SCRIPT[] = {                           /* HOME's scope first;
     {13.4f, 'e', EN_SELECT, 1}, {13.65f, 'e', EN_SELECT, 1}, {13.9f, 'e', EN_SELECT, 1}, {14.15f, 'e', EN_SELECT, 1},
     {14.4f, 'e', EN_SELECT, 1}, {14.65f, 'e', EN_SELECT, 1}, {14.9f, 'e', EN_SELECT, 1},   /* (INSERT 1/2, 2/2 too) */
     {15.8f, 'e', EN_K2, 3}, {16.2f, 'e', EN_K2, 3}, {16.8f, 'e', EN_K2, -3}, {17.2f, 'e', EN_K2, -3},
-    {18.0f, 'b', B_ARP, 0}, {18.0f, 'm', 0, 0, "grids"}, /* Grids: X and Y wander */
-    {18.8f, 'e', EN_K2, 4}, {19.3f, 'e', EN_K3, 4}, {19.8f, 'e', EN_K2, 4}, {20.3f, 'e', EN_K3, -4},
-    {20.8f, 'e', EN_K2, -4}, {21.3f, 'e', EN_K2, -4},
     {22.0f, 'e', EN_ALGO, -1},
     {22.4f, 'b', B_HOME, 0},                              /* HOME (the scope), SELECT to COMP, THR down and back */
     {23.2f, 'e', EN_SELECT, 1}, {23.2f, 'm', 0, 0, "comp"},

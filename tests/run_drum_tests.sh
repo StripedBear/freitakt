@@ -84,7 +84,7 @@ echo "drum_test with Q24 overflow checks: all passed"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/drumsim" tests/drumsim.c -lm
 "$OUT/drumsim" build/drum_renders >/dev/null && echo "renders: build/drum_renders"
 rm -rf build/ui_shots
-mkdir -p build/ui_shots/engines build/ui_shots/seqtools build/ui_shots/seq build/ui_shots/grids build/ui_shots/comp build/ui_shots/lfo build/ui_shots/reson build/ui_shots/perform build/ui_shots/motion build/ui_shots/song build/ui_shots/name build/ui_shots/phys build/ui_shots/filter build/ui_shots/insert build/ui_shots/fm build/ui_shots/ktrx build/ui_shots/trxdrums build/ui_shots/acid build/ui_shots/bt build/ui_shots/fixes build/ui_shots/learn build/ui_shots/presets build/ui_shots/voicegraph build/ui_shots/locks build/ui_shots/themes/md-red build/ui_shots/themes/red-on-black build/ui_shots/themes/white-on-blue build/ui_shots/themes/black-on-green build/ui_shots/themes/blue-on-white build/ui_shots/themes/green-on-black
+mkdir -p build/ui_shots/engines build/ui_shots/seqtools build/ui_shots/seq build/ui_shots/comp build/ui_shots/lfo build/ui_shots/reson build/ui_shots/perform build/ui_shots/motion build/ui_shots/song build/ui_shots/name build/ui_shots/phys build/ui_shots/filter build/ui_shots/insert build/ui_shots/fm build/ui_shots/ktrx build/ui_shots/trxdrums build/ui_shots/acid build/ui_shots/bt build/ui_shots/fixes build/ui_shots/learn build/ui_shots/presets build/ui_shots/voicegraph build/ui_shots/locks build/ui_shots/themes/md-red build/ui_shots/themes/red-on-black build/ui_shots/themes/white-on-blue build/ui_shots/themes/black-on-green build/ui_shots/themes/blue-on-white build/ui_shots/themes/green-on-black
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/ui_test" tests/ui_test.c -lm
 "$OUT/ui_test"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/accel_test" tests/accel_test.c -lm   # (the knob acceleration vs upstream's)
@@ -187,7 +187,7 @@ cc -O2 -DCUE_COST -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro
 cc -O1 -g -fsanitize=signed-integer-overflow -fno-sanitize-recover=all -Wall -Wno-unused-function -Wno-int-to-pointer-cast \
     -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/comp_overflow" tests/comp_overflow.c -lm
 "$OUT/comp_overflow"
-"$PY" -c "import glob,PIL.Image as I; [I.open(p).resize((480,480),I.NEAREST).save(p[:-4]+'.png') for p in glob.glob('build/ui_shots/**/*.ppm', recursive=True)]" && rm -f build/ui_shots/*.ppm build/ui_shots/engines/*.ppm build/ui_shots/seq/*.ppm build/ui_shots/grids/*.ppm build/ui_shots/comp/*.ppm build/ui_shots/lfo/*.ppm build/ui_shots/reson/*.ppm build/ui_shots/perform/*.ppm build/ui_shots/motion/*.ppm build/ui_shots/song/*.ppm build/ui_shots/name/*.ppm build/ui_shots/phys/*.ppm build/ui_shots/filter/*.ppm build/ui_shots/insert/*.ppm build/ui_shots/fm/*.ppm build/ui_shots/acid/*.ppm build/ui_shots/bt/*.ppm build/ui_shots/fixes/*.ppm build/ui_shots/learn/*.ppm build/ui_shots/presets/*.ppm build/ui_shots/voicegraph/*.ppm build/ui_shots/locks/*.ppm build/ui_shots/seqtools/*.ppm build/ui_shots/themes/*.ppm build/ui_shots/themes/*/*.ppm && echo "screens: build/ui_shots" && "$PY" tools/theme_sheet.py
+"$PY" -c "import glob,PIL.Image as I; [I.open(p).resize((480,480),I.NEAREST).save(p[:-4]+'.png') for p in glob.glob('build/ui_shots/**/*.ppm', recursive=True)]" && rm -f build/ui_shots/*.ppm build/ui_shots/engines/*.ppm build/ui_shots/seq/*.ppm build/ui_shots/comp/*.ppm build/ui_shots/lfo/*.ppm build/ui_shots/reson/*.ppm build/ui_shots/perform/*.ppm build/ui_shots/motion/*.ppm build/ui_shots/song/*.ppm build/ui_shots/name/*.ppm build/ui_shots/phys/*.ppm build/ui_shots/filter/*.ppm build/ui_shots/insert/*.ppm build/ui_shots/fm/*.ppm build/ui_shots/acid/*.ppm build/ui_shots/bt/*.ppm build/ui_shots/fixes/*.ppm build/ui_shots/learn/*.ppm build/ui_shots/presets/*.ppm build/ui_shots/voicegraph/*.ppm build/ui_shots/locks/*.ppm build/ui_shots/seqtools/*.ppm build/ui_shots/themes/*.ppm build/ui_shots/themes/*/*.ppm && echo "screens: build/ui_shots" && "$PY" tools/theme_sheet.py
 REF=build/drum_ref
 FID=""
 if sh tests/fetch_ref.sh >/dev/null 2>&1; then
@@ -205,15 +205,7 @@ if sh tests/fetch_ref.sh >/dev/null 2>&1; then
     cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -Itests \
         -o "$OUT/drum_fidelity" tests/drum_fidelity.c -lm
     "$OUT/drum_fidelity" "$REF/metrics.bin"
-    python3 tools/gen_grids_tables.py "$REF/eurorack/grids/resources.cc" "$OUT/grids_tables.h"
-    cmp -s "$OUT/grids_tables.h" firmware/src/grids_tables.h || { echo "FAIL  grids_tables.h differs from the reference (tools/gen_grids_tables.py)"; exit 1; }
     E="$REF/eurorack"
-    c++ -std=c++11 -O1 -w -Itests/grids_stub -I"$E" -I. -o "$REF/grids_ref" tests/grids_ref.cc "$E/grids/pattern_generator.cc" \
-        "$E/grids/resources.cc" "$E/avrlib/random.cc"
-    "$REF/grids_ref" "$REF/grids_ref.bin"
-    cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -Itests \
-        -o "$OUT/grids_fidelity" tests/grids_fidelity.c -lm
-    "$OUT/grids_fidelity" "$REF/grids_ref.bin"
     python3 tools/gen_comp_tables.py "$REF/eurorack/streams/resources.cc" "$OUT/comp_tables.h"
     cmp -s "$OUT/comp_tables.h" firmware/src/comp_tables.h || { echo "FAIL  comp_tables.h differs from the reference (tools/gen_comp_tables.py)"; exit 1; }
     python3 tools/gen_comp_tables.py "$REF/eurorack/streams/resources.cc" "$REF/comp_lp31k.h" --lp31k

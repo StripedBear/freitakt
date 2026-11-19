@@ -3,7 +3,7 @@
 
 ## What Hortator is
 
-Hortator is drum-machine firmware for the **M-VAVE FM-1**. It turns the FM-1 into a self-contained groovebox: eight drum tracks, a step sequencer, a Grids pattern generator, a ducking compressor, two LFOs per track, per-track effects, live performance effects, USB audio and MIDI, all on the FM-1's own keys, knobs and screen, and, from 1.0.0, a browser editor over USB for sound, presets, projects, patterns and your own samples. This manual is for version **1.0.1**.
+Hortator is drum-machine firmware for the **M-VAVE FM-1**. It turns the FM-1 into a self-contained groovebox: eight drum tracks, a step sequencer, a ducking compressor, two LFOs per track, per-track effects, live performance effects, USB audio and MIDI, all on the FM-1's own keys, knobs and screen, and, from 1.0.0, a browser editor over USB for sound, presets, projects, patterns and your own samples. This manual is for version **1.0.1**.
 
 It is built by DEADACTIVE on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita. On a Roman galley the *hortator* beat the drum that kept the rowers in time; Felucca is a Nile sailing boat; this is its drummer.
 
@@ -23,7 +23,7 @@ The sections run from first steps to full reference. Use the sidebar, the Previo
 1. **Quick start** gets a beat playing in a few minutes.
 2. **The panel** names every control and the conventions used everywhere.
 3. **Sequencer**, **Playing and recording** and **Projects and tools** cover making music.
-4. **Sounds**, **Effects** and **Modulation, Grids and compressor** are the reference for the voices and processing.
+4. **Sounds**, **Effects** and **Modulation and compressor** are the reference for the voices and processing.
 5. **MIDI**, **USB audio**, **Bluetooth**, **Settings and menu** and the **Web editor** cover connections, the device menu and editing from the browser.
 6. **Web simulator**, **Install, update and recovery**, **Troubleshooting**, **Glossary** and **Version history** finish the book.
 

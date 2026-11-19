@@ -53,7 +53,6 @@ static void fm1_irq_on(void)
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #include "../firmware/src/usb_app8.c"                /* the app's driver: usb_app.c + USB AUDIO 10 CH */
 #include "../firmware/src/midi_uart.c"
-#include "../firmware/src/grids.c"
 #include "../firmware/src/seq.c"
 #include "../firmware/src/bench.c"
 #ifndef HOST_PROJECT                                  /* (without project.c: the cue never switches) */
@@ -85,7 +84,6 @@ static void host_reset_fx(void)                     /* FX buses, master, slicer,
     memset(metal_ph, 0, sizeof metal_ph);
     metal_blk = 0xFFFFFFFFu;
     dblock = 0;
-    memset(&grids, 0, sizeof grids);
     memset(&gclk, 0, sizeof gclk);
     memset(&metro, 0, sizeof metro);                /* METRO: no click sounding (fx_metro, the setting, kept) */
     memset(&pf, 0, sizeof pf);                      /* PERFORM (perform.c): nothing held, idle */

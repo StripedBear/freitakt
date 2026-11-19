@@ -314,7 +314,6 @@ static track_t *acid_seq(void)
     memset(buf, 0, sizeof buf);                       /* (the checks read a little past seq_run's steps) */
     memset(t->step, 0, sizeof t->step);
     t->p[P_SLEN] = 16;
-    t->p[P_SRC] = 0;
     song.playing = 1;
     t->seq_pos = 0x7FFFFFFFu;                         /* PLAY: step 0 next block */
     t->seq_cnt = (uint32_t)-1;
@@ -447,7 +446,7 @@ static void test_seq_drum_tie(void)                  /* a drum track: a TIE step
     check("seq: a TIE step on a drum track plays nothing", !t->v[0].active && !t->v[1].active);
 }
 
-/* a hit no step drives (MIDI, the keys, Grids: drum_hit) closes its own gate after GATE of the track's step, the
+/* a hit no step drives (MIDI, the keys: drum_hit) closes its own gate after GATE of the track's step, the
  * transport stopped: the gate counts in seq_tick, which runs every block */
 /* ruling 1 with the transport running: a live hit (drum_hit) late in a step keeps its own GATE through the next
  * step's start (a rest closes only a gate the sequencer holds), and a TIE does not extend it */

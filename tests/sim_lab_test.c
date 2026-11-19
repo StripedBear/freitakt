@@ -79,18 +79,6 @@ static void test_reson(void)
     check("reson: STRNG rings longer than the dry hit", tail_len(lab_buf(), n) > tail_len(buf_a, n) + FS / 10u);
 }
 
-static void test_grids(void)
-{
-    uint8_t a[96], b[96];
-    lab_reset();
-    lab_global(G_GX, 0);
-    lab_global(G_GY, 0);
-    memcpy(a, lab_grids(), sizeof a);
-    lab_global(G_GX, 127);
-    lab_global(G_GY, 127);
-    memcpy(b, lab_grids(), sizeof b);
-    check("grids: the lanes differ between two corners of the map", memcmp(a, b, sizeof a) != 0);
-}
 
 static void loop_kit(void)                              /* kick 4 on the floor, hats on 8ths */
 {
@@ -277,7 +265,6 @@ int main(void)
 {
     test_voices();
     test_reson();
-    test_grids();
     test_comp();
     test_lfo();
     test_dice();

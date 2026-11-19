@@ -47,7 +47,6 @@ enum {                          /* per-track parameters */
     P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH,
     P_SLEN, P_SDIV, P_SSWING,
     P_LSET, P_LKEY, P_LLEVEL, P_LTUNE, P_LDEC,       /* sample layer */
-    P_SRC,                       /* what the track plays: 0 its steps, 1..3 a Grids channel (kick, snare, hats) */
     P_DUCK,                      /* M3: the COMP source ducks this track */
     P_LFO1,                      /* LFO 1: LF_N knobs (lfo.c) */
     P_LFO2 = P_LFO1 + LF_N,      /* LFO 2 */
@@ -82,9 +81,6 @@ enum {                          /* global parameters */
     G_SLOT, G_NAME, G_LOAD, G_SAVE,
     G_CLRSEQ, G_INITSND,
     G_DRCH,                      /* MIDI channel of the drum tracks, 1..16 */
-    G_GMODE, G_GX, G_GY, G_GCHAOS,                   /* Grids (grids.c): MAP / EUCLID, the map point, chaos */
-    G_GFILL1, G_GFILL2, G_GFILL3,                    /* fill per channel (kick, snare, hats) */
-    G_GLEN1, G_GLEN2, G_GLEN3,                       /* Euclidean length per channel, 1..32 sixteenths */
     G_CSRC, G_CTHR, G_CRAT, G_CREL,                  /* COMP (comp.c): source track (0 off), threshold, ratio, release */
     G_CATK, G_CKNEE, G_CMKUP,                        /* attack, soft knee, makeup (127 = limiter) */
     G_CGHOST,                                        /* a muted / any source heard: CG_MUTE CG_KEEP CG_HIDE (fx.c) */

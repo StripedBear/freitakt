@@ -55,7 +55,7 @@ static void test_families(void)
 {
     static const struct { uint32_t btn; uint32_t fam; } MAP[] = {
         {B_EDIT, FAM_SND}, {B_FX, FAM_FX},
-        {B_SEQ, FAM_SEQ}, {B_GLO, FAM_GLO}, {B_SAVE, FAM_SAVE}, {B_ARP, FAM_GRIDS}, {B_LFO, FAM_LFO},
+        {B_SEQ, FAM_SEQ}, {B_GLO, FAM_GLO}, {B_SAVE, FAM_SAVE}, {B_LFO, FAM_LFO},
     };
     uint32_t i, ok = 1;
     ui_host_init();
@@ -66,7 +66,7 @@ static void test_families(void)
         ui_frame();                                  /* (FX opens its pages on the release) */
         ok &= !ui.home && cur_page()->fam == MAP[i].fam;
     }
-    check("buttons open their page families (EDIT SOUND, FX, SEQ, GLO, SAVE, ARP GRIDS, LFO LFO)", ok);
+    check("buttons open their page families (EDIT SOUND, FX, SEQ, GLO, SAVE, LFO LFO)", ok);
     press(B_ENV);
     ui_frame();
     release_all();
@@ -644,87 +644,6 @@ static void test_step_hold_on_acc(void)
     }
 }
 
-static void test_grids_pages(void)
-{
-    ui_host_init();
-    press(B_ARP);
-    ui_frame();
-    release_all();
-    check("ARP opens GRIDS 1/2 (MODE X Y CHAOS)", !ui.home && str_eq(cur_page()->title, "GRIDS") && cur_page()->id[0] == G_GMODE);
-    snap_page("grids/01_map_page1");
-    turn(EN_K1 + 1, 3);
-    ui_frame();
-    check("GRIDS MAP: KNOB 2 turns X", song.g[G_GX] == 67);
-    turn(EN_K1, 1);
-    ui_frame();
-    check("GRIDS: KNOB 1 switches MODE to EUCL", song.g[G_GMODE] == 1);
-    turn(EN_K1 + 1, -2);
-    ui_frame();
-    check("GRIDS EUCLID: KNOB 2 turns LEN K (X kept)", song.g[G_GLEN1] == 14 && song.g[G_GX] == 67);
-    snap_page("grids/03_euclid_page1");
-    press(B_ARP);
-    ui_frame();
-    release_all();
-    check("ARP again: GRIDS 2/2 (FIL K FIL S FIL H)", cur_page()->id[0] == G_GFILL1);
-    turn(EN_K1 + 2, 5);
-    ui_frame();
-    check("GRIDS 2/2: KNOB 3 turns FIL H", song.g[G_GFILL3] == 69);
-    trk[0].p[P_SRC] = 1;
-    trk[5].p[P_SRC] = 1;
-    trk[1].p[P_SRC] = 2;
-    trk[3].p[P_SRC] = 3;
-    ui.force = 1;
-    snap_page("grids/04_euclid_page2_routing");
-    song.g[G_GMODE] = 0;
-    transport_req = 1;
-    seq_play_to(1, 6);
-    snap_page("grids/02_map_page2_playing");
-    press(B_ARP);
-    ui_frame();
-    release_all();
-    snap_page("grids/05_map_page1_playing");
-}
-
-/* a track on a Grids channel: STEP / PATTERN / the footer / the LEDs show the channel, read-only */
-static void test_src_readonly(void)
-{
-    uint32_t k, ok = 1;
-    ui_host_init();
-    trk[0].step[0].on = 1;
-    seq_open("PATTERN");
-    turn(EN_K1 + 3, 1);
-    ui_frame();
-    check("PATTERN: KNOB 4 is SRC (STEP -> G-KCK)", trk[0].p[P_SRC] == 1);
-    snap_page("grids/07_pattern_src_kick");
-    song.g[G_GFILL1] = 127;
-    seq_open("STEP");
-    check("a Grids track's STEP grid shows the channel: MAP, 32 steps on 2 banks", bank_count() == 2u);
-    for (k = 0; k < 16u; k++)
-        ok &= led_lit(14u + WHITE[k]) == (int)(grids_preview(0, k) & 1u);
-    check("the keys' LEDs show the channel's steps", ok);
-    snap_page("grids/06_step_grids_track");
-    grid_hold(WHITE[3], 0);
-    grid_hold_turn(WHITE[3], 0, 2);
-    keys(0);
-    ui_frame();
-    check("keys and hold + knob do nothing on a Grids track", !trk[0].step[3].on && trk[0].step[3].cond == 0 && trk[0].step[0].on);
-    song.g[G_GMODE] = 1;
-    song.g[G_GLEN1] = 20;
-    ui_frame();
-    check("EUCLID: the grid shows LEN K steps (20: 2 banks)", bank_count() == 2u && view_len(&trk[0]) == 20u);
-    trk[0].p[P_SRC] = 0;
-    ui_frame();
-    check("SRC back to STEP: its own steps again", bank_count() == 1u && led_lit(14u + WHITE[0]));
-    song.g[G_GMODE] = 0;
-    trk[0].p[P_SRC] = 1;
-    trk[2].p[P_SRC] = 3;
-    open_tracks();                                   /* HOME's TRACKS mode */
-    check("TRACKS open for the Grids rows screen", !ui.home && cur_page()->scope == SC_MIX && !song.rec);
-    transport_req = 1;
-    seq_play_to(1, 5);
-    snap_page("grids/08_tracks_grids_rows");
-}
-
 /* review #2: a step key held while the track changes (ALGO, or a page change) writes nothing into the new track */
 static void test_grid_hold_track_change(void)
 {
@@ -938,10 +857,9 @@ static void test_tools_all(void)
     trk[2].p[P_SLEN] = 12;
     trk[2].p[P_SDIV] = 1;
     trk[2].p[P_SSWING] = 40;
-    trk[2].p[P_SRC] = 2;
     trk[5].step[0].on = 1;
     song.g[G_BPM] = 140;
-    song.g[G_GX] = 99;
+    song.g[G_RSIZE] = 99;
     song.g[G_CSRC] = 3;
     for (k = 0; k < NPAGES && (ui.home || !str_eq(cur_page()->title, "TOOLS")); k++) {
         tap(B_SAVE);                                 /* (SAVE opens its pages on the release: 2026-10-26) */
@@ -951,12 +869,12 @@ static void test_tools_all(void)
     check("TOOLS CLR*: the first detent only arms", trk[2].step[3].on && trk[5].step[0].on);
     turn(EN_K1 + 2, 1);
     ui_frame();
-    check("TOOLS CLR*: every pattern cleared, LEN 16 / DIV 1/16 / SWG 0 / SRC STEP",
+    check("TOOLS CLR*: every pattern cleared, LEN 16 / DIV 1/16 / SWG 0",
           !trk[2].step[3].on && trk[2].step[3].cond == 0 && !trk[5].step[0].on && trk[2].p[P_SLEN] == 16 &&
-              trk[2].p[P_SDIV] == TP[P_SDIV].def && trk[2].p[P_SSWING] == 0 && trk[2].p[P_SRC] == 0);
-    check("TOOLS CLR*: sounds, FX, Grids, COMP and BPM untouched",
+              trk[2].p[P_SDIV] == TP[P_SDIV].def && trk[2].p[P_SSWING] == 0);
+    check("TOOLS CLR*: sounds, FX, COMP and BPM untouched",
           trk[2].p[P_MODEL] == DM_CONGA && trk[2].p[P_E0] == 7 && trk[2].p[P_LEVEL] == 90 && trk[2].p[P_DIST] == 50 &&
-              song.g[G_BPM] == 140 && song.g[G_GX] == 99 && song.g[G_CSRC] == 3);
+              song.g[G_BPM] == 140 && song.g[G_RSIZE] == 99 && song.g[G_CSRC] == 3);
     snap_page("tools_all");
     transport_req = 1;
     ui_frame();
@@ -968,9 +886,9 @@ static void test_tools_all(void)
     turn(EN_K1 + 3, 1);
     ui_frame();
     ui_frame();
-    check("TOOLS INIT*: everything at power-on (kit, sounds, BPM, Grids, COMP), stopped, nothing armed",
+    check("TOOLS INIT*: everything at power-on (kit, sounds, BPM, FX, COMP), stopped, nothing armed",
           (uint32_t)trk[2].p[P_MODEL] == KIT_DEF[2][0] && trk[2].p[P_LEVEL] == TP[P_LEVEL].def && trk[2].p[P_DIST] == 0 &&
-              song.g[G_BPM] == GP[G_BPM].def && song.g[G_GX] == GP[G_GX].def && song.g[G_CSRC] == 0 &&
+              song.g[G_BPM] == GP[G_BPM].def && song.g[G_RSIZE] == GP[G_RSIZE].def && song.g[G_CSRC] == 0 &&
               !song.playing && song.rec == 0 && song.sel == 0);
     check("TOOLS INIT*: the volume knob's level is kept", song.master_q12 == 900u);
 }
@@ -1346,7 +1264,7 @@ static void test_home_modes(void)
     hold(B_HOME);
     check("the menu closed: HOME in the mode last shown (TRACKS)", !ui.menu && mix_mode());
     {
-        static const uint8_t B[] = {B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_ARP, B_LFO, B_ENV, B_SCL, B_REC};
+        static const uint8_t B[] = {B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_ENV, B_SCL, B_REC};
         uint32_t b, any = 0;
         for (b = 0; b < sizeof B; b++) {             /* each button tapped on and on: never TRACKS */
             ui_host_init();
@@ -3405,7 +3323,7 @@ static void test_backlight_beats_everywhere(void)
     check("BACKLIGHT ON, every page and the HOME screen, KEYS off / on, armed or not: where the keys are steps (every "
           "SEQ page, TRACKS unarmed) on steps full, the unlit beats 1 5 9 13 at 25 % in bank 1 and bank 2, the rest 5 %",
           ok_steps && mix_seen && n_steps == 10u);   /* 4 SEQ pages x armed / not, TRACKS unarmed x KEYS off / on */
-    check("BACKLIGHT ON: where the keys are not steps (EDIT FX LFO GLOBAL SAVE GRIDS COMP, the HOME screen, KEYS, "
+    check("BACKLIGHT ON: where the keys are not steps (EDIT FX LFO GLOBAL SAVE COMP, the HOME screen, KEYS, "
           "TRACKS armed) no key at 25 %", ok_other && n_other > 0u);
     ui.home = 0;                                     /* a SEQ page under the menu, the MUTE screen, PERFORM: their
                                                       * keys are not steps */
@@ -4745,10 +4663,7 @@ static void test_project_roundtrip(void)
     trk[2].p[P_SLEN] = 23;
     trk[2].step[7].cond = 33;                        /* 3/5 */
     trk[2].step[7].rat = 2;                          /* 3 hits */
-    trk[2].p[P_SRC] = 2;                             /* G-SNR */
-    song.g[G_GMODE] = 1;
-    song.g[G_GX] = 99;
-    song.g[G_GLEN3] = 5;
+    song.g[G_DRCH] = 5;
     trk[3].p[P_DUCK] = 1;
     song.g[G_CSRC] = 1;
     song.g[G_CRAT] = 99;
@@ -4768,9 +4683,8 @@ static void test_project_roundtrip(void)
           trk[2].p[P_MODEL] == DM_CONGA && trk[2].model == DM_CONGA && trk[2].p[P_E0] == -5 &&
               trk[2].p[P_LLEVEL] == 77 && trk[2].step[7].on && trk[2].step[7].acc && trk[2].p[P_SLEN] == 23 &&
               song.g[G_BPM] == 133 && song.sel == 2);
-    check("project: load restores PROB / RATCH, SRC and the Grids settings",
-          trk[2].step[7].cond == 33 && trk[2].step[7].rat == 2 && trk[2].p[P_SRC] == 2 && song.g[G_GMODE] == 1 &&
-              song.g[G_GX] == 99 && song.g[G_GLEN3] == 5);
+    check("project: load restores PROB / RATCH and the drum channel",
+          trk[2].step[7].cond == 33 && trk[2].step[7].rat == 2 && song.g[G_DRCH] == 5);
     check("project: load restores DUCK and the COMP settings",
           trk[3].p[P_DUCK] == 1 && song.g[G_CSRC] == 1 && song.g[G_CRAT] == 99 && song.g[G_CMKUP] == 50 &&
               song.g[G_CKNEE] == 0);
@@ -4788,21 +4702,21 @@ static void test_project_rejects(void)
     ((uint8_t *)&proj_slot[0].t[3].step[0])[0] = 0xC1u;   /* on + both reserved bits */
     proj_slot[0].t[3].step[1].cond = 200;
     ((uint8_t *)&proj_slot[0].t[3].step[1])[0] = 0x30u;   /* rat 3 */
-    proj_slot[0].t[3].p[P_SRC] = 40;
-    proj_slot[0].g[G_GLEN1] = -5;
-    proj_slot[0].g[G_CSRC] = 77;
-    proj_slot[0].t[3].p[P_DUCK] = 5;
-    proj_slot[0].t[3].p[P_LFO1 + LF_DEST] = 99;
-    proj_slot[0].t[3].p[P_LFO1 + LF_WAVE] = -4;
-    proj_slot[0].t[3].p[P_RMODEL] = 99;
-    proj_slot[0].t[3].p[P_RTUNE] = 500;
-    proj_slot[0].t[3].p[P_RDECAY] = -9;
+    proj_slot[0].t[3].p[PR_P(P_SLEN)] = 400;
+    proj_slot[0].g[PR_G(G_DRCH)] = -5;
+    proj_slot[0].g[PR_G(G_CSRC)] = 77;
+    proj_slot[0].t[3].p[PR_P(P_DUCK)] = 5;
+    proj_slot[0].t[3].p[PR_P(P_LFO1 + LF_DEST)] = 99;
+    proj_slot[0].t[3].p[PR_P(P_LFO1 + LF_WAVE)] = -4;
+    proj_slot[0].t[3].p[PR_P(P_RMODEL)] = 99;
+    proj_slot[0].t[3].p[PR_P(P_RTUNE)] = 500;
+    proj_slot[0].t[3].p[PR_P(P_RDECAY)] = -9;
     proj_slot[0].sum = proj_sum(&proj_slot[0]);
     (void)proj_load(0, 1);                           /* (the edited slot: as DISCARD EDITS? YES) */
     check("project: out-of-range values are clamped on load",
           trk[3].p[P_MODEL] < NMODELS && trk[3].p[P_E1] <= DMODELS[trk[3].p[P_MODEL]].edit[1].max &&
               trk[3].step[0].on == 1 && trk[3].step[1].cond == COND_MAX && trk[3].step[1].rat == 3 &&
-              trk[3].p[P_SRC] == 3 && song.g[G_GLEN1] == 1 &&
+              trk[3].p[P_SLEN] == NSTEP && song.g[G_DRCH] == 1 &&
               song.g[G_CSRC] == 8 && trk[3].p[P_DUCK] == 1 &&
               trk[3].p[P_LFO1 + LF_DEST] == TP[P_LFO1 + LF_DEST].max && trk[3].p[P_LFO1 + LF_WAVE] == 0 &&
               trk[3].p[P_RMODEL] == RS_NMODEL - 1 && trk[3].p[P_RTUNE] == 96 && trk[3].p[P_RDECAY] == 0);
@@ -8911,7 +8825,7 @@ static void test_about_credits_scroll(void)
 {
     static const char *const WHO[] = {"FORK: DEADACTIVE", "LEO KUROSHITA", "HUGELTON INSTRUMENTS",
                                       "GITHUB.COM/HUGELTON/FELUCCA", "MUTABLE", "EMILIE GILLET", "PLAITS", "STMLIB",
-                                      "GRIDS", "STREAMS", "DAISYSP", "ELECTROSMITH", "SKIN", "RESON", "VERSILIAN",
+                                      "STREAMS", "DAISYSP", "ELECTROSMITH", "SKIN", "RESON", "VERSILIAN",
                                       "VCSL", "CC0", "PIXEL FONT: DEADACTIVE", "LANDERS'", "GEARMULATOR",
                                       "SUSPECTS", "DSP56300", "ELEKTRON", "NOT AFFILIATED", "JIELI", "APACHE-2.0",
                                       "JL-UBOOT-TOOL", "KAGAIMIQ", "GRIGORYEV", "TERMINUS", "ZHEKOV", "FUKIAI",
@@ -9691,7 +9605,7 @@ static void test_fk_perform_preset_algo(void)
 
 /* item 2: the HOME screen and the EDIT (SOUND, LAYER), FX and LFO pages show the selected track on the keys: its
  * white key (KEY_TRK_KEY) lit, the other keys dark unless held; it follows ALGORITHM and a key's select; KEYS (the
- * keyboard), COMP (DUCK), the step pages and GLOBAL / SAVE / GRIDS keep their own; the menu none */
+ * keyboard), COMP (DUCK), the step pages and GLOBAL / SAVE keep their own; the menu none */
 static int fk_keys_show_only(uint32_t mask)          /* the 27 key LEDs: lit exactly where mask says */
 {
     uint32_t k, ok = 1;
@@ -9718,12 +9632,12 @@ static void test_fk_track_keys(void)
             fams |= 1u << fam;
             n++;
         } else if (!step_keys() && !comp_mode()) {
-            other &= fk_keys_show_only(0);           /* GLOBAL SAVE GRIDS: as before, the keys held only */
+            other &= fk_keys_show_only(0);           /* GLOBAL SAVE: as before, the keys held only */
         }
     }
     check("item 2: HOME, EDIT (SOUND, LAYER), FX, LFO: the selected track's key lit, every other key dark",
           ok && n > 10u && fams == (1u << FAM_HOME | 1u << FAM_SND | 1u << FAM_LAY | 1u << FAM_FX | 1u << FAM_LFO));
-    check("item 2: GLOBAL, SAVE, GRIDS: no track key (the keys held only, as before)", other);
+    check("item 2: GLOBAL, SAVE: no track key (the keys held only, as before)", other);
     tap(B_FX);
     song.sel = 0;
     turn(EN_ALGO, 2);
@@ -10619,8 +10533,6 @@ int main(void)
     test_step_micro();
     test_step_hold_every_seq_page();
     test_grid_hold_track_change();
-    test_grids_pages();
-    test_src_readonly();
     test_engine_screens();
     test_seq_screens();
     test_families();

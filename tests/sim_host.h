@@ -139,7 +139,6 @@ static void sim_mark(uint32_t off, uint32_t n)
 #include "../firmware/src/fx.c"
 #include "../firmware/src/usb_app8.c"
 #include "../firmware/src/midi_uart.c"
-#include "../firmware/src/grids.c"
 #include "../firmware/src/seq.c"
 #include "../firmware/src/bench.c"
 #include "../firmware/src/audio.c"

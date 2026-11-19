@@ -107,7 +107,7 @@ export function fileVariation(objs, v) {
   const p = decodeProject(objs.record);
   if (!p.full) throw new Error(`The file's project is in an older format (${p.format}): restore it into a slot on the FM-1, then copy from that slot.`);
   let rows;
-  if (!v) rows = p.tracks.map((t) => ({ steps: t.steps, timing: LAYOUT.timing.map((id) => t.p[id]), used: 1 }));
+  if (!v) rows = p.tracks.map((t) => ({ steps: t.steps, timing: [...LAYOUT.timing.map((id) => t.p[id]), 0], used: 1 }));
   else {
     const e = objs.vars ? decodeVars(objs.vars).entries[v - 1] : null;
     if (!e) throw new Error(`VAR ${v + 1} of the file's project is not used: nothing to copy.`);
@@ -380,7 +380,7 @@ export class PatternsModel {
       const chk = lks ? await this.checkLocks(slot, lks) : null; // before the first write: refused whole, or it fits
       // the first STEPS_SET makes the FM-1 switch; rc 0 means `to` plays now, so the timing knobs below are its own
       for (let k = 0; k < NTRK; k++) await this.writeSteps(slot, to, k, 0, rows[k].steps);
-      for (let k = 0; k < NTRK; k++) for (let j = 0; j < 4; j++)
+      for (let k = 0; k < NTRK; k++) for (let j = 0; j < LAYOUT.timing.length; j++)
         await this.s.request(CMD.SET, { scope: SCOPE.TRACK, track: k, id: LAYOUT.timing[j], value: rows[k].timing[j] });
       if (lks) await this.writeLocks(slot, lks, chk.before);
       const motion = src && locks && src.motion ? ` (its ${src.motion} MOTION event${src.motion > 1 ? "s were" : " was"} not copied)` : "";

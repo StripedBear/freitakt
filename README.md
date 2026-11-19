@@ -2,7 +2,7 @@
 
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE)
 
-**Drum-machine firmware for the M-VAVE FM-1.** Eight tracks of drums, a step sequencer, Grids, a pumping
+**Drum-machine firmware for the M-VAVE FM-1.** Eight tracks of drums, a step sequencer, a pumping
 compressor, LFOs, resonators and live effects, all on the FM-1's own keys, knobs and screen. By DEADACTIVE, built
 on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita.
 
@@ -50,8 +50,6 @@ firmware ([below](#back-to-the-official-firmware)).
 - **MOTION.** Knob turns recorded per step while a track plays, and played back with the pattern: up to 1024 events
   per project (shared by the 8 tracks).
 - **SONG and names.** Chain up to 16 rows of projects with repeats; name projects on the device.
-- **Grids.** Mutable Instruments' pattern generator: a map of drum patterns, chaos, or Euclidean rhythms. Any track
-  can follow one of its three channels.
 - **Compressor.** The Streams compressor keyed by any track, for ducking and pumping; GHOST keeps the pump with the
   key track muted.
 - **Movement.** Two LFOs per track, ten waves with a morph between them, synced to the tempo.
@@ -108,7 +106,6 @@ firmware ([below](#back-to-the-official-firmware)).
 | **EDIT** | the selected track's sound: its model and knobs (on HOME, EDIT, FX and LFO the selected track's key is lit; a white key F3..F4 selects its track) |
 | **SEQ** | the steps on the white keys (a short tap: on / off, on the release; hold a step 0.3 s: an off step turns on at once, an on step stays as it is; while held KNOB 1 / 2 / 3 / 4: PROB / RATCH / ACCENT (right on, left off) / NUDGE, on STEP, PATTERN, MOTION, SONG and TRACKS alike (the page's own knobs rest while a step is held); hold OCT+ and tap a step: its accent; OCT+ alone / OCT-: the bank), then PATTERN, MOTION and SONG (each tap on its release); held: the TOOLS screen ([step tools](#step-tools): copy and paste steps, pages, selections, DUPLICATE, CLEAR) |
 | **FX** | FILTER, FX (the sends), INSERT (and SRR), SLICER and RESON; hold it for PERFORM |
-| **ARP** | Grids |
 | **LFO** | the track's two LFOs, side by side on every page (LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4), then DEST: 4 slots, each a source (LFO 1 / LFO 2), a destination knob (the engine's knobs, LVL, PAN, the RESON and FILTER knobs, SRR, DST, the CHO / DLY / REV sends, the INSERT's MIX and its A B C) and its own depth |
 | **REC** | on TRACKS: arms / disarms the selected track for recording (`T3 REC ARMED` / `T3 REC OFF`; during REC ALL: REC ALL ends, the selected track armed). On every other screen: REC ALL on / off (every track armed, each white key records its own track; off: the arm state from before back). It never starts play: PLAY does. On STEP with KEYS on and stopped: step record. Held on a SEQ page: CLEAR TRACK; on SONG: DELETE ROW / CLEAR SONG |
 | **GLO** | a tap: global and system settings, then the delay, the reverb and the chorus; held: the MUTE screen ([mutes](#mutes); G4: [MIDI LEARN](#midi-learn)) |
@@ -259,7 +256,7 @@ variation where that step plays). While a slot plays, the next slot (A–D) or a
 comes in exactly where the pattern ends (the longest track's LEN × DIV, as a SONG row ends), every track then from its
 step 0 on the same grid as before (swing and odd lengths keep their place). The same key again while queued switches
 at the next step; stopped, a cue switches at once. A slot switch changes everything of the slot (sounds, steps,
-timing, locks) but keeps the tempo, SWING, clock / MIDI / sync, the master FX, Grids, the mutes and the selected
+timing, locks) but keeps the tempo, SWING, clock / MIDI / sync, the master FX, the mutes and the selected
 track; the old slot's voices fade out over the last 5 ms before the boundary. A variation switch changes only the
 steps and the timing; the voices ring on. A variation never used before starts as a **copy of the variation playing**
 (steps and timing) the first time it is cued, and is a used variation from then on; when the slot's variations are
@@ -838,8 +835,6 @@ If it does not start at all and never reaches boot mode, recovering it needs a
   [Hügelton Instruments](https://hugelton.com): the firmware Hortator is built on, its hardware layer, update
   loader, installer, UI and engines; the per-track INSERT effect is Felucca 1.5's, as ported to Skiff (by
   DEADACTIVE) and from there to Hortator; the HALL reverb is Skiff's (Felucca's stereo HALL, Skiff 1.3.2).
-- [Grids](https://github.com/pichenettes/eurorack/tree/master/grids) by Emilie Gillet, Mutable Instruments: the GRIDS
-  pattern engine is a C port (GPL-3.0-or-later).
 - [Streams](https://github.com/pichenettes/eurorack/tree/master/streams) by Emilie Gillet, Mutable Instruments: the
   compressor is a C port (MIT).
 - [Plaits](https://github.com/pichenettes/eurorack/tree/master/plaits) by Emilie Gillet, Mutable Instruments: integer

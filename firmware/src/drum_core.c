@@ -228,7 +228,7 @@ static void smpl_tie(track_t *t, uint32_t len)          /* a TIE step: the newes
         t->v[b].x[1] += (int32_t)len;
 }
 
-/* MIDI, the keys, Grids: C4. A gated model's (ACID) note no step drives ends as a step's: its gate closes after
+/* MIDI, the keys: C4. A gated model's (ACID) note no step drives ends as a step's: its gate closes after
  * GATE of the track's step (seq.c seq_tick counts it, stopped too) */
 static void drum_hit(track_t *t, uint32_t vel)
 {

@@ -307,7 +307,7 @@ test('reel: 34 s at 15 fps, replaying every frame rebuilds the recorder\'s last 
 test('reel clips: the recorder names each page\'s stretch (the landing page plays them per feature)', () => {
   const clips = JSON.parse(readFileSync(join(DIR, 'reel.json'), 'utf8'));
   const names = clips.map(c => c.name);
-  for (const n of ['home', 'seq', 'sound', 'fx', 'grids', 'comp', 'tracks', 'lfo'])
+  for (const n of ['home', 'seq', 'sound', 'fx', 'comp', 'tracks', 'lfo'])
     assert.ok(names.includes(n), n);
   let last = 0;
   for (const c of clips) {
@@ -366,7 +366,7 @@ test('published page: every local file it loads carries the build stamp (?v=), s
 // ---- lab.js: the feature pieces' engine (the analyser in the page; the player is the same calls in a worklet)
 import { Lab } from '../web/sim/lab.js';
 
-test('lab: ids from the firmware, a voice rendered, the Grids lanes, the probes parsed', async () => {
+test('lab: ids from the firmware, a voice rendered, the probes parsed', async () => {
   const ids = JSON.parse(readFileSync(join(DIR, 'lab_ids.json'), 'utf8'));
   const lab = await Lab.create(WASM, ids);
   assert.equal(ids.models.length > 20, true);
@@ -375,12 +375,6 @@ test('lab: ids from the firmware, a voice rendered, the Grids lanes, the probes 
   const hit = lab.voice(ids.fs / 2, false);
   assert.equal(hit.length, ids.fs / 2);
   assert.ok(Math.max(...hit.map(Math.abs)) > 0.01, 'the 808 kick is heard');
-  lab.global(ids.G.GX, 0);
-  const a = lab.grids();
-  lab.global(ids.G.GX, 127);
-  const b = lab.grids();
-  assert.equal(a.length, 96);
-  assert.notDeepEqual(Array.from(a), Array.from(b));
   lab.model(0, ids.DM.K909);
   for (let s = 0; s < 16; s += 4) lab.step(0, s, true);
   lab.play(true);
@@ -517,39 +511,6 @@ test('lab: the dice over 8 bars: 1/2 plays on bars 1, 3, 5, 7; 1-SHOT on bar 1; 
   assert.deepEqual(run(), d, 'the same 8 bars after every PLAY');
 });
 
-test('lab: tracks following Grids play what its lanes show (no chaos); FILL 0 empties a lane', async () => {
-  const ids = JSON.parse(readFileSync(join(DIR, 'lab_ids.json'), 'utf8'));
-  const lab = await Lab.create(WASM, ids);
-  const { G, P, DM } = ids;
-  lab.reset();
-  [DM.K909, DM.S909, DM.HATC].forEach((m, t) => { lab.model(t, m); lab.param(t, P.SRC, t + 1); });
-  lab.global(G.GX, 40);
-  lab.global(G.GY, 90);
-  for (const f of [G.GFILL1, G.GFILL2, G.GFILL3]) lab.global(f, 90);
-  const lanes = lab.grids();
-  lab.play(true);
-  const played = [0, 1, 2].map(() => []);
-  lab.probeClear();
-  lab.renderMono(ids.fs * 2);                         // a bar = Grids' 32 steps (32nds, seq.c grids_tick)
-  const pr = lab.probes();
-  for (const t of [0, 1, 2]) {                        // the 32nd of each hit (the first half that fired)
-    let prev = false;
-    pr.forEach((p, i) => {
-      const f = !!((p.fired >> t) & 1);
-      const at = Math.floor(((i + 1) * 256 + 128) / (ids.fs / 16));   // a hit is set up a block ahead of its sound
-      if (f && !prev && at < 32) played[t].push(at);
-      prev = f;
-    });
-  }
-  for (const t of [0, 1, 2]) {
-    const want = [...Array(32).keys()].filter(i => lanes[t * 32 + i] & 1);
-    assert.ok(want.length > 0, `lane ${t} has hits`);
-    assert.deepEqual(played[t], want, `lane ${t}`);
-  }
-  lab.global(G.GFILL2, 0);
-  assert.equal(lab.grids().slice(32, 64).filter(b => b & 1).length, 0, 'FILL 0: no snare');
-});
-
 test('lab: every PERFORM key held changes the mix; each chain stage on changes the rimshot\'s bar', async () => {
   const ids = JSON.parse(readFileSync(join(DIR, 'lab_ids.json'), 'utf8'));
   const lab = await Lab.create(WASM, ids);
@@ -584,7 +545,7 @@ test('features reel: a clip per chapter (not Bluetooth: no page), each over 5 s,
   const { gunzipSync } = await import('node:zlib');
   const b = gunzipSync(gz), reel = parseReel(b.buffer.slice(b.byteOffset, b.byteOffset + b.length));
   const list = JSON.parse(readFileSync(join(DIR, 'features.json'), 'utf8'));
-  assert.deepEqual(list.map(c => c.name), ['voices', 'reson', 'comp', 'lfo', 'seq', 'grids', 'fx']);
+  assert.deepEqual(list.map(c => c.name), ['voices', 'reson', 'comp', 'lfo', 'seq', 'fx']);
   let at = 0;
   for (const c of list) {
     assert.equal(c.from, at, `${c.name} follows on`);

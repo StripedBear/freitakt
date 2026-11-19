@@ -25,7 +25,6 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **EDIT** | The selected track's sound: its model and knobs. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
 | **SEQ** | The steps on the white keys, then PATTERN, MOTION and SONG (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a key with it) for the step TOOLS screen. |
 | **FX** | The track's FILTER, FX (the sends), INSERT (with SRR), SLICER and RESON: 8 pages. **Hold FX** for PERFORM. |
-| **ARP** | Grids, the map of drum patterns. |
 | **LFO** | The track's two LFOs side by side, then DEST. |
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | KEYS: the keys play the selected track chromatically. Labelled SEL in the web simulator. |
@@ -37,11 +36,11 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 ### HOME in detail
 
-HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen: a strip under the top bar, the selected track's four main knobs, a large scope, and the four boxes above `PROJ` showing the bar of a four-bar cycle (the current bar solid, moving with the playhead and back to the first on every PLAY). [[SELECT]] on HOME goes on to the compressor's pages (see Grids and compressor).
+HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen: a strip under the top bar, the selected track's four main knobs, a large scope, and the four boxes above `PROJ` showing the bar of a four-bar cycle (the current bar solid, moving with the playhead and back to the first on every PLAY). [[SELECT]] on HOME goes on to the compressor's pages (see Modulation and compressor).
 
 ### EDIT, FX, LFO and the selected track
 
-On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to F4) is lit, and pressing a white key there selects that track. KEYS, COMP, the step pages, GLOBAL, SAVE and GRIDS keep their own key jobs.
+On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to F4) is lit, and pressing a white key there selects that track. KEYS, COMP, the step pages, GLOBAL and SAVE keep their own key jobs.
 
 ## The keys
 

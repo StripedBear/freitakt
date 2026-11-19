@@ -1,5 +1,5 @@
-# Modulation, Grids and compressor
-<!--blurb: Two LFOs per track with four destination slots, the Grids pattern generator and the ducking compressor.-->
+# Modulation and compressor
+<!--blurb: Two LFOs per track with four destination slots and the ducking compressor.-->
 
 ## LFOs
 
@@ -40,20 +40,6 @@ Each slot has a **SRC** (LFO 1 or LFO 2), a **DEST** and its own **DEPTH** (-100
 The last two groups were added in 1.0.0 after F.RES, so projects, presets, step locks and MIDI LEARN keep their meaning; nothing changes until an LFO is routed to one.
 
 An LFO on a knob moves it around its set value. A locked step or a MIDI LEARN CC sets the centre value; the LFO keeps modulating around it. Older projects load with their LFO 1 and LFO 2 routing as slots 1 and 2. MOTION records an LFO's RATE, MORPH and DEPTH (not SRC or DEST); MODEL, WAVE, DEST and SRC cannot be locked.
-
-## Grids
-
-Press [[ARP]] for **GRIDS 1/2** and **2/2**. Grids is Mutable Instruments' pattern generator: a map of drum patterns, with chaos, or Euclidean rhythms, on three channels: kick (K), snare (S) and hats (H). Any track follows a channel through PATTERN **SRC** (G-KCK, G-SNR, G-HAT); the track then plays the generated pattern and not its own steps.
-
-| Page | Knob | MAP mode | EUCL mode |
-| --- | --- | --- | --- |
-| 1/2 | **KNOB 1** MODE | MAP (default) | EUCL |
-| 1/2 | **KNOB 2** | X (0 to 127, 64) | LEN K (1 to 32, 16) |
-| 1/2 | **KNOB 3** | Y (0 to 127, 64) | LEN S (1 to 32, 12) |
-| 1/2 | **KNOB 4** | CHAOS (0 to 100 %, 0) | LEN H (1 to 32, 8) |
-| 2/2 | **KNOB 1 to 3** | FIL K, FIL S, FIL H: fill density per channel, 0 to 100 % (50 %) | the same |
-
-Move X and Y through the map and the lanes rewrite; CHAOS adds randomness. The density fill knobs change how busy each lane is.
 
 ## Compressor (COMP)
 

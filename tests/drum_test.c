@@ -1639,183 +1639,28 @@ static void test_ratchet_tempo_change(void)
     check("RATCH: a tempo change mid-roll drops the late hit, then 4 hits per step (2 + 8)", dvage - a == 10u);
 }
 
-/* Grids engine (grids.c), structure only: the bit-exact check against the original is tests/grids_fidelity.c */
-static void test_grids_engine(void)
+/* the global 1/16 clock (seq.c gclk: METRO, MUTE's bar, REPEAT STEP, PERFORM, MIDI out): 16 sixteenths since PLAY */
+static void test_gclk(void)
 {
-    uint32_t k, a, bits, ok = 1, hits = 0, acc = 0, seq1[64], same = 1;
-    host_init();
-    song.g[G_GFILL1] = song.g[G_GFILL2] = song.g[G_GFILL3] = 0;
-    song.g[G_GCHAOS] = 127;
-    grids_start();
-    for (k = 0; k < 64u; k++)
-        ok &= (grids_step() & 7u) == 0u;
-    check("Grids MAP: fill 0 is silent, chaos or not", ok);
-    song.g[G_GMODE] = 1;                             /* EUCLID, kick LEN 4, full fill: 1/16s, accent every 4th */
-    song.g[G_GLEN1] = 4;
-    song.g[G_GFILL1] = 127;
-    grids_start();
-    for (k = 0; k < 32u; k++) {
-        bits = grids_step();
-        hits += bits & 1u;
-        acc += (bits >> 3) & 1u;
-        ok &= (k & 1u) ? !(bits & 1u) : 1;           /* nothing on the odd 1/32s */
-    }
-    check("Grids EUCLID: plays on 1/16s only; LEN 4 full: 16 hits, 4 accents a bar", ok && hits == 16u && acc == 4u);
-    song.g[G_GMODE] = 0;                             /* MAP, chaos: the same after every start */
-    song.g[G_GFILL1] = song.g[G_GFILL2] = song.g[G_GFILL3] = 90;
-    grids_start();
-    for (k = 0; k < 64u; k++)
-        seq1[k] = grids_step();
-    grids_start();
-    for (k = 0; k < 64u; k++)
-        same &= grids_step() == seq1[k];
-    check("Grids: a start reseeds the chaos (a session repeats) and the step wraps at 32", same && grids.step == 0u);
-    ok = 1;
-    song.g[G_GCHAOS] = 0;                            /* without chaos the preview is what plays */
-    grids_start();
-    for (k = 0; k < 32u; k++) {
-        bits = grids_step();
-        for (a = 0; a < 3u; a++)
-            ok &= grids_preview(a, k) == (((bits >> a) & 1u) | ((bits >> (a + 3u)) & 1u) << 1);
-    }
-    check("Grids MAP: the preview (no chaos) is exactly what the engine plays; 32 steps", ok && grids_len(0) == 32u);
-}
-
-/* MAP <-> EUCLID and LEN changes while running: positions stay inside the length */
-static void test_grids_mode_switch(void)
-{
-    uint32_t k, ch, ok = 1;
-    host_init();
-    grids_start();
-    for (k = 0; k < 300u; k++)
-        grids_step();                                /* MAP: the Euclidean counters run on (uint8, as the original) */
-    song.g[G_GMODE] = 1;
-    song.g[G_GLEN1] = 32;
-    song.g[G_GLEN2] = 1;
-    song.g[G_GLEN3] = 7;
-    for (k = 0; k < 70u; k++) {
-        grids_step();
-        if (k == 30u)
-            song.g[G_GLEN1] = 3;
-        for (ch = 0; ch < 3u; ch++)
-            ok &= grids_pos(ch) < grids_len(ch) && grids_preview(ch, grids_pos(ch)) < 4u;
-    }
-    check("Grids: MAP -> EUCLID and a LEN change while running keep every position inside its length", ok);
-}
-
-/* EUCLID 1/1 full on G-KCK: a hit every 1/16 on the same samples as a 1/16 step track (global swing 50);
- * MAP: 32 Grids steps = one bar */
-static void test_grids_clock(void)
-{
-    uint32_t a1[40], a2[40], n1, n2, i, ok, p = FS * 60 / 120 / 4;
-    host_init();
-    song.g[G_SWING] = 50;
-    song.g[G_GMODE] = 1;
-    song.g[G_GLEN1] = 1;
-    song.g[G_GFILL1] = 127;
-    trk[0].p[P_SRC] = 1;
-    play();
-    n1 = hits_at(0, 32 * p - p / 2, a1, 40);
-    host_init();
-    song.g[G_SWING] = 50;
-    trk[0].p[P_SLEN] = 1;
-    trk[0].step[0].on = 1;
-    play();
-    n2 = hits_at(0, 32 * p - p / 2, a2, 40);
-    ok = n1 == 32u && n2 == 32u;
-    for (i = 0; ok && i < n1; i++)
-        ok &= a1[i] == a2[i];
-    check("Grids: EUCLID LEN 1 full plays every 1/16 on the same samples as a 1/16 step track (swing 50)", ok);
+    uint32_t p = FS * 60 / 120 / 4;
     host_init();
     play();
     render_mix(0, 0, 16 * p - p / 4);
-    check("Grids: MAP steps are 1/32s: 32 steps in 16 sixteenths", gclk.cnt == 15u && gclk.half && grids.step == 0u);
+    check("global clock: 16 sixteenths in 16 1/16s, the 16th past its half", gclk.cnt == 15u && gclk.half);
 }
 
-/* two tracks on G-SNR play the same hits; their own steps are silent meanwhile; SRC back: the steps play in sync */
-static void test_grids_follow(void)
+/* review #1: BPM turned while playing (120 -> 240 -> 90, with swing): the global clock stays on the 1/16 grid of the
+ * step tracks */
+static void test_gclk_tempo_ramp(void)
 {
-    uint32_t f, a1, a4, n = 0, same = 1, p = FS * 60 / 120 / 4, k;
-    host_init();
-    song.g[G_GFILL2] = 110;
-    song.g[G_GCHAOS] = 127;
-    trk[1].p[P_SRC] = trk[4].p[P_SRC] = 2;
-    for (k = 0; k < 16u; k++)
-        trk[1].step[k].on = 1;                       /* its own steps: every step, silent while it follows */
-    play();
-    a1 = hit_age(&trk[1]);
-    a4 = hit_age(&trk[4]);
-    for (f = 0; f < 32u * p; f += CTL) {
-        uint32_t h1, h4;
-        render_mix(0, 0, CTL);
-        h1 = hit_age(&trk[1]) != a1;
-        h4 = hit_age(&trk[4]) != a4;
-        same &= h1 == h4;
-        n += h1;
-        a1 = hit_age(&trk[1]);
-        a4 = hit_age(&trk[4]);
-    }
-    printf("     Grids snare (fill 110, chaos 127): %u hits in 2 bars\n", n);
-    check("Grids: two tracks on one channel play the same hits, not their own steps", same && n > 4u);
-    trk[1].p[P_SRC] = 0;
-    check("Grids: back to STEP, the track's step is the others' (in sync)", trk[1].seq_idx == trk[0].seq_idx);
-    a1 = hit_age(&trk[1]);
-    render_mix(0, 0, p);
-    check("Grids: back to STEP, its own steps play again", hit_age(&trk[1]) != a1);
-}
-
-/* chaos: the same session after every PLAY */
-static void test_grids_repeat(void)
-{
-    uint32_t r1[64], r2[64], n1, n2, i, same, p = FS * 60 / 120 / 4;
-    host_init();
-    song.g[G_GCHAOS] = 127;
-    song.g[G_GFILL3] = 90;
-    trk[3].p[P_SRC] = 3;
-    play();
-    n1 = hits_at(3, 32 * p, r1, 64);
-    transport_req = 2;
-    render_mix(0, 0, CTL);
-    play();
-    n2 = hits_at(3, 32 * p, r2, 64);
-    same = n1 == n2 && n1 > 0u;
-    for (i = 0; same && i < n1 && i < 64u; i++)
-        same &= r1[i] == r2[i];
-    check("Grids: with chaos, every PLAY repeats the same hats", same);
-}
-
-/* live recording on a Grids track: its key plays, no step is written */
-static void test_grids_rec_skip(void)
-{
-    uint32_t p = FS * 60 / 120 / 4, a;
-    host_init();
-    trk[0].p[P_SRC] = 1;
-    song.rec = 1u;
-    play();
-    render_mix(0, 0, p + p * 3 / 4 / CTL * CTL);
-    a = hit_age(&trk[0]);
-    fm1_in.notes = 1u << KEY_TRK_KEY[0];
-    render_mix(0, 0, CTL);
-    fm1_in.notes = 0;
-    check("live record: a Grids track's key plays it but writes no step",
-          hit_age(&trk[0]) != a && !trk[0].step[1].on && !trk[0].step[2].on);
-}
-
-/* review #1: BPM turned while playing (120 -> 240 -> 90, with swing): Grids stays on the 1/16 grid of the step
- * tracks (it used to drift: each 1/32 half took its own tempo) */
-static void test_grids_tempo_ramp(void)
-{
-    uint32_t f, a0, a1, n = 0, same = 1, bpm = 120;
+    uint32_t f, c0, a1, n = 0, same = 1, bpm = 120;
     host_init();
     song.g[G_SWING] = 30;
-    song.g[G_GMODE] = 1;
-    song.g[G_GLEN1] = 1;
-    song.g[G_GFILL1] = 127;                          /* G-KCK: a hit every 1/16 */
-    trk[0].p[P_SRC] = 1;
     trk[1].p[P_SLEN] = 1;
     trk[1].step[0].on = 1;                           /* a 1/16 step track */
     play();
-    a0 = hit_age(&trk[0]);
+    render_mix(0, 0, CTL);
+    c0 = gclk.cnt;
     a1 = hit_age(&trk[1]);
     for (f = 0; f < 20u * FS; f += CTL) {
         uint32_t h0, h1;
@@ -1824,15 +1669,15 @@ static void test_grids_tempo_ramp(void)
             song.g[G_BPM] = (int16_t)bpm;
         }
         render_mix(0, 0, CTL);
-        h0 = hit_age(&trk[0]) != a0;
+        h0 = gclk.cnt != c0;
         h1 = hit_age(&trk[1]) != a1;
         same &= h0 == h1;
         n += h1;
-        a0 = hit_age(&trk[0]);
+        c0 = gclk.cnt;
         a1 = hit_age(&trk[1]);
     }
     printf("     BPM sweep 120..240..90, swing 30: %u sixteenths\n", n);
-    check("Grids: BPM turned while playing, Grids hits stay on the 1/16 step track's blocks", same && n > 100u);
+    check("global clock: BPM turned while playing, its 1/16s stay on the 1/16 step track's blocks", same && n > 100u);
 }
 
 /* M3 compressor engine (comp.c): the VCA model, the knob mapping, the gain computer's shape, the 44.1 kHz times.
@@ -3869,13 +3714,8 @@ int main(void)
     test_ratchet_times();
     test_ratchet_one_decision();
     test_ratchet_tempo_change();
-    test_grids_engine();
-    test_grids_mode_switch();
-    test_grids_clock();
-    test_grids_follow();
-    test_grids_repeat();
-    test_grids_rec_skip();
-    test_grids_tempo_ramp();
+    test_gclk();
+    test_gclk_tempo_ramp();
     test_accent();
     test_kicks();
     test_model_change();

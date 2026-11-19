@@ -345,7 +345,7 @@ static int ed_set(uint32_t cmd, const ed_knob_t *x, uint32_t scope, uint32_t id,
             return 1;
         }
     }
-    if ((id >= P_SLEN && id <= P_SSWING) || id == P_SRC) {
+    if (id >= P_SLEN && id <= P_SSWING) {
         if (chain_busy())
             return 0;                      /* PATTERN while a song plays: its rows' */
     }

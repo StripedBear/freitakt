@@ -3,9 +3,9 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Drum UI pages: a family per page button (pressing it again steps through its pages), and what
  * the four knobs edit on each page. */
-enum { FAM_HOME, FAM_SND, FAM_LAY, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_GRIDS, FAM_LFO, FAM_MIX, FAM_COUNT };
+enum { FAM_HOME, FAM_SND, FAM_LAY, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_COUNT };
 enum { SC_TRACK, SC_GLOBAL, SC_GRID, SC_MIX };   /* knobs edit: the selected track, song.g, the STEP grid, the mixer */
-enum { GR_NONE, GR_MODEL, GR_FX, GR_SLCR, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_GRIDS, GR_COMP, GR_LFO, GR_RESON, GR_MOTION, GR_SONG, GR_FILTER,
+enum { GR_NONE, GR_MODEL, GR_FX, GR_SLCR, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, GR_LFO, GR_RESON, GR_MOTION, GR_SONG, GR_FILTER,
        GR_LDEST, GR_INSERT, GR_DLY, GR_REV, GR_CHO };
 
 #define SND_SLOT 0xC0u                            /* EDIT page ids: SND_SLOT + n = the track's n-th sound knob */
@@ -38,7 +38,7 @@ static const page_t PAGES[] = {
     {"COMP", FAM_HOME, SC_GLOBAL, GR_COMP, {G_CSRC, G_CTHR, G_CRAT, G_CREL}},   /* HOME 2/3; keys: DUCK per track */
     {"COMP", FAM_HOME, SC_GLOBAL, GR_COMP, {G_CATK, G_CKNEE, G_CMKUP, G_CGHOST}},   /* HOME 3/3 */
     {"STEP", FAM_SEQ, SC_GRID, GR_GRID, {0xFF, 0xFF, 0xFF, 0xFF}},   /* KNOB 1: bank */
-    {"PATTERN", FAM_SEQ, SC_TRACK, GR_STEPS, {P_SLEN, P_SDIV, P_SSWING, P_SRC}},
+    {"PATTERN", FAM_SEQ, SC_TRACK, GR_STEPS, {P_SLEN, P_SDIV, P_SSWING, 0xFF}},
     {"MOTION", FAM_SEQ, SC_TRACK, GR_MOTION, {0xFF, 0xFF, 0xFF, 0xFF}},   /* PLAY EVENT - CLEAR (motion.c) */
     {"SONG", FAM_SEQ, SC_GLOBAL, GR_SONG, {0xFF, 0xFF, 0xFF, 0xFF}},   /* ROW SLOT REPS LOOP (song.c) */
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_BPM, G_SWING, G_CLOCK, G_DRCH}},
@@ -54,8 +54,6 @@ static const page_t PAGES[] = {
     {"PROJECT", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_NAME, G_LOAD, G_SAVE}},   /* NAME: rename (ui_name.c) */
     {"TOOLS", FAM_SAVE, SC_GLOBAL, GR_NONE, {G_CLRSEQ, G_INITSND, G_CLRALL, G_INITALL}},   /* track; all */
     {"COPY", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_COPY, G_PASTE, 0xFF}},   /* a slot's COPY / PASTE (project.c) */
-    {"GRIDS", FAM_GRIDS, SC_GLOBAL, GR_GRIDS, {G_GMODE, G_GX, G_GY, G_GCHAOS}},   /* EUCLID: MODE LEN K S H */
-    {"GRIDS", FAM_GRIDS, SC_GLOBAL, GR_GRIDS, {G_GFILL1, G_GFILL2, G_GFILL3, 0xFF}},
     /* LFO: both LFOs on every page, LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4; then DEST, the track's 4 slots: KNOB 1 the
      * slot (song.lslot), 2-4 its SRC DEST DEPTH (page_id; lfo.c LS_ID) */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LFO1 + LF_WAVE, P_LFO1 + LF_RATE, P_LFO2 + LF_WAVE, P_LFO2 + LF_RATE}},
@@ -69,7 +67,7 @@ static const page_t PAGES[] = {
 
 /* the button (and LED) of each family; the LAYER pages are EDIT's (OCT+ from SOUND), the COMP pages (HOME 2/3, 3/3)
  * and TRACKS (HOME's TRACKS mode) HOME's; ENV and SCL are free */
-static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_ARP, B_LFO, B_HOME};
+static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME};
 
 /* the EDIT list of track t: MODEL, its model's TUNE DECAY TONE and 4th knob, its extra knobs, then LVL PAN NOTE
  * CHOKE PRIO (at most 16: 14); the SAMPLE model's then PLAY CUT, and ATK SUS REL LOOP on a page of their own (the 5th:
@@ -98,8 +96,7 @@ static uint32_t snd_list(const track_t *t, uint8_t *ids)
     return n;
 }
 
-/* the parameter of a column: an EDIT slot is the selected track's sound list; GRIDS 1/2 in EUCLID mode turns
- * LEN K / S / H where MAP has X / Y / CHAOS; LFO DEST: KNOB 2-4 the selected slot's SRC DEST DEPTH (KNOB 1 the slot:
+/* the parameter of a column: an EDIT slot is the selected track's sound list; LFO DEST: KNOB 2-4 the selected slot's SRC DEST DEPTH (KNOB 1 the slot:
  * no parameter); 0xFF = empty */
 static uint32_t page_id(const page_t *pg, uint32_t slot)
 {
@@ -109,8 +106,6 @@ static uint32_t page_id(const page_t *pg, uint32_t slot)
         uint32_t n = snd_list(TSEL, ids);
         return id - SND_SLOT < n ? ids[id - SND_SLOT] : 0xFFu;
     }
-    if (pg->graph == GR_GRIDS && id >= G_GX && id <= G_GCHAOS && song.g[G_GMODE])
-        id = G_GLEN1 + (id - G_GX);
     if (pg->graph == GR_LDEST)
         return slot & 3u ? LS_ID[song.lslot & 3u][(slot & 3u) - 1u] : 0xFFu;
     return id;

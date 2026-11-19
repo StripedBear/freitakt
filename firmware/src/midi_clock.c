@@ -68,7 +68,7 @@ static __attribute__((noinline)) void midi_clock_pulse(uint32_t ms)
             if (midi_beat_samples && new_beat * 200u <= old_beat * 201u && new_beat * 201u >= old_beat * 200u)
                 new_beat = old_beat;                 /* within 0.5 %: kept */
             if (song.playing && new_beat != old_beat) {
-                /* each track keeps its place in its step when the tempo changes (and Grids its 1/16), the
+                /* each track keeps its place in its step when the tempo changes (and the global clock its 1/16), the
                  * in-progress advance too. The ratio is Q15 and rounded to nearest: upstream's Q12, rounded down,
                  * lost a little of each step at every reading, so the steps fell behind the pulses (~10 ms after
                  * 1 000 jittered readings). (No 64-bit division on the target: a 32-bit one for the ratio, then

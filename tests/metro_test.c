@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* METRO (spec 2026-10-11-fixes §8): GLOBAL 3/3's metronome. While playing (own clock or following one), a click on
- * every quarter note (Grids' clock: gclk.cnt % 4), the bar's first at a higher pitch, mixed after the FX layer at the MASTER level
+ * every quarter note (the global clock: gclk.cnt % 4), the bar's first at a higher pitch, mixed after the FX layer at the MASTER level
  * (fx.c metro_block). Tested through the whole mix (render_mix): the exact spacing, the pitch, the levels, nothing
  * stopped, an external clock's beats, swing, and OFF bit-identical to 0.16.0.
  *   metro_test [WAV]   also writes a demo (a beat at 120 BPM: 2 bars each LOW, MID, HIGH) to WAV */

@@ -41,7 +41,6 @@ static void fresh(void)                            /* stopped, 120 BPM; four emp
             chain.src[s].timing[k][0] = 16;
             chain.src[s].timing[k][1] = 2;
             chain.src[s].timing[k][2] = 0;
-            chain.src[s].timing[k][3] = 0;
             chain.src[s].model[k] = (uint8_t)trk[k].p[P_MODEL];
         }
     }
@@ -134,21 +133,20 @@ static void test_song_stop_restores(void)
     trk[0].p[P_SLEN] = 12;
     trk[0].p[P_SDIV] = 1;
     trk[0].p[P_SSWING] = 30;
-    trk[0].p[P_SRC] = 2;
     trk[0].step[3].on = 1;
     memcpy(before, trk[0].step, sizeof before);
     song.rec = 5u;
     rows(1, SL, RP, 0);
     play_song();
     run_to(BAR / 2u);
-    check("song: a row's timing plays (LEN 16 1/16 SWG 0 STEP), REC off",
-          trk[0].p[P_SLEN] == 16 && trk[0].p[P_SDIV] == 2 && trk[0].p[P_SSWING] == 0 && trk[0].p[P_SRC] == 0 &&
+    check("song: a row's timing plays (LEN 16 1/16 SWG 0), REC off",
+          trk[0].p[P_SLEN] == 16 && trk[0].p[P_SDIV] == 2 && trk[0].p[P_SSWING] == 0 &&
           song.rec == 0u);
     check("song: the slot's steps play (seq_steps)", seq_steps(&trk[0]) == ST[0][0]);
     transport_req = 2;
     render_mix(0, 0, CTL);
-    check("song: STOP puts LEN DIV SWG SRC and REC back",
-          trk[0].p[P_SLEN] == 12 && trk[0].p[P_SDIV] == 1 && trk[0].p[P_SSWING] == 30 && trk[0].p[P_SRC] == 2 &&
+    check("song: STOP puts LEN DIV SWG and REC back",
+          trk[0].p[P_SLEN] == 12 && trk[0].p[P_SDIV] == 1 && trk[0].p[P_SSWING] == 30 &&
           song.rec == 5u && !chain.running && seq_steps(&trk[0]) == trk[0].step);
     check("song: the current steps untouched", !memcmp(before, trk[0].step, sizeof before));
 }

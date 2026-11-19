@@ -69,7 +69,7 @@ int main(void)
     PNAME(MODEL); PNAME(E0); PNAME(E1); PNAME(E2); PNAME(E3); PNAME(E4); PNAME(E5); PNAME(E6); PNAME(E7);
     PNAME(LEVEL); PNAME(PAN); PNAME(MUTE); PNAME(CHOKE); PNAME(NOTE); PNAME(DIST); PNAME(CHOR); PNAME(DLY); PNAME(REV);
     PNAME(SLCR); PNAME(SLPAT); PNAME(SLRATE); PNAME(SLDEPTH); PNAME(SLEN); PNAME(SDIV); PNAME(SSWING);
-    PNAME(LSET); PNAME(LKEY); PNAME(LLEVEL); PNAME(LTUNE); PNAME(LDEC); PNAME(SRC); PNAME(DUCK);
+    PNAME(LSET); PNAME(LKEY); PNAME(LLEVEL); PNAME(LTUNE); PNAME(LDEC); PNAME(DUCK);
     PNAME(RMODEL); PNAME(RTUNE); PNAME(RDECAY); PNAME(RMIX); PNAME(RTONE); PNAME(RSTRCT); PNAME(RPOS);
     PNAME(FTYPE); PNAME(FCUT); PNAME(FRESO); PNAME(FENV); PNAME(FDEC); PNAME(PRIO); PNAME(LSRC1); PNAME(LSRC2);
     PNAME(LS3SRC); PNAME(LS3DEST); PNAME(LS3DEPTH); PNAME(LS4SRC); PNAME(LS4DEST); PNAME(LS4DEPTH);
@@ -82,8 +82,7 @@ int main(void)
         }
     GNAME(BPM); GNAME(SWING); GNAME(CLOCK); GNAME(DTIME); GNAME(DFDBK); GNAME(DCOLOR); GNAME(DMIX); GNAME(RSIZE);
     GNAME(RDAMP); GNAME(CRATE); GNAME(CDEPTH); GNAME(MIDI); GNAME(SYNC); GNAME(ROUTE); GNAME(INFO); GNAME(SLOT);
-    GNAME(NAME); GNAME(LOAD); GNAME(SAVE); GNAME(CLRSEQ); GNAME(INITSND); GNAME(DRCH); GNAME(GMODE); GNAME(GX);
-    GNAME(GY); GNAME(GCHAOS); GNAME(GFILL1); GNAME(GFILL2); GNAME(GFILL3); GNAME(GLEN1); GNAME(GLEN2); GNAME(GLEN3);
+    GNAME(NAME); GNAME(LOAD); GNAME(SAVE); GNAME(CLRSEQ); GNAME(INITSND); GNAME(DRCH);
     GNAME(CSRC); GNAME(CTHR); GNAME(CRAT); GNAME(CREL); GNAME(CATK); GNAME(CKNEE); GNAME(CMKUP); GNAME(CGHOST);
     GNAME(RTYPE); GNAME(DMODE);
     for (i = 0; i < P_COUNT; i++)
@@ -99,13 +98,14 @@ int main(void)
            "\"NT_MIN\": %d, \"NT_MAX\": %d, \"LK_MAX\": %u, \"VAR_BYTES\": %u, \"VAR_N\": %u, \"NAME_LEN\": %u, "
            "\"ACID\": %u, \"ACID_MAXTRK\": %u, \"RS_OFF\": %u, \"RS_CHORD\": %u, \"RS_MODAL\": %u, \"RS_MAXTRK\": %u, "
            "\"RS_MAXMODAL\": %u, \"MICRO_MAX\": %u, \"UPR_NOLD\": %u, \"UPR_NFX\": %u, \"UPR_USED\": %u, "
-           "\"UPR_VOICE\": %u, \"DM_SMPL\": %u, \"UPR_FENV\": %u, \"SND_N\": %u},\n",
+           "\"UPR_VOICE\": %u, \"DM_SMPL\": %u, \"UPR_FENV\": %u, \"SND_N\": %u, \"PR_GR\": %u, \"PR_NG\": %u, "
+           "\"PR_SRC\": %u, \"PR_NP\": %u},\n",
            NTRK, NSTEP, P_COUNT, G_COUNT, P_NSTORED, G_NSTORED, NMODELS, (unsigned)PRE_NFACT, (unsigned)PRE_NUSER,
            (unsigned)COND_MAX, NT_MIN, NT_MAX, (unsigned)LK_MAX, (unsigned)VAR_BYTES, (unsigned)VAR_N,
            (unsigned)NAME_LEN, (unsigned)DM_ACID, (unsigned)ACID_MAXTRK, (unsigned)RS_OFF, (unsigned)RS_CHORD,
            (unsigned)RS_MODAL, (unsigned)RS_MAXTRK, (unsigned)RS_MAXMODAL, (unsigned)MICRO_MAX, (unsigned)UPR_NOLD,
            (unsigned)UPR_NFX, (unsigned)UPR_USED, (unsigned)UPR_VOICE, (unsigned)DM_SMPL, (unsigned)UPR_FENV,
-           (unsigned)SND_N);
+           (unsigned)SND_N, (unsigned)PR_GR, (unsigned)PR_NG, (unsigned)PR_SRC, (unsigned)PR_NP);
     printf("\"uprFx\": [");                         /* the FX a user preset holds (presets.c UPR_FX), in its order */
     for (i = 0; i < UPR_NFX; i++)
         printf("%s%u", i ? ", " : "", (unsigned)UPR_FX[i]);
@@ -177,9 +177,9 @@ int main(void)
         printf(", \"fam\": %u, \"scope\": %u, \"graph\": %u, \"id\": [%u, %u, %u, %u]}", g->fam, g->scope, g->graph,
                g->id[0], g->id[1], g->id[2], g->id[3]);
     }
-    printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"SONG\": %u, \"GRIDS\": %u, \"LDEST\": %u, "
+    printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"SONG\": %u, \"LDEST\": %u, "
            "\"LFO\": %u},\n",
-           SND_SLOT, GR_SLOTS, GR_MOTION, GR_SONG, GR_GRIDS, GR_LDEST, GR_LFO);
+           SND_SLOT, GR_SLOTS, GR_MOTION, GR_SONG, GR_LDEST, GR_LFO);
     printf("\"sc\": {\"TRACK\": %u, \"GLOBAL\": %u}, \"preNone\": %u, \"preRecUser\": %u,\n", SC_TRACK, SC_GLOBAL,
            PRE_NONE, PRE_REC_USER);
     printf("\"conds\": [");                         /* the PROB knob, position by position: stored code, name */

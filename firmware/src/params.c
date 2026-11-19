@@ -29,8 +29,6 @@ static const char *const N_SLDIV[] = {"1/8", "1/16", "1/32", "8T", "16T", "32T"}
 static const char *const N_RTYPE[] = {"ROOM", "SPRNG", "HALL"};      /* G_RTYPE: the reverb bus's model (fx.c); SPRING in 5;
                                                                       * (Skiff) HALL 2 */
 static const char *const N_CHOKE[] = {"OFF", "1", "2", "3", "4"};
-static const char *const N_SRC[] = {"STEP", "G-KCK", "G-SNR", "G-HAT"};   /* P_SRC: its steps or a Grids channel */
-static const char *const N_GMODE[] = {"MAP", "EUCL"};
 static const char *const N_GHOST[] = {"MUTE", "KEEP", "HIDE"};
 static const char *const N_CSRC[] = {"OFF", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"};
 static const char *const N_KNEE[] = {"HARD", "SOFT"};
@@ -85,7 +83,6 @@ static const param_desc_t TP[P_COUNT] = {
     [P_LLEVEL] = PD("LEVEL", F_PCT, 0, 127, 0),
     [P_LTUNE] = PD("TUNE", F_SEMI, -24, 24, 0),
     [P_LDEC] = PD("DECAY", F_INT, 0, 127, 127),
-    [P_SRC] = PE("SRC", N_SRC, 0),
     [P_DUCK] = PE("DUCK", N_ONOFF, 0),
     LFO_TP(P_LFO1, F_LRATE1),
     LFO_TP(P_LFO2, F_LRATE2),
@@ -147,16 +144,6 @@ static const param_desc_t GP[G_COUNT] = {
     [G_CLRSEQ] = PE("CLRSQ", N_GO, 0),
     [G_INITSND] = PE("INIT", N_GO, 0),
     [G_DRCH] = PD("CH", F_INT, 1, 16, 10),
-    [G_GMODE] = PE("MODE", N_GMODE, 0),
-    [G_GX] = PD("X", F_INT, 0, 127, 64),
-    [G_GY] = PD("Y", F_INT, 0, 127, 64),
-    [G_GCHAOS] = PD("CHAOS", F_PCT, 0, 127, 0),
-    [G_GFILL1] = PD("FIL K", F_PCT, 0, 127, 64),
-    [G_GFILL2] = PD("FIL S", F_PCT, 0, 127, 64),
-    [G_GFILL3] = PD("FIL H", F_PCT, 0, 127, 64),
-    [G_GLEN1] = PD("LEN K", F_STEPS, 1, 32, 16),
-    [G_GLEN2] = PD("LEN S", F_STEPS, 1, 32, 12),
-    [G_GLEN3] = PD("LEN H", F_STEPS, 1, 32, 8),
     [G_CSRC] = PE("SRC", N_CSRC, 0),
     [G_CTHR] = PD("THRSH", F_CTHR, 0, 127, 26),
     [G_CRAT] = PD("RATIO", F_CRAT, 0, 127, 45),

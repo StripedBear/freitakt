@@ -370,8 +370,7 @@ static int step_edit(uint32_t knob, int32_t steps)
     for (i = 0; i < 16u; i++)                         /* edited: no key down is a tap any more */
         if (ui.step_t0[i])
             ui.step_t0[i] |= 2u;
-    if (ui.step_si[k] >= (uint32_t)TSEL->p[P_SLEN] || view_src(TSEL) || ui_locked())   /* outside LEN, a Grids
-                                                     * track, a restore */
+    if (ui.step_si[k] >= (uint32_t)TSEL->p[P_SLEN] || ui_locked())   /* outside LEN, a restore */
         return 1;
     s = &TSEL->step[ui.step_si[k]];
     step_hold_on(k);
@@ -999,8 +998,7 @@ static void play_press(void)
  * (FX held) end it. The ISR sounds the keys. */
 static int srec_ok(void)
 {
-    return keys_mode() && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing && !chain_busy() &&
-           !view_src(TSEL);
+    return keys_mode() && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing && !chain_busy();
 }
 static void srec_start(void)
 {

@@ -10,12 +10,12 @@
  *   a tap selects (perf_rate, not saved: 1/16 at power-on); G4 .. C5: none.
  * REPEAT STEP (seq.c rep_*): sequencer retriggers, no audio buffer. While a track key is held its track plays the step
  * under its playhead at the press again and again (its note, 127 with its accent else 96; no PROB, no RATCH; a step
- * off, a TIE or a track following Grids: the track's last note at 96), its own steps (and Grids' hits) paused, its
- * position running on: let go, the pattern goes on in time. Playing: on the grid of the rate on the Grids clock's
- * 1/16s (seq.c grids_tick: 1/4 every 4th 1/16 from PLAY, 1/8 every 2nd, 1/16 each, 1/32 each and its half: SWING,
+ * off or a TIE: the track's last note at 96), its own steps paused, its
+ * position running on: let go, the pattern goes on in time. Playing: on the grid of the rate on the global clock's
+ * 1/16s (seq.c gclk_tick: 1/4 every 4th 1/16 from PLAY, 1/8 every 2nd, 1/16 each, 1/32 each and its half: SWING,
  * the tempo and an external clock as the steps), the first on the next grid point; stopped: free-running at the
  * tempo, the first at once. A rate change applies from the next grid point. Several tracks at once.
- * REPEAT and REVERSE start with the Grids clock's next 1/16 (seq.c seq_16th: the block its hits sound from; at once
+ * REPEAT and REVERSE start with the global clock's next 1/16 (seq.c seq_16th: the block its hits sound from; at once
  * while stopped); the others at once; all end when let go, with a 2.9 ms ramp. Effects of different kinds stack;
  * of the buffer ones (REPEAT, REVERSE, TAPE STOP, FREEZE, OCT UP, OCT DN) the last pressed plays, and letting it
  * go returns to the one held before.
@@ -259,7 +259,7 @@ static void perf_buf_select(uint32_t e)
     pf.next = (uint8_t)e;
 }
 
-static uint32_t seq_16th(void);                       /* seq.c: 1 when a 1/16 of the Grids clock started this block */
+static uint32_t seq_16th(void);                       /* seq.c: 1 when a 1/16 of the global clock started this block */
 
 /* each block, after the keys (seq.c) and before the parts: what runs, the 1/16, the filters. REPEAT STEP's keys are
  * the sequencer's (seq.c rep_keys): not here. Returns 1 when a stage has something to do */

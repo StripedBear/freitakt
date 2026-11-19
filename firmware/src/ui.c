@@ -394,26 +394,10 @@ static void page_turn(int32_t dir)
 }
 
 /* --------------------------------------------- what a track shows --- */
-/* the STEP grid, PATTERN, the footer, TRACKS and the keys show a track's steps, or, when its SRC is a Grids
- * channel, that channel's pattern (read-only: Grids makes it) */
-static uint32_t view_src(const track_t *t) { return t->p[P_SRC] >= 1 && t->p[P_SRC] <= 3 ? (uint32_t)t->p[P_SRC] : 0u; }
-static uint32_t view_len(const track_t *t)
-{
-    uint32_t s = view_src(t);
-    return s ? grids_len(s - 1u) : (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP);
-}
-static step_t view_step(const track_t *t, uint32_t si)
-{
-    uint32_t s = view_src(t), b;
-    step_t r = {0};
-    if (!s)
-        return seq_steps(t)[si % NSTEP];             /* (a song: its row's) */
-    b = grids_preview(s - 1u, si);
-    r.on = (uint8_t)(b & 1u);
-    r.acc = (uint8_t)((b >> 1) & 1u);
-    return r;
-}
-static uint32_t view_idx(const track_t *t) { uint32_t s = view_src(t); return s ? grids_pos(s - 1u) : t->seq_idx; }
+/* the STEP grid, PATTERN, the footer, TRACKS and the keys show a track's steps */
+static uint32_t view_len(const track_t *t) { return (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP); }
+static step_t view_step(const track_t *t, uint32_t si) { return seq_steps(t)[si % NSTEP]; }   /* (a song: its row's) */
+static uint32_t view_idx(const track_t *t) { return t->seq_idx; }
 
 /* ------------------------------------------------------ STEP grid --- */
 static uint32_t bank_count(void) { return (view_len(TSEL) + 15u) / 16u; }
@@ -450,7 +434,7 @@ static void step_grab(uint32_t k)
     ui.step_si[k] = 0xFFFFu;
     if (song_lock())
         return;
-    if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN] || view_src(TSEL))
+    if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN])
         return;
     ui.step_si[k] = (uint16_t)si;
 }
@@ -464,7 +448,7 @@ static void step_hold_on(uint32_t k)
     if (k >= 16u || (ui.step_t0[k] & 4u))
         return;
     ui.step_t0[k] |= 4u;
-    if (ui.step_si[k] >= (uint32_t)TSEL->p[P_SLEN] || view_src(TSEL) || chain_busy())
+    if (ui.step_si[k] >= (uint32_t)TSEL->p[P_SLEN] || chain_busy())
         return;
     s = &TSEL->step[ui.step_si[k]];
     if (!s->on) {
@@ -481,7 +465,7 @@ static void step_tap(uint32_t k)
 {
     uint32_t si = ui.step_si[k];
     step_t *s;
-    if (si >= (uint32_t)TSEL->p[P_SLEN] || view_src(TSEL) || chain_busy())
+    if (si >= (uint32_t)TSEL->p[P_SLEN] || chain_busy())
         return;
     s = &TSEL->step[si];
     if (s->on) {
@@ -504,7 +488,7 @@ static void step_accent(uint32_t k)
     ui.step_si[k] = 0xFFFFu;
     if (song_lock())
         return;
-    if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN] || view_src(TSEL))
+    if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN])
         return;
     s = &TSEL->step[si];
     if (!s->on) {
@@ -526,8 +510,8 @@ static void track_clear(track_t *t)               /* its steps, its motion and i
     lock_clear_track((uint32_t)(t - trk));
 }
 
-/* TOOLS CLR*: every track's pattern cleared and its pattern settings (LEN DIV SWG SRC) at default; sounds, FX,
- * Grids, COMP and the globals untouched */
+/* TOOLS CLR*: every track's pattern cleared and its pattern settings (LEN DIV SWG) at default; sounds, FX,
+ * COMP and the globals untouched */
 static void seq_clear_all(void)
 {
     uint32_t k;
@@ -537,7 +521,6 @@ static void seq_clear_all(void)
         t->p[P_SLEN] = TP[P_SLEN].def;
         t->p[P_SDIV] = TP[P_SDIV].def;
         t->p[P_SSWING] = TP[P_SSWING].def;
-        t->p[P_SRC] = TP[P_SRC].def;
     }
     memset(&chain.cfg, 0, sizeof chain.cfg);           /* the song too */
     ui.song_row = 0;
@@ -545,7 +528,7 @@ static void seq_clear_all(void)
     ui.force = 1;
 }
 
-/* TOOLS INIT*: everything at power-on (the default kit, sounds, patterns, FX, Grids, COMP, BPM): stopped, nothing
+/* TOOLS INIT*: everything at power-on (the default kit, sounds, patterns, FX, COMP, BPM): stopped, nothing
  * armed; saved projects and the device settings untouched */
 static void init_all(void)
 {
@@ -712,7 +695,7 @@ static uint32_t held_step(void);
 static int step_edit_page(void) { return (grid_mode() || seq_keys()) && lock_step() >= NSTEP; }   /* HOME TRACKS SOUND
                                                                                                 * LAYER FX LFO COMP */
 /* the step of the last-pressed key still down (from the press: a turn right after it locks), NSTEP none (not a lock
- * page, no key, outside LEN, a Grids track, a song's lock: step_grab) */
+ * page, no key, outside LEN, a song's lock: step_grab) */
 static uint32_t lock_step(void)
 {
     uint32_t k = ui.held;

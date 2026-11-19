@@ -66,12 +66,6 @@ static const act_t SEQ[] = {                              /* STEP: steps tapped 
     {5.4f, 'K', W5, 0, 0}, {5.6f, 's', EN_K1, 1, 8}, {6.4f, 'u', W5, 0, 0},
     {7.0f, 'k', W1, 0, 0}, {7.4f, 'k', W1, 0, 0},
 };
-static const act_t GRIDS[] = {                            /* GRIDS: X and Y across the map, CHAOS up, the fills */
-    {0.3f, 'b', B_ARP, 0, 0},
-    {0.9f, 's', EN_K2, 6, 20}, {2.4f, 's', EN_K3, 6, 20}, {3.9f, 's', EN_K2, -6, 20},
-    {5.4f, 's', EN_K4, 6, 20},
-    {6.9f, 'e', EN_SELECT, 1, 0}, {7.3f, 's', EN_K1, -6, 12}, {8.2f, 's', EN_K2, 6, 12},
-};
 static const act_t FX[] = {                               /* FILTER's CUT swept, then FX held: the PERFORM keys in turn */
     {0.3f, 'b', B_FX, 0, 0},
     {0.9f, 'e', EN_K1, 1, 0}, {1.2f, 's', EN_K2, -6, 16}, {2.4f, 's', EN_K2, 6, 16},
@@ -87,7 +81,7 @@ static const act_t FX[] = {                               /* FILTER's CUT swept,
 #define CLIP(name, s, a) {name, s, a, sizeof a / sizeof a[0]}
 static const clip_t CLIPS[] = {
     CLIP("voices", 10.0f, VOICES), CLIP("reson", 9.8f, RESON), CLIP("comp", 8.2f, COMP), CLIP("lfo", 10.0f, LFO),
-    CLIP("seq", 8.0f, SEQ), CLIP("grids", 9.4f, GRIDS), CLIP("fx", 10.6f, FX),
+    CLIP("seq", 8.0f, SEQ), CLIP("fx", 10.6f, FX),
 };
 #define NCLIPS (sizeof CLIPS / sizeof CLIPS[0])
 

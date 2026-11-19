@@ -59,7 +59,6 @@
 #if FELUCCA_UART
 #include "midi_uart.c"
 #endif
-#include "grids.c"           /* Grids pattern engine (M2) */
 #if FELUCCA_OTA && __has_include("editor_backup.c")
 #define ED_RESTORE_LOCK 1          /* seq.c / ui.c refuse the device's own edits while the editor restores (ed_restoring) */
 #endif

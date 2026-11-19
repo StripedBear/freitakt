@@ -80,7 +80,7 @@ static void timing(uint32_t seed)
         TM[k][0] = (int16_t)(k == 0 ? 1 : k == 1 ? 64 : 1 + (seed + k) % 64u);
         TM[k][1] = (int16_t)(k == 2 ? 9 : (seed + k) % 10u);
         TM[k][2] = (int16_t)(k == 3 ? 100 : (seed * 7u + k) % 101u);
-        TM[k][3] = (int16_t)((seed + k) % 4u);
+        TM[k][3] = 0;                               /* (once Grids' SRC: always 0) */
     }
 }
 static int steps_equal(void)                       /* every field (MICRO too) */
@@ -225,7 +225,7 @@ static void var_clamps(void)
     S[0][0].on = 1;
     ok = var_put(&B, 1, SP, TM) == 0;
     {                                               /* poke out-of-range bytes into the entry: LEN 200, DIV 30, SWG
-                                                     * 250, SRC 9, cond 250 (layout: n, then track 0's LEN DIV SWG SRC,
+                                                     * 250, the once-SRC byte 9 (read as 0), cond 250 (layout: n, then track 0's LEN DIV SWG 0,
                                                      * its bitmap, ..., then step 0's flags cond nt) */
         uint8_t *e = B.d + 2u;                       /* entry 1 is the first */
         e[0] = 200;
@@ -234,9 +234,9 @@ static void var_clamps(void)
         e[3] = 9;
         e[8u * 12u + 1u] = 250;
     }
-    ok &= var_get(&B, 1, RP, TR) == 1 && TR[0][0] == NSTEP && TR[0][1] == 9 && TR[0][2] == 100 && TR[0][3] == 3 &&
+    ok &= var_get(&B, 1, RP, TR) == 1 && TR[0][0] == NSTEP && TR[0][1] == 9 && TR[0][2] == 100 && TR[0][3] == 0 &&
           R[0][0].cond == COND_MAX && R[0][0].on == 1;
-    check("variation: decoded values clamped (LEN, DIV, SWG, SRC, PROB)", (int)ok);
+    check("variation: decoded values clamped (LEN, DIV, SWG, PROB; the once-SRC byte read as 0)", (int)ok);
 }
 static void var_valid_rejects(void)
 {

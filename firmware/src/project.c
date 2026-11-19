@@ -50,20 +50,29 @@
 #define PROJ_MAGIC_V3 0x33524446u              /* "FDR3": M3 projects, converted on load */
 #define PROJ_MAGIC_V2 0x32524446u              /* "FDR2": M2 projects, converted on load */
 #define PROJ_MAGIC_V1 0x31524446u              /* "FDR1": M1 projects, converted on load */
+/* FREITAKT removed Grids; a record keeps their places (written 0, never read): the 10 globals after G_DRCH (MODE X
+ * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). PR_G / PR_P: an id's place in a record;
+ * PR_NG / PR_NP: a record's globals / a track's parameters (the block) */
+#define PR_GR G_CSRC                            /* the Grids globals' place (10) */
+#define PR_SRC P_DUCK                           /* SRC's place (1) */
+#define PR_G(i) ((uint32_t)(i) < (uint32_t)PR_GR ? (uint32_t)(i) : (uint32_t)(i) + 10u)
+#define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i) : (uint32_t)(i) + 1u)
+#define PR_NG (G_NSTORED + 10)
+#define PR_NP (P_NSTORED + 1)
 typedef struct {
-    int16_t p[P_NSTORED];                       /* the block; P_NSTORED + j: xp[track][j] (FDRE / FDRF: step[j].rsv) */
+    int16_t p[PR_NP];                           /* the block; P_NSTORED + j: xp[track][j] (FDRE / FDRF: step[j].rsv) */
     step_t step[NSTEP];                         /* FDRG: rsv = the step's MICRO */
 } proj_trk_t;
 #define PROJ_XP (P_SATK - P_NSTORED)            /* the parameters past the block: 7 (KEYF, SRR, the INSERT) */
 #define PROJ_XP2 (P_SPLAY - P_SATK)             /* .. and after them (xp2: the SAMPLE model's ATK SUS REL LOOP) */
 #define PROJ_XP3 (P_COUNT - P_SPLAY)            /* .. (xp3: its PLAY CUT) */
-typedef char proj_xp_fit[PROJ_XP == 7 && PROJ_XP2 == 4 && PROJ_XP3 == 2 && P_NSTORED == 69 ? 1 : -1];   /* (FDRE's
+typedef char proj_xp_fit[PROJ_XP == 7 && PROJ_XP2 == 4 && PROJ_XP3 == 2 && PR_NP == 69 && PR_NG == 41 ? 1 : -1];   /* (FDRE's
                                                                     * block: 69; xp 56 B, xp2 32 B, xp3 16 B of rsv_mo's) */
 /* a parameter past the block as stored (0 = the power-on value) */
 static uint8_t proj_xp_enc(uint32_t id, int32_t v) { return (uint8_t)(clamp(v, -128, 255) - TP[id].def); }
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_t t[NTRK];
     uint16_t lk_n;                              /* FDRF: its lock bank's count (0: no bank needed); FDR8..FDRE: the
@@ -111,13 +120,13 @@ static void proj_xp_move(project_t *q)
 }
 /* global i of a record: the block (G_NSTORED), past it G_DMODE in the reserved byte rsv[0] (0 in every record before
  * it: NORMAL) */
-static int16_t proj_g(const project_t *p, uint32_t i) { return i < G_NSTORED ? p->g[i] : (int16_t)p->rsv[0]; }
+static int16_t proj_g(const project_t *p, uint32_t i) { return i < G_NSTORED ? p->g[PR_G(i)] : (int16_t)p->rsv[0]; }
 typedef char proj_g_fit[G_COUNT - G_NSTORED == 1 ? 1 : -1];   /* (one reserved byte used: rsv[1..2] free) */
 project_t proj_slot[4] __attribute__((section(".noinit")));
 /* FDRE (0.23.x): FDRF's layout with the motion (128 events) where FDRF has its bank link */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_t t[NTRK];
     motion_store_t motion;
@@ -193,12 +202,12 @@ static int proj_ok(const project_t *q) { return q->magic == PROJ_MAGIC && q->siz
 typedef struct { uint8_t on, acc, cond, rat; } step_v9_t;   /* a step as FDR2..FDRA stored it */
 /* FDRA: everything, the steps as FDR2..FDR9 (same size as FDRB: told by the marker) */
 typedef struct {
-    int16_t p[P_PRIO];
+    int16_t p[PR_P(P_PRIO)];
     step_v9_t step[NSTEP];
 } proj_trk_va_t;
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_va_t t[NTRK];
     motion_store_t motion;
@@ -209,12 +218,12 @@ typedef struct {
 typedef char project_va_size[sizeof(project_va_t) == 3672u ? 1 : -1];
 /* FDRB (0.16.0): everything but PRIO, 3672 B (FDRA's size: told by the marker) */
 typedef struct {
-    int16_t p[P_PRIO];
+    int16_t p[PR_P(P_PRIO)];
     step_t step[NSTEP];
 } proj_trk_vb_t;
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_vb_t t[NTRK];
     motion_store_t motion;
@@ -225,13 +234,13 @@ typedef struct {
 typedef char project_vb_size[sizeof(project_vb_t) == 3672u ? 1 : -1];
 /* a track as FDRC and FDRD stored it: the parameters up to PRIO (no DEST slots 3 / 4, no slot sources) */
 typedef struct {
-    int16_t p[P_PRIO + 1];
+    int16_t p[PR_P(P_PRIO) + 1u];
     step_t step[NSTEP];
 } proj_trk_vd_t;
 /* FDRC (0.17.0 .. 0.20.0): everything but the presets, 3688 B; FDRD's fields up to the name at the same offsets */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_vd_t t[NTRK];
     motion_store_t motion;
@@ -242,7 +251,7 @@ typedef struct {
 /* FDRD (0.21.0 .. 0.22.0): everything but the DEST slots' new parameters, 3712 B */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_vd_t t[NTRK];
     motion_store_t motion;
@@ -271,48 +280,48 @@ typedef char project_va_steps[__builtin_offsetof(project_va_t, t[1].step[1]) ==
                               __builtin_offsetof(project_vb_t, t[1].step[1]) ? 1 : -1];
 
 #if FELUCCA_FLASH
-/* M1's format: the globals before G_GMODE, the parameters before P_SRC, steps of {on, acc} */
+/* M1's format: the globals before Grids' (PR_GR), the parameters before SRC (PR_SRC), steps of {on, acc} */
 typedef struct { uint8_t on, acc; } step_v1_t;
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_GMODE];
+    int16_t g[PR_GR];
     uint8_t sel, rsv[3];
-    struct { int16_t p[P_SRC]; step_v1_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_SRC]; step_v1_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v1_t;
 /* M2's format: the globals before G_CSRC, the parameters before P_DUCK */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_CSRC];
+    int16_t g[PR_G(G_CSRC)];
     uint8_t sel, rsv[3];
-    struct { int16_t p[P_DUCK]; step_v9_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_P(P_DUCK)]; step_v9_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v2_t;
 /* M3's format: the globals before G_CGHOST, the parameters before P_LFO1 */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_CGHOST];
+    int16_t g[PR_G(G_CGHOST)];
     uint8_t sel, rsv[3];
-    struct { int16_t p[P_LFO1]; step_v9_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_P(P_LFO1)]; step_v9_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v3_t;
 /* the LFO format: the globals before G_CGHOST, the parameters before P_RMODEL */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_CGHOST];
+    int16_t g[PR_G(G_CGHOST)];
     uint8_t sel, rsv[3];
-    struct { int16_t p[P_RMODEL]; step_v9_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_P(P_RMODEL)]; step_v9_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v4_t;
 /* a track as FDR5..FDR9 stored it: the parameters before P_FTYPE (no FILTER) */
 typedef struct {
-    int16_t p[P_FTYPE];
+    int16_t p[PR_P(P_FTYPE)];
     step_v9_t step[NSTEP];
 } proj_trk_v9_t;
 /* RESON's format: the globals before G_CGHOST (the parameters before P_FTYPE) */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_CGHOST];
+    int16_t g[PR_G(G_CGHOST)];
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     uint32_t sum;
@@ -321,7 +330,7 @@ typedef struct {
  * told by the marker, not the size */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_RTYPE];
+    int16_t g[PR_G(G_RTYPE)];
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     uint32_t sum;
@@ -329,7 +338,7 @@ typedef struct {
 /* the sound pack's format: everything but the motion. 3028 B */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     uint32_t sum;
@@ -337,7 +346,7 @@ typedef struct {
 /* motion's format: everything but the song and the name. 3544 B */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     motion_store_t motion;
@@ -346,7 +355,7 @@ typedef struct {
 /* FDR9: everything but the FILTER. 3592 B */
 typedef struct {
     uint32_t magic, size;
-    int16_t g[G_NSTORED];
+    int16_t g[PR_NG];
     uint8_t sel, rsv[3];
     proj_trk_v9_t t[NTRK];
     motion_store_t motion;
@@ -383,7 +392,7 @@ static void proj_old_done(project_t *q)            /* a converted record: no pre
 }
 
 /* an old record (proj_old, version ver) -> q: what it has; the rest at the defaults (v1: PROB 100 %, 1 hit,
- * SRC STEP, Grids; v1 / v2: COMP off, DUCK off; v1..v3: the LFOs off; v1..v4: RESON off; v1..v5: GHOST KEEP;
+ * v1 / v2: COMP off, DUCK off; v1..v3: the LFOs off; v1..v4: RESON off; v1..v5: GHOST KEEP;
  * v1..v6: reverb TYPE ROOM; v1..v7: no motion; v1..v8: no song, no name; v1..v9: the FILTER OFF; v1..v10: the steps
  * at NOTE C4, no SLIDE / TIE; v1..v11: PRIO HIGH; v1..v12: no preset, not edited; all: CHOKE as stored, an LFO's DEST
  * and DEPTH DEST slot 1 / 2 (sources LFO 1 / 2: their defaults), slots 3 / 4 off) */
@@ -417,7 +426,7 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
         q->sel = o->sel;
         for (k = 0; k < NTRK; k++) {
             for (i = 0; i < P_NSTORED; i++)
-                q->t[k].p[i] = i <= P_PRIO ? o->t[k].p[i] : TP[i].def;
+                q->t[k].p[PR_P(i)] = i <= P_PRIO ? o->t[k].p[PR_P(i)] : TP[i].def;
             memcpy(q->t[k].step, o->t[k].step, sizeof q->t[k].step);
         }
         proj_old_bank(q, b, &o->motion);
@@ -441,14 +450,14 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
         q->magic = PROJ_MAGIC;
         q->size = sizeof *q;
         for (i = 0; i < G_NSTORED; i++)
-            q->g[i] = g[i];
+            q->g[PR_G(i)] = g[PR_G(i)];
         q->sel = ver == 8u ? proj_old.v8.sel : ver == 9u ? proj_old.v9.sel : ver == 10u ? proj_old.va.sel : proj_old.vb.sel;
         for (k = 0; k < NTRK; k++) {
             const int16_t *op = ver == 8u ? proj_old.v8.t[k].p : ver == 9u ? proj_old.v9.t[k].p
                               : ver == 10u ? proj_old.va.t[k].p : proj_old.vb.t[k].p;
             const step_v9_t *os = ver == 10u ? proj_old.va.t[k].step : ver == 9u ? proj_old.v9.t[k].step : proj_old.v8.t[k].step;
             for (i = 0; i < P_NSTORED; i++)
-                q->t[k].p[i] = i < np ? op[i] : TP[i].def;
+                q->t[k].p[PR_P(i)] = i < np ? op[PR_P(i)] : TP[i].def;
             if (ver == 11u)
                 memcpy(q->t[k].step, proj_old.vb.t[k].step, sizeof q->t[k].step);
             else
@@ -464,25 +473,27 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
         proj_old_done(q);
         return;
     }
-    ng = ver == 1u ? (uint32_t)G_GMODE : ver == 2u ? (uint32_t)G_CSRC : ver == 6u ? (uint32_t)G_RTYPE
+    ng = ver <= 2u ? (uint32_t)G_CSRC : ver == 6u ? (uint32_t)G_RTYPE
                 : ver == 7u ? (uint32_t)G_NSTORED : (uint32_t)G_CGHOST;
-    np = ver == 1u ? (uint32_t)P_SRC : ver == 2u ? (uint32_t)P_DUCK : ver == 3u ? (uint32_t)P_LFO1
+    np = ver <= 2u ? (uint32_t)P_DUCK : ver == 3u ? (uint32_t)P_LFO1
                 : ver == 4u ? (uint32_t)P_RMODEL : (uint32_t)P_FTYPE;
     memset(q, 0, sizeof *q);
     q->magic = PROJ_MAGIC;
     q->size = sizeof *q;
     for (i = 0; i < G_NSTORED; i++)
-        q->g[i] = i >= ng ? GP[i].def
-                : ver == 1u ? proj_old.v1.g[i] : ver == 2u ? proj_old.v2.g[i] : ver == 3u ? proj_old.v3.g[i]
-                : ver == 4u ? proj_old.v4.g[i] : ver == 5u ? proj_old.v5.g[i] : ver == 6u ? proj_old.v6.g[i] : proj_old.v7.g[i];
+        q->g[PR_G(i)] = i >= ng ? GP[i].def
+                : ver == 1u ? proj_old.v1.g[PR_G(i)] : ver == 2u ? proj_old.v2.g[PR_G(i)] : ver == 3u ? proj_old.v3.g[PR_G(i)]
+                : ver == 4u ? proj_old.v4.g[PR_G(i)] : ver == 5u ? proj_old.v5.g[PR_G(i)] : ver == 6u ? proj_old.v6.g[PR_G(i)]
+                : proj_old.v7.g[PR_G(i)];
     q->sel = ver == 1u ? proj_old.v1.sel : ver == 2u ? proj_old.v2.sel : ver == 3u ? proj_old.v3.sel
            : ver == 4u ? proj_old.v4.sel : ver == 5u ? proj_old.v5.sel : ver == 6u ? proj_old.v6.sel : proj_old.v7.sel;
     for (k = 0; k < NTRK; k++) {
         for (i = 0; i < P_NSTORED; i++)
-            q->t[k].p[i] = i >= np ? TP[i].def
-                         : ver == 1u ? proj_old.v1.t[k].p[i] : ver == 2u ? proj_old.v2.t[k].p[i]
-                         : ver == 3u ? proj_old.v3.t[k].p[i] : ver == 4u ? proj_old.v4.t[k].p[i] : ver == 5u ? proj_old.v5.t[k].p[i] : ver == 6u ? proj_old.v6.t[k].p[i]
-                         : proj_old.v7.t[k].p[i];
+            q->t[k].p[PR_P(i)] = i >= np ? TP[i].def
+                         : ver == 1u ? proj_old.v1.t[k].p[PR_P(i)] : ver == 2u ? proj_old.v2.t[k].p[PR_P(i)]
+                         : ver == 3u ? proj_old.v3.t[k].p[PR_P(i)] : ver == 4u ? proj_old.v4.t[k].p[PR_P(i)]
+                         : ver == 5u ? proj_old.v5.t[k].p[PR_P(i)] : ver == 6u ? proj_old.v6.t[k].p[PR_P(i)]
+                         : proj_old.v7.t[k].p[PR_P(i)];
         for (i = 0; i < NSTEP; i++) {
             if (ver == 1u) {
                 q->t[k].step[i].on = proj_old.v1.t[k].step[i].on ? 1u : 0u;   /* (1-bit fields: 2 is set) */
@@ -638,7 +649,8 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     int ok = proj_ok(p);
     if (globals || !ok) {
         for (i = 0; i < G_NSTORED; i++)
-            p->g[i] = song.g[i];
+            p->g[PR_G(i)] = song.g[i];
+        memset(&p->g[PR_GR], 0, 10u * sizeof p->g[0]);  /* (Grids' places) */
         p->sel = song.sel;
         p->rsv[0] = (uint8_t)song.g[G_DMODE];          /* the globals past the block (proj_g) */
     }
@@ -646,19 +658,20 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     p->size = sizeof *p;
     p->rsv[1] = p->rsv[2] = 0;
     for (k = 0; k < NTRK; k++) {
-        int16_t tm[4], mute = p->t[k].p[P_MUTE];
+        int16_t tm[CHAIN_NT], mute = p->t[k].p[PR_P(P_MUTE)];
         int keep = !globals && ok;                      /* (a write-back: the mutes are the performance's, kept) */
-        for (j = 0; j < 4u; j++)
-            tm[j] = v1 ? v1->t[k].p[CHAIN_TIMING[j]] : 0;
+        for (j = 0; j < CHAIN_NT; j++)
+            tm[j] = v1 ? v1->t[k].p[PR_P(CHAIN_TIMING[j])] : 0;
         for (i = 0; i < P_NSTORED; i++)
-            p->t[k].p[i] = motion_rest(k, i);
+            p->t[k].p[PR_P(i)] = motion_rest(k, i);
+        p->t[k].p[PR_SRC] = 0;                          /* (SRC's place) */
         if (keep)
-            p->t[k].p[P_MUTE] = mute;
+            p->t[k].p[PR_P(P_MUTE)] = mute;
         if (v1) {
             if (p != v1)
                 memcpy(p->t[k].step, v1->t[k].step, sizeof p->t[k].step);
-            for (j = 0; j < 4u; j++)
-                p->t[k].p[CHAIN_TIMING[j]] = tm[j];
+            for (j = 0; j < CHAIN_NT; j++)
+                p->t[k].p[PR_P(CHAIN_TIMING[j])] = tm[j];
         } else {
             memcpy(p->t[k].step, trk[k].step, sizeof p->t[k].step);
         }
@@ -706,7 +719,7 @@ static __attribute__((noinline)) int var_pack_live(uint32_t slot)
         return 0;
     for (k = 0; k < NTRK; k++) {
         var_sp[k] = trk[k].step;
-        for (j = 0; j < 4u; j++)
+        for (j = 0; j < CHAIN_NT; j++)
             var_tm[k][j] = trk[k].p[CHAIN_TIMING[j]];
     }
     r = var_put(&var_buf[var_play], var_cur, var_sp, var_tm);
@@ -971,7 +984,7 @@ static __attribute__((noinline)) void proj_tracks_in(const project_t *p, int cue
         drum_cut(t);
         for (i = 0; i < P_COUNT; i++) {                 /* every value back inside its range */
             const param_desc_t *d = i >= P_E0 && i <= P_E7 ? &DMODELS[m].edit[i - P_E0] : &TP[i];
-            t->p[i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[i] : proj_xp_get(p, k, i));
+            t->p[i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[PR_P(i)] : proj_xp_get(p, k, i));
         }
         smpl_knobs_conv(&t->p[P_E0], m);                /* (presets.c: a KEY stored before SLOT) */
         layer_knobs_conv(t->p);
@@ -1169,7 +1182,7 @@ static void cue_stage_knobs(const project_t *p, int16_t o[NTRK][P_COUNT], uint16
         uint32_t m = (uint32_t)clamp(s->p[P_MODEL], 0, NMODELS - 1);
         for (i = 0; i < P_COUNT; i++) {
             const param_desc_t *d = i >= P_E0 && i <= P_E7 ? &DMODELS[m].edit[i - P_E0] : &TP[i];
-            o[k][i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[i] : proj_xp_get(p, k, i));
+            o[k][i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[PR_P(i)] : proj_xp_get(p, k, i));
         }
         smpl_knobs_conv(&o[k][P_E0], m);
         layer_knobs_conv(o[k]);
@@ -1225,9 +1238,9 @@ static int cue_stage(uint32_t s, uint32_t v)
             } else {                                  /* variation 1: the record's */
                 for (k = 0; k < NTRK; k++) {
                     proj_steps_to(g->st[k], proj_slot[s].t[k].step);
-                    for (j = 0; j < 4u; j++) {
+                    for (j = 0; j < CHAIN_NT; j++) {
                         uint32_t id = CHAIN_TIMING[j];
-                        g->tm[k][j] = (int16_t)clamp(proj_slot[s].t[k].p[id], TP[id].min, TP[id].max);
+                        g->tm[k][j] = (int16_t)clamp(proj_slot[s].t[k].p[PR_P(id)], TP[id].min, TP[id].max);
                     }
                 }
             }
@@ -1266,7 +1279,7 @@ static int cue_stage(uint32_t s, uint32_t v)
                 var_lp[k] = g->st[k];
             (void)var_get(nb, w, var_lp, g->tm);
             for (k = 0; k < NTRK; k++)
-                for (j = 0; j < 4u; j++)
+                for (j = 0; j < CHAIN_NT; j++)
                     g->p[k][CHAIN_TIMING[j]] = g->tm[k][j];
         } else {
             for (k = 0; k < NTRK; k++)
@@ -1322,7 +1335,7 @@ static __attribute__((noinline)) int proj_cue_apply(void)
             if (song.lfo_in)
                 lfo_restore_track(t);
             mem_swap(t->step, g->st[k], sizeof t->step);
-            for (j = 0; j < 4u; j++) {
+            for (j = 0; j < CHAIN_NT; j++) {
                 int16_t x = t->p[CHAIN_TIMING[j]];
                 t->p[CHAIN_TIMING[j]] = g->tm[k][j];
                 g->tm[k][j] = x;
@@ -1384,10 +1397,10 @@ static void cue_file_out(void)
         for (k = 0; k < NTRK; k++) {
             for (i = 0; i < P_NSTORED; i++) {
                 int timing = 0;
-                for (j = 0; j < 4u; j++)
+                for (j = 0; j < CHAIN_NT; j++)
                     timing |= i == CHAIN_TIMING[j];
                 if (i != P_MUTE && !(timing && ov))   /* (another variation's timing: its, not the record's) */
-                    p->t[k].p[i] = g->p[k][i];
+                    p->t[k].p[PR_P(i)] = g->p[k][i];
             }
             if (!ov)
                 memcpy(p->t[k].step, g->st[k], sizeof p->t[k].step);
@@ -1396,7 +1409,7 @@ static void cue_file_out(void)
             p->pre[k] = (uint16_t)preset_rec_enc(cue.out_pre[k]);
             p->pre_ed[k] = cue.out_pre_ed[k];
             var_sp[k] = g->st[k];
-            for (j = 0; j < 4u; j++)
+            for (j = 0; j < CHAIN_NT; j++)
                 var_tm[k][j] = g->p[k][CHAIN_TIMING[j]];
         }
         if (ov && var_who[var_play ^ 1u] == a + 1u) {
@@ -1420,7 +1433,7 @@ static void cue_file_out(void)
         project_t *p = &proj_slot[ld];
         for (k = 0; k < NTRK; k++) {
             var_sp[k] = out == STG_VAR ? g->st[k] : trk[k].step;
-            for (j = 0; j < 4u; j++)
+            for (j = 0; j < CHAIN_NT; j++)
                 var_tm[k][j] = out == STG_VAR ? g->tm[k][j] : trk[k].p[CHAIN_TIMING[j]];
         }
         if (!ov) {                                    /* variation 1 lives in the record */
@@ -1428,8 +1441,8 @@ static void cue_file_out(void)
                 memcpy(p->t[k].step, var_sp[k], sizeof p->t[k].step);
                 for (i = P_NSTORED; i < P_COUNT; i++)
                     proj_xp_set(p, k, i, motion_rest(k, i));
-                for (j = 0; j < 4u; j++)
-                    p->t[k].p[CHAIN_TIMING[j]] = var_tm[k][j];
+                for (j = 0; j < CHAIN_NT; j++)
+                    p->t[k].p[PR_P(CHAIN_TIMING[j])] = var_tm[k][j];
             }
         } else {
             int r = var_put(&var_buf[var_play], ov, var_sp, var_tm);
@@ -2314,10 +2327,10 @@ static uint32_t chain_prepare(void)
             d->m = lk_valid(&lk_slot[i], i) ? &lk_slot[i] : &LK_NONE;
             for (k = 0; k < NTRK; k++) {
                 d->step[k] = p->t[k].step;
-                d->model[k] = (uint8_t)p->t[k].p[P_MODEL];
-                for (j = 0; j < 4u; j++) {
+                d->model[k] = (uint8_t)p->t[k].p[PR_P(P_MODEL)];
+                for (j = 0; j < CHAIN_NT; j++) {
                     uint32_t id = CHAIN_TIMING[j];
-                    d->timing[k][j] = (int16_t)clamp(p->t[k].p[id], TP[id].min, TP[id].max);
+                    d->timing[k][j] = (int16_t)clamp(p->t[k].p[PR_P(id)], TP[id].min, TP[id].max);
                 }
             }
         }

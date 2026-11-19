@@ -91,7 +91,7 @@ static void test_recordable_list(void)
     static const uint8_t YES[] = {P_E0, P_E7, P_LEVEL, P_PAN, P_DIST, P_REV, P_SLPAT, P_SLRATE, P_SLDEPTH, P_LLEVEL,
                                   P_LDEC, P_LFO1 + LF_RATE, P_LFO2 + LF_MORPH, P_LFO2 + LF_DEPTH, P_RTUNE, P_RPOS, P_RKEY};
     static const uint8_t NO[] = {P_MODEL, P_MUTE, P_CHOKE, P_NOTE, P_SLCR, P_SLEN, P_SDIV, P_SSWING, P_LSET, P_LKEY,
-                                 P_SRC, P_DUCK, P_LFO1 + LF_WAVE, P_LFO1 + LF_MODE, P_LFO2 + LF_DEST,
+                                 P_DUCK, P_LFO1 + LF_WAVE, P_LFO1 + LF_MODE, P_LFO2 + LF_DEST,
                                  P_LFO2 + LF_TRIG, P_LFO1 + LF_PHASE, P_RMODEL};
     uint32_t i, ok = 1;
     for (i = 0; i < sizeof YES; i++)
@@ -233,19 +233,6 @@ static void test_clamp(void)
     check("(a model knob with a narrower range exists for the clamp test)", found);
 }
 
-static void test_grids_track(void)
-{
-    fresh();
-    trk[0].p[P_SRC] = 1;                              /* track 1 plays Grids' kick */
-    trk[0].p[P_E1] = 64;
-    motion_add(0, 3, P_E1, 111);
-    mo.b.on = 1u;
-    play();
-    to_step(3, 100);
-    check("a Grids track: its step clock plays its motion", trk[0].p[P_E1] == 111);
-    stop();
-}
-
 static void clk_send(uint32_t status, double at)
 {
     fm1_ms = (uint32_t)(at * 1000.0 / FS);
@@ -347,7 +334,6 @@ int main(void)
     test_lfo_slot_depth_motion();
     test_len_shortened();
     test_clamp();
-    test_grids_track();
     test_midi_clock();
     test_clear();
     test_lfo_hit_value();

@@ -296,7 +296,7 @@ export class MockDevice {
 
   /* the live state --------------------------------------------------------------- */
   img() { return this.loaded < 0 ? this.kit : this.slots[this.loaded]; }
-  timingOf(t) { return LAYOUT.timing.map((id) => t.p[id]); }
+  timingOf(t) { return [...LAYOUT.timing.map((id) => t.p[id]), 0]; } // (the 4th byte: once Grids' SRC)
   loadLive(s) { // LOAD: knobs, globals, variation 1
     this.loaded = s;
     const img = s < 0 ? this.kit : this.slots[s];
@@ -468,7 +468,7 @@ export class MockDevice {
       const why = this.resonRefused(ti, t.p[id], v);
       if (why) refuse(RC.REFUSED, DETAIL.NONE, why);
     }
-    if (((id >= P.SLEN && id <= P.SSWING) || id === P.SRC) && this.song) return t.p[id]; // a song's rows set PATTERN
+    if (id >= P.SLEN && id <= P.SSWING && this.song) return t.p[id]; // a song's rows set PATTERN
     // presets.c preset_marks: a SOUND knob; an FX knob of a user preset that holds them
     if (((id >= P.E0 && id <= P.E7) || (id >= P.SATK && id <= P.SCUT) || (LAYOUT.uprFx.includes(id) && this.uprFx(t.pre))) && t.p[id] !== v) t.preEd = 1;
     t.p[id] = v;
@@ -751,7 +751,6 @@ export class MockDevice {
       const ids = pg.id.map((x) => {
         if (x === 255) return U14_NONE;
         if (pg.scope === d.sc.TRACK && x >= d.sndSlot) return snd[x - d.sndSlot] ?? U14_NONE;
-        if (pg.graph === d.gr.GRIDS && this.g[this.G.GMODE] && x >= this.G.GX && x <= this.G.GCHAOS) return this.G.GLEN1 + x - this.G.GX;
         return x;
       });
       if (ids.every((x) => x === U14_NONE)) continue;

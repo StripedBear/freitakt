@@ -71,7 +71,7 @@ the command needs.
 | 8 | WATCH | LIVE | on u7 (0 / 1) | on u7 |
 | 9 | NAMES | PRESETS | bank u7 (0..2), first u7 | bank u7, name str, total u7, first u7, list of {id u14, model u7, name str} |
 | 10 | PRESET_LOAD | PRESETS | track u7 (7F: selected), id u14 | track u7, id u14, model u7 |
-| 11 | STEPS_GET | PATTERNS | slot u7 (7F: loaded), var u7 (0..7), track u7 | slot u7, var u7, track u7, used u7, live u7, timing 4 × u7 (LEN DIV SWG SRC), 64 × step, then (NUDGE) 64 × nudge |
+| 11 | STEPS_GET | PATTERNS | slot u7 (7F: loaded), var u7 (0..7), track u7 | slot u7, var u7, track u7, used u7, live u7, timing 4 × u7 (LEN DIV SWG, then 0: once Grids' SRC), 64 × step, then (NUDGE) 64 × nudge |
 | 12 | STEPS_SET | PATTERNS | slot u7 (7F: loaded), var u7, track u7, first u7, list of step (1..64 − first), then (NUDGE, optional) count × nudge | slot u7, var u7, track u7, first u7, count u7 |
 | 13 | LOCKS_GET | PATTERNS | slot u7 (7F: loaded), track u7, first u14 | slot u7, track u7, total u14, first u14, list of {step u7, param u7, kind u7, value v14} |
 | 14 | LOCK_EDIT | PATTERNS | op u7, track u7, step u7, param u7, value v14 | op u7, track u7, step u7, param u7, value v14 (as stored), count u14 (the track's LOCKs now) |
@@ -140,11 +140,10 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   project data). The GLO pages DLY (two), REVERB (TYPE ROOM / SPRNG / HALL, SIZE, DAMP) and CHORUS (RATE, DEPTH) are
   global pages like GLOBAL and SYSTEM (graphs 17..19: the device's drawings of the echoes, the tail, the sweep). A column is a parameter id or `3FFF` (empty). SOUND
   columns are the selected track's SOUND list (MODEL, P_E0..P_E3, the P_E4..P_E7 whose label does not start with
-  `-`, LEVEL, PAN, NOTE, CHOKE, PRIO), a SOUND page past the list's end left out; GRIDS shows G_GLEN1..3 where it has
-  G_GX / G_GY / G_GCHAOS while G_GMODE is EUCLID; the LFO DEST page becomes four pages "DEST 1".."DEST 4" (columns:
+  `-`, LEVEL, PAN, NOTE, CHOKE, PRIO), a SOUND page past the list's end left out; the LFO DEST page becomes four pages "DEST 1".."DEST 4" (columns:
   that slot's SRC, DEST, DEPTH, then `3FFF`). `scope` 0 track / 1 global; `graph` is the device's `GR_*` (a drawing
-  hint; graph 10 = LFO: columns 1–2 are LFO 1's, 3–4 LFO 2's, as the device draws the page in two halves). Re-read
-  PAGES after a selection change, after the selected track's MODEL changed and after G_GMODE changed.
+  hint; graph 9 = LFO: columns 1–2 are LFO 1's, 3–4 LFO 2's, as the device draws the page in two halves). Re-read
+  PAGES after a selection change and after the selected track's MODEL changed.
 - **DESC**: fmt (`core.h` F_*: 0 INT, 1 PCT, 2 BIPCT, 3 TIME, 4 LFOHZ, 5 CUTOFF, 6 DB, 7 SEMI, 8 ENUM, 9 BPM, 10 NOTE,
   11 ONOFF, 12 OCT, 13 STEPS, 14 CTHR, 15 CRAT, 16 CATK, 17 CREL, 18 CMKUP, 19 LRATE1, 20 LRATE2, 21 LDEST,
   22 LPHASE, 23 NOTEO, 24 RDECAY, 25 FDEC, 26 SRR, 27 SLOT and 28 LSLOT: the SAMPLE model's / the LAYER's sample of
@@ -172,7 +171,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   LFOs never). MOTION's base (and a
   locked step's value under the LOCK) moves when MOTION plays that knob. Two knobs answer rc 0 **unchanged**, as their
   knobs on the device do: G_BPM while following an external clock (G_CLOCK not INT: the clock's tempo), and the
-  PATTERN knobs (P_SLEN P_SDIV P_SSWING P_SRC) while a song plays (its rows set them). The reply is always the value
+  PATTERN knobs (P_SLEN P_SDIV P_SSWING) while a song plays (its rows set them). The reply is always the value
   kept and its text: show it. No CHANGED push echoes the editor's SET.
 - **TEXT** formats a value of a knob for the track's current context without setting it (lock values, menus).
 - **DUMP**: the track's model, its preset id (`3FFF` none; ids as PRESET_LOAD's), edited (0 / 1), all pcount
@@ -209,7 +208,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
 - **STEPS_GET** reads what the device would play: `live` 1 = the loaded slot's playing variation (the live steps,
   unsaved edits included); other variations of the loaded slot and other slots come from the slot's RAM image (equal
   to flash unless the slot is marked unsaved). `used` 0 = a variation never used (steps all zero, timing 0 0 0 0);
-  variation 0 (shown as 1) is always used. `timing` = LEN 1..64, DIV 0..9, SWG 0..100, SRC 0..3 of that track in that
+  variation 0 (shown as 1) is always used. `timing` = LEN 1..64, DIV 0..9, SWG 0..100, 0 of that track in that
   variation. An empty slot: rc 2 detail 16. No slot loaded (the power-on kit): slot 7F, its playing variation only,
   reads the live steps (reply slot 7F); other variations rc 2 detail 22.
 - **STEPS_SET** writes steps of the **playing variation of the loaded slot** (slot 7F or the loaded slot; values
@@ -221,8 +220,8 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   **not** send CUE for it (a second press of a queued key means "at the next step"). Also rc 5 detail 32: a slot is
   queued (wait for its switch), or `slot` is another slot (CUE it first). A song plays: rc 2 detail 2 "STOP TO
   EDIT". No slot loaded and another variation: rc 2 detail 22. A refused key: rc 2 with the cue's code (detail 1,
-  8 + c). Edits are live (the slot's dirty bit) until SAVE. LEN / DIV / SWG / SRC are knobs (P_SLEN P_SDIV P_SSWING
-  P_SRC): SET them.
+  8 + c). Edits are live (the slot's dirty bit) until SAVE. LEN / DIV / SWG are knobs (P_SLEN P_SDIV P_SSWING): SET
+  them.
 - **Locks** belong to the slot and apply in every variation. **LOCKS_GET** lists a track's lock-bank events in the
   bank's order (step, then knob, MOTION before LOCK) from `first`, as many as fit: `kind` 1 = a MOTION event (held
   until the knob's next event), 2 = a parameter LOCK (that step only); `value` the knob's raw value (−64..127).
@@ -623,8 +622,9 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   `fxByte`, `presets.c` `upr_env`).
 - **User presets "UPR1"** (1,284; minor 1 and before): u32 magic "UPR1" (0x31525055), then 128 slots × 10 bytes:
   used u8 (1 = used; an empty slot is 10 zero bytes), model u8, knobs 8 × i8 (P_E0..P_E7).
-- **Project record "FDRG"** (3,840): magic u32 0x47524446 @0; size u32 = 3840 @4; g 41 × i16 @8 (G_BPM..G_RTYPE); sel
-  u8 @90; rsv[3] @91 (rsv[0] = G_DMODE); 8 tracks × 394 B @94, each: p 69 × i16 (P_MODEL..P_LS4DEPTH), then 64 steps
+- **Project record "FDRG"** (3,840): magic u32 0x47524446 @0; size u32 = 3840 @4; g 41 × i16 @8 (G_BPM..G_RTYPE; places 22..31,
+  once Grids', 0); sel u8 @90; rsv[3] @91 (rsv[0] = G_DMODE); 8 tracks × 394 B @94, each: p 69 × i16 (P_MODEL..P_LS4DEPTH;
+  place 30, once Grids' SRC, 0), then 64 steps
   × 4 B {flags (bit 0 on, 1 acc, 2 slide, 3 tie, 4..5 ratch), cond u8, nt i8 (NOTE − C4), micro i8 (NUDGE, −50..+50)};
   lk_n u16 @3246; lk_link u32 @3248 (FNV-1a of the 3,208-byte lock bank, | 1); var_link u32 @3252 (FNV-1a of the
   variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (track k's P_RKEY + j as (value − its
@@ -633,8 +633,7 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   CUT OFF 0 / ON 1, the same encoding); rsv_mo 400 B @3362 (0); song 36 B @3762; name 12 B @3798
   (characters of `" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+"`, 0-padded); pre 8 × u16 @3810 (a factory preset's uid,
   0x8000 | a user slot, 0xFFFF none); pre_ed 8 × u8 @3826; sum u32 @3836 = FNV-1a (32 bit, offset basis 2166136261,
-  prime 16777619) of bytes 0..3835 (padding bytes 0). Variation 1 is the record's steps with its tracks' LEN DIV SWG
-  SRC.
+  prime 16777619) of bytes 0..3835 (padding bytes 0). Variation 1 is the record's steps with its tracks' LEN DIV SWG.
 - **"FDRF"** (3,840, 0x46524446; saved by every firmware with the lock bank, up to NUDGE): FDRG's layout, but each step's last byte is
   0 except in steps 0..6, which hold xp's 7 bytes of the track (P_RKEY + j), and @3258.. is reserved (0); no NUDGE.
   It links a lock bank and variations as FDRG does. Converted at load: those bytes into xp, every NUDGE 0.
@@ -645,7 +644,7 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   @6; key 1024 × u16 @8 (track << 13 | step << 7 | param, ascending by (key, lock)); val 1024 × i8 @2056 (−64..127);
   lock bits 128 B @3080 (bit i: event i is a LOCK, else MOTION). Everything past `count` is 0.
 - **Variations "VAR1"** (8 + used): magic u32 0x31524156 @0; slot u8 @4; rsv u8 @5; used u16 @6; then variations 2..8
-  in order, each n u16 then n bytes (n 0 = never used): per track LEN DIV SWG SRC (4 B) and a 64-bit step map (8 B,
+  in order, each n u16 then n bytes (n 0 = never used): per track LEN DIV SWG and 0 (once Grids' SRC; 4 B) and a 64-bit step map (8 B,
   bit i = step i set: any field not 0, NUDGE included), then per set step in track and step order: flags (bit 6: a
   NUDGE byte follows), cond, nt (i8), and micro (i8) when bit 6 is set (only for a NUDGE ≠ 0; banks from before
   never set it). n = 96 + 3 × the set steps + the nudged ones.

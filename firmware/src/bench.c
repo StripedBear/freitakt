@@ -152,7 +152,6 @@ static void bench_reset(void)
     memset(metal_ph, 0, sizeof metal_ph);
     metal_blk = 0xFFFFFFFFu;
     dblock = 0;
-    memset(&grids, 0, sizeof grids);
     memset(&gclk, 0, sizeof gclk);
     memset(&metro, 0, sizeof metro);                /* METRO: no click sounding (fx_metro, the setting, kept) */
     memset(&pf, 0, sizeof pf);

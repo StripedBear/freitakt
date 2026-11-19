@@ -8,7 +8,6 @@
 | **ACCENT / ACC** | a louder step; with [[OCT+]] held, tap a step to toggle it. |
 | **ACID** | the 303-style bass model; at most two tracks. |
 | **ACCEL** | knob acceleration (MENU). |
-| **ARP** | the button that opens Grids. |
 | **BANK** | 16 steps; a track has up to four. |
 | **BDTRX... SHTRX** | the TRX models of the MD bank (see Sounds). |
 | **CHOKE** | choke group 1 to 4: hits cut others in the group. |
@@ -21,12 +20,10 @@
 | **FILL** | a step flag; plays only during a fill (hold REC off SEQ). |
 | **FM-Link** | two FM-1s in time over Bluetooth. |
 | **GO action** | a TOOLS / PROJECT knob that needs two detents within 1.5 s. |
-| **Grids** | Mutable Instruments' drum pattern generator (MAP or EUCL). |
 | **KEYF** | RESON KEYFOLLOW: the ring follows each hit's note. |
 | **KEYS** | the keys play the selected track chromatically ([[SCL]]). |
 | **LAYER** | a sample layered under any model. |
 | **LOCK** | a per-step value for a knob (parameter lock). |
-| **MAP / EUCL** | Grids modes. |
 | **MD / MODERN / CLASSIC** | the three sound banks. |
 | **MOTION** | recorded knob turns. |
 | **NOTE** | the MIDI note a track answers to. |
@@ -40,7 +37,7 @@
 | **SLICER** | the GATE / STUT pattern insert. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
-| **SRC** | the source of a track's steps (STEP or a Grids lane), an LFO slot's source, or COMP's key track. |
+| **SRC** | an LFO slot's source, or COMP's key track. |
 | **STEPS / TRACKS** | ENV mode: the keys are steps, or play tracks. |
 | **SYNC** | MIDI clock out. |
 | **THRU** | pass MIDI from each input to the other outputs. |

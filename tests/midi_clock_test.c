@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* MIDI clock in (seq.c, midi_clock.c): a simulated source sends Clock / Start / Continue / Stop into the input ring
- * (midi_enqueue, USB or TRS) with timestamps from a simulated fm1_ms, block by block; the steps and Grids follow it
+ * (midi_enqueue, USB or TRS) with timestamps from a simulated fm1_ms, block by block; the steps and the global clock follow it
  * without drift. */
 #include "drum_host.h"
 #include <math.h>

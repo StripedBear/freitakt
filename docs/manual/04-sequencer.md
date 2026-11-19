@@ -22,7 +22,6 @@ Press [[SEQ]] for the sequencer. It has four pages, reached by pressing [[SEQ]] 
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
 - **Banks:** [[KNOB 1]] on STEP shows `BANK n/m`. [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
 - **Piano roll:** on an ACID track the STEP page is a piano roll; notes, SLIDE and TIE are described under *Playing and recording*.
-- **Grids tracks:** a track whose PATTERN SRC is a Grids lane (`G-KCK`, `G-SNR`, `G-HAT`) shows that pattern read-only.
 - **Clear:** hold [[REC]] 0.7 s on a SEQ page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
 - **Where the held-step knobs work:** STEP, PATTERN, MOTION, SONG and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
 
@@ -37,7 +36,6 @@ A step with PROB **FILL** plays only while a fill is active; **!FILL** plays onl
 | **KNOB 1** | LEN | 1 to 64 steps (default 16) |
 | **KNOB 2** | DIV | 4BAR, 2BAR, 1/1, 1/2, 1/4, 1/8, 8T, 1/16 (default), 16T, 1/32 |
 | **KNOB 3** | SWG | 0 to 100 %. The effective swing is this plus GLOBAL SWG, capped at 100 |
-| **KNOB 4** | SRC | STEP (the track's own steps), or **G-KCK**, **G-SNR**, **G-HAT** to follow a Grids channel (the track's own steps are not played) |
 
 PATTERN edits are blocked while a song plays (`STOP TO EDIT`). TRACKS' LEN knob is the same length.
 
@@ -83,7 +81,7 @@ While a pattern plays you can queue the next project slot (A to D) or another va
 
 - On HOME and the SEQ pages the first 8 black keys (F#3 to A#4) queue variations 1 to 8 of the playing slot: the playing one's key lit, a queued one blinking (not with KEYS on).
 - **Hold SAVE** (0.4 s, or press a key with it) for the **cue map**: white keys 1 to 4 queue slots A to D; black keys queue variations 1 to 8 (lit: used, winking: playing, blinking: queued, breathing: unsaved edits). A slot key then a variation key queues both (`CUE>B3` on top). The same key again switches at the next step; the playing slot's key cancels; stopped, a cue switches at once; STOP drops a queued cue. Keys pressed with SAVE play no note, send no MIDI and record nothing.
-- A **slot** switch brings the slot's sounds, steps, timing and locks; the tempo, swing, clock, MIDI, master effects, Grids, mutes and selected track stay. The old sounds fade out over the last 5 ms. A **variation** switch changes the steps and timing only; the sounds ring on.
+- A **slot** switch brings the slot's sounds, steps, timing and locks; the tempo, swing, clock, MIDI, master effects, mutes and selected track stay. The old sounds fade out over the last 5 ms. A **variation** switch changes the steps and timing only; the sounds ring on.
 - Each slot has **8 variations** (both versions): variation 1 is its own steps; 2 to 8 hold their own steps and timing and share the slot's sounds and locks. A variation never used before starts as a copy of the one playing. A slot comes back on the variation it played last. When a slot's variations are full: `VARIATIONS FULL`.
 - Following an external clock (USB or TRS) the switch comes on the pulse that ends the pattern.
 

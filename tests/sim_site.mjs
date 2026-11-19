@@ -152,7 +152,7 @@ import { BTN, ENC } from '../web/sim/controls.js';
 test('features: eight chapters with a plate each; every panel hint names real controls', () => {
   const sec = LANDING.slice(LANDING.indexOf('id="features"'), LANDING.indexOf('id="install"'));
   const ids = [...sec.matchAll(/<article class="chapter" id="f-(\w+)"/g)].map(m => m[1]);
-  assert.deepEqual(ids, ['voices', 'reson', 'comp', 'lfo', 'seq', 'grids', 'fx', 'ble']);
+  assert.deepEqual(ids, ['voices', 'reson', 'comp', 'lfo', 'seq', 'fx', 'ble']);
   const labels = new Set([...BTN.map(b => b.label), ...ENC.map(e => e.label)]);
   for (const ch of sec.split('<article').slice(1)) {
     const id = ch.match(/id="f-(\w+)"/)[1];
@@ -396,7 +396,7 @@ test('the engine count is the firmware\'s, in the hero and the voices chapter: 4
 
 test('the examples lead with MD and MODERN engines: no CLASSIC model in a plate (the voices plate lists it last)', () => {
   const classic = new Set(FW.classic);
-  for (const f of ['lab_reson', 'lab_comp', 'lab_lfo', 'lab_seq', 'lab_grids', 'lab_fx', 'lab_voices']) {
+  for (const f of ['lab_reson', 'lab_comp', 'lab_lfo', 'lab_seq', 'lab_fx', 'lab_voices']) {
     const js = readFileSync(`web/sim/${f}.js`, 'utf8').replace(/\/\/.*$/gm, '');
     for (const [, n] of js.matchAll(/DM\.(\w+)/g)) assert.ok(!classic.has(n), `${f}: DM.${n} is CLASSIC`);
     for (const [, n] of js.matchAll(/'(\w+)'/g)) assert.ok(!classic.has(n), `${f}: '${n}' is CLASSIC`);

@@ -355,7 +355,7 @@ static void steps_get(void)
     trk[1].p[P_SLEN] = 12;
     trk[1].p[P_SDIV] = 3;
     OK(RQ(ED_STEPS_GET, ED_NONE, 0, 1) == ED_OK && R[7] == 0u && R[8] == 0u && R[9] == 1u && R[10] == 1u && R[11] == 1u);
-    OK(R[12] == 12u && R[13] == 3u && R[14] == (uint32_t)trk[1].p[P_SSWING] && R[15] == (uint32_t)trk[1].p[P_SRC]);
+    OK(R[12] == 12u && R[13] == 3u && R[14] == (uint32_t)trk[1].p[P_SSWING] && R[15] == 0u);
     OK(R[16 + 15] == 0x23u && R[17 + 15] == 7u && R[18 + 15] == 57u && steps_are(trk[1].step, R + 16) && R[16 + 192 + 5] == 23u &&
        RL == 16u + 192u + 64u + 1u);
     OK(RQ(ED_STEPS_GET, 1, 0, 1) == ED_OK && R[7] == 1u && R[10] == 1u && R[11] == 0u &&   /* B: its record (flash's) */

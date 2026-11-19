@@ -403,26 +403,26 @@ static int sync_rout_load(void)
     host_init();
     persist_boot();
     project_save(0);
-    ok &= p->g[G_SYNC] == 0 && p->g[G_ROUTE] == 0;
+    ok &= p->g[PR_G(G_SYNC)] == 0 && p->g[PR_G(G_ROUTE)] == 0;
     song.g[G_SYNC] = 1;
     song.g[G_ROUTE] = 2;
     (void)proj_load(0, 1);
     ok &= song.g[G_SYNC] == 0 && song.g[G_ROUTE] == 0;
-    p->g[G_ROUTE] = 2;
-    p->g[G_SYNC] = 1;
+    p->g[PR_G(G_ROUTE)] = 2;
+    p->g[PR_G(G_SYNC)] = 1;
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);
     ok &= song.g[G_SYNC] == 1 && song.g[G_ROUTE] == 2;
-    p->g[G_ROUTE] = 9;
-    p->g[G_SYNC] = 3;                                /* BOTH (the Bluetooth build's): USB */
+    p->g[PR_G(G_ROUTE)] = 9;
+    p->g[PR_G(G_SYNC)] = 3;                                /* BOTH (the Bluetooth build's): USB */
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);
     ok &= song.g[G_SYNC] == 1 && song.g[G_ROUTE] == 2 && !live_globals_edited();
-    p->g[G_SYNC] = 2;                                /* BLE: OFF */
+    p->g[PR_G(G_SYNC)] = 2;                                /* BLE: OFF */
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);
     ok &= song.g[G_SYNC] == 0 && !live_globals_edited();
-    p->g[G_SYNC] = -1;
+    p->g[PR_G(G_SYNC)] = -1;
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);
     return (int)(ok & (song.g[G_SYNC] == 0));
@@ -781,27 +781,27 @@ static int clock_beyond_range_is_int(void)
     host_init();
     persist_boot();
     project_save(0);
-    p->g[G_CLOCK] = 3;
+    p->g[PR_G(G_CLOCK)] = 3;
     p->sum = proj_sum(p);
     song.g[G_CLOCK] = 1;
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     ok = GP[G_CLOCK].max == 2 && song.g[G_CLOCK] == 0;
-    p->g[G_CLOCK] = 4;                              /* (CLK LINK, the Bluetooth build's FM-Link follower) */
+    p->g[PR_G(G_CLOCK)] = 4;                              /* (CLK LINK, the Bluetooth build's FM-Link follower) */
     p->sum = proj_sum(p);
     song.g[G_CLOCK] = 1;
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     ok &= song.g[G_CLOCK] == 0;
-    p->g[G_CLOCK] = 2;
+    p->g[PR_G(G_CLOCK)] = 2;
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     ok &= song.g[G_CLOCK] == 2;
-    p->g[G_CLOCK] = -1;
+    p->g[PR_G(G_CLOCK)] = -1;
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     return (int)(ok & (song.g[G_CLOCK] == 0));
 }
 
-/* an M1 project in flash ("FDR1") loads: its steps and settings; PROB 100 %, 1 hit, SRC STEP, Grids defaults */
+/* an M1 project in flash ("FDR1") loads: its steps and settings; PROB 100 %, 1 hit */
 static int fdr1_converts(void)
 {
     project_v1_t v;
@@ -811,26 +811,24 @@ static int fdr1_converts(void)
     memset(&v, 0, sizeof v);
     v.magic = PROJ_MAGIC_V1;
     v.size = sizeof v;
-    for (i = 0; i < G_GMODE; i++)
-        v.g[i] = song.g[i];
-    v.g[G_BPM] = 133;
+    for (i = 0; i < PR_GR; i++)
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_BPM)] = 133;
     v.sel = 2;
     for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_SRC; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[3].p[P_SLEN] = 23;
+        for (i = 0; i < PR_SRC; i++)
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[3].p[PR_P(P_SLEN)] = 23;
     v.t[3].step[5].on = v.t[3].step[5].acc = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
-    song.g[G_GLEN2] = 3;                             /* the live state differs: the load replaces it */
-    trk[3].p[P_SRC] = 2;
+    song.g[G_BPM] = 90;                              /* the live state differs: the load replaces it */
     trk[3].step[5].cond = 9;
     project_load(1);
     return trk[3].p[P_SLEN] == 23 && trk[3].step[5].on && trk[3].step[5].acc && trk[3].step[5].cond == 0 &&
-           trk[3].step[5].rat == 0 && !trk[3].step[6].on && trk[3].p[P_SRC] == 0 && song.g[G_BPM] == 133 &&
-           song.g[G_GLEN2] == 12 && song.g[G_GMODE] == 0 && song.sel == 2;
+           trk[3].step[5].rat == 0 && !trk[3].step[6].on && song.g[G_BPM] == 133 && song.sel == 2;
 }
 
 /* an FDR1 step byte of 2 (any non-zero is set) loads as on / acc, not as its low bit */
@@ -843,11 +841,11 @@ static int fdr1_flags_nonzero(void)
     memset(&v, 0, sizeof v);
     v.magic = PROJ_MAGIC_V1;
     v.size = sizeof v;
-    for (i = 0; i < G_GMODE; i++)
-        v.g[i] = song.g[i];
+    for (i = 0; i < PR_GR; i++)
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_SRC; i++)
-            v.t[k].p[i] = trk[k].p[i];
+        for (i = 0; i < PR_SRC; i++)
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
     v.t[2].step[4].on = 2;
     v.t[2].step[4].acc = 2;
     v.sum = proj_hash(&v, sizeof v - 4u);
@@ -869,13 +867,13 @@ static int fdr2_converts(void)
     v.magic = PROJ_MAGIC_V2;
     v.size = sizeof v;
     for (i = 0; i < G_CSRC; i++)
-        v.g[i] = song.g[i];
-    v.g[G_GLEN2] = 5;
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_DRCH)] = 5;
     v.sel = 3;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_DUCK; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[2].p[P_SRC] = 3;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[2].p[PR_SRC] = 3;                            /* (Grids' SRC: not read) */
     v.t[2].step[9].on = 1;
     v.t[2].step[9].cond = 33;
     v.t[2].step[9].rat = 2;
@@ -886,7 +884,7 @@ static int fdr2_converts(void)
     song.g[G_CSRC] = 4;                              /* the live state differs: the load replaces it */
     trk[2].p[P_DUCK] = 1;
     project_load(2);
-    return song.g[G_GLEN2] == 5 && song.sel == 3 && trk[2].p[P_SRC] == 3 && trk[2].step[9].on &&
+    return song.g[G_DRCH] == 5 && song.sel == 3 && trk[2].p[P_DUCK] == 0 && trk[2].step[9].on &&
            trk[2].step[9].cond == 33 && trk[2].step[9].rat == 2 && song.g[G_CSRC] == 0 && trk[2].p[P_DUCK] == 0 &&
            song.g[G_CRAT] == GP[G_CRAT].def && song.g[G_CMKUP] == 0;
 }
@@ -902,12 +900,12 @@ static int fdr3_converts(void)
     v.magic = PROJ_MAGIC_V3;
     v.size = sizeof v;
     for (i = 0; i < G_CGHOST; i++)
-        v.g[i] = song.g[i];
-    v.g[G_CSRC] = 2;
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_CSRC)] = 2;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_LFO1; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[1].p[P_DUCK] = 1;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[1].p[PR_P(P_DUCK)] = 1;
     v.t[1].step[3].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
@@ -930,11 +928,11 @@ static int fdr4_converts(void)
     v.magic = PROJ_MAGIC_V4;
     v.size = sizeof v;
     for (i = 0; i < G_CGHOST; i++)
-        v.g[i] = song.g[i];
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_RMODEL; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[2].p[P_LFO1 + LF_DEST] = 9;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[2].p[PR_P(P_LFO1 + LF_DEST)] = 9;
     v.t[2].step[5].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
@@ -956,13 +954,13 @@ static int fdr5_converts(void)
     v.magic = PROJ_MAGIC_V5;
     v.size = sizeof v;
     for (i = 0; i < G_CGHOST; i++)
-        v.g[i] = song.g[i];
-    v.g[G_CSRC] = 1;
-    v.g[G_CMKUP] = 77;
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_CSRC)] = 1;
+    v.g[PR_G(G_CMKUP)] = 77;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[2].p[P_RMODEL] = RS_PIPE;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[2].p[PR_P(P_RMODEL)] = RS_PIPE;
     v.t[2].step[5].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
@@ -984,12 +982,12 @@ static int fdr6_converts(void)
     v.magic = PROJ_MAGIC_V6;
     v.size = sizeof v;
     for (i = 0; i < G_RTYPE; i++)
-        v.g[i] = song.g[i];
-    v.g[G_CGHOST] = CG_HIDE;
-    v.g[G_RSIZE] = 33;
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_CGHOST)] = CG_HIDE;
+    v.g[PR_G(G_RSIZE)] = 33;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[i] = trk[k].p[i];
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
     v.t[4].step[7].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
@@ -1088,11 +1086,11 @@ static int fdr7_converts(void)
     v.magic = PROJ_MAGIC_V7;
     v.size = sizeof v;
     for (i = 0; i < G_NSTORED; i++)
-        v.g[i] = song.g[i];
-    v.g[G_RTYPE] = 1;
+        v.g[PR_G(i)] = song.g[i];
+    v.g[PR_G(G_RTYPE)] = 1;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[i] = trk[k].p[i];
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
     v.t[2].step[9].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
@@ -1170,11 +1168,11 @@ static int fdr9_converts(void)
     v.magic = PROJ_MAGIC_V9;
     v.size = sizeof v;
     for (i = 0; i < G_NSTORED; i++)
-        v.g[i] = song.g[i];
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[1].p[P_E1] = 99;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[1].p[PR_P(P_E1)] = 99;
     v.t[2].step[9].on = 1;
     v.motion.count = 1;
     v.motion.on = 1;
@@ -1219,9 +1217,9 @@ static int fdra_clamps(void)
     host_init();
     persist_boot();
     project_save(0);
-    p->t[4].p[P_FTYPE] = 9;
-    p->t[4].p[P_FCUT] = 300;
-    p->t[4].p[P_FENV] = -200;
+    p->t[4].p[PR_P(P_FTYPE)] = 9;
+    p->t[4].p[PR_P(P_FCUT)] = 300;
+    p->t[4].p[PR_P(P_FENV)] = -200;
     p->sum = proj_sum(p);
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     return trk[4].p[P_FTYPE] == FT_N - 1 && trk[4].p[P_FCUT] == 127 && trk[4].p[P_FENV] == -64;
@@ -1251,11 +1249,11 @@ static int fdra_flash_converts(void)
     v.magic = PROJ_MAGIC_VA;
     v.size = sizeof v;
     for (i = 0; i < G_NSTORED; i++)
-        v.g[i] = song.g[i];
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_PRIO; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.t[3].p[P_FCUT] = 33;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.t[3].p[PR_P(P_FCUT)] = 33;
     v.t[3].step[7] = (step_v9_t){1, 1, 5, 2};
     v.t[3].step[8] = (step_v9_t){0, 1, 0, 0};
     memcpy(v.name, "FDRA ONE", 8);
@@ -1281,18 +1279,18 @@ static int fdra_ram_refetched(void)
     v.magic = PROJ_MAGIC_VA;
     v.size = sizeof v;
     for (i = 0; i < G_NSTORED; i++)
-        v.g[i] = song.g[i];
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_PRIO; i++)
-            v.t[k].p[i] = trk[k].p[i];
-    v.g[G_BPM] = 133;
-    v.t[6].p[P_FCUT] = 33;
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
+    v.g[PR_G(G_BPM)] = 133;
+    v.t[6].p[PR_P(P_FCUT)] = 33;
     v.t[6].step[3] = (step_v9_t){1, 0, 0, 3};
     v.t[7].step[NSTEP - 1u] = (step_v9_t){2, 1, 4, 1};   /* the last step; on 2: set */
     memcpy(v.name, "RAM FDRA", 8);
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);        /* (0.15.0 saved it to flash too) */
-    v.g[G_BPM] = 99;                                 /* the RAM image differs: it must not be what loads */
+    v.g[PR_G(G_BPM)] = 99;                                 /* the RAM image differs: it must not be what loads */
     v.sum = proj_hash(&v, sizeof v - 4u);
     memcpy((uint8_t *)proj_slot + sizeof v, &v, sizeof v);   /* slot 2 of the old layout */
     persist_boot();
@@ -1350,10 +1348,10 @@ static int fdr8_converts(void)
     v.magic = PROJ_MAGIC_V8;
     v.size = sizeof v;
     for (i = 0; i < G_NSTORED; i++)
-        v.g[i] = song.g[i];
+        v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[i] = trk[k].p[i];
+            v.t[k].p[PR_P(i)] = trk[k].p[i];
     v.t[2].step[9].on = 1;
     v.motion.count = 1;
     v.motion.on = 1;
@@ -1402,8 +1400,8 @@ static int song_garbage_slot(void)
     rc_empty = chain_prepare();
     project_save(1);
     memset(p->t[0].step, 0xFF, sizeof p->t[0].step);  /* cond 255, rat 255, on 255 */
-    p->t[0].p[P_SLEN] = 999;
-    p->t[0].p[P_SDIV] = -7;
+    p->t[0].p[PR_P(P_SLEN)] = 999;
+    p->t[0].p[PR_P(P_SDIV)] = -7;
     p->sum = proj_sum(p);
     lk_slot[1].count = 1025;                         /* its bank broken */
     rc = chain_prepare();
@@ -1458,11 +1456,11 @@ static void fdrb_of_live(project_vb_t *v)
     v->magic = PROJ_MAGIC_VB;
     v->size = sizeof *v;
     for (i = 0; i < G_NSTORED; i++)
-        v->g[i] = song.g[i];
+        v->g[PR_G(i)] = song.g[i];
     v->sel = song.sel;
     for (k = 0; k < NTRK; k++) {
         for (i = 0; i < P_PRIO; i++)
-            v->t[k].p[i] = trk[k].p[i];
+            v->t[k].p[PR_P(i)] = trk[k].p[i];
         memcpy(v->t[k].step, trk[k].step, sizeof v->t[k].step);
     }
     v->motion = mo_legacy();
@@ -1579,14 +1577,14 @@ static int old_formats_play_same(void)
     persist_boot();
     pattern_kit();
     project_save(0);                                 /* FDRC */
-    memset(&v1, 0, sizeof v1);                       /* FDR1: globals before G_GMODE, parameters before P_SRC */
+    memset(&v1, 0, sizeof v1);                       /* FDR1: globals before Grids' (PR_GR), parameters before SRC (PR_SRC) */
     v1.magic = PROJ_MAGIC_V1;
     v1.size = sizeof v1;
-    for (i = 0; i < G_GMODE; i++)
-        v1.g[i] = song.g[i];
+    for (i = 0; i < PR_GR; i++)
+        v1.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++) {
-        for (i = 0; i < P_SRC; i++)
-            v1.t[k].p[i] = trk[k].p[i];
+        for (i = 0; i < PR_SRC; i++)
+            v1.t[k].p[PR_P(i)] = trk[k].p[i];
         for (s = 0; s < NSTEP; s++) {
             v1.t[k].step[s].on = trk[k].step[s].on;
             v1.t[k].step[s].acc = trk[k].step[s].acc;
@@ -1598,10 +1596,10 @@ static int old_formats_play_same(void)
     va.magic = PROJ_MAGIC_VA;
     va.size = sizeof va;
     for (i = 0; i < G_NSTORED; i++)
-        va.g[i] = song.g[i];
+        va.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++) {
         for (i = 0; i < P_PRIO; i++)
-            va.t[k].p[i] = trk[k].p[i];
+            va.t[k].p[PR_P(i)] = trk[k].p[i];
         for (s = 0; s < NSTEP; s++)
             va.t[k].step[s] = (step_v9_t){trk[k].step[s].on, trk[k].step[s].acc, 0, 0};
     }
@@ -1642,11 +1640,11 @@ static void fdrd_of_live(project_vd_t *v)
     v->magic = PROJ_MAGIC_VD;
     v->size = sizeof *v;
     for (i = 0; i < G_NSTORED; i++)
-        v->g[i] = song.g[i];
+        v->g[PR_G(i)] = song.g[i];
     v->sel = song.sel;
     for (k = 0; k < NTRK; k++) {
         for (i = 0; i <= P_PRIO; i++)
-            v->t[k].p[i] = trk[k].p[i];
+            v->t[k].p[PR_P(i)] = trk[k].p[i];
         memcpy(v->t[k].step, trk[k].step, sizeof v->t[k].step);
         v->pre[k] = (uint16_t)preset_rec_enc(trk[k].pre);
         v->pre_ed[k] = trk[k].pre_ed;
@@ -1864,7 +1862,7 @@ static int fdrb_ram_refetched(void)
         fdrb_of_live(&v);
         if (k < 3u)
             st_save(OBJ_PROJECT0 + k, &v, sizeof v);   /* slot D: in RAM only */
-        v.g[G_BPM] = (int16_t)(150 + k);               /* the RAM images differ from flash */
+        v.g[PR_G(G_BPM)] = (int16_t)(150 + k);               /* the RAM images differ from flash */
         v.sum = proj_hash(&v, sizeof v - 4u);
         memcpy((uint8_t *)proj_slot + k * sizeof v, &v, sizeof v);
     }
@@ -2390,10 +2388,11 @@ static void fdre_of_live(project_ve_t *v)            /* the live state as 0.23.3
     v->magic = PROJ_MAGIC_VE;
     v->size = sizeof *v;
     for (i = 0; i < G_NSTORED; i++)
-        v->g[i] = song.g[i];
+        v->g[PR_G(i)] = song.g[i];
     v->sel = song.sel;
     for (i = 0; i < NTRK; i++) {
-        memcpy(v->t[i].p, trk[i].p, sizeof v->t[i].p);
+        for (j = 0; j < P_NSTORED; j++)
+            v->t[i].p[PR_P(j)] = trk[i].p[j];
         memcpy(v->t[i].step, trk[i].step, sizeof trk[i].step);
         for (j = P_NSTORED; j < P_COUNT; j++)        /* (FDRE / FDRF: the parameters past the block in steps 0..6) */
             v->t[i].step[j - P_NSTORED].rsv = proj_xp_enc(j, trk[i].p[j]);
@@ -2775,7 +2774,7 @@ int main(void)
     char what[96];
     host_jedec_keep = host_jedec;
     int k, s, seq;
-    check("project: an M1 record (FDR1) loads with PROB 100 %, 1 hit, SRC STEP, Grids defaults", fdr1_converts());
+    check("project: an M1 record (FDR1) loads with PROB 100 %, 1 hit", fdr1_converts());
     check("project: an FDR1 step's on / acc of 2 load set (not their low bit)", fdr1_flags_nonzero());
     check("project: an M2 record (FDR2) loads with COMP off and DUCK off", fdr2_converts());
     check("project: an M3 record (FDR3) loads with the LFOs off", fdr3_converts());
