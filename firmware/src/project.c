@@ -51,19 +51,25 @@
 #define PROJ_MAGIC_V2 0x32524446u              /* "FDR2": M2 projects, converted on load */
 #define PROJ_MAGIC_V1 0x31524446u              /* "FDR1": M1 projects, converted on load */
 /* FREITAKT removed Grids; a record keeps their places (written 0, never read): the 10 globals after G_DRCH (MODE X
- * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). PR_G / PR_P: an id's place in a record;
- * PR_NG / PR_NP: a record's globals / a track's parameters (the block) */
+ * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). FREITAKT removed RESON the same way: its
+ * 7 knobs' places before the FILTER's (MODEL TUNE DECAY MIX TONE STRCT POS) and KEYF's, xp's first byte. PR_G / PR_P:
+ * an id's place in a record; PR_NG / PR_NP: a record's globals / a track's parameters (the block) */
 #define PR_GR G_CSRC                            /* the Grids globals' place (10) */
 #define PR_SRC P_DUCK                           /* SRC's place (1) */
+#define PR_RSN P_FTYPE                          /* RESON's 7 places, after SRC's */
 #define PR_G(i) ((uint32_t)(i) < (uint32_t)PR_GR ? (uint32_t)(i) : (uint32_t)(i) + 10u)
-#define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i) : (uint32_t)(i) + 1u)
+#define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i)                                                    \
+                 : (uint32_t)(i) < (uint32_t)PR_RSN ? (uint32_t)(i) + 1u : (uint32_t)(i) + 8u)
+#define PR_RS (PR_P(PR_RSN) - 7u)               /* RESON's first place (its MODEL's) */
 #define PR_NG (G_NSTORED + 10)
-#define PR_NP (P_NSTORED + 1)
+#define PR_NP (P_NSTORED + 8)
 typedef struct {
     int16_t p[PR_NP];                           /* the block; P_NSTORED + j: xp[track][j] (FDRE / FDRF: step[j].rsv) */
     step_t step[NSTEP];                         /* FDRG: rsv = the step's MICRO */
 } proj_trk_t;
-#define PROJ_XP (P_SATK - P_NSTORED)            /* the parameters past the block: 7 (KEYF, SRR, the INSERT) */
+#define PROJ_XP (P_SATK - P_NSTORED + 1)        /* the parameters past the block: 7 places (KEYF's, free; SRR, the
+                                                 * INSERT): parameter id in xp[track][PR_XP(id)] */
+#define PR_XP(id) ((uint32_t)(id) - P_NSTORED + 1u)
 #define PROJ_XP2 (P_SPLAY - P_SATK)             /* .. and after them (xp2: the SAMPLE model's ATK SUS REL LOOP) */
 #define PROJ_XP3 (P_COUNT - P_SPLAY)            /* .. (xp3: its PLAY CUT) */
 typedef char proj_xp_fit[PROJ_XP == 7 && PROJ_XP2 == 4 && PROJ_XP3 == 2 && PR_NP == 69 && PR_NG == 41 ? 1 : -1];   /* (FDRE's
@@ -95,13 +101,13 @@ typedef struct {
 typedef char project_size[sizeof(project_t) == 3840u ? 1 : -1];
 static int16_t proj_xp_get(const project_t *p, uint32_t k, uint32_t id)   /* track k's parameter id past the block */
 {
-    return (int16_t)(TP[id].def + (int8_t)(id < P_SATK ? p->xp[k][id - P_NSTORED]
+    return (int16_t)(TP[id].def + (int8_t)(id < P_SATK ? p->xp[k][PR_XP(id)]
                                            : id < P_SPLAY ? p->xp2[k][id - P_SATK] : p->xp3[k][id - P_SPLAY]));
 }
 static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .. stored */
 {
     if (id < P_SATK)
-        p->xp[k][id - P_NSTORED] = proj_xp_enc(id, v);
+        p->xp[k][PR_XP(id)] = proj_xp_enc(id, v);
     else if (id < P_SPLAY)
         p->xp2[k][id - P_SATK] = proj_xp_enc(id, v);
     else
@@ -305,12 +311,12 @@ typedef struct {
     struct { int16_t p[PR_P(P_LFO1)]; step_v9_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v3_t;
-/* the LFO format: the globals before G_CGHOST, the parameters before P_RMODEL */
+/* the LFO format: the globals before G_CGHOST, the parameters before RESON's */
 typedef struct {
     uint32_t magic, size;
     int16_t g[PR_G(G_CGHOST)];
     uint8_t sel, rsv[3];
-    struct { int16_t p[PR_P(P_RMODEL)]; step_v9_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_RS]; step_v9_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v4_t;
 /* a track as FDR5..FDR9 stored it: the parameters before P_FTYPE (no FILTER) */
@@ -476,7 +482,7 @@ static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
     ng = ver <= 2u ? (uint32_t)G_CSRC : ver == 6u ? (uint32_t)G_RTYPE
                 : ver == 7u ? (uint32_t)G_NSTORED : (uint32_t)G_CGHOST;
     np = ver <= 2u ? (uint32_t)P_DUCK : ver == 3u ? (uint32_t)P_LFO1
-                : ver == 4u ? (uint32_t)P_RMODEL : (uint32_t)P_FTYPE;
+                : (uint32_t)P_FTYPE;   /* (FDR4: the ones before RESON's) */
     memset(q, 0, sizeof *q);
     q->magic = PROJ_MAGIC;
     q->size = sizeof *q;
@@ -665,6 +671,8 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
         for (i = 0; i < P_NSTORED; i++)
             p->t[k].p[PR_P(i)] = motion_rest(k, i);
         p->t[k].p[PR_SRC] = 0;                          /* (SRC's place) */
+        memset(&p->t[k].p[PR_RS], 0, 7u * sizeof p->t[k].p[0]);   /* (RESON's places) */
+        p->xp[k][0] = 0;                                /* (KEYF's) */
         if (keep)
             p->t[k].p[PR_P(P_MUTE)] = mute;
         if (v1) {
@@ -675,7 +683,7 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
         } else {
             memcpy(p->t[k].step, trk[k].step, sizeof p->t[k].step);
         }
-        for (i = P_NSTORED; i < P_COUNT; i++)           /* KEYF, SRR, the INSERT, ATK .. LOOP: past the block */
+        for (i = P_NSTORED; i < P_COUNT; i++)           /* SRR, the INSERT, ATK .. LOOP: past the block */
             proj_xp_set(p, k, i, motion_rest(k, i));
         p->pre[k] = (uint16_t)preset_rec_enc(trk[k].pre);   /* (stable: a uid / a user slot, presets.c) */
         p->pre_ed[k] = trk[k].pre_ed;
@@ -969,8 +977,8 @@ static void proj_steps_to(step_t *d, const step_t *st)
     }
 }
 /* every track's sound, presets, model and steps (variation 1) from record p, values back inside their ranges, the
- * caps (RESON on 4 tracks, ACID 2, CHORD 2, MODAL 2). cue_in 1 (a PASTE onto the loaded slot): the mutes kept, an LFO's
- * knobs settled first (lfo.c: the block's restore would put the old ones back) */
+ * caps (ACID 2). cue_in 1 (a PASTE onto the loaded slot): the mutes kept, an LFO's knobs settled
+ * first (lfo.c: the block's restore would put the old ones back) */
 static __attribute__((noinline)) void proj_tracks_in(const project_t *p, int cue_in)
 {
     uint32_t i, k;
@@ -997,9 +1005,6 @@ static __attribute__((noinline)) void proj_tracks_in(const project_t *p, int cue
         t->key_nt = 0;                                  /* no last KEYS note carried over (spec §2) */
         proj_steps_to(t->step, s->step);
     }
-    for (k = 0, i = 0; k < NTRK; k++)                   /* RESON on 4 tracks at most: the first four keep it */
-        if (trk[k].p[P_RMODEL] != RS_OFF && ++i > RS_MAXTRK)
-            trk[k].p[P_RMODEL] = RS_OFF;
     for (k = 0, i = 0; k < NTRK; k++)                   /* ACID on 2 tracks at most: the first two keep it, the
                                                          * others get their power-on kit model (with its sound) */
         if ((uint32_t)trk[k].p[P_MODEL] == DM_ACID && ++i > ACID_MAXTRK) {
@@ -1007,12 +1012,6 @@ static __attribute__((noinline)) void proj_tracks_in(const project_t *p, int cue
             drum_set_model(&trk[k], KIT_DEF[k][0]);
             trk[k].p[P_NOTE] = note;
         }
-    for (k = 0, i = 0; k < NTRK; k++)                   /* CHORD on 2 of them at most: the first two keep it */
-        if (trk[k].p[P_RMODEL] == RS_CHORD && ++i > 2u)
-            trk[k].p[P_RMODEL] = RS_STRNG;
-    for (k = 0, i = 0; k < NTRK; k++)                   /* MODAL on 2 of them at most: the first two keep it */
-        if (trk[k].p[P_RMODEL] == RS_MODAL && ++i > RS_MAXMODAL)
-            trk[k].p[P_RMODEL] = RS_STRNG;
 }
 /* slot -> the live project; 1 loaded. irq: the main loop's load (the audio ISR runs: off while copying); 0 the
  * power-on one (drum_boot_init: before audio_init and fm1_irq_enable_all, so no fm1_irq_on; no EMPTY SLOT message) */
@@ -1176,7 +1175,7 @@ static int cue_out_fits(const var_bank_t *b, uint32_t copy)
 /* record p's tracks' knobs, in their ranges, the caps applied (as proj_tracks_in leaves them) -> o; presets -> pre */
 static void cue_stage_knobs(const project_t *p, int16_t o[NTRK][P_COUNT], uint16_t *pre, uint8_t *pre_ed)
 {
-    uint32_t i, k, nr = 0, na = 0, nc = 0, nm = 0;
+    uint32_t i, k, na = 0;
     for (k = 0; k < NTRK; k++) {
         const proj_trk_t *s = &p->t[k];
         uint32_t m = (uint32_t)clamp(s->p[P_MODEL], 0, NMODELS - 1);
@@ -1189,8 +1188,6 @@ static void cue_stage_knobs(const project_t *p, int16_t o[NTRK][P_COUNT], uint16
         o[k][P_MODEL] = (int16_t)m;
         pre[k] = (uint16_t)preset_ref(preset_rec_dec(p->pre[k]), m);
         pre_ed[k] = p->pre_ed[k] ? 1u : 0u;
-        if (o[k][P_RMODEL] != RS_OFF && ++nr > RS_MAXTRK)
-            o[k][P_RMODEL] = RS_OFF;
         if (m == DM_ACID && ++na > ACID_MAXTRK) {     /* (as drum_set_model without a preset: its edit defaults) */
             m = KIT_DEF[k][0];
             o[k][P_MODEL] = (int16_t)m;
@@ -1199,10 +1196,6 @@ static void cue_stage_knobs(const project_t *p, int16_t o[NTRK][P_COUNT], uint16
             pre[k] = (uint16_t)PRE_NONE;
             pre_ed[k] = 0;
         }
-        if (o[k][P_RMODEL] == RS_CHORD && ++nc > 2u)
-            o[k][P_RMODEL] = RS_STRNG;
-        if (o[k][P_RMODEL] == RS_MODAL && ++nm > RS_MAXMODAL)
-            o[k][P_RMODEL] = RS_STRNG;
     }
 }
 /* the park would hold another slot's unsaved variations (the incoming slot's go to the bank not playing): 1 + c */
@@ -1404,7 +1397,7 @@ static void cue_file_out(void)
             }
             if (!ov)
                 memcpy(p->t[k].step, g->st[k], sizeof p->t[k].step);
-            for (i = P_NSTORED; i < P_COUNT; i++)      /* KEYF, SRR, the INSERT, ATK .. LOOP: past the block */
+            for (i = P_NSTORED; i < P_COUNT; i++)      /* SRR, the INSERT, ATK .. LOOP: past the block */
                 proj_xp_set(p, k, i, g->p[k][i]);
             p->pre[k] = (uint16_t)preset_rec_enc(cue.out_pre[k]);
             p->pre_ed[k] = cue.out_pre_ed[k];
@@ -1975,8 +1968,8 @@ static void upr_migrate(const uint8_t *o)
         for (k = 0; k < 8u; k++)
             u->k[k] = (int8_t)knob_in(&DMODELS[u->model].edit[k], (int8_t)q[2u + k]);   /* (a KEY note kept: converted
                                                                                          * when loaded, presets.c) */
-        for (k = 0; k < UPR_NFX; k++)
-            u->f[k] = (int8_t)TP[UPR_FX[k]].def;
+        for (k = 0; k < UPR_NFB; k++)
+            u->f[k] = (int8_t)(upr_bfx(k) < 0 ? 0 : TP[UPR_FX[upr_bfx(k)]].def);
     }
 }
 #endif
@@ -2012,9 +2005,11 @@ static void preset_user_boot(void)                  /* persist_boot (after flash
                                    (u->model == DM_SMPL && upr_kbit(k) ? (uint8_t)u->k[k] & 0x80u : 0u));   /* (their
                                                                                     * bit kept; a KEY note kept: converted
                                                                                     * when loaded, presets.c) */
-            for (k = 0; k < UPR_NFX; k++)                /* (ATK .. LOOP's bits kept: presets.c upr_env) */
-                upr_fxset(u, k, clamp(upr_fxv(u, k), TP[UPR_FX[k]].min, TP[UPR_FX[k]].max),
+            for (k = 0; k < UPR_NFB; k++) {              /* (ATK .. LOOP's bits kept: presets.c upr_env) */
+                int x = upr_bfx(k);
+                upr_fxset(u, k, x < 0 ? 0 : clamp(upr_fxv(u, k), TP[UPR_FX[x]].min, TP[UPR_FX[x]].max),
                           u->model == DM_SMPL ? upr_fxbit(u, k) : 0u);
+            }
         }
         for (i = 0; i < UPR_NOLD - PRE_NUSER; i++)
             if (upr.mv[i] > PRE_NUSER)

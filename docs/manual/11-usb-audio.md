@@ -15,7 +15,7 @@ Hosts that read channel names list T1..T8, Main L, Main R. (Before 1.0.0 the ste
 
 ## What the track channels carry
 
-T1 .. T8 are the track as the mix gets it: its RESON, FILTER, SRR, DIST, INSERT, SLICER, mute, solo, COMP duck and LEVEL, **before** PAN, the CHOR / DLY / REV sends and the master's effects and limiter. They are at the MASTER level (or full level with USB LEVEL FIXED).
+T1 .. T8 are the track as the mix gets it: its FILTER, SRR, DIST, INSERT, SLICER, mute, solo, COMP duck and LEVEL, **before** PAN, the CHOR / DLY / REV sends and the master's effects and limiter. They are at the MASTER level (or full level with USB LEVEL FIXED).
 
 In **10 CH FX** the effect buses are mono, so L and R of channels 9-10 are equal, except for the delay in PING (the echoes alternate left and right) and the HALL reverb (stereo). T1 .. T8 panned in the DAW plus this pair make the whole mix, each part on its own fader.
 

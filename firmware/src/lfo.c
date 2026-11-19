@@ -35,15 +35,16 @@ static int lfo_slot_of(uint32_t id, uint32_t *f)
 /* an LFO's own knob or a DEST slot's: a change may turn modulation on / off (midi_learn.c ml_set) */
 static int lfo_own(uint32_t id) { return (id >= P_LFO1 && id < P_LFO2 + LF_N) || (id >= P_LSRC1 && id <= P_LS4DEPTH); }
 
-/* DEST -> the knob an LFO writes; R.TUN (11) writes no knob: the resonator's fine pitch (lfo_track);
- * F.CUT / F.RES (17, 18): FILTER's CUT / RESO (filter.c); 19..27 (appended: SRR, DST, CHO, DLY, REV, the INSERT's MIX,
- * its A B C) the knobs by name. All are read per block (insert.c, fx.c mix_part), so the modulation reaches the DSP */
+/* DEST -> the knob an LFO writes: 1..8 the SOUND knobs, LEVEL, PAN (9, 10); F.CUT / F.RES (11, 12): FILTER's CUT /
+ * RESO (filter.c); 13..21 (SRR, DST, CHO, DLY, REV, the INSERT's MIX, its A B C) the knobs by name (FREITAKT removed
+ * RESON's R.TUN .. R.POS, 11..16: the ones after them 6 lower). All are read per block (insert.c, fx.c mix_part),
+ * so the modulation reaches the DSP */
 static uint32_t lfo_dest_param(uint32_t dest)
 {
     return dest >= 1u && dest <= 8u ? P_E0 + dest - 1u : dest == 9u ? (uint32_t)P_LEVEL : dest == 10u ? (uint32_t)P_PAN
-         : dest >= 12u && dest <= 16u ? P_RDECAY + dest - 12u : dest == 17u ? (uint32_t)P_FCUT
-         : dest == 18u ? (uint32_t)P_FRESO : dest == 19u ? (uint32_t)P_SRR : dest >= 20u && dest <= 23u ? P_DIST + dest - 20u
-         : dest == 24u ? (uint32_t)P_IMIX : dest >= 25u && dest <= 27u ? P_IA + dest - 25u : 0xFFu;
+         : dest == 11u ? (uint32_t)P_FCUT : dest == 12u ? (uint32_t)P_FRESO : dest == 13u ? (uint32_t)P_SRR
+         : dest >= 14u && dest <= 17u ? P_DIST + dest - 14u : dest == 18u ? (uint32_t)P_IMIX
+         : dest >= 19u && dest <= LD_MAX ? P_IA + dest - 19u : 0xFFu;
 }
 
 static uint32_t lfo_inc(const int16_t *q)
@@ -158,17 +159,13 @@ static __attribute__((noinline)) void lfo_join(track_t *t, uint32_t mask)
     }
 }
 
-/* slot s of t (on) adds its modulation: R.TUN to the resonator's fine pitch, a knob to acc (its place in lpid, saved
+/* slot s of t (on) adds its modulation: a knob to acc (its place in lpid, saved
  * the first time). Inlined per slot: its ids are constants (direct loads) */
 static inline __attribute__((always_inline)) void lfo_slot(track_t *t, uint32_t s, int32_t *acc)
 {
-    uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, 27), pid, k;
+    uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, LD_MAX), pid, k;
     int32_t m = t->lfo[t->p[LS_ID[s][LS_SRC]] ? 1 : 0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
     const param_desc_t *d;
-    if (dest == 11u) {                                /* R.TUN: the resonator's fine pitch, smooth (TUNE untouched) */
-        t->rfine += m * RS_FINE / 32767;
-        return;
-    }
     pid = lfo_dest_param(dest);
     if (pid == 0xFFu)
         return;
@@ -195,7 +192,6 @@ static void lfo_track(track_t *t, uint32_t n)
 {
     uint32_t l, k, used = LS_ON(t, 0) | LS_ON(t, 1) | LS_ON(t, 2) | LS_ON(t, 3), on;
     int32_t acc[LS_N];
-    t->rfine = 0;
     if (!used) {                                      /* no slot on: nothing computed, nothing written */
         t->lon = 0;
         return;
@@ -302,22 +298,18 @@ static int lfo_live(const track_t *t, uint32_t pid, int32_t *val)
     int32_t sum = 0;
     const param_desc_t *d = track_desc(t, pid);
     for (s = 0; s < LS_N; s++) {
-        uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, 27);
+        uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, LD_MAX);
         int32_t m = t->lfo[t->p[LS_ID[s][LS_SRC]] ? 1 : 0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
         if (!dest || !t->p[LS_ID[s][LS_DEPTH]])
             continue;
-        if (pid == P_RTUNE && dest == 11u) {          /* R.TUN: TUNE + the fine offset of the last block */
-            hit = 1;
-            continue;
-        }
-        if (pid != P_RTUNE && lfo_dest_param(dest) == pid) {
+        if (lfo_dest_param(dest) == pid) {
             hit = 1;
             sum += m * (d->max - d->min) / 32767;
         }
     }
     if (!hit)
         return 0;
-    *val = pid == P_RTUNE ? clamp(t->p[P_RTUNE] + t->rfine / 256, 24, 96) : clamp(t->p[pid] + sum, d->min, d->max);
+    *val = clamp(t->p[pid] + sum, d->min, d->max);
     return 1;
 }
 

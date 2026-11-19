@@ -57,7 +57,7 @@ export class PresetsModel {
     this.handlers = new Map();
     this.modelNames = [];
     this.banks = []; // [{ bank, name, presets: [{ id, model, name }] }]
-    this.slots = Array(LAYOUT.nuser).fill(null); // the list: null | { name, model, knobs[8], fx[23], voiceOnly }
+    this.slots = Array(LAYOUT.nuser).fill(null); // the list: null | { name, model, knobs[8], fx[15], voiceOnly }
     this.moved = noMoves(); // UPR1's slots 97..128: where they moved (the record's, kept as read; a file's)
     this.lost = 0; // presets an older file (128 slots) held that did not fit the 96
     this.fileNote = ""; // what opening a file says beyond the list (what was moved, lost)

@@ -3,14 +3,14 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* SRR and INSERT (insert.c), on the real sources. The INSERT's tests are Skiff's (tests/insert_test.c of Skiff 1.3,
  * from Felucca 1.5's INSERT), on a drum track:
- * 1. bit for bit: a phrase (four tracks, DIST, the sends, FILTER, RESON, the tails) renders as drum 0.26.0 rendered it
+ * 1. bit for bit: a phrase (four tracks, DIST, the sends, FILTER, the tails) renders as drum 0.26.0 rendered it
  *    with SRR 0, with TYPE OFF and any A B C MIX, with MIX 0 of every TYPE; SRR and MIX 100 % of each TYPE change it.
  * 2. SRR: the hold (each value held 256 + 2 SRR^2 / 256 samples), its place (after FILTER, before DIST), a hit starts
  *    on a fresh sample, nothing runs at 0.
  * 3. each TYPE on 3 and 8 saws, A B C at their corners: no DC, bounded, MIX 0 = the input bit for bit, MIX 50 %
  *    halfway to MIX 100 %; CRUSH's steps odd.
  * 4. MIX glides (2.9 ms), a TYPE change fades out, switches, fades in; TYPE OFF while silent: at rest.
- * 5. MOTION: SRR, A B C and MIX recorded and lockable, not TYPE (as FILTER's TYPE, RESON's MODEL); a lock plays.
+ * 5. MOTION: SRR, A B C and MIX recorded and lockable, not TYPE (as FILTER's TYPE); a lock plays.
  * 6. the knobs' names (A B C by the TYPE), SRR's rate on the screen; the cost per sample (printed). */
 #include "drum_host.h"
 #include <sys/wait.h>
@@ -25,9 +25,11 @@ static int check(const char *what, int ok)
 }
 
 /* ------------------------------------------------------------------ 1 --- */
-#define PHRASE_0260 0x6067d1fa2ff9c57full         /* drum 0.26.0's hash of the phrase (before SRR and the INSERT);
+#define PHRASE_0260 0xa438abae105521b6ull         /* drum 0.26.0's hash of the phrase (before SRR and the INSERT);
                                                     * re-pinned when ROOM's loops came to round towards zero (track
-                                                    * 1's reverb tail; 0.26.0's was 0x3c7f2bcfa8133b84) */
+                                                    * 1's reverb tail; 0.26.0's was 0x3c7f2bcfa8133b84), then when
+                                                    * FREITAKT removed RESON (track 4's STRNG: 0x6067d1fa2ff9c57f; this
+                                                    * one the firmware before it rendered with RESON OFF) */
 static int32_t ph_srr = -1, ph_ty = -1, ph_a, ph_b, ph_c, ph_mix, ph_trk = 4;   /* ph_trk: the tracks set (4: 0..3) */
 static void set_ins(track_t *t, int32_t ty, int32_t a, int32_t b, int32_t c, int32_t mix)
 {
@@ -37,7 +39,7 @@ static void set_ins(track_t *t, int32_t ty, int32_t a, int32_t b, int32_t c, int
     t->p[P_IC] = (int16_t)c;
     t->p[P_IMIX] = (int16_t)mix;
 }
-/* the phrase: 4 tracks, DIST / sends / FILTER / RESON on, 2 s playing and 1 s of tails, the mix hashed; SRR and
+/* the phrase: 4 tracks, DIST / sends / FILTER on, 2 s playing and 1 s of tails, the mix hashed; SRR and
  * the INSERT as ph_* say (-1: the power-on values) on the tracks ph_trk says */
 static uint64_t ph_hash(void)
 {
@@ -60,8 +62,6 @@ static uint64_t ph_hash(void)
     trk[3].p[P_FTYPE] = FT_LP;
     trk[3].p[P_FCUT] = 60;
     trk[3].p[P_FRESO] = 90;
-    trk[3].p[P_RMODEL] = RS_STRNG;
-    trk[3].p[P_RMIX] = 80;
     for (k = 0; k < 4u; k++) {
         if (ph_trk < 4 && (int32_t)k != ph_trk)
             continue;
@@ -187,7 +187,7 @@ static void test_srr(void)
         ok = 1;
         for (i = 0; i < CTL; i++)
             ok &= b[i] == sig_in[5];
-        check("SRR in the track's inserts (after RESON and FILTER, before DIST): the block held", ok && t->srr_a);
+        check("SRR in the track's inserts (after FILTER, before DIST): the block held", ok && t->srr_a);
         for (i = 0; i < CTL; i++)
             b[i] = 0;
         trk_inserts(t, b, CTL, 0);
@@ -407,7 +407,7 @@ static void test_motion(void)
     track_t *t = &trk[0];
     uint32_t k, idx;
     int ok_l = 1, seen_l = 0, ok_a = 1, seen_w = 0;
-    check("MOTION records SRR, the INSERT's A B C and MIX, not its TYPE (as FILTER's TYPE and RESON's MODEL)",
+    check("MOTION records SRR, the INSERT's A B C and MIX, not its TYPE (as FILTER's TYPE)",
           motion_param(P_SRR) && motion_param(P_IA) && motion_param(P_IB) && motion_param(P_IC) &&
               motion_param(P_IMIX) && !motion_param(P_ITYPE));
     check("MIDI LEARN takes SRR and every INSERT knob", ml_param_ok(P_SRR) && ml_param_ok(P_ITYPE) &&

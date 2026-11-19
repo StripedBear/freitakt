@@ -343,11 +343,11 @@ static void lock_lfo_motion_same_knob(void)
         printf("     LFO on a lock: live %d..%d, E1 %d\n", lo, hi, trk[0].p[P_E1]);
     check("lock + motion + LFO on one knob: the LFO round the lock's 100 on its step, motion's 30 after, STOP the base", ok);
 }
-/* an LFO on the new FX DESTs (DIST = 20, INSERT B = 26) with a lock on the knob at step 4: the LFO swings round the lock's
+/* an LFO on the new FX DESTs (DIST = 14, INSERT B = 20) with a lock on the knob at step 4: the LFO swings round the lock's
  * value on that step, and the knob is the base again after STOP */
 static void lock_lfo_fx_dest(void)
 {
-    static const struct { int16_t dest; uint32_t id; } c[2] = {{20, P_DIST}, {26, P_IB}};
+    static const struct { int16_t dest; uint32_t id; } c[2] = {{14, P_DIST}, {20, P_IB}};
     int ok = 1, lo = 999, hi = -999;
     int32_t v;
     uint32_t b, k;

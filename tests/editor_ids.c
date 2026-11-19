@@ -63,17 +63,15 @@ int main(void)
     static char lfo[2][LF_N][16];
     static const char *const FMT[] = {"INT", "PCT", "BIPCT", "TIME", "LFOHZ", "CUTOFF", "DB", "SEMI", "ENUM", "BPM",
                                       "NOTE", "ONOFF", "OCT", "STEPS", "CTHR", "CRAT", "CATK", "CREL", "CMKUP",
-                                      "LRATE1", "LRATE2", "LDEST", "LPHASE", "NOTEO", "RDECAY", "FDEC", "SRR", "SLOT",
-                                      "LSLOT"};
+                                      "LRATE1", "LRATE2", "LDEST", "LPHASE", "FDEC", "SRR", "SLOT", "LSLOT"};
     _Static_assert(sizeof FMT / sizeof FMT[0] == F_LSLOT + 1, "every F_ named");
     PNAME(MODEL); PNAME(E0); PNAME(E1); PNAME(E2); PNAME(E3); PNAME(E4); PNAME(E5); PNAME(E6); PNAME(E7);
     PNAME(LEVEL); PNAME(PAN); PNAME(MUTE); PNAME(CHOKE); PNAME(NOTE); PNAME(DIST); PNAME(CHOR); PNAME(DLY); PNAME(REV);
     PNAME(SLCR); PNAME(SLPAT); PNAME(SLRATE); PNAME(SLDEPTH); PNAME(SLEN); PNAME(SDIV); PNAME(SSWING);
     PNAME(LSET); PNAME(LKEY); PNAME(LLEVEL); PNAME(LTUNE); PNAME(LDEC); PNAME(DUCK);
-    PNAME(RMODEL); PNAME(RTUNE); PNAME(RDECAY); PNAME(RMIX); PNAME(RTONE); PNAME(RSTRCT); PNAME(RPOS);
     PNAME(FTYPE); PNAME(FCUT); PNAME(FRESO); PNAME(FENV); PNAME(FDEC); PNAME(PRIO); PNAME(LSRC1); PNAME(LSRC2);
     PNAME(LS3SRC); PNAME(LS3DEST); PNAME(LS3DEPTH); PNAME(LS4SRC); PNAME(LS4DEST); PNAME(LS4DEPTH);
-    PNAME(RKEY); PNAME(SRR); PNAME(ITYPE); PNAME(IA); PNAME(IB); PNAME(IC); PNAME(IMIX);
+    PNAME(SRR); PNAME(ITYPE); PNAME(IA); PNAME(IB); PNAME(IC); PNAME(IMIX);
     PNAME(SATK); PNAME(SSUS); PNAME(SREL); PNAME(SLOOP); PNAME(SPLAY); PNAME(SCUT);
     for (k = 0; k < 2u; k++)
         for (i = 0; i < LF_N; i++) {
@@ -96,19 +94,22 @@ int main(void)
     printf("\"consts\": {\"NTRK\": %u, \"NSTEP\": %u, \"P_COUNT\": %u, \"G_COUNT\": %u, \"P_NSTORED\": %u, "
            "\"G_NSTORED\": %u, \"NMODELS\": %u, \"PRE_NFACT\": %u, \"PRE_NUSER\": %u, \"COND_MAX\": %u, "
            "\"NT_MIN\": %d, \"NT_MAX\": %d, \"LK_MAX\": %u, \"VAR_BYTES\": %u, \"VAR_N\": %u, \"NAME_LEN\": %u, "
-           "\"ACID\": %u, \"ACID_MAXTRK\": %u, \"RS_OFF\": %u, \"RS_CHORD\": %u, \"RS_MODAL\": %u, \"RS_MAXTRK\": %u, "
-           "\"RS_MAXMODAL\": %u, \"MICRO_MAX\": %u, \"UPR_NOLD\": %u, \"UPR_NFX\": %u, \"UPR_USED\": %u, "
-           "\"UPR_VOICE\": %u, \"DM_SMPL\": %u, \"UPR_FENV\": %u, \"SND_N\": %u, \"PR_GR\": %u, \"PR_NG\": %u, "
-           "\"PR_SRC\": %u, \"PR_NP\": %u},\n",
+           "\"ACID\": %u, \"ACID_MAXTRK\": %u, \"MICRO_MAX\": %u, \"UPR_NOLD\": %u, \"UPR_NFX\": %u, "
+           "\"UPR_NFB\": %u, \"UPR_USED\": %u, \"UPR_VOICE\": %u, \"DM_SMPL\": %u, \"UPR_FENV\": %u, \"SND_N\": %u, "
+           "\"PR_GR\": %u, \"PR_NG\": %u, \"PR_SRC\": %u, \"PR_RSN\": %u, \"PR_NP\": %u, \"PROJ_XP\": %u, "
+           "\"LD_MAX\": %u},\n",
            NTRK, NSTEP, P_COUNT, G_COUNT, P_NSTORED, G_NSTORED, NMODELS, (unsigned)PRE_NFACT, (unsigned)PRE_NUSER,
            (unsigned)COND_MAX, NT_MIN, NT_MAX, (unsigned)LK_MAX, (unsigned)VAR_BYTES, (unsigned)VAR_N,
-           (unsigned)NAME_LEN, (unsigned)DM_ACID, (unsigned)ACID_MAXTRK, (unsigned)RS_OFF, (unsigned)RS_CHORD,
-           (unsigned)RS_MODAL, (unsigned)RS_MAXTRK, (unsigned)RS_MAXMODAL, (unsigned)MICRO_MAX, (unsigned)UPR_NOLD,
-           (unsigned)UPR_NFX, (unsigned)UPR_USED, (unsigned)UPR_VOICE, (unsigned)DM_SMPL, (unsigned)UPR_FENV,
-           (unsigned)SND_N, (unsigned)PR_GR, (unsigned)PR_NG, (unsigned)PR_SRC, (unsigned)PR_NP);
+           (unsigned)NAME_LEN, (unsigned)DM_ACID, (unsigned)ACID_MAXTRK, (unsigned)MICRO_MAX, (unsigned)UPR_NOLD,
+           (unsigned)UPR_NFX, (unsigned)UPR_NFB, (unsigned)UPR_USED, (unsigned)UPR_VOICE, (unsigned)DM_SMPL,
+           (unsigned)UPR_FENV, (unsigned)SND_N, (unsigned)PR_GR, (unsigned)PR_NG, (unsigned)PR_SRC, (unsigned)PR_RSN,
+           (unsigned)PR_NP, (unsigned)PROJ_XP, (unsigned)LD_MAX);
     printf("\"uprFx\": [");                         /* the FX a user preset holds (presets.c UPR_FX), in its order */
     for (i = 0; i < UPR_NFX; i++)
         printf("%s%u", i ? ", " : "", (unsigned)UPR_FX[i]);
+    printf("],\n\"uprFb\": [");                    /* .. each one's byte in a slot's FX bytes (presets.c upr_fb) */
+    for (i = 0; i < UPR_NFX; i++)
+        printf("%s%u", i ? ", " : "", (unsigned)upr_fb(i));
     printf("],\n");
     printf("\"nameSet\": "), str(NAME_SET), printf(",\n");
     printf("\"fmt\": [");
@@ -133,16 +134,15 @@ int main(void)
             printf(i ? ", " : ""), desc(&INS_DESC[k][i], -1);
         printf("]");
     }
-    printf("],\n\"rsChordDesc\": "), desc(&RS_CHORD_DESC, -1);
-    printf(",\n\"lsId\": [");
+    printf("],\n\"lsId\": [");
     for (k = 0; k < 4u; k++)
         printf("%s[%u, %u, %u]", k ? ", " : "", LS_ID[k][0], LS_ID[k][1], LS_ID[k][2]);
-    printf("],\n\"ldest\": [");                    /* an LFO DEST value 1..27: the knob it moves (lfo_dest_param), or its name */
-    for (i = 1; i <= 27u; i++)
-        if (i < 11u || i > 18u)
+    printf("],\n\"ldest\": [");                    /* an LFO DEST value 1..LD_MAX: the knob it moves (lfo_dest_param), or its name */
+    for (i = 1; i <= LD_MAX; i++)
+        if (i < 11u || i > 12u)
             printf("%s%u", i > 1u ? ", " : "", (unsigned)lfo_dest_param(i));
         else
-            printf(", "), str(N_RDEST[i - 11u]);
+            printf(", "), str(N_FDEST[i - 11u]);
     printf("],\n\"models\": [");
     for (m = 0; m < NMODELS; m++) {
         printf("%s\n {\"name\": ", m ? "," : "");

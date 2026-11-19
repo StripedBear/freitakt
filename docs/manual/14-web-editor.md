@@ -29,12 +29,12 @@ The tabs are **Sound**, **Presets**, **Projects**, **Patterns** and **Samples**.
 
 ## Sound
 
-The Sound tab shows **the selected track's pages** (SOUND for its model, LAYER, FILTER, FX, INSERT, SRR, RESON, SLICER, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
+The Sound tab shows **the selected track's pages** (SOUND for its model, LAYER, FILTER, FX, INSERT, SRR, SLICER, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
 
 - It works **both ways**. Turn a knob on the FM-1 and it moves in the page (the value flashes). Move it in the page and the FM-1 plays it at once.
 - Choosing a track in the page selects it on the FM-1, and the other way round.
 - The heading shows the track, its model, and `(edited)` once a knob has moved since a preset loaded.
-- Changing MODEL, the resonator model or the INSERT type re-reads the track, because the knobs underneath change.
+- Changing MODEL or the INSERT type re-reads the track, because the knobs underneath change.
 - The pages are read from the FM-1, so a knob a newer firmware adds appears by itself.
 
 ## Presets
@@ -43,7 +43,7 @@ Left: the **151 factory presets** in three banks (ALL, MD, MODERN, CLASSIC), wit
 
 Right: the **96 user presets** as a list, each with a number, a name (up to 24 characters), its model, a tag and buttons.
 
-- **+FX / SOUND tag.** A preset tagged +FX also sets the track's FX when loaded (the sends, FILTER, INSERT, SRR and RESON); SOUND loads the sound only. The **FX** button opens the preset's FX values for editing; untick "Loading it sets these FX" to make it sound-only.
+- **+FX / SOUND tag.** A preset tagged +FX also sets the track's FX when loaded (the sends, FILTER, INSERT and SRR); SOUND loads the sound only. The **FX** button opens the preset's FX values for editing; untick "Loading it sets these FX" to make it sound-only.
 - **Save T3** (the button shows the selected track) puts that track's sound **and its FX** in the slot (it asks before replacing a used one). **Load** loads the slot onto the selected track. **x** deletes. The arrows or dragging reorder.
 - The list is edited in the page. Nothing reaches the FM-1 until you click **Write to FM-1** (the page counts the slots that differ, marked `*`). **Read FM-1** reads the list again; **Back up** saves it to a `.json` file; **Open file...** loads a file into the list (then Write to FM-1). A file can come from another FM-1.
 - The preset **names live in the page and its files**. The FM-1 itself keeps showing the model and number.

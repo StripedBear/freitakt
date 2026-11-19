@@ -828,11 +828,11 @@ static void t_presets(void)
     u.s[0].model = 1;
     u.s[0].k[2] = 17;
     for (i = 0; i < UPR_NFX; i++)
-        u.s[0].f[i] = (int8_t)TP[UPR_FX[i]].def;
+        u.s[0].f[upr_fb(i)] = (int8_t)TP[UPR_FX[i]].def;
     u.s[95].used = UPR_USED;                         /* the last slot, with its FX */
     u.s[95].model = NMODELS - 1u;
     for (i = 0; i < UPR_NFX; i++)
-        u.s[95].f[i] = (int8_t)clamp(TP[UPR_FX[i]].min + 1, TP[UPR_FX[i]].min, TP[UPR_FX[i]].max);
+        u.s[95].f[upr_fb(i)] = (int8_t)clamp(TP[UPR_FX[i]].min + 1, TP[UPR_FX[i]].min, TP[UPR_FX[i]].max);
     u.mv[3] = 1;                                     /* old slot 100 moved into slot 1 */
     memset(&o, 0, sizeof o);
     o.d[0] = (const uint8_t *)&u;
@@ -844,7 +844,7 @@ static void t_presets(void)
           preset_get(PRE_NFACT + 0u, &p) && p.model == 1u && preset_get(PRE_NFACT + 95u, &p) &&
           !preset_get(PRE_NFACT + 1u, &p) && backup(0, (uint8_t *)&b) == (int)sizeof b && !memcmp(&b, &u, sizeof u);
     f = upr_fx(PRE_NFACT + 95u);
-    ok &= f && !memcmp(f, u.s[95].f, UPR_NFX) && !upr_fx(PRE_NFACT + 0u) && upr.mv[3] == 1u &&
+    ok &= f && !memcmp(f, u.s[95].f, UPR_NFB) && !upr_fx(PRE_NFACT + 0u) && upr.mv[3] == 1u &&
           preset_rec_dec_in(PRE_REC_USER | 99u, PRE_UID, PRE_NFACT) == PRE_NFACT + 0u;
     ok &= list() == 0 && L[0].present && L[0].size == ED_SZ_PRESETS;
     check("RESTORE user presets: the UPR2 record written as sent (a voice-only slot, a slot with FX, the moves), the "
@@ -943,7 +943,7 @@ static void t_fdrf_record(void)
         for (i = 0; i < NSTEP; i++)
             ok &= trk[k].step[i].on == VS[k][i].on;
     check("RESTORE an FDRF project (a file from the editor before NUDGE) with its lock bank and variations: written as "
-          "it is, listed OLD, converted at load (NUDGE 0, KEYF / SRR / INSERT kept, locks and variations linked)", (int)ok);
+          "it is, listed OLD, converted at load (NUDGE 0, SRR / INSERT kept, locks and variations linked)", (int)ok);
 }
 
 /* the main-loop cost of a full backup, worst case (4 projects, every variation used, full lock banks): host

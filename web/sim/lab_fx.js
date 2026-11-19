@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Drum machine fork: 2026 DEADACTIVE
 // Piece 7, effects per track and live: an MD groove (BDTRX, RSTRX, CHTRX) whose rim shot runs through its track's
-// chain (FILTER, RESON, DIST, SLICER, then the delay, reverb and chorus sends), each stage switchable with one knob;
+// chain (FILTER, DIST, SLICER, then the delay, reverb and chorus sends), each stage switchable with one knob;
 // stopped, the firmware renders a bar of it. Playing, the picture is the output as heard, scrolling, and the PERFORM
 // keys (the black keys with FX held, perform.c PF_BLACK) repeat, reverse, stop, filter, freeze or shift the whole mix
 // while held.
@@ -16,13 +16,11 @@ const GROUPS = [3, 2, 3, 2];
 const RIM = [0, 3, 6, 10, 11, 14];                   // the rimshot's figure
 
 export default function fx(plate, { lab, ids, audition, screen }) {
-  const { fs, P, DM, RS, tp, names } = ids;
+  const { fs, P, DM, tp, names } = ids;
   const ft = n => names.ftype.indexOf(n), sl = n => tp.SLCR.names.indexOf(n);
   const STAGES = [                                   // [name, on, the knob's descriptor, value, its parameters on / off]
     { name: 'FILTER', on: true, d: tp.FCUT, v: 58,
       set: (on, v) => [[P.FTYPE, on ? ft('LP') : 0], [P.FCUT, v], [P.FRESO, 70], [P.FENV, 40]] },
-    { name: 'RESON', on: true, d: tp.RDECAY, v: 90,
-      set: (on, v) => [[P.RMODEL, on ? RS.CHORD : RS.OFF], [P.RDECAY, v], [P.RMIX, 110], [P.RTUNE, 57]] },
     { name: 'DIST', on: false, d: tp.DIST, v: 70, set: (on, v) => [[P.DIST, on ? v : 0]] },
     { name: 'SLICER', on: false, d: tp.SLPAT, v: 5,
       set: (on, v) => [[P.SLCR, on ? sl('GATE') : 0], [P.SLPAT, v], [P.SLRATE, 1], [P.SLDEPTH, 127]] },

@@ -32,7 +32,6 @@ Each slot has a **SRC** (LFO 1 or LFO 2), a **DEST** and its own **DEPTH** (-100
 | OFF |
 | the model's eight knobs E0 to E7 (shown by name; `--` if the model has none) |
 | LVL, PAN |
-| R.TUN, R.DCY, R.MIX, R.TON, R.STR, R.POS (RESON) |
 | F.CUT, F.RES (FILTER) |
 | SRR, DST, CHO, DLY, REV (the SRR and the sends) |
 | MIX, then A, B, C (the INSERT's mix and its three knobs, shown by the TYPE's names) |

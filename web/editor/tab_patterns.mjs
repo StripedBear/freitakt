@@ -143,7 +143,7 @@ export class PatternsModel {
       session.on("state", (x) => this.stateChanged(x.state, x.prev)),
       session.on("steps", (p) => this.stepsPushed(p)),
       session.on("locks", (p) => this.locksPushed(p)),
-      session.on("changed", (p) => { if (p.scope === SCOPE.TRACK && [ID.MODEL, ID.RMODEL, ID.ITYPE].includes(p.id)) this.forget(p.track); }),
+      session.on("changed", (p) => { if (p.scope === SCOPE.TRACK && [ID.MODEL, ID.ITYPE].includes(p.id)) this.forget(p.track); }),
       session.on("resync", () => { this.forget(); this.reload(); }),
       session.on("reload", (w) => { if (w.slot !== undefined) { this.forget(); this.reload(); } else if (w.track !== undefined) this.forget(w.track); }),
       session.on("busy", (on) => on && this.wait?.rej(new Error("FM-1 busy (update?): the edit was not applied."))),

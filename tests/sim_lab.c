@@ -2,7 +2,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* The landing page's lab (docs/superpowers/specs/2026-10-09-websim-features-lab-design.md): the firmware's own DSP
  * driven directly for the feature pieces. A blank project; a track's model, parameters, steps; globals; the transport;
- * a hit, a PERFORM effect held; one track's hit rendered alone (with or without its RESON + FILTER);
+ * a hit, a PERFORM effect held; one track's hit rendered alone (with or without its FILTER);
  * and per audio half (256 frames) a probe of what the pictures draw: the compressor's gain reduction, every track's
  * two LFO outputs, the tracks that fired, the step each track is on. Included by sim_core.c (one translation unit). */
 #define LAB_MAX_FRAMES (FS * 4u)                      /* 4 s of one channel */
@@ -157,8 +157,8 @@ void lab_render_mono(uint32_t frames)                  /* the whole mix, (L + R)
     }
 }
 
-/* track 1's hit alone, from silence: its voices (and with inserts, its RESON and FILTER) rendered block by block,
- * no LFOs, no level, no FX; for the waveform and spectrum of a voice or a resonator */
+/* track 1's hit alone, from silence: its voices (and with inserts, its FILTER) rendered block by block,
+ * no LFOs, no level, no FX; for the waveform and spectrum of a voice */
 void lab_voice(uint32_t frames, int inserts)
 {
     static int32_t blk[CTL];

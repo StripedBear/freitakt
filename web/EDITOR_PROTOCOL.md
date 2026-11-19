@@ -152,11 +152,11 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   - ENUM: the names of the values min..max (the name of v = names[v − min]).
   - INT with names (flag SPLIT): the range split evenly over the n names: v's = names[⌊(v − min) · n / (max − min + 1)⌋].
   - LDEST (an LFO DEST): the 19 values' names as the device shows them for that track now (OFF, the knob a DEST moves
-    by its label or `--`, R.TUN … F.RES).
+    by its label or `--`, F.CUT, F.RES, SRR …).
   - flags: 0x01 SPLIT; 0x02 ORDER (the device shows the values in another order: DESC with `first` = 7F gives it, a
     list of value − min by place; MODEL's order is the MODEL knob's list); 0x04 LOCK (lockable: LOCK_EDIT accepts
     it); 0x08 RO (shown, not settable: SET answers rc 1 detail 45); 0x10 CONTEXT (depends on the track's MODEL,
-    INSERT TYPE or RESON MODEL: re-read it after those changed).
+    or INSERT TYPE: re-read it after those changed).
   - Read-only globals: G_MIDI, G_INFO, G_SLOT, G_NAME, G_LOAD, G_SAVE, G_CLRSEQ, G_INITSND.
 - **GET** returns up to `count` consecutive values from `id` (stopping at pcount / gcount and where the reply is
   full: about 25), each with the device's own text (≤ 5 characters: "1/16.", "1.4k") and unit. The page shows the
@@ -164,9 +164,8 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
 - **SET** acts as the device's knob: clamped to the range; a read-only knob: rc 1 detail 45 "READ ONLY" (checked
   before RESTORING). MODEL loads the model with its **first factory preset**, as the MODEL knob does (DUMP then shows
   that preset id, not edited; a model without one: its default sound, no preset); ACID onto a third track: rc 2
-  detail 18. RESON MODEL past its caps: rc 2 detail 0 with the device's message ("RESON: 4 TRACKS MAX", "CHORD: 2
-  TRACKS MAX", "MODAL: 2 TRACKS MAX"). A knob the track's preset holds marks it edited when it changes, as on the
-  device: a SOUND knob always; one of the FX a user preset holds (§6: the sends, RESON, FILTER, INSERT, SRR) when the
+  detail 18. A knob the track's preset holds marks it edited when it changes, as on the
+  device: a SOUND knob always; one of the FX a user preset holds (§6: the sends, FILTER, INSERT, SRR) when the
   track was loaded from a user preset that holds its FX (not a factory or voice-only one; the SLICER, LEVEL, PAN, the
   LFOs never). MOTION's base (and a
   locked step's value under the LOCK) moves when MOTION plays that knob. Two knobs answer rc 0 **unchanged**, as their
@@ -185,8 +184,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   factory bank, from `first`, as many as fit (bank 3 = the user bank: rc 1; user presets are read as backup object 0,
   their names live only in the page and files).
 - **PRESET_LOAD** loads a preset onto a track as the device's PRESETS list does: MODEL and the 8 SOUND knobs; a user
-  preset that holds its FX (used 1, §6) sets them too (RESON MODEL within its caps: a third CHORD / MODAL becomes
-  STRNG, RESON on a fifth track OFF); a factory or voice-only preset leaves the track's FX. Never LEVEL, PAN, NOTE,
+  preset that holds its FX (used 1, §6) sets them too; a factory or voice-only preset leaves the track's FX. Never LEVEL, PAN, NOTE,
   CHOKE, the SLICER, LAYER, the LFOs or the steps. rc 2 detail 17: an empty user slot; detail 18: ACID onto a third
   track. The push shadows are not updated (editor_pattern.c): on the **selected** track the knobs that moved arrive
   as CHANGED pushes (as if turned on the device; at most 4 a pass); another track: no push. Neither carries the
@@ -312,7 +310,7 @@ One restore at a time: **BEGIN → DATA … → COMMIT** (or ABORT). The transpo
   RAM homes are reloaded from flash (`proj_fetch`, `preset_user_boot`), RESTORING ends.
 - An older-format record (FDR1..FDRE carry their motion inside) restores as part 0 alone, written as it is and
   converted at load as the device always does. An FDRF record restores with its lock bank and variations, re-sealed
-  for the target slot with its magic kept, and is converted at load as flash's FDRF records are (KEYF, SRR and the
+  for the target slot with its magic kept, and is converted at load as flash's FDRF records are (SRR and the
   INSERT out of steps 0..6's spare bytes, every NUDGE 0; BACKUP_LIST flags it OLD until the slot is saved again).
 - Staging bound: every record format is at most `sizeof(project_t)` (3,840; `editor_backup.c` asserts it), a lock
   bank is `lk_bank_t`, variations at most `var_bank_t` (3,584): BEGIN accepts no other size and DATA writes below it.
@@ -468,7 +466,7 @@ projects, the presets, the variations or the lock banks.
 | 31 | TOO BIG (a sample longer than the slot) | 35 | DATA REFUSED (a sample sector that could read as an update record) |
 | 41 | NO RESTORE / NO UPLOAD (rc 1) | | |
 
-Details 1..11 are cue.c's `CUE_E_*` as they are. Detail 0 with rc 2: the device's own message (RESON MODEL's caps).
+Details 1..11 are cue.c's `CUE_E_*` as they are. Detail 0 with rc 2: the device's own message.
 The page shows `msg` and branches on rc / detail.
 
 ## 5. Files
@@ -497,8 +495,7 @@ File names: `hortator-presets-<date>.json`, `hortator-project-<A..D>-<date>.json
 ```
 
 - The position is the device's user slot 0..95. `model` (the id) is authoritative, `modelName` informational,
-  `knobs` = P_E0..P_E7 as int8, `fx` = the 23 FX the preset holds as int8, in §6's order (DIST CHO DLY REV, RESON
-  MODEL TUNE DECAY MIX TONE STRCT POS KEYF, FILTER TYPE CUT RESO ENV DECAY, INSERT TYPE A B C MIX, SRR).
+  `knobs` = P_E0..P_E7 as int8, `fx` = the 15 FX the preset holds as int8, in §6's order (DIST CHO DLY REV, FILTER TYPE CUT RESO ENV DECAY, INSERT TYPE A B C MIX, SRR).
   `voiceOnly: true` (absent: false): the preset is the voice only (used 3: loading it leaves the track's FX; its `fx`
   are kept but not used). A slot without `fx` reads as the voice only. `name` (≤ 24 characters) lives only in the page
   and the files (owner decision 2: the FM-1 keeps showing its "MODEL NN"); a backup from the device names slots as the
@@ -609,8 +606,8 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
 
 - **User presets "UPR2"** (3,204): u32 magic "UPR2" (0x32525055), then 96 slots × 33 bytes: used u8 (0 empty: 33
   zero bytes; 1 the voice and its FX; 3 the voice only, a preset moved from UPR1), model u8, knobs 8 × i8
-  (P_E0..P_E7), fx 23 × i8 @+10 (P_DIST P_CHOR P_DLY P_REV, P_RMODEL P_RTUNE P_RDECAY P_RMIX P_RTONE P_RSTRCT P_RPOS
-  P_RKEY, P_FTYPE P_FCUT P_FRESO P_FENV P_FDEC, P_ITYPE P_IA P_IB P_IC P_IMIX, P_SRR: `LAYOUT.uprFx`); then mv 32 × u8
+  (P_E0..P_E7), fx 23 × i8 @+10 (P_DIST P_CHOR P_DLY P_REV, 8 reserved bytes
+  (0; RESON's), P_FTYPE P_FCUT P_FRESO P_FENV P_FDEC, P_ITYPE P_IA P_IB P_IC P_IMIX, P_SRR: `LAYOUT.uprFx`); then mv 32 × u8
   @3172: older slot 97 + i moved into slot mv[i] − 1 (0 none / dropped). A project's user reference (`pre`,
   0x8000 | slot) to an old slot 96..127 reads through mv. **A SAMPLE preset's ATK SUS REL LOOP PLAY CUT** (model
   14 only; the record's size and its 96 slots unchanged): 26 bits E = (ATK − 0) mod 128 | (SUS − 0) mod 128 << 7 | (REL
@@ -627,15 +624,15 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   place 30, once Grids' SRC, 0), then 64 steps
   × 4 B {flags (bit 0 on, 1 acc, 2 slide, 3 tie, 4..5 ratch), cond u8, nt i8 (NOTE − C4), micro i8 (NUDGE, −50..+50)};
   lk_n u16 @3246; lk_link u32 @3248 (FNV-1a of the 3,208-byte lock bank, | 1); var_link u32 @3252 (FNV-1a of the
-  variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (track k's P_RKEY + j as (value − its
-  power-on value) mod 256 — RKEY 0, SRR 0, ITYPE 0, IA 64, IB 96, IC 96, IMIX 127); xp2 8 × 4 B @3314 (track k's P_SATK + j, the SAMPLE model's ATK SUS REL LOOP, the same encoding — ATK 0,
+  variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (byte 0 reserved, 0 (RESON's KEYF);
+  bytes 1..6 track k's P_SRR + j − 1 as (value − its power-on value) mod 256 — SRR 0, ITYPE 0, IA 64, IB 96, IC 96, IMIX 127); xp2 8 × 4 B @3314 (track k's P_SATK + j, the SAMPLE model's ATK SUS REL LOOP, the same encoding — ATK 0,
   SUS 0, REL 40, LOOP 0; 0 in every record before them); xp3 8 × 2 B @3346 (track k's P_SPLAY + j: PLAY KEY 0 / CHOP 1,
   CUT OFF 0 / ON 1, the same encoding); rsv_mo 400 B @3362 (0); song 36 B @3762; name 12 B @3798
   (characters of `" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+"`, 0-padded); pre 8 × u16 @3810 (a factory preset's uid,
   0x8000 | a user slot, 0xFFFF none); pre_ed 8 × u8 @3826; sum u32 @3836 = FNV-1a (32 bit, offset basis 2166136261,
   prime 16777619) of bytes 0..3835 (padding bytes 0). Variation 1 is the record's steps with its tracks' LEN DIV SWG.
 - **"FDRF"** (3,840, 0x46524446; saved by every firmware with the lock bank, up to NUDGE): FDRG's layout, but each step's last byte is
-  0 except in steps 0..6, which hold xp's 7 bytes of the track (P_RKEY + j), and @3258.. is reserved (0); no NUDGE.
+  0 except in steps 0..6, which hold xp's 7 bytes of the track (byte 0 reserved, then P_SRR ..), and @3258.. is reserved (0); no NUDGE.
   It links a lock bank and variations as FDRG does. Converted at load: those bytes into xp, every NUDGE 0.
 - **Older records** the firmware converts at load (magic → size): FDR1 1564, FDR2 2624, FDR3 2656, FDR4 2912, FDR5
   3024, FDR6 3024, FDR7 3028, FDR8 3544, FDR9 3592, FDRA 3672, FDRB 3672, FDRC 3688, FDRD 3712, FDRE 3840, FDRF 3840;

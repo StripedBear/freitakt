@@ -10,7 +10,7 @@ import { esc } from "./ui.mjs";
 export { ID }; // (proto.mjs: the core.h ids the page names, checked against device_data.json)
 const FMT_ENUM = 8, FMT_LDEST = 21;
 /** a change of these re-reads the track: pages, the CONTEXT knobs' descriptions, the values */
-const TRACK_CONTEXT = new Set([ID.MODEL, ID.RMODEL, ID.ITYPE]);
+const TRACK_CONTEXT = new Set([ID.MODEL, ID.ITYPE]);
 const VALUES = 1, TRACK = 2, ALL = 3; // what a reload reads
 
 export class SoundModel {

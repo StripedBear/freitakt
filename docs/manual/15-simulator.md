@@ -5,7 +5,7 @@
 
 The landing page at [deadactive.github.io/hortator](https://deadactive.github.io/hortator/) runs the **real firmware**, compiled to WebAssembly, on a 3D FM-1: the 240 by 240 screen, the panel (buttons, SELECT / ALGORITHM / PRESETS, KNOB 1 to 4, MASTER, 27 keys, the LEDs) and stereo audio. The UI, sequencer, drum engines and effects are the firmware's own sources, so the page follows every release. The simulator runs the **plain version**: it has no Bluetooth page. SCL is labelled SEL there.
 
-The page also has a short guide for each area, and interactive pieces that run the firmware's own DSP: voices, resonators, the compressor, LFOs, the sequencer's chance and live hands, effects and PERFORM.
+The page also has a short guide for each area, and interactive pieces that run the firmware's own DSP: voices, the compressor, LFOs, the sequencer's chance and live hands, effects and PERFORM.
 
 ## Storage
 

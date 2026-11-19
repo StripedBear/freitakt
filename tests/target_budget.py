@@ -16,9 +16,9 @@ import sys
 
 FUNCS = ["body_render", "snare_render", "clap_render", "hat_render", "cymb_render", "cowb_render", "rim_render",
          "smp_render", "metal_make", "slicer_track", "fm1_alnk0_irq", "kboom_render", "kpunc_render", "ssnap_render",
-         "scrak_render", "hh_render", "mix_part", "comp_block", "lfo_track", "reson_block", "rev_room", "rev_spring",
+         "scrak_render", "hh_render", "mix_part", "comp_block", "lfo_track", "rev_room", "rev_spring",
          "perf_begin", "perf_pre", "perf_block", "perf_harm", "chain_apply", "memb_render",
-         "reson_modal", "px_memb_block", "px_modal_block_q", "trk_filter", "fm_render", "acid_render", "metro_block",
+         "px_memb_block", "trk_filter", "fm_render", "acid_render", "metro_block",
          "ktrx_render", "sdtrx_render", "b2trx_render", "xt_render", "cltrx_render", "rstrx_render", "cptrx_render",
          "matrx_render", "cbtrx_render", "trxm_render", "bdefm_render", "sdefm_render", "cpefm_render",
          "rsefm_render", "cbefm_render", "hhefm_render", "cyefm_render", "cue_switch", "track_srr",

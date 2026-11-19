@@ -895,7 +895,7 @@ static void t_presets(void)
     drum_set_model(&trk[0], DM_SMPL);
     preset_user_save(4, &trk[0]);                   /* the defaults: the slot as before (no bit set) */
     before = upr.s[4];
-    for (i = 0; i < UPR_NFX; i++)
+    for (i = 0; i < UPR_NFB; i++)
         same &= upr_fxv(&upr.s[4], i) == upr.s[4].f[i];
     check("a SAMPLE preset at the defaults: its bytes as before (the FX bytes' top bits 0)", same);
     trk[0].p[P_SATK] = 127;

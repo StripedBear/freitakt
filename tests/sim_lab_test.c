@@ -65,21 +65,6 @@ static void test_voices(void)
     check("voices: DECAY at max rings longer than at min", tail_len(buf_b, n) > tail_len(lab_buf(), n));
 }
 
-static void test_reson(void)
-{
-    uint32_t n = FS;
-    lab_reset();
-    lab_model(0, DM_RIM);
-    lab_voice(n, 1);
-    memcpy(buf_a, lab_buf(), n * sizeof(float));
-    lab_param(0, P_RMODEL, RS_STRNG);
-    lab_param(0, P_RDECAY, 110);
-    lab_param(0, P_RMIX, 100);
-    lab_voice(n, 1);
-    check("reson: STRNG rings longer than the dry hit", tail_len(lab_buf(), n) > tail_len(buf_a, n) + FS / 10u);
-}
-
-
 static void loop_kit(void)                              /* kick 4 on the floor, hats on 8ths */
 {
     uint32_t s;
@@ -264,7 +249,6 @@ static void test_reset_pages(void)
 int main(void)
 {
     test_voices();
-    test_reson();
     test_comp();
     test_lfo();
     test_dice();

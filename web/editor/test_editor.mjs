@@ -28,11 +28,12 @@ const fresh = (o) => createMockDevice(data, o);
 /* ---------------------------------------------- SAMPLE's ATK SUS REL LOOP in the objects --- */
 {
   const smpl = P.LAYOUT.smpl, fx = P.fxDefaults(), K = [0, 127, 127, 0, 1, -16, 0, 127];
-  const fenv = P.LAYOUT.uprFenv, slots = Array(96).fill(null);
+  const fenv = P.LAYOUT.uprFenv, fenvK = P.LAYOUT.uprFb.indexOf(fenv), slots = Array(96).fill(null);
+  const fxAt = (s, k) => { const i = P.LAYOUT.uprFb.indexOf(k); return i < 0 ? 0 : s.fx[i]; }; // byte k's value (RESON's: 0)
   slots[0] = { model: smpl, knobs: K, fx, voiceOnly: false };                                    // the defaults
-  slots[1] = { model: smpl, knobs: [0, 100, 127, 99, 1, -16, 0, 127], fx: fx.map((v, k) => (k === fenv ? -64 : k === 3 ? 127 : v)), voiceOnly: false, env: [127, 1, 0, 4, 1, 1] };
+  slots[1] = { model: smpl, knobs: [0, 100, 127, 99, 1, -16, 0, 127], fx: fx.map((v, k) => (k === fenvK ? -64 : k === 3 ? 127 : v)), voiceOnly: false, env: [127, 1, 0, 4, 1, 1] };
   slots[2] = { model: 3, knobs: K, fx, voiceOnly: false, env: [50, 50, 50, 1, 1, 1] };              // another model: none
-  slots[3] = { model: smpl, knobs: K, fx: fx.map((v, k) => (k === fenv ? 63 : v)), voiceOnly: false, env: [0, 0, 40, 0, 0, 0] };
+  slots[3] = { model: smpl, knobs: K, fx: fx.map((v, k) => (k === fenvK ? 63 : v)), voiceOnly: false, env: [0, 0, 40, 0, 0, 0] };
   const b = P.encodePresets(slots), plain = P.encodePresets(slots.map((s) => s && { ...s, env: undefined }));
   const d = P.decodePresets(b), o = (i) => 4 + i * P.LAYOUT.presets.slot + P.LAYOUT.presets.fx;
   ok(b.length === 3204 && eqb(b.subarray(0, 4 + 33), plain.subarray(0, 4 + 33)) && eqb(b.subarray(o(2) - 10, o(4)), plain.subarray(o(2) - 10, o(4))),
@@ -41,12 +42,12 @@ const fresh = (o) => createMockDevice(data, o);
     && same(d.slots[1].knobs, slots[1].knobs) && b[4 + 33 + 2 + 3] === (99 | 0x80) && b[4 + 33 + 2 + 1] === (100 | 0x80) && b[4 + 33 + 2 + 2] === (127 | 0x80) && b[4 + 33 * 3 + 2 + 3] === K[3]
     && d.slots[2].env === undefined && same(d.slots[3].fx, slots[3].fx) && eqb(P.encodePresets(d.slots, d.moved), b),
     "presets: ATK SUS REL LOOP ride in the FX bytes' spare top bit (FILTER ENV -64 / 63 kept), LOOP's 3rd bit, PLAY, CUT in DRIVE's, DECAY's, TONE's, decode -> encode byte for byte");
-  ok(b.subarray(o(1), o(1) + 23).some((x, k) => k !== fenv && x > 127) && b.subarray(o(1), o(1) + 23).every((x, k) => k === fenv || (x & 127) === slots[1].fx[k]),
+  ok(b.subarray(o(1), o(1) + 23).some((x, k) => k !== fenv && x > 127) && b.subarray(o(1), o(1) + 23).every((x, k) => k === fenv || (x & 127) === fxAt(slots[1], k)),
     "presets: the bits are the top bits of the 0..127 FX bytes");
   const rec = P.decodeProject(fresh().flashObjects(0).record), ia = data.P.indexOf("SATK");
   rec.tracks[4].p[ia] = 9; rec.tracks[4].p[ia + 1] = 100; rec.tracks[4].p[ia + 2] = 127; rec.tracks[4].p[ia + 3] = 2; rec.tracks[4].p[ia + 4] = 1; rec.tracks[4].p[ia + 5] = 1;
   const rb = P.encodeProject(rec), back = P.decodeProject(rb), x2 = P.LAYOUT.project.xp2 + 4 * 4;
-  ok(back.tracks[4].p.length === 81 && same(back.tracks[4].p.slice(ia), [9, 100, 127, 2, 1, 1]) && same(back.tracks[0].p.slice(ia), [0, 0, 40, 0, 0, 0])
+  ok(back.tracks[4].p.length === 73 && same(back.tracks[4].p.slice(ia), [9, 100, 127, 2, 1, 1]) && same(back.tracks[0].p.slice(ia), [0, 0, 40, 0, 0, 0])
     && rb[x2] === 9 && rb[x2 + 2] === 87 && rb[P.LAYOUT.project.xp2] === 0 && rb[P.LAYOUT.project.xp3 + 2 * 4] === 1 && rb[P.LAYOUT.project.xp3 + 2 * 4 + 1] === 1 && eqb(P.encodeProject(back), rb),
     "project: ATK SUS REL LOOP in xp2, PLAY CUT in xp3 (their offset from the power-on value; 0 = before them), round trip");
 }
@@ -124,18 +125,20 @@ const fresh = (o) => createMockDevice(data, o);
     && Object.entries(P.LAYOUT.vars).every(([n, v]) => lay.vars[n] === v) && lay.presets.size === P.LAYOUT.presets.size
     && lay.presets.slot === P.LAYOUT.presets.slot && lay.songSize === 36, "layout: object offsets = the firmware's structs");
   ok(same(lay.presets, P.LAYOUT.presets) && P.SZ.PRESETS === lay.presets.size && P.SZ.PRESETS_V1 === lay.presets.sizeV1
-    && same(data.uprFx, P.LAYOUT.uprFx) && same(P.LAYOUT.uprFxDef, data.uprFx.map((id) => data.tp[id].def))
+    && same(data.uprFx, P.LAYOUT.uprFx) && same(data.uprFb, P.LAYOUT.uprFb) && P.LAYOUT.uprNfb === c.UPR_NFB
+    && same(P.LAYOUT.uprFxDef, data.uprFx.map((id) => data.tp[id].def))
     && P.LAYOUT.nuserOld === c.UPR_NOLD && P.LAYOUT.uprFx.length === c.UPR_NFX && P.UPR.USED === c.UPR_USED
     && P.UPR.VOICE === c.UPR_VOICE && P.MAGIC.UPR1 === data.magic.UPR1 && P.UPR_FX_LABELS.length === c.UPR_NFX
     && P.CAP.UPR2 === 0x40 && P.PROTO.minor === 3, "layout: the user presets (UPR2: 96 slots with their FX, the moves; UPR1's size) = the firmware's");
   ok(P.LAYOUT.pcount === c.P_COUNT && P.LAYOUT.gcount === c.G_COUNT && P.LAYOUT.pStored === c.P_NSTORED && P.LAYOUT.gStored === c.G_NSTORED
     && P.LAYOUT.nuser === c.PRE_NUSER && P.LAYOUT.lkMax === c.LK_MAX && P.LAYOUT.nameLen === c.NAME_LEN && P.SZ.VARS_MAX === c.VAR_BYTES
     && P.NAME_SET === data.nameSet && P.LAYOUT.gGap[0] === c.PR_GR && P.LAYOUT.gStored + P.LAYOUT.gGap[1] === c.PR_NG
-    && P.LAYOUT.pGap[0] === c.PR_SRC && P.LAYOUT.pStored + P.LAYOUT.pGap[1] === c.PR_NP, "layout: counts = the firmware's");
+    && P.LAYOUT.pGap[0] === c.PR_SRC && P.LAYOUT.rGap[0] === c.PR_RSN && P.LAYOUT.pStored + P.LAYOUT.pGap[1] + P.LAYOUT.rGap[1] === c.PR_NP
+    && P.LAYOUT.xpN === c.PROJ_XP && P.LAYOUT.xpAt + P.LAYOUT.xpDef.length === c.PROJ_XP, "layout: counts = the firmware's");
   ok(P.LAYOUT.xp2Def.every((d, j) => data.tp[data.P.indexOf("SATK") + j].def === d) && P.LAYOUT.xp2Def.length === 4
     && data.P.indexOf("SATK") === c.P_NSTORED + P.LAYOUT.xpDef.length && data.P.indexOf("SCUT") === c.P_COUNT - 1
     && same(P.LAYOUT.xp3Def, ["SPLAY", "SCUT"].map((n) => data.tp[data.P.indexOf(n)].def))
-    && P.LAYOUT.smpl === c.DM_SMPL && P.LAYOUT.uprFenv === c.UPR_FENV && P.LAYOUT.uprFx[c.UPR_FENV] === data.P.indexOf("FENV")
+    && P.LAYOUT.smpl === c.DM_SMPL && P.LAYOUT.uprFenv === c.UPR_FENV && P.LAYOUT.uprFx[P.LAYOUT.uprFb.indexOf(c.UPR_FENV)] === data.P.indexOf("FENV")
     && same(P.LAYOUT.envMax, ["SATK", "SSUS", "SREL", "SLOOP", "SPLAY", "SCUT"].map((n) => data.tp[data.P.indexOf(n)].max))
     && same(P.LAYOUT.envDef, ["SATK", "SSUS", "SREL", "SLOOP", "SPLAY", "SCUT"].map((n) => data.tp[data.P.indexOf(n)].def)),
   "layout: ATK SUS REL LOOP (xp2), PLAY CUT (xp3), their defaults and ranges, SAMPLE's model id, FILTER ENV's place in a preset's FX");
@@ -143,10 +146,10 @@ const fresh = (o) => createMockDevice(data, o);
     && same(P.LAYOUT.timing, ["SLEN", "SDIV", "SSWING"].map((n) => data.P.indexOf(n))), "layout: the step-byte parameters' defaults, the timing ids");
   ok(P.MAGIC.PROJ === data.magic.PROJ && P.MAGIC.LK === data.magic.LK && P.MAGIC.VAR === data.magic.VAR && P.MAGIC.UPR === data.magic.UPR
     && same([...P.OLD_PROJECTS], data.oldProjects), "layout: magics and the older records' sizes");
-  ok(P.ID.MODEL === data.P.indexOf("MODEL") && P.ID.RMODEL === data.P.indexOf("RMODEL") && P.ID.ITYPE === data.P.indexOf("ITYPE")
+  ok(P.ID.MODEL === data.P.indexOf("MODEL") && P.ID.ITYPE === data.P.indexOf("ITYPE")
     && P.ID.SYNC === data.G.indexOf("SYNC"), "ids: the core.h ids the page names = device_data.json's");
   ok(P.LAYOUT.preNone === data.preNone && P.LAYOUT.preRecUser === data.preRecUser && same(data.fmt.slice(0, 3), ["INT", "PCT", "BIPCT"])
-    && data.fmt.length === 29, "layout: preset references, the F_ list");
+    && data.fmt.length === 27, "layout: preset references, the F_ list");
   let gen = "skipped (no cc)";
   try { execFileSync("cc", ["--version"], { stdio: "ignore" }); gen = ""; } catch { /* no compiler */ }
   if (!gen) {
@@ -194,7 +197,7 @@ m.feed = (f) => { const out = feed0(f); seen.push(...out); return out; };
 const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
-  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 8 && info.pcount === 81
+  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 8 && info.pcount === 73
     && info.gcount === 32 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
@@ -216,8 +219,8 @@ const q = (cmd, args) => m.request(cmd, args);
   ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "SONG", "STEP", "TRACKS"].includes(p.title))
     && pages[0].title === "SOUND" && same(pages[0].ids, [0, 1, 2, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
   "PAGES: paged, DEST x 4, no slot / motion / song / tools pages, SOUND list, DLY MODE");
-  ok(t0.p.length === 81 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
-    "DUMP: 81 parameters, 32 globals, the model");
+  ok(t0.p.length === 73 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
+    "DUMP: 73 parameters, 32 globals, the model");
   const names = [];
   let d0;
   for (let first = 0; ;) {
@@ -233,12 +236,12 @@ const q = (cmd, args) => m.request(cmd, args);
   const ldest = q(CMD.DESC, { scope: SCOPE.TRACK, track: 0, id: data.P.indexOf("LFO1_DEST"), first: 0 });
   const e1 = q(CMD.DESC, { scope: SCOPE.TRACK, track: 0, id: 2, first: 0 }), mdl = q(CMD.DESC, { scope: SCOPE.MODEL, track: 0, id: 0, first: 0 });
   const ro = q(CMD.DESC, { scope: SCOPE.GLOBAL, track: 0, id: data.G.indexOf("SLOT"), first: 0 });
-  ok(same(div.items, data.tp[data.P.indexOf("SDIV")].order) && ldest.nnames === 28 && ldest.items[0] === "OFF" && ldest.items[11] === "R.TUN" && ldest.items[19] === "SRR" && ldest.items[24] === "MIX"
+  ok(same(div.items, data.tp[data.P.indexOf("SDIV")].order) && ldest.nnames === 22 && ldest.items[0] === "OFF" && ldest.items[11] === "F.CUT" && ldest.items[13] === "SRR" && ldest.items[18] === "MIX"
     && (e1.flags & (P.DF.LOCK | P.DF.CONTEXT)) === (P.DF.LOCK | P.DF.CONTEXT) && mdl.label === data.models[0].edit[0].label
     && (ro.flags & P.DF.RO) && same(ro.items, ["A", "B", "C", "D"]), "DESC: an order, LDEST names, LOCK / CONTEXT / RO flags, scope MODEL");
   const vals = [];
-  for (let id = 0; id < 81;) { const r = q(CMD.GET, { scope: 0, track: 0, id, count: 81 - id }); vals.push(...r.values); id += r.values.length; }
-  ok(vals.length === 81 && vals.every((v, i) => v.value === t0.p[i]) && vals[0].text === "BDTRX", "GET: all 81 values with their texts, about 25 a reply");
+  for (let id = 0; id < 73;) { const r = q(CMD.GET, { scope: 0, track: 0, id, count: 73 - id }); vals.push(...r.values); id += r.values.length; }
+  ok(vals.length === 73 && vals.every((v, i) => v.value === t0.p[i]) && vals[0].text === "BDTRX", "GET: all 73 values with their texts, about 25 a reply");
   const lvl = data.P.indexOf("LEVEL"), s1 = q(CMD.SET, { scope: 0, track: 0, id: lvl, value: 500 }), tx = q(CMD.TEXT, { scope: 0, track: 0, id: lvl, value: 3 });
   ok(s1.value === 127 && q(CMD.DUMP, { track: 0 }).p[lvl] === 127 && tx.value === 3 && q(CMD.DUMP, { track: 0 }).p[lvl] === 127,
     "SET: clamped, kept; TEXT changes nothing");
@@ -396,7 +399,7 @@ const q = (cmd, args) => m.request(cmd, args);
   const rb = P.encodeProject(pr), back = P.decodeProject(rb);
   ok(back.format === "FDRG" && !back.old && back.tracks[2].steps[3].micro === -33 && same(back.tracks.map((t) => t.p), pr.tracks.map((t) => t.p))
     && rb[P.LAYOUT.project.t + 2 * P.LAYOUT.project.trk + P.LAYOUT.project.trkStep + 4 * 3 + 3] === 256 - 33,
-  "NUDGE: an FDRG record: every step's spare byte its micro, KEYF / SRR / the INSERT in xp");
+  "NUDGE: an FDRG record: every step's spare byte its micro, SRR / the INSERT in xp");
 }
 
 function backupAll(dev) {
@@ -465,14 +468,14 @@ function restore(dev, kind, slot, parts) {
   pfile.slots[used[2]] = null;
   const pread = P.readPresetsFile(pfile), edited = pread.slots, rec = P.encodePresets(edited, pread.moved), dec = P.decodePresets(rec).slots;
   ok(edited[used[0]].name === "MY KICK" && same(dec[95], slots[used[1]]) && dec[used[2]] === null && same(dec[used[0]], slots[used[0]])
-    && pfile.version === 2 && pfile.slots.length === 96 && pfile.slots[used[0]].fx.length === 23,
+    && pfile.version === 2 && pfile.slots.length === 96 && pfile.slots[used[0]].fx.length === 15,
     "files: presets renamed / reordered / deleted -> the right UPR2 record, each slot's FX kept");
   const wr = restore(m, RK.PRESETS, 0, [rec]);
   ok(wr.rc === 0 && eqb(m.flash.upr.bytes, rec) && same(m.upr[95], slots[used[1]]), "RESTORE presets: the edited list written");
 
   /* UPR2: the voice and its FX, a voice-only slot, the moves; UPR1 and version 1 files moved in as the firmware does */
   {
-    const fx = P.fxDefaults().map((x, k) => (k === 13 ? 33 : k === 2 ? 90 : x));
+    const fx = P.fxDefaults().map((x, k) => (k === 5 ? 33 : k === 2 ? 90 : x));
     const s2 = Array(96).fill(null), mv = Array(32).fill(0);
     s2[0] = { model: 3, knobs: [1, 2, 3, 4, 5, 6, 7, -8], fx, voiceOnly: false };
     s2[95] = { model: 4, knobs: [0, 0, 0, 0, 0, 0, 0, 0], fx: P.fxDefaults(), voiceOnly: true };
@@ -531,7 +534,7 @@ function restore(dev, kind, slot, parts) {
   /* the mock as the firmware: a user preset's FX load with it, its FX knobs mark it edited; a voice-only one neither */
   {
     const d = fresh(), nf = data.presets.length, Pi = d.P;
-    const fx = P.fxDefaults().map((x, k) => (k === 13 ? 33 : k === 2 ? 90 : x));
+    const fx = P.fxDefaults().map((x, k) => (k === 5 ? 33 : k === 2 ? 90 : x));
     d.upr[7] = { model: d.M.K909, knobs: [0, 60, 60, 60, 60, 60, 60, 60], fx, voiceOnly: false };
     d.upr[8] = { model: d.M.K808, knobs: [0, 60, 60, 60, 60, 60, 60, 60], fx: P.fxDefaults(), voiceOnly: true };
     d.tracks[1].p[Pi.FCUT] = 100;
@@ -584,7 +587,7 @@ function restore(dev, kind, slot, parts) {
     ok(pf.format === "FDRF" && pf.old && pf.ok && r.rc === 0 && (l[4].flags & P.BF.OLD) && l[8].present && l[12].present
       && d.slots[3].tracks[1].p[data.P.indexOf("SRR")] === 40 && d.slots[3].tracks[2].p[data.P.indexOf("IMIX")] === 10
       && st.steps.every((s) => s.micro === 0) && same(st.steps.map((s) => s.flags), pa.tracks[2].steps.map((s) => s.flags)),
-    "RESTORE an FDRF project (an editor file before NUDGE) with its parts: written as it is (OLD), KEYF / SRR / INSERT kept, NUDGE 0");
+    "RESTORE an FDRF project (an editor file before NUDGE) with its parts: written as it is (OLD), SRR / INSERT kept, NUDGE 0");
     ok(P.decodeProject(P.encodeProject(pa)).format === "FDRG" && fresh().request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 0,
       magic: 0x48524446, parts: [{ size: 3840, crc: 0 }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] }).detail === DETAIL.NEWER,
     "RESTORE: a record newer than this firmware's (FDRH here, FDRG on an older device) refused by its magic");

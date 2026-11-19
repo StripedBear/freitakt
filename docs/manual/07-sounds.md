@@ -97,7 +97,7 @@ At power-on, on TOOLS **INIT ALL** and in a new project the eight tracks load th
 
 ## Presets
 
-A **preset** is one voice: MODEL plus the eight SOUND knobs (the SAMPLE model's PLAY, CUT, ATK, SUS, REL and LOOP too) and a name. A **USER** preset also stores the track's **FX**: the DIST, CHO, DLY and REV sends, FILTER, INSERT, SRR and RESON. No preset stores LEVEL, PAN, NOTE, CHOKE, PRIO, the SLICER, LAYER, the LFOs or steps. Factory presets change only the sound; the track's FX stay.
+A **preset** is one voice: MODEL plus the eight SOUND knobs (the SAMPLE model's PLAY, CUT, ATK, SUS, REL and LOOP too) and a name. A **USER** preset also stores the track's **FX**: the DIST, CHO, DLY and REV sends, FILTER, INSERT and SRR. No preset stores LEVEL, PAN, NOTE, CHOKE, PRIO, the SLICER, LAYER, the LFOs or steps. Factory presets change only the sound; the track's FX stay.
 
 | Bank | Presets |
 | --- | --- |

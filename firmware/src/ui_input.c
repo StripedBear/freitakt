@@ -600,19 +600,6 @@ static void edit_param(uint32_t slot, int32_t steps)
                 n = (int32_t)smp_slot_count((uint32_t)TSEL->p[d->fmt == F_SLOT ? P_E4 : P_LSET]);
         v = SMP_SLOT_V(clamp((i < 0 ? 0 : i) + steps, 0, n > 0 ? n - 1 : 0));   /* (no acceleration: <= 16) */
     }
-    if (pg->scope == SC_TRACK && id == P_RMODEL && v != *vp) {   /* a capped model full: the next one (or why not) */
-        int32_t dir = v > *vp ? 1 : -1;
-        const char *why = reson_refused(TSEL, *vp, v);
-        while (why && v + dir >= d->min && v + dir <= d->max) {
-            v += dir;
-            why = reson_refused(TSEL, *vp, v);
-        }
-        if (why) {
-            ui_message(why);
-            return;
-        }
-    }
-
     if (pg->scope == SC_TRACK && vp >= TSEL->p && vp < TSEL->p + P_COUNT && preset_marks(TSEL, (uint32_t)(vp - TSEL->p)) &&
         v != *vp)
         preset_touch(TSEL);                           /* presets.c: the preset edited (not a turn at its limit) */

@@ -213,9 +213,10 @@ static void test_select_pages(void)
     sel(1);
     check("SELECT on INSERT 2/2: SLICER", str_eq(cur_page()->title, "SLICER"));
     sel(1);
-    check("SELECT again: RESON 1/2", str_eq(cur_page()->title, "RESON") && page_id(cur_page(), 0) == P_RMODEL);
+    check("SELECT again: SLICER is FX's last page, it stays", str_eq(cur_page()->title, "SLICER"));
     sel(-1);
-    check("SELECT back: SLICER", str_eq(cur_page()->title, "SLICER"));
+    check("SELECT back: INSERT 2/2", str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_IMIX);
+    sel(1);
     k = ui.page;
     turn(EN_PRESET, 3);
     ui_frame();
@@ -768,7 +769,7 @@ static void test_comp_ghost_knob(void)
     memset(&proj_slot[0], 0, sizeof proj_slot[0]);  /* the slot empty again for the project tests */
 }
 
-/* ACID on 2 tracks at most (like RESON's cap): a 3rd track's MODEL knob skips ACID with the message; a project
+/* ACID on 2 tracks at most: a 3rd track's MODEL knob skips ACID with the message; a project
  * with 4 ACID tracks loads with the first 2, the others back to their power-on kit model */
 static void test_acid_cap(void)
 {
@@ -2700,99 +2701,6 @@ static void test_rec_all(void)
     chain.armed = 0;
 }
 
-/* FX: RESON 1/2 and 2/2 after SLICER; STRCT is CHORD on CHORD; CHORD on 2 tracks at most (knob and load) */
-static void test_reson_pages(void)
-{
-    uint32_t k, n;
-    ui_host_init();
-    for (k = 0; k < 12u && (ui.home || page_id(cur_page(), 0) != P_RMODEL); k++)
-        tap(B_FX);
-    check("FX: RESON 1/2 after SLICER (MODEL TUNE DECAY MIX)",
-          str_eq(cur_page()->title, "RESON") && page_id(cur_page(), 0) == P_RMODEL && page_id(cur_page(), 3) == P_RMIX &&
-              str_eq(PAGES[ui.page - 1u].title, "SLICER"));
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON: KNOB 1 picks STRNG", TSEL->p[P_RMODEL] == RS_STRNG);
-    keys(1u << KEY_TRK_KEY[0]);                      /* play it: the ring for the picture */
-    ui_frame();
-    keys(0);
-    for (k = 0; k < 10u; k++)
-        ui_frame();
-    snap_page("reson/01_strng");
-    tap(B_FX);
-    check("FX again: RESON 2/2 (TONE STRCT POS)", page_id(cur_page(), 0) == P_RTONE && page_id(cur_page(), 1) == P_RSTRCT);
-    TSEL->p[P_RMODEL] = RS_CHORD;
-    ui_frame();
-    {
-        int16_t *vp;
-        const param_desc_t *d = page_desc(cur_page(), 1, &vp);
-        check("RESON 2/2 on CHORD: the second knob is CHORD", d && str_eq(d->label, "CHORD"));
-    }
-    snap_page("reson/02_chord_page2");
-    check("RESON 2/2: KNOB 4 is KEYF (KEYFOLLOW), 0 % by default", page_id(cur_page(), 3) == P_RKEY && TSEL->p[P_RKEY] == 0);
-    TSEL->p[P_RMODEL] = RS_STRNG;
-    turn(EN_K4, 200);
-    ui_frame();
-    {
-        char v[12];
-        const char *u = 0;
-        param_format(&TP[P_RKEY], TSEL->p[P_RKEY], v, &u);
-        check("RESON KEYF: the knob runs to 100 %", TSEL->p[P_RKEY] == 127 && str_eq(v, "100"));
-    }
-    keys(1u << KEY_TRK_KEY[0]);                      /* the ring for the picture */
-    ui_frame();
-    keys(0);
-    for (k = 0; k < 10u; k++)
-        ui_frame();
-    snap_page("reson/04_keyf");
-    TSEL->p[P_RKEY] = 0;
-    TSEL->p[P_RMODEL] = RS_CHORD;
-    trk[1].p[P_RMODEL] = RS_CHORD;                   /* tracks 1 and 2 CHORD: track 3 cannot */
-    trk[2].p[P_RMODEL] = RS_PIPE;
-    for (k = 0; k < NPAGES && (ui.home || page_id(cur_page(), 0) != P_RMODEL); k++)
-        tap(B_FX);                                   /* round the FX pages back to RESON 1/2 */
-    keys(1u << KEY_TRK_KEY[2]);
-    ui_frame();
-    keys(0);
-    ui_frame();
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON CHORD cap: a 3rd track's MODEL knob goes past CHORD (full) to MODAL",
-          song.sel == 2 && trk[2].p[P_RMODEL] == RS_MODAL);
-    snap_page("reson/03_chord_cap");
-    turn(EN_K1, -1);
-    ui_frame();
-    check("RESON CHORD cap: back down, past CHORD (full) to PIPE", trk[2].p[P_RMODEL] == RS_PIPE);
-    trk[1].p[P_RMODEL] = RS_STRNG;                   /* a place frees */
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON CHORD cap: once a place frees, the 3rd track gets CHORD", trk[2].p[P_RMODEL] == RS_CHORD);
-    for (k = 0; k < NTRK; k++)                       /* RESON on 4 tracks at most: a 5th track's knob stays OFF */
-        trk[k].p[P_RMODEL] = (int16_t)(k < 4u ? RS_STRNG : RS_OFF);
-    keys(1u << KEY_TRK_KEY[4]);
-    ui_frame();
-    keys(0);
-    ui_frame();
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON on 4 tracks at most: a 5th track's MODEL knob stays OFF, with the message",
-          song.sel == 4 && trk[4].p[P_RMODEL] == RS_OFF && str_eq(ui.msg, "RESON: 4 TRACKS MAX"));
-    trk[0].p[P_RMODEL] = RS_OFF;                     /* a place frees */
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON on 4 tracks at most: once a place frees, the 5th gets it", trk[4].p[P_RMODEL] == RS_STRNG);
-    for (k = 0; k < NTRK; k++)                       /* a project with 8 CHORD tracks loads with 2 CHORD + 2 STRNG */
-        trk[k].p[P_RMODEL] = RS_CHORD;
-    project_save(0);
-    project_load(0);
-    for (k = 0, n = 0; k < NTRK; k++)
-        n += trk[k].p[P_RMODEL] == RS_CHORD;
-    check("RESON caps on load: the first two keep CHORD, the next two play STRNG, the rest OFF (4 tracks at most)",
-          n == 2u && trk[0].p[P_RMODEL] == RS_CHORD && trk[1].p[P_RMODEL] == RS_CHORD && trk[2].p[P_RMODEL] == RS_STRNG &&
-              trk[3].p[P_RMODEL] == RS_STRNG && trk[4].p[P_RMODEL] == RS_OFF && trk[7].p[P_RMODEL] == RS_OFF);
-    memset(&proj_slot[0], 0, sizeof proj_slot[0]);  /* the slot empty again for the project tests */
-}
-
 /* HOME: a white key selects its track and plays it; an LFO on a HOME knob shows its live value on the gauge */
 static void test_home_keys_and_lfo(void)
 {
@@ -4708,9 +4616,9 @@ static void test_project_rejects(void)
     proj_slot[0].t[3].p[PR_P(P_DUCK)] = 5;
     proj_slot[0].t[3].p[PR_P(P_LFO1 + LF_DEST)] = 99;
     proj_slot[0].t[3].p[PR_P(P_LFO1 + LF_WAVE)] = -4;
-    proj_slot[0].t[3].p[PR_P(P_RMODEL)] = 99;
-    proj_slot[0].t[3].p[PR_P(P_RTUNE)] = 500;
-    proj_slot[0].t[3].p[PR_P(P_RDECAY)] = -9;
+    proj_slot[0].t[3].p[PR_P(P_FTYPE)] = 99;
+    proj_slot[0].t[3].p[PR_P(P_FCUT)] = 500;
+    proj_slot[0].t[3].p[PR_P(P_FDEC)] = -9;
     proj_slot[0].sum = proj_sum(&proj_slot[0]);
     (void)proj_load(0, 1);                           /* (the edited slot: as DISCARD EDITS? YES) */
     check("project: out-of-range values are clamped on load",
@@ -4719,7 +4627,7 @@ static void test_project_rejects(void)
               trk[3].p[P_SLEN] == NSTEP && song.g[G_DRCH] == 1 &&
               song.g[G_CSRC] == 8 && trk[3].p[P_DUCK] == 1 &&
               trk[3].p[P_LFO1 + LF_DEST] == TP[P_LFO1 + LF_DEST].max && trk[3].p[P_LFO1 + LF_WAVE] == 0 &&
-              trk[3].p[P_RMODEL] == RS_NMODEL - 1 && trk[3].p[P_RTUNE] == 96 && trk[3].p[P_RDECAY] == 0);
+              trk[3].p[P_FTYPE] == FT_N - 1 && trk[3].p[P_FCUT] == 127 && trk[3].p[P_FDEC] == 0);
     proj_slot[1].magic = 0x46554E33u;                /* an old Felucca project ("FUN3") */
     check("project: Felucca projects are not used", !project_used(1));
     project_save(2);
@@ -4830,7 +4738,7 @@ static void test_key_selects_track(void)
 {
     static const struct { const char *title; uint32_t btn, presses; int want; } C[] = {
         {"SOUND", B_EDIT, 1, 1},
-        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"SLICER", B_FX, 6, 1}, {"RESON", B_FX, 7, 1},
+        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"SLICER", B_FX, 6, 1},
         {"DLY", B_GLO, 4, 0}, {"CHORUS", B_GLO, 7, 0},
         {"PATTERN", B_SEQ, 2, 0},
     };
@@ -6011,39 +5919,6 @@ static void test_name_message_ends(void)
     name_close();
 }
 
-static void test_reson_model_skips_full(void)
-{
-    uint32_t k;
-    ui_host_init();
-    trk[1].p[P_RMODEL] = RS_CHORD;
-    trk[2].p[P_RMODEL] = RS_CHORD;                    /* CHORD full (2) */
-    for (k = 0; k < NPAGES && (ui.home || !str_eq(cur_page()->title, "RESON")); k++)
-        tap(B_FX);
-    TSEL->p[P_RMODEL] = RS_PIPE;
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON MODEL: past a full CHORD the knob reaches MODAL", TSEL->p[P_RMODEL] == RS_MODAL);
-    trk[3].p[P_RMODEL] = RS_MODAL;                    /* MODAL full too (tracks 1 and 4) */
-    song.sel = 4;
-    TSEL->p[P_RMODEL] = RS_PIPE;
-    turn(EN_K1, 1);
-    ui_frame();
-    check("RESON MODEL: CHORD and MODAL full: stays, says why", TSEL->p[P_RMODEL] == RS_PIPE &&
-          (str_eq(ui.msg, "MODAL: 2 TRACKS MAX") || str_eq(ui.msg, "RESON: 4 TRACKS MAX")));
-}
-static void test_modal_load_clamp(void)
-{
-    uint32_t k, n = 0;
-    ui_host_init();
-    for (k = 0; k < 3u; k++)
-        trk[k].p[P_RMODEL] = RS_MODAL;
-    project_save(0);
-    project_load(0);
-    for (k = 0; k < NTRK; k++)
-        n += trk[k].p[P_RMODEL] == RS_MODAL;
-    check("a project with 3 MODAL tracks loads with 2 (the 3rd STRNG)", n == 2u && trk[2].p[P_RMODEL] == RS_STRNG);
-}
-
 static void test_phys_screens(void)
 {
     uint32_t k;
@@ -6061,13 +5936,6 @@ static void test_phys_screens(void)
         const param_desc_t *h = page_desc(cur_page(), 0, &vp), *b = page_desc(cur_page(), 2, &vp);
         check("MEMB: SOUND 2/3 holds HEAD .. BEND", h && b && str_eq(h->label, "HEAD") && str_eq(b->label, "BEND"));
     }
-    TSEL->p[P_RMODEL] = RS_MODAL;
-    TSEL->p[P_RSTRCT] = 110;
-    for (k = 0; k < NPAGES && (ui.home || !str_eq(cur_page()->title, "RESON")); k++)
-        tap(B_FX);
-    ui.force = 1;
-    snap_page("phys/reson_modal");
-    check("RESON with MODAL draws", !ui.home && str_eq(cur_page()->title, "RESON"));
 }
 
 /* FILTER: two pages first in FX (TYPE CUT RESO ENV, DECAY), the graph per TYPE */
@@ -6094,7 +5962,7 @@ static void test_filter_screens(void)
     ui.force = 1;
     snap_page("filter/decay");
     check("FILTER 2/2 holds DECAY", str_eq(cur_page()->title, "FILTER") && str_eq(page_desc(cur_page(), 0, &vp)->label, "DECAY"));
-    TSEL->p[P_LFO1 + LF_DEST] = 17;
+    TSEL->p[P_LFO1 + LF_DEST] = 11;
     for (k = 0; k < NPAGES && (ui.home || cur_page()->fam != FAM_LFO); k++)
         tap(B_LFO);
     page_turn(1);
@@ -6103,8 +5971,8 @@ static void test_filter_screens(void)
     {
         char v[8];
         const char *u;
-        param_format(&TP[P_LFO1 + LF_DEST], 17, v, &u);
-        check("LFO DEST 17 reads F.CUT", str_eq(v, "F.CUT"));
+        param_format(&TP[P_LFO1 + LF_DEST], 11, v, &u);
+        check("LFO DEST 11 reads F.CUT", str_eq(v, "F.CUT"));
     }
 }
 
@@ -6154,7 +6022,7 @@ static void test_insert_screens(void)
     TSEL->p[P_ITYPE] = IT_OFF;
 }
 
-/* INIT SOUND resets the FILTER (spec §3); a model change keeps it (as DIST and RESON) */
+/* INIT SOUND resets the FILTER (spec §3); a model change keeps it (as DIST) */
 static void test_initsnd_filter(void)
 {
     uint32_t k;
@@ -8825,7 +8693,7 @@ static void test_about_credits_scroll(void)
 {
     static const char *const WHO[] = {"FORK: DEADACTIVE", "LEO KUROSHITA", "HUGELTON INSTRUMENTS",
                                       "GITHUB.COM/HUGELTON/FELUCCA", "MUTABLE", "EMILIE GILLET", "PLAITS", "STMLIB",
-                                      "STREAMS", "DAISYSP", "ELECTROSMITH", "SKIN", "RESON", "VERSILIAN",
+                                      "STREAMS", "DAISYSP", "ELECTROSMITH", "SKIN", "VERSILIAN",
                                       "VCSL", "CC0", "PIXEL FONT: DEADACTIVE", "LANDERS'", "GEARMULATOR",
                                       "SUSPECTS", "DSP56300", "ELEKTRON", "NOT AFFILIATED", "JIELI", "APACHE-2.0",
                                       "JL-UBOOT-TOOL", "KAGAIMIQ", "GRIGORYEV", "TERMINUS", "ZHEKOV", "FUKIAI",
@@ -10103,7 +9971,7 @@ static void test_lock_entry_every_page(void)
     home_tracks();
     ui_frame();
     ok &= (uint32_t)lock_page_ok("TRACKS");
-    check("locks: on every SOUND, LAYER, FX, SLICER, RESON, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
+    check("locks: on every SOUND, LAYER, FX, SLICER, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
           "a recordable knob writes a lock (its own value + 1), the knob and the base untouched; MODEL, TYPE, WAVE, "
           "DEST, SRC and the rest change nothing", ok && pages > 12u);
 }
@@ -10570,7 +10438,6 @@ int main(void)
     test_rec_seq_unchanged();
     test_rec_learned_short();
     test_copy_page();
-    test_reson_pages();
     test_acid_cap();
     test_select_pages();
     test_global_mute_setting();
@@ -10622,8 +10489,6 @@ int main(void)
     test_name_stop_to_save();
     test_song_row_after_load();
     test_name_message_ends();
-    test_reson_model_skips_full();
-    test_modal_load_clamp();
     test_phys_screens();
     test_filter_screens();
     test_insert_screens();

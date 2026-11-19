@@ -16,7 +16,7 @@
 enum {
     F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,
     F_ONOFF, F_OCT, F_STEPS, F_CTHR, F_CRAT, F_CATK, F_CREL, F_CMKUP, F_LRATE1, F_LRATE2, F_LDEST, F_LPHASE,
-    F_NOTEO, F_RDECAY, F_FDEC, F_SRR, F_SLOT, F_LSLOT   /* SLOT: the SAMPLE model's (its SET), the LAYER's (LAYER SET) */
+    F_FDEC, F_SRR, F_SLOT, F_LSLOT   /* SLOT: the SAMPLE model's (its SET), the LAYER's (LAYER SET) */
 };
 
 typedef struct {
@@ -30,14 +30,13 @@ typedef struct {
 #define PE(l, n, df) {l, F_ENUM, 0, (int16_t)(sizeof(n) / sizeof(n[0]) - 1), df, n, 0}
 
 enum { LF_WAVE, LF_MODE, LF_RATE, LF_MORPH, LF_DEPTH, LF_DEST, LF_TRIG, LF_PHASE, LF_N };   /* an LFO's knobs */
+#define LD_MAX 21                /* an LFO DEST's top value (0 OFF; lfo.c lfo_dest_param) */
 enum { LW_SQUARE, LW_SAW, LW_RSAW, LW_SINE, LW_TRI, LW_SH, LW_WANDER, LW_EXPUP, LW_EXPDN, LW_RWALK, LW_COUNT };   /* LFO waves (lfo.c) */
 enum { LM_SYNC, LM_HZ, LM_TIME };
 enum { LT_FREE, LT_HIT, LT_PLAY };
-enum { RS_OFF, RS_STRNG, RS_PIPE, RS_CHORD, RS_MODAL, RS_NMODEL };   /* RESON models (reson.c); MODAL: the modal core (phys_dsp.c) */
 enum { FT_OFF, FT_LP, FT_BP, FT_HP, FT_NOTCH, FT_N };   /* FILTER types (filter.c) */
 enum { IT_OFF, IT_SOFT, IT_HARD, IT_FOLD, IT_FUZZ, IT_CRUSH, IT_PHASER, IT_FLANGER, IT_CHORUS, IT_N };   /* INSERT
                                                      * types (insert.c; stored: append only) */
-#define RS_NCHORD 20                                 /* CHORD types (reson.c RS_CHORD_IV, params.c N_RCHORD) */
 
 enum {                          /* per-track parameters */
     P_MODEL,
@@ -50,17 +49,13 @@ enum {                          /* per-track parameters */
     P_DUCK,                      /* M3: the COMP source ducks this track */
     P_LFO1,                      /* LFO 1: LF_N knobs (lfo.c) */
     P_LFO2 = P_LFO1 + LF_N,      /* LFO 2 */
-    P_RMODEL = P_LFO2 + LF_N,    /* RESON (reson.c): MODEL TUNE DECAY MIX, TONE STRCT POS */
-    P_RTUNE, P_RDECAY, P_RMIX, P_RTONE, P_RSTRCT, P_RPOS,
-    P_FTYPE, P_FCUT, P_FRESO, P_FENV, P_FDEC,   /* FILTER (filter.c): TYPE CUT RESO ENV DECAY */
+    P_FTYPE = P_LFO2 + LF_N,     /* FILTER (filter.c): TYPE CUT RESO ENV DECAY (FREITAKT removed RESON's 7 knobs before it) */
+    P_FCUT, P_FRESO, P_FENV, P_FDEC,
     P_PRIO,                      /* 0 HIGH, 1 LOW: a LOW track's voice goes first (the voice cap, a CPU shed; FDRC) */
     P_LSRC1, P_LSRC2,            /* the LFO DEST slots (lfo.c LS_ID; FDRE): slot 1 / 2's SRC (0 LFO 1, 1 LFO 2); their
                                   * DEST / DEPTH are LFO 1's / LFO 2's own (P_LFO1 / P_LFO2 + LF_DEST, LF_DEPTH) */
     P_LS3SRC, P_LS3DEST, P_LS3DEPTH,   /* slot 3: SRC DEST DEPTH */
     P_LS4SRC, P_LS4DEST, P_LS4DEPTH,   /* slot 4 */
-    P_RKEY,                      /* RESON KEYF (reson.c): how far the ring follows the hit's note from C4, 0..127 = 0..100 %.
-                                  * Past the project's parameter block (FDRE fills its sector): stored in the steps' spare
-                                  * byte (project.c) */
     P_SRR,                       /* SRR (insert.c): sample rate reduction before DIST, 0 off .. 127 (347 Hz) */
     P_ITYPE, P_IA, P_IB, P_IC, P_IMIX,   /* INSERT (insert.c, Skiff's from Felucca 1.5): TYPE, its A B C, MIX */
     P_SATK, P_SSUS, P_SREL, P_SLOOP,     /* the SAMPLE model's envelope and loop (dm_sample.c): ATK SUS REL LOOP, its
@@ -70,7 +65,7 @@ enum {                          /* per-track parameters */
     P_SCUT,                      /* .. CUT: 0 OFF (as before: hits overlap), 1 ON (a hit cuts the sounding one); xp3 */
     P_COUNT
 };
-#define P_NSTORED P_RKEY         /* the parameters in a project's block (FDRE: P_MODEL .. P_LS4DEPTH) */
+#define P_NSTORED P_SRR          /* the parameters in a project's block (FDRE: P_MODEL .. P_LS4DEPTH) */
 
 enum {                          /* global parameters */
     G_BPM, G_SWING, G_CLOCK,
@@ -161,18 +156,6 @@ typedef struct {                 /* one sequencer step (4 B, stored as is); all 
 typedef struct { uint32_t ph, sub; int32_t out, from, to; uint8_t fresh; } lfo_state_t;   /* lfo.c: phase, sub-phase,
                                                                            * outputs, restarted */
 
-typedef struct {                 /* RESON runtime (reson.c): per line (STRNG / PIPE 1, CHORD 4) */
-    uint32_t len[4];             /* the line's delay, Q8 samples (the loop filters' delay taken off) */
-    int32_t g[4];                /* loop gain, Q15 (PIPE: negative) */
-    int32_t lp[4], lr[4], apx[4], apy[4];   /* damping low-pass and its step's remainder; the all-pass' x, y[n-1] */
-    int32_t k, a;                /* damping coefficient (Q15), all-pass coefficient (Q15, <= 0) */
-    uint16_t tap[4];             /* POS: the second pickup tap (0 = none) */
-    uint16_t w, seg, quiet, peak;   /* write position, segment length, quiet blocks, last block's line peak */
-    uint8_t ns, model, ring, kill;  /* lines, the model running, ringing, fade out this block */
-    uint8_t hold;                /* after a cut: no input until the track's next hit (its declick tail excites nothing) */
-    int8_t knt;                  /* KEYF: the last hit's note (offset from C4) */
-    int32_t kq;                  /* KEYF: the pitch offset playing, 1/256 semitone (glides to knt x KEYF while it rings) */
-} reson_t;
 
 typedef struct track {
     int16_t p[P_COUNT];
@@ -202,8 +185,6 @@ typedef struct track {
                                   * mic_idx's early hit has played (the step before it playing) */
     uint16_t gfade;              /* M3 ghost key: how silenced the COMP source's sound is (0 heard .. 32767 muted) */
     lfo_state_t lfo[2];          /* LFO 1 / 2 runtime (lfo.c) */
-    reson_t rs;                  /* RESON runtime (reson.c) */
-    int32_t rfine;               /* RESON fine pitch from the LFOs (R.TUN), 1/256 semitone (lfo.c) */
     uint32_t lrng;               /* random generator of S&H / WANDER / RWALK, reseeded at PLAY */
     uint8_t lon, lnum, lpid[4];  /* the LFOs on (bit l), the knobs written this block (at most the 4 DEST slots'), which */
     int16_t lsave[4], lval[4];   /* their set values (restored at the end of the block), the modulated values */

@@ -32,7 +32,7 @@ export class Lab {
   knob(t, id, v) { this.x.lab_knob(t, id, Math.round(v)); }   // a turn on the panel (MOTION records it when armed)
   motionClear(t) { this.x.lab_motion_clear(t); }
 
-  // track 1's hit alone from silence (inserts: through its RESON and FILTER), mono, -> a Float32Array copy
+  // track 1's hit alone from silence (inserts: through its FILTER), mono, -> a Float32Array copy
   voice(frames, inserts) {
     this.x.lab_voice(frames, inserts ? 1 : 0);
     return this.sim.view(Float32Array, this.x.lab_buf(), frames).slice();

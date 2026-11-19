@@ -51,25 +51,21 @@ static __attribute__((noinline)) void bench_time(uint32_t us, uint32_t late)   /
     bench.rest = us * 100u > (HALF_FRAMES * 1000000u / FS) * BENCH_REST;
 }
 
-/* the cases: idle; 8 tracks of each model without and with every FX; each RESON model on 8 x S909 (8 tracks
- * and the device's cap); the realistic heavy kit, then without one feature each; the PHYS-heavy kit */
-enum { BH_LAYER = 1, BH_DIST = 2, BH_SLCR = 4, BH_CHOR = 8, BH_DLY = 16, BH_REV = 32, BH_RESON = 64 };
+/* the cases: idle; 8 tracks of each model without and with every FX; the realistic heavy kit, then without one
+ * feature each; the PHYS-heavy kit */
+enum { BH_LAYER = 1, BH_DIST = 2, BH_SLCR = 4, BH_CHOR = 8, BH_DLY = 16, BH_REV = 32 };
 enum { BH_FILTER = 128, BH_COMP = 256, BH_SIDE = 512, BH_ACID = 1024 };   /* the cases after the PHYS kits: added, not taken out */
 #define BH_FX (BH_DIST | BH_SLCR | BH_CHOR | BH_DLY | BH_REV)
 static const uint16_t BENCH_MORE_OFF[6] = {BH_FILTER, BH_COMP, BH_FX | BH_COMP, BH_COMP | BH_SIDE, BH_FX | BH_COMP | BH_SIDE,
                                             BH_ACID};
 static const char *const BENCH_MORE_NAME[6] = {"heavy+filter", "heavy+comp", "heavy-fx+comp", "heavy+sidechain",
                                                "heavy-fx+sidechain", "heavy+2acid"};
-static const uint8_t BENCH_HEAVY_OFF[] = {0, BH_LAYER, BH_DIST, BH_SLCR, BH_CHOR, BH_DLY, BH_REV, BH_RESON};
-static const char *const BENCH_OFF_NAME[] = {"", "-layer", "-dist", "-slicer", "-chorus", "-delay", "-reverb",
-                                             "-reson"};
-static const char *const BENCH_RS_NAME[RS_NMODEL] = {"OFF", "STRNG", "PIPE", "CHORD", "MODAL"};
-static const uint8_t BENCH_RS_CAP[RS_NMODEL] = {0, 4, 4, 2, 2};   /* the UI's caps (reson.c) */
+static const uint8_t BENCH_HEAVY_OFF[] = {0, BH_LAYER, BH_DIST, BH_SLCR, BH_CHOR, BH_DLY, BH_REV};
+static const char *const BENCH_OFF_NAME[] = {"", "-layer", "-dist", "-slicer", "-chorus", "-delay", "-reverb"};
 #define BENCH_MODELS 1u                                  /* first model case */
-#define BENCH_RESON (BENCH_MODELS + 2u * NMODELS)        /* first RESON case */
-#define BENCH_HEAVY (BENCH_RESON + 2u * (RS_NMODEL - 1u))
+#define BENCH_HEAVY (BENCH_MODELS + 2u * NMODELS)
 #define BENCH_PHYS (BENCH_HEAVY + sizeof BENCH_HEAVY_OFF)
-#define BENCH_MORE (BENCH_PHYS + 2u)                      /* + PHYS-heavy, PHYS-heavy -reson */
+#define BENCH_MORE (BENCH_PHYS + 1u)                      /* + PHYS-heavy */
 #define BENCH_N (BENCH_MORE + 6u)                         /* + the FILTER, COMP, sidechain and ACID cases */
 #define BENCH_BPM_FAST 240                               /* the model cases: 1/32 notes, as drum_test's kit_cost */
 
@@ -81,27 +77,20 @@ static char *bench_cat(char *s, const char *a)
     return s;
 }
 
-/* the case's name, one token for the console line: idle, K808, K808+fx, S909-reson-MODALx8, heavy-dist, ... */
+/* the case's name, one token for the console line: idle, K808, K808+fx, heavy-dist, ... */
 static void bench_name(uint32_t c, char *s)
 {
     *s = 0;
     if (c == 0) {
         bench_cat(s, "idle");
-    } else if (c < BENCH_RESON) {
+    } else if (c < BENCH_HEAVY) {
         s = bench_cat(s, N_MODEL[(c - BENCH_MODELS) / 2u]);
         bench_cat(s, (c - BENCH_MODELS) & 1u ? "+fx" : "");
-    } else if (c < BENCH_HEAVY) {
-        uint32_t r = 1u + (c - BENCH_RESON) / 2u;
-        char n[3] = {'x', (char)('0' + ((c - BENCH_RESON) & 1u ? BENCH_RS_CAP[r] : NTRK)), 0};
-        s = bench_cat(s, "S909-reson-");
-        s = bench_cat(s, BENCH_RS_NAME[r]);
-        bench_cat(s, n);
     } else if (c < BENCH_PHYS) {
         s = bench_cat(s, "heavy");
         bench_cat(s, BENCH_OFF_NAME[c - BENCH_HEAVY]);
     } else if (c < BENCH_MORE) {
-        s = bench_cat(s, "phys-heavy");
-        bench_cat(s, c == BENCH_PHYS ? "" : "-reson");
+        bench_cat(s, "phys-heavy");
     } else {
         bench_cat(s, BENCH_MORE_NAME[c - BENCH_MORE]);
     }
@@ -180,8 +169,8 @@ static void bench_reset(void)
 }
 
 /* 8 tracks of model mi, 1/32 at 240 BPM, DECAY 127 (drum_test's kit_cost); fx: every FX (DIST, SLICER, the
- * three sends), no layer; RESON model r on the first nr tracks, DECAY max */
-static void bench_kit(uint32_t mi, int fx_on, int32_t r, uint32_t nr)
+ * three sends), no layer */
+static void bench_kit(uint32_t mi, int fx_on)
 {
     uint32_t i;
     for (i = 0; i < NTRK; i++) {
@@ -198,8 +187,6 @@ static void bench_kit(uint32_t mi, int fx_on, int32_t r, uint32_t nr)
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = (int16_t)(fx_on ? 60 : 0);
         t->p[P_SLCR] = (int16_t)(fx_on ? 1 : 0);
         t->p[P_SDIV] = 3;
-        t->p[P_RMODEL] = (int16_t)(i < nr ? r : RS_OFF);
-        t->p[P_RDECAY] = 127;
         memset(t->step, 0, sizeof t->step);
         t->step[0].on = t->step[1].on = 1;
         t->p[P_SLEN] = 2;
@@ -216,8 +203,8 @@ static const uint8_t BENCH_ACID_FL[16] = {1, 2, 0, 4, 8, 0, 3, 0, 0, 1, 8, 2, 0,
  * theirs, so a run stays comparable with the earlier ones, docs/PERFORMANCE.md) */
 static const uint8_t BENCH_KIT[NTRK] = {DM_K909, DM_S808, DM_C808, DM_HATC, DM_HATO, DM_TOM, DM_RIM, DM_CYMB};
 
-/* the realistic heavy kit (drum_test's test_cost: the demo with a layer, DIST, SLICER and sends on every track,
- * RESON CHORD on 2, STRNG on 4) at 120 BPM; phys: MEMB on 5 and 7, RESON 2 CHORD + 2 MODAL (DECAY 110);
+/* the realistic heavy kit (drum_test's test_cost: the demo with a layer, DIST, SLICER and sends on every track) at
+ * 120 BPM; phys: MEMB on 5 and 7;
  * off: the features taken out (BH_), or added (BH_FILTER on all 8, BH_COMP keyed by T1, BH_SIDE: DUCK on 2..8, BH_ACID: tracks 7 and 8 ACID) */
 static void bench_heavy(int phys, uint32_t off)
 {
@@ -249,14 +236,6 @@ static void bench_heavy(int phys, uint32_t off)
         t->p[P_CHOR] = (int16_t)(off & BH_CHOR ? 0 : 40);
         t->p[P_DLY] = (int16_t)(off & BH_DLY ? 0 : 40);
         t->p[P_REV] = (int16_t)(off & BH_REV ? 0 : 40);
-        if (phys) {
-            t->p[P_RMODEL] = (int16_t)(i < 2u ? RS_CHORD : i < 4u ? RS_MODAL : RS_OFF);
-            t->p[P_RDECAY] = 110;
-        } else {
-            t->p[P_RMODEL] = (int16_t)(i == 1u ? RS_CHORD : i == 3u ? RS_STRNG : RS_OFF);
-        }
-        if (off & BH_RESON)
-            t->p[P_RMODEL] = RS_OFF;
         if (off & BH_FILTER) {
             t->p[P_FTYPE] = FT_LP;
             t->p[P_FCUT] = 70;
@@ -278,15 +257,12 @@ static void bench_setup(uint32_t c)
         song.g[G_BPM] = 120;
         return;
     }
-    if (c < BENCH_RESON)
-        bench_kit((c - BENCH_MODELS) / 2u, (int)((c - BENCH_MODELS) & 1u), RS_OFF, 0);
-    else if (c < BENCH_HEAVY)
-        bench_kit(DM_S909, 0, (int32_t)(1u + (c - BENCH_RESON) / 2u),
-                  (c - BENCH_RESON) & 1u ? BENCH_RS_CAP[1u + (c - BENCH_RESON) / 2u] : NTRK);
+    if (c < BENCH_HEAVY)
+        bench_kit((c - BENCH_MODELS) / 2u, (int)((c - BENCH_MODELS) & 1u));
     else if (c < BENCH_PHYS)
         bench_heavy(0, BENCH_HEAVY_OFF[c - BENCH_HEAVY]);
     else if (c < BENCH_MORE)
-        bench_heavy(1, c == BENCH_PHYS ? 0 : BH_RESON);
+        bench_heavy(1, 0);
     else
         bench_heavy(0, BENCH_MORE_OFF[c - BENCH_MORE]);
     transport_req = 1;

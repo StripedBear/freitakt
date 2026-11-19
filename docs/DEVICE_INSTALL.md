@@ -79,7 +79,7 @@ For each: what you should see / hear. Note anything different (page, knob, what 
   the new screens in `build/ui_shots/fixes/`).
 - Every engine: KNOB 1 (MODEL) on EDIT's first page steps through the 21 engines; each plays on its key.
 - SELECT knob, on any screen but TRACKS: the section's next / previous page (HOME 1/3 <-> COMP 2/3 <-> 3/3, FX <->
-  SLICER <-> RESON <-> DLY ..., the SOUND pages, the LAYER pages in the layer); it stops at the first / last page.
+  SLICER <-> DLY ..., the SOUND pages, the LAYER pages in the layer); it stops at the first / last page.
   In the menu it moves the cursor. On TRACKS it sets the BPM (the top bar follows; with CLK USB it says `CLK USB`).
   The PRESETS knob does nothing anywhere; ALGORITHM picks the track.
 - HOME: a HOME tap on TRACKS opens the HOME screen, a HOME tap there TRACKS again; from EDIT, SEQ, GLOBAL ... a HOME
@@ -236,7 +236,7 @@ Report what you saw first; we'll go through it together.
 ### USB audio (check on the FM-1)
 
 - Audio MIDI Setup (Mac) lists an FM-1 audio input: 2 channels, 44.1 kHz. MIDI ports as before.
-- Record 5 minutes of a heavy kit (8 tracks, RESON, SPRNG, the compressor) into a DAW: no clicks or dropouts in the
+- Record 5 minutes of a heavy kit (8 tracks, SPRNG, the compressor) into a DAW: no clicks or dropouts in the
   recording; the speaker does not stutter; the CPU meter close to before. Optional: console `status` after it:
   `uac_underruns 0` and `uac_missed 0`; note `uac_fill_lo` (the buffer's lowest fill: near 50 or below would mean
   the band upstream tuned for shorter renders is tight here). `uac_overruns` may count when the DAW stops reading
@@ -330,9 +330,7 @@ Report what you saw first; we'll go through it together.
 - A track to SKIN (SOUND, MODEL after HISS): TUNE / DECAY / TONE / HEAD on HOME. HEAD from a tom (0) to a tabla
   (127); BEND drops the pitch after each hit; POS from the centre (round) to the rim; STICK the click of the strike.
   Hit it fast: the head rings on, no clicks.
-- RESON MODAL (after CHORD) on a kick, a snare, a clap: STRCT from harmonic to bell, DECAY the ring time (as STRNG),
-  TONE, POS. A third MODAL track is refused ("MODAL: 2 TRACKS MAX"); with CHORD full the MODEL knob skips to MODAL.
-- Four SKIN tracks and two MODAL RESONs playing: no dropouts (CPU on SYSTEM INFO).
+- Four SKIN tracks playing: no dropouts (CPU on SYSTEM INFO).
 
 ### TOOLS (check on the FM-1)
 
@@ -353,29 +351,9 @@ Report what you saw first; we'll go through it together.
 - SAVE / power cycle / LOAD: the LFOs come back; an older project loads with the LFOs off.
 
 
-### RESON (check on the FM-1)
-
-- FX: after SLICER, RESON 1/2 (MODEL TUNE DECAY MIX) and 2/2 (TONE STRCT POS). MODEL STRNG on the snare: each
-  hit rings at TUNE (C3 = a low string); DECAY longer = longer ring; MIX 100 % = only the ring; TONE darker =
-  muted; STRCT = a stretched, bell-ish ring; POS = a hollower / fuller ring.
-- PIPE: a hollow, odd-harmonic tube. CHORD: four strings; on CHORD the second knob of RESON 2/2 is CHORD (OCT …
-  CLUST), the picture shows the notes. A third track cannot take CHORD ("CHORD: 2 TRACKS MAX"); a fifth track
-  cannot take RESON at all ("RESON: 4 TRACKS MAX").
-- LFO DEST R.TUN: the ring's pitch sweeps smoothly; R.DCY / R.MIX / R.TON / R.STR / R.POS move those knobs.
-- Mute a ringing track: the ring stops at once without a click. MODEL OFF: the track sounds as before.
-- CPU: RESON on 4 tracks (2 CHORD) with a dense pattern: GLOBAL -> SYSTEM CPU under 100 %, no crackle (note the
-  CPU % you see: the stress case on the host is above the stock reference, by decision).
-- SAVE / power cycle / LOAD: RESON comes back; an older project loads with RESON OFF.
-- KEYF (KEYFOLLOW, RESON 2/2 KNOB 4; the screen: `build/ui_shots/reson/04_keyf.png`): STRNG on the snare, TUNE C3,
-  KEYF 100 %; steps at C4, C5, G4 (STEP: the step's NOTE): the ring plays C3, C4, G3 (the melody of
-  the steps). KEYF 50 %: half the intervals. KEYS on the track: the ring follows the keys. A fast run of notes with a
-  long DECAY: each new note slides into place without a click. KEYF 0 %: the ring stays at TUNE (as before).
-- A project saved before KEYF loads with KEYF 0 % on every track and sounds as before; KEYF set, SAVE, power
-  cycle, LOAD: it comes back. MIDI LEARN on KEYF names it `T1 R.KEYF`.
-
 ### Panel (stage 2 step 1: check on the FM-1)
 
-- LEDs: with a dense pattern playing (8 tracks, RESON / FX on), no flicker on the key / button LEDs.
+- LEDs: with a dense pattern playing (8 tracks, FX on), no flicker on the key / button LEDs.
 - Knobs: turning slowly or fast, no skipped steps and no double steps; a knob left half-way into a click for a
   few seconds, then turned, still moves one step per click; a slow turn with short pauses keeps moving.
 - Pads: presses respond at once; a held pad does not retrigger; fast repeats all play.
@@ -832,8 +810,8 @@ ACC`).
 - STEPS on SOUND, play a 4-on-the-floor kick: hold step 5's key, turn DECAY up a lot: the top bar says
   `LOCK STEP 5`, the DECAY cell shows the new value inverted; let go: the cell shows the knob's own value again. Step
   5's kick is long, the others as before (snap back). Repeat a lock on each family: LAYER (LEVEL), FX (DIST, REV),
-  SLICER, RESON (TUNE, MIX), FILTER (CUT), LFO (RATE, DEPTH), LFO DEST slot 3 DEPTH, HOME (a macro), TRACKS (LEVEL,
-  PAN): each plays on its step only. MODEL, FILTER TYPE, RESON MODEL, an LFO's WAVE / DEST / SRC: nothing happens while
+  SLICER, FILTER (CUT), LFO (RATE, DEPTH), LFO DEST slot 3 DEPTH, HOME (a macro), TRACKS (LEVEL,
+  PAN): each plays on its step only. MODEL, FILTER TYPE, an LFO's WAVE / DEST / SRC: nothing happens while
   a step is held.
 - An LFO on DECAY plus a lock on DECAY: on the locked step the wobble is round the locked value.
 - Hold the step, tap OCT-: `STEP 5 LOCKS CLEARED`, this page's locks gone (another page's kept). Hold the step, hold
@@ -962,8 +940,8 @@ The screens: `build/ui_shots/seq/26_step_micro_held.png`, `27_step_micro_marks.p
   on the steps as before; 1/8 only on every other step; 1/32 on the steps or halfway (the held step shows NUDGE 0 or
   +-50); OFF where you played (NUDGE shows how far off). A hit recorded early into the next step sounds once.
 - QUANT after a power cycle: as set. Step record (KEYS, stopped): NUDGE 0 on the steps it writes.
-- SAVE with nudged steps, power cycle, LOAD: NUDGE back, RESON KEYF, SRR and the INSERT as saved. A project saved with
-  0.26.0 loads (NUDGE 0, its KEYF, SRR, INSERT kept). A variation with nudged steps: kept (cue it, SAVE, power cycle).
+- SAVE with nudged steps, power cycle, LOAD: NUDGE back, SRR and the INSERT as saved. A project saved with
+  0.26.0 loads (NUDGE 0, its SRR, INSERT kept). A variation with nudged steps: kept (cue it, SAVE, power cycle).
 - CPU: a busy pattern with nudged steps on all 8 tracks: GLOBAL -> SYSTEM CPU as without, no crackle. Bluetooth
   version too.
 
@@ -974,7 +952,7 @@ The screens: `build/ui_shots/glo_chorus.png`, `glo_chorus_graph.png`, `glo_choru
 headphones: 2 bars each ROOM, SPRNG, then HALL at SIZE 0 / 64 / 90 / 127, and 127 with DAMP 0).
 
 - GLO steps GLOBAL 1/7, SYSTEM 2/7, GLOBAL 3/7, DLY 4/7, DLY 5/7, REVERB 6/7, CHORUS 7/7 and round again. FX has no
-  CHORUS page any more (FILTER .. RESON). On CHORUS a white key plays its drum, the selection stays.
+  CHORUS page any more (FILTER .. SLICER). On CHORUS a white key plays its drum, the selection stays.
 - CHORUS: RATE and DEPTH as before; the graph's wave runs faster with RATE (a filled band past about 8 Hz) and taller
   with DEPTH, the delay's range in ms under the rate.
 - REVERB TYPE: ROOM, SPRNG, HALL (KNOB 1 stops at HALL). A snare with REV up, on headphones: HALL's tail is smooth
@@ -1133,14 +1111,13 @@ past 96), and save a project with a track loaded from one of those (note its slo
   was lost shows `PRESET -`, its sound unchanged.
 - A moved (old) preset loads the sound only: set FILTER LP, CUT low and an INSERT on a track, load it: the FILTER and
   INSERT stay; turning CUT then leaves no `*`.
-- SAVE a track with FILTER, INSERT (e.g. FOLD), SRR, RESON STRNG and DLY / REV sends up, and a SLICER pattern. On
+- SAVE a track with FILTER, INSERT (e.g. FOLD), SRR and DLY / REV sends up, and a SLICER pattern. On
   another track with other FX, LOAD it: the voice and every FX as saved (the INSERT fades in, no click), its own
   SLICER, LEVEL, PAN, NOTE, CHOKE, LFOs untouched. Power off and on, LOAD again: the same.
 - Scrub the list over that USER preset and then a factory one: the FX follow the USER preset, then go back to the
   track's own for the factory one; EDIT out of the list: the track's own sound and FX, exactly as before.
-- On a track loaded from a USER preset, turning CUT, an INSERT knob, a send or a RESON knob shows `*`; turning a
+- On a track loaded from a USER preset, turning CUT, an INSERT knob, or a send shows `*`; turning a
   SLICER knob does not. On a factory preset only the SOUND knobs do, as before.
-- RESON on four other tracks: a USER preset with RESON loads with RESON OFF; a third CHORD loads as STRNG.
 - SAVE while playing with MOTION moving CUT: the preset holds CUT as you set it. LOAD while it plays: no click beyond
   a voice change's; STOP: CUT the preset's.
 - Bluetooth version: the same, and the variations, the INSERTs and the TOOLS' copy still work (they share the memory

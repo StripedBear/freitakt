@@ -260,7 +260,7 @@ static void test_lfo_fcut(void)
     trk[0].p[P_LFO1 + LF_MODE] = LM_HZ;
     trk[0].p[P_LFO1 + LF_RATE] = 30;                  /* a slow rate: a half period well over 0.1 s */
     trk[0].p[P_LFO1 + LF_DEPTH] = 64;
-    trk[0].p[P_LFO1 + LF_DEST] = 17;
+    trk[0].p[P_LFO1 + LF_DEST] = 11;
     trk[0].p[P_LFO1 + LF_TRIG] = LT_FREE;
     drum_hit(&trk[0], 127);
     render_mix(wl, wr, SECS(4));
@@ -278,8 +278,8 @@ static void test_lfo_fcut(void)
         a = lo;
         b = hi;
     }
-    check("LFO DEST 17 = F.CUT: the cutoff moves (brightness 3x between the LFO's levels)",
-          lfo_dest_param(17) == P_FCUT && lfo_dest_param(18) == P_FRESO && b > 3 * a);
+    check("LFO DEST 11 = F.CUT: the cutoff moves (brightness 3x between the LFO's levels)",
+          lfo_dest_param(11) == P_FCUT && lfo_dest_param(12) == P_FRESO && b > 3 * a);
 }
 
 /* Review Focus 3: CUT 127 + ENV +63 + F.CUT +64, and 0 / -64 / -64: the knob stays in range, bounded */
@@ -293,7 +293,7 @@ static void test_lfo_extremes(void)
         flt_set(&trk[0], FT_BP, S[k] > 0 ? 127 : 0, 127, S[k] > 0 ? 63 : -64, 127);
         trk[0].p[P_LFO1 + LF_WAVE] = LW_SQUARE;
         trk[0].p[P_LFO1 + LF_DEPTH] = (int16_t)(64 * S[k]);
-        trk[0].p[P_LFO1 + LF_DEST] = 17;
+        trk[0].p[P_LFO1 + LF_DEST] = 11;
         drum_hit(&trk[0], 127);
         for (i = 0; i < SECS(1) / CTL; i++) {
             render_mix(wl, wr, CTL);
@@ -355,7 +355,7 @@ static void test_hp_kick_no_clicks(void)
     check("K808 held through HP / BP: no clicks (sample steps < 64 after the attack)", worst < 64);
 }
 
-/* the knobs motion records: CUT RESO ENV DECAY (not TYPE, as RESON's MODEL); INIT SOUND: ui_test */
+/* the knobs motion records: CUT RESO ENV DECAY (not TYPE); INIT SOUND: ui_test */
 static void test_motion_params(void)
 {
     check("motion records CUT, RESO, ENV, DECAY (not TYPE)", motion_param(P_FCUT) && motion_param(P_FRESO) &&

@@ -6,8 +6,9 @@
  * one track or to one action, from any channel of the MIDI input ring (USB, TRS, Bluetooth in MIDI mode: seq.c
  * midi_block). The map: an entry {num, trk, code, src}: src ML_CC / ML_NOTE, num the CC / the note; code = the
  * parameter's P_* id + 1 (0 = empty): Hortator's P_* ids never move (projects store parameters by id, new ones are
- * appended; FREITAKT removed Grids' SRC: the ids after it one lower), ml_ids_pinned holds them; or an action (ML_A_*, from 0x80: spec §7). A parameter or a PERFORM macro
- * takes a CC; a button action (PLAY REC NEXT / PREV TRACK, a PERFORM effect or mute) a CC (press >= 64, let go < 64:
+ * appended; FREITAKT removed Grids' SRC: the ids after it one lower, then RESON's 7 knobs from 47 and its KEYF: the
+ * ids after them 7 / 8 lower), ml_ids_pinned holds them; or an action (ML_A_*, from 0x80: spec §7). A parameter or a
+ * PERFORM macro takes a CC; a button action (PLAY REC NEXT / PREV TRACK, a PERFORM effect or mute) a CC (press >= 64, let go < 64:
  * edges only) or a note (on: press, off / velocity 0: let go). The UI (ui_learn.c) writes entries with the
  * interrupts off; ml_arm / ml_heard hand it a source heard while something is picked; ml_q hands it the presses of
  * PLAY REC NEXT / PREV (they need the UI: transport_req, track_rec_toggle, track_select). PERFORM's effects and
@@ -25,8 +26,8 @@
 #define ML_A_MAC 0xB0u                             /* + 0..3: a PERFORM macro FILTER CRUSH THROW DEPTH */
 typedef struct { uint8_t num, trk, code, src; } ml_ent_t;
 typedef char ml_ent_size[sizeof(ml_ent_t) == 4u ? 1 : -1];
-typedef char ml_ids_pinned[P_E0 == 1 && P_LEVEL == 9 && P_SLEN == 22 && P_LFO1 == 31 && P_RMODEL == 47 &&
-                           P_FTYPE == 54 && P_PRIO == 59 && P_LSRC1 == 60 && P_LS3SRC == 62 && P_LS4DEPTH == 67 &&
+typedef char ml_ids_pinned[P_E0 == 1 && P_LEVEL == 9 && P_SLEN == 22 && P_LFO1 == 31 && P_FTYPE == 47 &&
+                           P_PRIO == 52 && P_LSRC1 == 53 && P_LS3SRC == 55 && P_LS4DEPTH == 60 &&
                            P_COUNT < 0x80 ? 1 : -1];
 typedef char ml_pf_pinned[PF_R8 == 0 && PF_REV == 3 && PF_LPF == 4 && PF_TAPE == 6 && PF_OUP == 8 && PF_ODN == 9 &&
                           PF_T1 == 10 && PF_N == 18 && ML_A_FX + PF_N <= ML_A_MAC && ML_N <= 32u ? 1 : -1];
@@ -40,11 +41,10 @@ static volatile uint32_t ml_down;                  /* ISR: the entries whose but
 static volatile uint8_t ml_q[ML_QN], ml_qw, ml_qr; /* ISR -> UI: presses of PLAY REC NEXT / PREV (codes) */
 
 static int ml_free_cc(uint32_t cc) { return cc && cc != 32u && cc < 120u; }
-/* a parameter a CC may set: not MODEL (a model comes with its sound: model_step), not RESON's MODEL (a capped model is
- * refused: reson_refused), not MUTE / DUCK (keys, not knobs) */
+/* a parameter a CC may set: not MODEL (a model comes with its sound: model_step), not MUTE / DUCK (keys, not knobs) */
 static int ml_param_ok(uint32_t id)
 {
-    return id < P_COUNT && id != P_MODEL && id != P_RMODEL && id != P_MUTE && id != P_DUCK;
+    return id < P_COUNT && id != P_MODEL && id != P_MUTE && id != P_DUCK;
 }
 static int ml_fx(uint32_t code) { return code >= ML_A_FX && code < ML_A_FX + PF_N; }
 /* a button action (pressed and let go: a CC or a note); a macro takes a CC's value */

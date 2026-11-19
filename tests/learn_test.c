@@ -411,13 +411,13 @@ static void test_pages(void)
         tap(B_FX);
     knob(2, 1);
     check("FX: DLY (the track's send)", ui.ml.id == P_DLY && ui.ml.trk == 2u);
-    for (k = 0; k < 8u && page_id(cur_page(), 3) != P_RKEY; k++)
+    for (k = 0; k < 8u && page_id(cur_page(), 1) != P_FCUT; k++)
         tap(B_FX);
-    knob(3, 1);
+    knob(1, 1);
     {
         char b[16];
         ml_name(b);
-        check("RESON 2/2: KNOB 4 is KEYF, named T3 R.KEYF", ui.ml.id == P_RKEY && ui.ml.trk == 2u && same(b, "T3 R.KEYF"));
+        check("FILTER 1/2: KNOB 2 is CUT, named T3 F.CUT", ui.ml.id == P_FCUT && ui.ml.trk == 2u && same(b, "T3 F.CUT"));
     }
     trk[2].p[P_ITYPE] = IT_SOFT;
     for (k = 0; k < 12u && page_id(cur_page(), 0) != P_ITYPE; k++)
@@ -569,9 +569,8 @@ static void test_lfo(void)
     t = &trk[1];                                     /* no LFO on */
     ml_learn(82, 1, P_PAN);
     lfo_apply(0);
-    t->rfine = 77;                                   /* (lfo_track zeroes it) */
     learn_cc(82, 127);
-    check("a CC on a track with no LFO on: set, the LFOs not re-applied", t->p[P_PAN] == 63 && t->rfine == 77);
+    check("a CC on a track with no LFO on: set, nothing modulated", t->p[P_PAN] == 63 && !t->lon && !t->lnum);
     lfo_restore();
     t = &trk[2];                                     /* an LFO on PAN at DEPTH 0: a CC on its DEPTH turns it on */
     t->p[P_LFO1 + LF_DEST] = 10;

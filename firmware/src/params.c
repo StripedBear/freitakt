@@ -38,11 +38,7 @@ static const char *const N_LTRIG[] = {"FREE", "HIT", "PLAY"};
 static const char *const N_LSYNC[17] = {"8BAR", "4BAR", "2BAR", "1BAR", "1/2", "1/4.", "1/4", "1/4T", "1/8.", "1/8",
                                         "1/8T", "1/16.", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 
-static const char *const N_RMODEL[] = {"OFF", "STRNG", "PIPE", "CHORD", "MODAL"};
-static const char *const N_RCHORD[RS_NCHORD + 1] = {"OCT", "5TH", "4TH", "MAJ", "MIN", "SUS2", "SUS4", "DIM", "AUG",
-                                                   "MAJ6", "MIN6", "MAJ7", "MIN7", "DOM7", "M7b5", "DIM7", "7SUS4",
-                                                   "ADD9", "QUART", "CLUST", 0};
-static const char *const N_RDEST[] = {"R.TUN", "R.DCY", "R.MIX", "R.TON", "R.STR", "R.POS", "F.CUT", "F.RES"};   /* LFO DEST 11..18 */
+static const char *const N_FDEST[] = {"F.CUT", "F.RES"};   /* LFO DEST 11, 12 */
 static const char *const N_FTYPE[] = {"OFF", "LP", "BP", "HP", "NOT"};   /* FILTER TYPE (FT_) */
 static const char *const N_PRIO[] = {"HIGH", "LOW"};                 /* P_PRIO */
 static const char *const N_SLOOP[] = {"OFF", "FWD", "PING", "LOOPI", "ONE"};   /* P_SLOOP: the SAMPLE model's LOOP
@@ -58,7 +54,7 @@ static const char *const N_IRATE[] = {"689", "919", "1.1k", "1.4k", "1.8k", "2.2
 #define LFO_TP(b, rf)                                                                                     \
     [b + LF_WAVE] = PE("WAVE", N_LWAVE, 3), [b + LF_MODE] = PE("MODE", N_LMODE, 0),                         \
     [b + LF_RATE] = PD("RATE", rf, 0, 127, 23), [b + LF_MORPH] = PD("MORPH", F_INT, 0, 127, 0),              \
-    [b + LF_DEPTH] = PD("DEPTH", F_BIPCT, -64, 64, 0), [b + LF_DEST] = PD("DEST", F_LDEST, 0, 27, 0),        \
+    [b + LF_DEPTH] = PD("DEPTH", F_BIPCT, -64, 64, 0), [b + LF_DEST] = PD("DEST", F_LDEST, 0, LD_MAX, 0),    \
     [b + LF_TRIG] = PE("TRIG", N_LTRIG, 2), [b + LF_PHASE] = PD("PHASE", F_LPHASE, 0, 127, 0)
 static const param_desc_t TP[P_COUNT] = {
     [P_MODEL] = PE("MODEL", N_MODEL, 0),
@@ -86,13 +82,6 @@ static const param_desc_t TP[P_COUNT] = {
     [P_DUCK] = PE("DUCK", N_ONOFF, 0),
     LFO_TP(P_LFO1, F_LRATE1),
     LFO_TP(P_LFO2, F_LRATE2),
-    [P_RMODEL] = PE("MODEL", N_RMODEL, 0),
-    [P_RTUNE] = PD("TUNE", F_NOTEO, 24, 96, 48),
-    [P_RDECAY] = PD("DECAY", F_RDECAY, 0, 127, 72),
-    [P_RMIX] = PD("MIX", F_PCT, 0, 127, 64),
-    [P_RTONE] = PD("TONE", F_PCT, 0, 127, 100),
-    [P_RSTRCT] = PD("STRCT", F_INT, 0, 127, 0),
-    [P_RPOS] = PD("POS", F_PCT, 0, 127, 64),
     [P_FTYPE] = PE("TYPE", N_FTYPE, 0),
     [P_FCUT] = PD("CUT", F_CUTOFF, 0, 127, 127),
     [P_FRESO] = PD("RESO", F_INT, 0, 127, 0),
@@ -101,11 +90,10 @@ static const param_desc_t TP[P_COUNT] = {
     [P_PRIO] = PE("PRIO", N_PRIO, 0),
     [P_LSRC1] = PE("SRC", N_LSRC, 0), [P_LSRC2] = PE("SRC", N_LSRC, 1),   /* slots 1 / 2: LFO 1 / LFO 2 (the routing
                                                                             * before slots) */
-    [P_LS3SRC] = PE("SRC", N_LSRC, 0), [P_LS3DEST] = PD("DEST", F_LDEST, 0, 27, 0),
+    [P_LS3SRC] = PE("SRC", N_LSRC, 0), [P_LS3DEST] = PD("DEST", F_LDEST, 0, LD_MAX, 0),
     [P_LS3DEPTH] = PD("DEPTH", F_BIPCT, -64, 64, 0),
-    [P_LS4SRC] = PE("SRC", N_LSRC, 1), [P_LS4DEST] = PD("DEST", F_LDEST, 0, 27, 0),
+    [P_LS4SRC] = PE("SRC", N_LSRC, 1), [P_LS4DEST] = PD("DEST", F_LDEST, 0, LD_MAX, 0),
     [P_LS4DEPTH] = PD("DEPTH", F_BIPCT, -64, 64, 0),
-    [P_RKEY] = PD("KEYF", F_PCT, 0, 127, 0),       /* RESON KEYFOLLOW: 0 off (the ring at TUNE), 127 = 100 % */
     [P_SRR] = PD("SRR", F_SRR, 0, 127, 0),         /* SRR (insert.c): 0 off (as before), else the held rate */
     [P_ITYPE] = PE("TYPE", N_ITYPE, IT_OFF),       /* INSERT: OFF as before; A B C named by the TYPE (ins_desc) */
     [P_IA] = PD("A", F_PCT, 0, 127, 64),
@@ -166,9 +154,6 @@ static const param_desc_t GP_ACT[8] = {PE("CLR*", N_GO, 0), PE("INIT*", N_GO, 0)
                                        PE("METRO", N_METRO, 0), PE("COPY", N_GO, 0), PE("PASTE", N_GO, 0),
                                        PE("THRU", N_ONOFF, 0), PE("QUANT", N_QUANT, 0)};
 
-/* RESON STRCT on CHORD: the chord type, 0..127 split evenly over N_RCHORD (reson.c rs_chord) */
-static const param_desc_t RS_CHORD_DESC = {"CHORD", F_INT, 0, 127, 0, N_RCHORD, 0};
-
 /* the INSERT's A B C as its TYPE names them (Skiff 1.3, from Felucca 1.5; insert.c): the drives, CRUSH, the swept
  * ones; OFF: TP's A B C */
 #define PU(l, f, df, n, u) {l, f, 0, 127, df, n, u}
@@ -191,8 +176,6 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
         return ins_desc(t->p[P_ITYPE], id - P_IA);
     if (id >= P_E0 && id <= P_E7)
         return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS].edit[id - P_E0];
-    if (id == P_RSTRCT && t->p[P_RMODEL] == RS_CHORD)
-        return &RS_CHORD_DESC;
     return &TP[id];
 }
 
@@ -241,19 +224,18 @@ static void fmt_ms10(char *val, const char **unit, uint32_t ms10)   /* a time in
 }
 
 #include "lfo_tables.h"
-#include "reson_tables.h"
 static uint32_t lfo_dest_param(uint32_t dest);    /* lfo.c */
 static uint32_t flt_dec_idx(int32_t v);           /* filter.c */
-/* an LFO DEST by name: OFF, the track's knob by its label ("--" where its engine has none), R.TUN .. F.RES (11..18),
- * then SRR .. the INSERT's C (19..27) by their labels (A B C by the INSERT's TYPE) */
+/* an LFO DEST by name: OFF, the track's knob by its label ("--" where its engine has none), F.CUT F.RES (11, 12),
+ * then SRR .. the INSERT's C (13..21) by their labels (A B C by the INSERT's TYPE) */
 static const char *lfo_dest_label(const track_t *t, int32_t dest)
 {
     const param_desc_t *d;
     if (dest <= 0)
         return "OFF";
-    if (dest >= 11 && dest <= 18)
-        return N_RDEST[dest - 11];
-    d = track_desc(t, lfo_dest_param((uint32_t)clamp(dest, 1, 27)));
+    if (dest >= 11 && dest <= 12)
+        return N_FDEST[dest - 11];
+    d = track_desc(t, lfo_dest_param((uint32_t)clamp(dest, 1, LD_MAX)));
     return d->label && d->label[0] != '-' ? d->label : "--";
 }
 
@@ -311,13 +293,6 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
     case F_LPHASE:
         fmt_int(val, (int32_t)clamp(v, 0, 127) * 360 / 128);
         *unit = "\xB0";                              /* the degree sign (Latin-1: md_font.txt's '`') */
-        break;
-    case F_NOTEO:                                     /* a MIDI note as name + octave (60 = C4): "C3", "F#5" */
-        str_cpy(val, N_NOTE[(uint32_t)clamp(v, 0, 127) % 12u], 6);
-        fmt_int(val + str_len(val), clamp(v, 0, 127) / 12 - 1);
-        break;
-    case F_RDECAY:
-        fmt_ms10(val, unit, RS_T60_MS10[clamp(v, 0, 127)]);
         break;
     case F_SRR:                                       /* SRR: OFF, the held rate (insert.c srr_period) */
         if (v <= 0) {

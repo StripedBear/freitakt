@@ -917,7 +917,7 @@ static int fdr3_converts(void)
            trk[1].p[P_LFO1 + LF_WAVE] == TP[P_LFO1 + LF_WAVE].def && trk[1].p[P_LFO2 + LF_RATE] == 23;
 }
 
-/* an FDR4 record (LFOs, no RESON) loads: its parameters; RESON OFF at the defaults */
+/* an FDR4 record (LFOs, no RESON) loads: its parameters; the FILTER OFF at the defaults */
 static int fdr4_converts(void)
 {
     project_v4_t v;
@@ -930,7 +930,7 @@ static int fdr4_converts(void)
     for (i = 0; i < G_CGHOST; i++)
         v.g[PR_G(i)] = song.g[i];
     for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_RMODEL; i++)
+        for (i = 0; i < P_FTYPE; i++)
             v.t[k].p[PR_P(i)] = trk[k].p[i];
     v.t[2].p[PR_P(P_LFO1 + LF_DEST)] = 9;
     v.t[2].step[5].on = 1;
@@ -938,12 +938,13 @@ static int fdr4_converts(void)
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
-    trk[2].p[P_RMODEL] = RS_PIPE;                    /* the live state differs: the load replaces it */
+    trk[2].p[P_FTYPE] = FT_HP;                       /* the live state differs: the load replaces it */
     project_load(3);
-    return trk[2].p[P_LFO1 + LF_DEST] == 9 && trk[2].step[5].on && trk[2].p[P_RMODEL] == RS_OFF &&
-           trk[2].p[P_RTUNE] == TP[P_RTUNE].def && trk[2].p[P_RDECAY] == TP[P_RDECAY].def;
+    return trk[2].p[P_LFO1 + LF_DEST] == 9 && trk[2].step[5].on && trk[2].p[P_FTYPE] == FT_OFF &&
+           trk[2].p[P_FCUT] == TP[P_FCUT].def;
 }
-/* an FDR5 record (RESON, no GHOST) loads: its parameters; GHOST KEEP (as it sounded) */
+/* an FDR5 record (RESON, no GHOST) loads: its parameters (RESON's ignored: FREITAKT removed it); GHOST KEEP (as it
+ * sounded) */
 static int fdr5_converts(void)
 {
     project_v5_t v;
@@ -960,7 +961,9 @@ static int fdr5_converts(void)
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_FTYPE; i++)
             v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].p[PR_P(P_RMODEL)] = RS_PIPE;
+    for (i = 0; i < 7u; i++)
+        v.t[2].p[PR_RS + i] = 2;                     /* (RESON PIPE ..: its places, ignored) */
+    v.t[2].p[PR_P(P_LFO2 + LF_RATE)] = 77;
     v.t[2].step[5].on = 1;
     v.sum = proj_hash(&v, sizeof v - 4u);
     st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
@@ -969,7 +972,7 @@ static int fdr5_converts(void)
     song.g[G_CGHOST] = CG_HIDE;                      /* the live state differs: the load replaces it */
     project_load(3);
     return song.g[G_CSRC] == 1 && song.g[G_CMKUP] == 77 && song.g[G_CGHOST] == CG_KEEP &&
-           trk[2].p[P_RMODEL] == RS_PIPE && trk[2].step[5].on;
+           trk[2].p[P_LFO2 + LF_RATE] == 77 && trk[2].p[P_FTYPE] == FT_OFF && trk[2].step[5].on;
 }
 /* an FDR6 record (GHOST, no reverb TYPE; 3024 B like an FDR5 one) loads: its values; TYPE ROOM */
 static int fdr6_converts(void)
@@ -1706,72 +1709,23 @@ static int fdre_slots_round_trip(void)
     trk[5].p[P_LSRC1] = 1;
     trk[5].p[P_LSRC2] = 0;
     trk[5].p[P_LS3SRC] = 1;
-    trk[5].p[P_LS3DEST] = 17;
+    trk[5].p[P_LS3DEST] = 11;                        /* F.CUT */
     trk[5].p[P_LS3DEPTH] = -64;
     trk[5].p[P_LS4SRC] = 0;
     trk[5].p[P_LS4DEST] = 2;
     trk[5].p[P_LS4DEPTH] = 33;
-    trk[6].p[P_LS3DEST] = 27;                        /* the INSERT's C: the last DEST */
-    trk[6].p[P_LFO2 + LF_DEST] = 19;                 /* SRR */
+    trk[6].p[P_LS3DEST] = LD_MAX;                    /* the INSERT's C: the last DEST */
+    trk[6].p[P_LFO2 + LF_DEST] = 13;                 /* SRR */
     project_save(3);
     host_init();
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
     project_load(3);
-    return trk[5].p[P_LSRC1] == 1 && trk[5].p[P_LSRC2] == 0 && trk[5].p[P_LS3SRC] == 1 && trk[5].p[P_LS3DEST] == 17 &&
+    return trk[5].p[P_LSRC1] == 1 && trk[5].p[P_LSRC2] == 0 && trk[5].p[P_LS3SRC] == 1 && trk[5].p[P_LS3DEST] == 11 &&
            trk[5].p[P_LS3DEPTH] == -64 && trk[5].p[P_LS4SRC] == 0 && trk[5].p[P_LS4DEST] == 2 &&
-           trk[5].p[P_LS4DEPTH] == 33 && trk[6].p[P_LS3DEST] == 27 && trk[6].p[P_LFO2 + LF_DEST] == 19 &&
+           trk[5].p[P_LS4DEPTH] == 33 && trk[6].p[P_LS3DEST] == LD_MAX && trk[6].p[P_LFO2 + LF_DEST] == 13 &&
            sizeof(project_t) == 3840u && sizeof(project_t) <= ST_PAYLOAD_MAX &&
            proj_slot[3].magic == 0x47524446u;       /* "FDRG" (2026-10-31: MICRO) */
-}
-
-/* RESON KEYF (P_RKEY): FDRE's parameter block is full, so a track's KEYF rides in its first step's spare byte; kept
- * through a save and a load, the record still 3840 B "FDRE", the live steps' spare bytes 0 */
-static int fdre_keyf_round_trip(void)
-{
-    uint32_t k, i, ok = 1;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    pattern_kit();
-    trk[2].p[P_RKEY] = 127;
-    trk[5].p[P_RKEY] = 64;
-    trk[7].p[P_RKEY] = 1;
-    project_save(2);
-    host_init();
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    project_load(2);
-    for (k = 0; k < NTRK; k++) {
-        ok &= trk[k].p[P_RKEY] == (k == 2u ? 127 : k == 5u ? 64 : k == 7u ? 1 : 0);
-        for (i = 0; i < NSTEP; i++)
-            ok &= trk[k].step[i].rsv == 0;
-    }
-    return (int)ok && sizeof(project_t) == 3840u && proj_slot[2].magic == 0x47524446u && proj_ok(&proj_slot[2]);
-}
-/* an FDRE record from before KEYF (its steps' spare bytes 0, as every earlier firmware wrote them) loads with KEYF
- * off on every track, and plays as it did */
-static int fdre_old_keyf_off(void)
-{
-    project_t *p = &proj_slot[1];
-    uint32_t k, i, ok = 1, ref, h;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    pattern_kit();
-    project_save(1);
-    for (k = 0; k < NTRK; k++)                         /* (what 0.23.2 wrote: no byte of it set) */
-        for (i = 0; i < NSTEP; i++)
-            ok &= p->t[k].step[i].rsv == 0;
-    host_init();
-    ref = play_hash(1);
-    host_init();
-    for (k = 0; k < NTRK; k++)
-        trk[k].p[P_RKEY] = 99;                        /* the live KEYF: replaced by the load */
-    h = play_hash(1);
-    for (k = 0; k < NTRK; k++)
-        ok &= trk[k].p[P_RKEY] == 0;
-    return (int)ok && h == ref;
 }
 
 /* SRR and the INSERT (P_SRR, P_ITYPE .. P_IMIX): past FDRE's block, so in the steps' spare bytes after KEYF's (one a
@@ -1795,7 +1749,7 @@ static int fdre_inserts_round_trip(void)
     for (k = 0; k < NTRK; k++)                         /* the tracks left at their power-on values: 0 stored */
         if (k != 1u && k != 4u && k != 6u)
             for (j = 0; j < 6u; j++)
-                ok &= proj_slot[2].xp[k][ID[j] - P_NSTORED] == 0;
+                ok &= proj_slot[2].xp[k][PR_XP(ID[j])] == 0;
     host_init();
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
@@ -2096,37 +2050,6 @@ static int memb_extremes(void)
     }
     return ok;
 }
-/* review focus 1: RESON at every extreme (pitch with a chord's top note and the fine offset, STRCT, TONE, POS):
- * the lines stay inside rs_buf (ASan) and the output bounded */
-static int reson_extremes(void)
-{
-    static const int16_t TUNE[2] = {24, 96}, END[2] = {0, 127};
-    static const int32_t FINE[3] = {-RS_FINE, 0, RS_FINE};
-    uint32_t m, a, b, c, d, f, i;
-    int ok = 1;
-    for (m = RS_STRNG; m < RS_NMODEL; m++)
-        for (a = 0; a < 2u; a++)
-            for (b = 0; b < 2u; b++)
-                for (c = 0; c < 2u; c++)
-                    for (d = 0; d < 2u; d++)
-                        for (f = 0; f < 3u; f++) {
-                            host_init();
-                            trk[0].p[P_RMODEL] = (int16_t)m;
-                            trk[0].p[P_RTUNE] = TUNE[a];
-                            trk[0].p[P_RSTRCT] = END[b];
-                            trk[0].p[P_RTONE] = END[c];
-                            trk[0].p[P_RPOS] = END[d];
-                            trk[0].p[P_RDECAY] = 127;
-                            trk[0].rfine = FINE[f];
-                            drum_hit(&trk[0], 127);
-                            for (i = 0; i < 64u; i++) {
-                                render_mix(L, R, CTL);
-                                trk[0].rfine = FINE[f];   /* (the LFOs rewrite it every block) */
-                                ok &= L[0] <= 32767 && L[0] >= -32768;
-                            }
-                        }
-    return ok;
-}
 /* ---- USR3 at 48 KiB (spec 2026-10-24 parameter locks: the lock banks take its last 32 KiB) */
 #define U3 0xC8000u
 static uint32_t rd32(uint32_t off) { uint32_t v; memcpy(&v, hflash + off, 4); return v; }
@@ -2395,7 +2318,7 @@ static void fdre_of_live(project_ve_t *v)            /* the live state as 0.23.3
             v->t[i].p[PR_P(j)] = trk[i].p[j];
         memcpy(v->t[i].step, trk[i].step, sizeof trk[i].step);
         for (j = P_NSTORED; j < P_COUNT; j++)        /* (FDRE / FDRF: the parameters past the block in steps 0..6) */
-            v->t[i].step[j - P_NSTORED].rsv = proj_xp_enc(j, trk[i].p[j]);
+            v->t[i].step[PR_XP(j)].rsv = proj_xp_enc(j, trk[i].p[j]);
         v->pre[i] = (uint16_t)preset_rec_enc(trk[i].pre);
         v->pre_ed[i] = trk[i].pre_ed;
     }
@@ -2415,10 +2338,10 @@ static int fdre_migrates(void)
     persist_boot();
     pattern_kit();
     trk[2].p[P_E1] = 17;
-    trk[6].p[P_RKEY] = 99;
+    trk[6].p[P_SRR] = 99;
     motion_add(0, 4, P_E1, 100);
     motion_add(2, 9, P_LEVEL, 3);
-    motion_add(6, 63, P_RKEY, 120);
+    motion_add(6, 63, P_SRR, 120);
     mo.b.on = 0x05;
     name_set(chain.name, "OLD FDRE");
     fdre_of_live(&v);
@@ -2431,12 +2354,12 @@ static int fdre_migrates(void)
     for (k = 0; k < NTRK; k++)
         ok &= !memcmp(trk[k].p, want[k].p, sizeof want[k].p) && !memcmp(trk[k].step, want[k].step, sizeof want[k].step);
     ok &= mo.b.count == 3u && lk_count(&mo.b, 0, LK_LOCK) + lk_count(&mo.b, 2, LK_LOCK) + lk_count(&mo.b, 6, LK_LOCK) == 0u;
-    ok &= lk_find(&mo.b, lk_key(6, 63, P_RKEY), 0) >= 0 && mo.b.on == 5u && !lk_lost && !(persist_note & PN_LOCKS);
+    ok &= lk_find(&mo.b, lk_key(6, 63, P_SRR), 0) >= 0 && mo.b.on == 5u && !lk_lost && !(persist_note & PN_LOCKS);
     return (int)ok && sizeof v == 3840u && proj_slot[1].magic == PROJ_MAGIC && str_eq(ui.msg, "LOADED") &&
            str_eq(chain.name, "OLD FDRE");
 }
 /* MICRO (spec 2026-10-31 §1): "FDRG" keeps every step's micro in its spare byte, and the 7 parameters past the block
- * (KEYF, SRR, the INSERT's TYPE A B C MIX) in the reserved area (7 B a track) */
+ * (KEYF, SRR, the INSERT's TYPE A B C MIX) in the reserved area (7 B a track; FREITAKT removed RESON: KEYF's 0) */
 static int fdrg_micro_round_trip(void)
 {
     static step_t want[NTRK][NSTEP];
@@ -2450,7 +2373,6 @@ static int fdrg_micro_round_trip(void)
     trk[0].step[4].micro = 50;
     trk[3].step[6].micro = 17;
     trk[7].step[63].micro = -1;                      /* (an off step's micro: kept) */
-    trk[2].p[P_RKEY] = 99;
     trk[2].p[P_SRR] = 40;
     trk[5].p[P_ITYPE] = IT_CRUSH;
     trk[5].p[P_IMIX] = 0;
@@ -2459,16 +2381,16 @@ static int fdrg_micro_round_trip(void)
         memcpy(want[k], trk[k].step, sizeof want[k]);
     project_save(2);
     ok &= proj_slot[2].magic == 0x47524446u && proj_slot[2].t[0].step[4].micro == 50 &&
-          proj_slot[2].t[0].step[0].micro == -50 && proj_slot[2].xp[2][P_RKEY - P_NSTORED] == 99u &&
-          proj_slot[2].xp[5][P_IMIX - P_NSTORED] == (uint8_t)(0 - TP[P_IMIX].def);
+          proj_slot[2].t[0].step[0].micro == -50 && proj_slot[2].xp[2][0] == 0u && proj_slot[2].xp[2][PR_XP(P_SRR)] == 40u &&
+          proj_slot[2].xp[5][PR_XP(P_IMIX)] == (uint8_t)(0 - TP[P_IMIX].def);
     host_init();
     wipe_ram();
     persist_boot();
     project_load(2);
     for (k = 0; k < NTRK; k++)
         ok &= !memcmp(trk[k].step, want[k], sizeof want[k]);
-    ok &= trk[2].p[P_RKEY] == 99 && trk[2].p[P_SRR] == 40 && trk[5].p[P_ITYPE] == IT_CRUSH && trk[5].p[P_IMIX] == 0 &&
-          trk[6].p[P_IA] == 3 && trk[0].p[P_RKEY] == 0 && trk[0].p[P_IMIX] == TP[P_IMIX].def;
+    ok &= trk[2].p[P_SRR] == 40 && trk[5].p[P_ITYPE] == IT_CRUSH && trk[5].p[P_IMIX] == 0 &&
+          trk[6].p[P_IA] == 3 && trk[0].p[P_SRR] == 0 && trk[0].p[P_IMIX] == TP[P_IMIX].def;
     return (int)ok && proj_ok(&proj_slot[2]) && sizeof(project_t) == 3840u && str_eq(ui.msg, "LOADED");
 }
 /* a 0.26.0 record ("FDRF": the 7 parameters in steps 0..6's spare bytes, no micro) converts on load: the parameters
@@ -2483,7 +2405,6 @@ static int fdrf_converts(void)
     wipe_ram();
     persist_boot();
     pattern_kit();
-    trk[1].p[P_RKEY] = 127;
     trk[1].p[P_SRR] = 1;
     trk[4].p[P_ITYPE] = IT_CHORUS;
     trk[4].p[P_IB] = 0;
@@ -2508,8 +2429,8 @@ static int fdrf_converts(void)
     project_load(1);
     for (k = 0; k < NTRK; k++)
         ok &= !memcmp(trk[k].step, want[k], sizeof want[k]);   /* (micro 0 everywhere: the bytes were parameters) */
-    ok &= trk[1].p[P_RKEY] == 127 && trk[1].p[P_SRR] == 1 && trk[4].p[P_ITYPE] == IT_CHORUS && trk[4].p[P_IB] == 0 &&
-          trk[7].p[P_IMIX] == 5 && trk[0].p[P_RKEY] == 0 && trk[0].p[P_ITYPE] == IT_OFF;
+    ok &= trk[1].p[P_SRR] == 1 && trk[4].p[P_ITYPE] == IT_CHORUS && trk[4].p[P_IB] == 0 &&
+          trk[7].p[P_IMIX] == 5 && trk[0].p[P_SRR] == 0 && trk[0].p[P_ITYPE] == IT_OFF;
     ok &= lock_count(3) == 1u && !lk_lost && !(persist_note & PN_LOCKS);
     return (int)ok && proj_slot[1].magic == 0x47524446u && proj_ok(&proj_slot[1]) && str_eq(ui.msg, "LOADED");
 }
@@ -2706,7 +2627,7 @@ static int fdre_rename_keeps_motion(void)
     host_init();
     persist_boot();
     project_load(1);
-    return mo.b.count == 3u && mo.b.on == 5u && lk_find(&mo.b, lk_key(6, 63, P_RKEY), 0) >= 0 &&
+    return mo.b.count == 3u && mo.b.on == 5u && lk_find(&mo.b, lk_key(6, 63, P_SRR), 0) >= 0 &&
            str_eq(ui.msg, "LOADED") && proj_slot[1].magic == PROJ_MAGIC && project_name(1, b) && str_eq(b, "RENAMED") &&
            !lk_lost && !(persist_note & PN_LOCKS);
 }
@@ -2778,7 +2699,7 @@ int main(void)
     check("project: an FDR1 step's on / acc of 2 load set (not their low bit)", fdr1_flags_nonzero());
     check("project: an M2 record (FDR2) loads with COMP off and DUCK off", fdr2_converts());
     check("project: an M3 record (FDR3) loads with the LFOs off", fdr3_converts());
-    check("project: an FDR4 record loads with RESON off", fdr4_converts());
+    check("project: an FDR4 record loads with the FILTER off", fdr4_converts());
     check("project: an FDR5 record loads with GHOST KEEP", fdr5_converts());
     check("project: an FDR6 record (same size as FDR5) loads with reverb TYPE ROOM", fdr6_converts());
     check("project: the reverb TYPE survives a save and a load", fdr7_round_trip());
@@ -2804,7 +2725,6 @@ int main(void)
     check("song: LOAD while a song plays: STOP TO LOAD", song_blocks_load());
     check("project: a rename writes the name only, the current project's too", rename_slot());
     check("MEMB at every extreme: bounded (ASan)", memb_extremes());
-    check("RESON at every extreme: inside its lines (ASan), bounded", reson_extremes());
     check("settings: MUTE NEXT BAR, ZOOM and KNOB ACCEL survive a power cycle (Felucca's settings format)", mutebar_persists());
     check("settings: USB LEVEL FIXED survives a power cycle; a save without it reads MASTER", usb_level_persists());
     check("settings: USB AUDIO 2 CH / 10 CH MIX / 10 CH FX survive a power cycle (palette bits 12..13); older records,"
@@ -2839,9 +2759,6 @@ int main(void)
     check("project: an FDRD record's LFO DEST / DEPTH load as DEST slots 1 / 2 (LFO 1 / 2), 3 / 4 off; it plays as its "
           "FDRE save, motion and presets kept", fdrd_lfo_converts());
     check("project: the DEST slots kept through a save and a load (FDRE, 3840 B: one flash sector)", fdre_slots_round_trip());
-    check("project: RESON KEYF kept through a save and a load (FDRE, still 3840 B: the steps' spare bytes)",
-          fdre_keyf_round_trip());
-    check("project: an FDRE record from before KEYF loads with KEYF off, playing as before", fdre_old_keyf_off());
     check("project: SRR and the INSERT kept through a save and a load (still 3840 B: the steps' spare bytes), 0 stored "
           "at their power-on values", fdre_inserts_round_trip());
     check("project: a record from before SRR and the INSERT loads with both off, playing as before",
@@ -2863,7 +2780,7 @@ int main(void)
     check("FDRF: an FDRE converted in RAM, unsaved, converts again after a reset (no LOCKS LOST)", fdre_ram_refetched());
     check("FDRG: every step's MICRO and the 7 parameters past the block through a save and a load (3840 B)",
           fdrg_micro_round_trip());
-    check("FDRG: a 0.26.0 record (FDRF) converts: KEYF, SRR, the INSERT kept, micro 0, its locks still linked",
+    check("FDRG: a 0.26.0 record (FDRF) converts: SRR, the INSERT kept, micro 0, its locks still linked",
           fdrf_converts());
     check("FDRF: 1024 events: every bank sector's +0xF00..+0xF4F stays erased (the loader's scan)", bank_scan_offset_erased());
     check("FDRF: a save torn in the project record, the bank's commit or its payload: the old pair loads together",

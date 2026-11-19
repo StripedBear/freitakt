@@ -2,7 +2,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Presets (spec docs/superpowers/specs/2026-10-19-presets-design.md): a factory preset is a voice, MODEL + the 8 SOUND
  * knobs P_E0..P_E7, nothing else (loading one leaves the track's FX, LFOs, LEVEL, PAN, NOTE, CHOKE, steps as they are).
- * A user preset (user decision 2026-11-01) is the voice and the track's FX but the SLICER: UPR_FX (sends, RESON, FILTER,
+ * A user preset (user decision 2026-11-01) is the voice and the track's FX but the SLICER: UPR_FX (sends, FILTER,
  * INSERT, SRR); not the SLICER, LAYER, LFOs / DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO, steps. One id for every
  * preset: the factory banks in order (MACHINEDRUM, MODERN, CLASSIC: const tables, preset_bank.h), then the 96 USER
  * slots (PRE_NFACT + slot). A track remembers the id it was loaded from (track_t.pre, PRE_NONE none) and whether a knob
@@ -24,32 +24,35 @@ static const char *const N_PBANK[PB_N] = {"MACHINEDRUM", "MODERN", "CLASSIC", "U
 #define ACID_MAXTRK 2u                                  /* ACID is the model of 2 tracks at most (CPU), by user decision */
 
 /* the FX a user preset holds, in the record's order (append only): every value fits a byte (params.c TP: -64..127;
- * tests/preset_test.c checks) */
-#define UPR_NFX 23u
+ * tests/preset_test.c checks). A slot's FX bytes: UPR_NFB, FX i in byte upr_fb(i); FREITAKT removed RESON, whose 8
+ * bytes (4..11, after the sends) stay in the record, value 0 (only ATK .. LOOP's bits ride in them) */
+#define UPR_NFX 15u
+#define UPR_NFB 23u
 static const uint8_t UPR_FX[UPR_NFX] = {
     P_DIST, P_CHOR, P_DLY, P_REV,                                                   /* the sends */
-    P_RMODEL, P_RTUNE, P_RDECAY, P_RMIX, P_RTONE, P_RSTRCT, P_RPOS, P_RKEY,         /* RESON */
     P_FTYPE, P_FCUT, P_FRESO, P_FENV, P_FDEC,                                       /* FILTER */
     P_ITYPE, P_IA, P_IB, P_IC, P_IMIX, P_SRR,                                       /* INSERT, SRR */
 };
+static uint32_t upr_fb(uint32_t i) { return i < 4u ? i : i + 8u; }   /* FX i's byte (RESON's 4..11 between) */
+static int upr_bfx(uint32_t b) { return b < 4u ? (int)b : b >= 12u ? (int)b - 8 : -1; }   /* byte b's FX, -1 RESON's */
 /* the user bank: the flash record's payload as it is (project.c), "UPR2", 3204 B. A slot: used UPR_USED (the voice
  * and its FX f[], UPR_FX's order), UPR_USED | UPR_VOICE (the voice only: moved from UPR1, it loads as a factory preset
  * does), else empty. mv: where UPR1's slots 97..128 moved (new slot + 1, 0 none / dropped): a project's reference to
  * one follows it (preset_rec_dec) */
 #define UPR_USED 1u
 #define UPR_VOICE 2u
-typedef struct { uint8_t used, model; int8_t k[8]; int8_t f[UPR_NFX]; } upr_slot_t;
+typedef struct { uint8_t used, model; int8_t k[8]; int8_t f[UPR_NFB]; } upr_slot_t;   /* f: FX bytes (upr_fb) */
 /* a SAMPLE preset's ATK SUS REL LOOP PLAY CUT (user decisions 2026-11-03 and for 1.0.0: the 96 slots kept, the
  * record's size too): 26 bits, each value's offset from its power-on value (ATK, SUS, REL 7 bits, LOOP 3, PLAY 1, CUT
- * 1), bits 0..22 in FX byte i (UPR_FX's order): the top bit of the 22 bytes whose values are 0..127, FILTER ENV's
- * (-64..63) its top bit unlike bit 6; bits 23, 24, 25 the top bit of SOUND knobs DRIVE's, DECAY's and TONE's bytes
+ * 1), bits 0..22 in FX byte i (0..22, RESON's bytes too): the top bit of the 22 bytes whose values are 0..127,
+ * FILTER ENV's (-64..63) its top bit unlike bit 6; bits 23, 24, 25 the top bit of SOUND knobs DRIVE's, DECAY's and TONE's bytes
  * (0..127 each). 0 = the defaults: such a slot is byte for byte as before; another model's slot never holds them.
  * upr_fxv reads an FX value out (a plain value too: the same), upr_knob a SOUND knob */
-#define UPR_FENV 15u                                    /* UPR_FX's FILTER ENV */
+#define UPR_FENV 15u                                    /* FILTER ENV's byte (upr_fb(7)) */
 static const uint8_t UPR_KBIT[3] = {3, 1, 2};          /* the SOUND knobs whose byte's top bit is bit 23 + j (DRIVE,
                                                         * DECAY, TONE: 0..127 each) */
 static int upr_kbit(uint32_t i) { return i >= 1u && i <= 3u; }   /* (one of them) */
-static int32_t upr_fxdec(int8_t f, uint32_t i)        /* FX byte i's value */
+static int32_t upr_fxdec(int8_t f, uint32_t i)        /* FX byte i's value (a byte of RESON's: 0) */
 {
     uint32_t b = (uint8_t)f;
     return i == UPR_FENV ? (int32_t)((b & 0x7Fu) ^ 0x40u) - 0x40 : (int32_t)(b & 0x7Fu);
@@ -74,7 +77,7 @@ static uint32_t upr_env(const upr_slot_t *s)            /* the 26 bits (0: the d
     uint32_t e = 0, i;
     if (s->model != DM_SMPL)
         return 0;
-    for (i = 0; i < UPR_NFX; i++)
+    for (i = 0; i < UPR_NFB; i++)
         e |= upr_fxbit(s, i) << i;
     for (i = 0; i < 3u; i++)
         e |= (uint32_t)((uint8_t)s->k[UPR_KBIT[i]] >> 7) << (23u + i);
@@ -115,7 +118,6 @@ static upr_rec_t upr;
 static uint8_t upr_pending;                             /* changed while playing: written at the next STOP */
 
 static void drum_cut(track_t *t);                       /* drum_core.c */
-static const char *reson_refused(const track_t *t, int32_t from, int32_t to);   /* reson.c */
 static uint32_t acid_tracks(const track_t *except);
 static void motion_rebase(uint32_t k);                  /* motion.c */
 
@@ -141,7 +143,7 @@ static int upr_used(uint32_t slot)                      /* user slot holds a pre
     uint32_t u = upr.s[slot % PRE_NUSER].used;
     return u == UPR_USED || u == (UPR_USED | UPR_VOICE);
 }
-/* preset id's FX (UPR_FX's order): a used user slot that holds them; 0 for a factory preset, an older user preset
+/* preset id's FX bytes (upr_fb): a used user slot that holds them; 0 for a factory preset, an older user preset
  * (the voice only), an empty slot, a bad id */
 static const int8_t *upr_fx(uint32_t id)
 {
@@ -325,22 +327,14 @@ static void preset_apply(track_t *t, const preset_t *p, uint32_t id)
     t->pre_ed = 0;
 }
 
-/* FX f (UPR_FX's order) onto t, as their knobs turned (an INSERT TYPE fades, insert.c), after its voice and
- * motion_rebase (its locks let go, the knobs motion moved back): then motion's base again, the new values in it. RESON
- * MODEL within its caps, as a project load: CHORD / MODAL over theirs STRNG, RESON on 4 other tracks OFF. The IRQ off */
+/* FX bytes f (upr_fb) onto t, as their knobs turned (an INSERT TYPE fades, insert.c), after its voice and
+ * motion_rebase (its locks let go, the knobs motion moved back): then motion's base again, the new values in it. The
+ * IRQ off */
 static void preset_fx_put(track_t *t, const int8_t *f)
 {
     uint32_t i;
-    for (i = 0; i < UPR_NFX; i++) {
-        int32_t v = upr_fxdec(f[i], i);             /* (a slot's byte: ATK .. LOOP's bit off; a value: itself) */
-        if (UPR_FX[i] == P_RMODEL) {
-            if (reson_refused(t, t->p[P_RMODEL], v))
-                v = RS_STRNG;
-            if (reson_refused(t, t->p[P_RMODEL], v))
-                v = RS_OFF;
-        }
-        t->p[UPR_FX[i]] = (int16_t)v;
-    }
+    for (i = 0; i < UPR_NFX; i++)                   /* (a slot's byte: ATK .. LOOP's bit off; a value: itself) */
+        t->p[UPR_FX[i]] = (int16_t)upr_fxdec(f[upr_fb(i)], upr_fb(i));
     motion_rebase((uint32_t)(t - trk));
 }
 
@@ -450,8 +444,10 @@ static void upr_set(uint32_t slot, uint32_t model, const int16_t *kv)
     for (i = 0; i < 8u; i++)
         s->k[i] = (int8_t)clamp(kv[P_E0 + i], -128, 127);
     e = s->model == DM_SMPL ? senv_pack(kv) : 0u;   /* (another model: none) */
+    for (i = 0; i < UPR_NFB; i++)                   /* (RESON's bytes: 0) */
+        upr_fxset(s, i, 0, e >> i & 1u);
     for (i = 0; i < UPR_NFX; i++)
-        upr_fxset(s, i, kv[UPR_FX[i]], e >> i & 1u);
+        upr_fxset(s, upr_fb(i), kv[UPR_FX[i]], e >> upr_fb(i) & 1u);
     for (i = 0; i < 3u; i++)                        /* bits 23..25: DRIVE's, DECAY's, TONE's top bit (each 0..127) */
         if ((e >> (23u + i)) & 1u)
             s->k[UPR_KBIT[i]] = (int8_t)((uint8_t)clamp(s->k[UPR_KBIT[i]], 0, 127) | 0x80u);

@@ -64,9 +64,8 @@ static const char *name_of(uint32_t id)
 }
 
 /* the FX a user preset holds (2026-11-01: every FX of the track but the SLICER), listed here on their own */
-static const uint8_t FXI[] = {P_DIST, P_CHOR, P_DLY, P_REV, P_RMODEL, P_RTUNE, P_RDECAY, P_RMIX, P_RTONE, P_RSTRCT,
-                              P_RPOS, P_RKEY, P_FTYPE, P_FCUT, P_FRESO, P_FENV, P_FDEC, P_ITYPE, P_IA, P_IB, P_IC,
-                              P_IMIX, P_SRR};
+static const uint8_t FXI[] = {P_DIST, P_CHOR, P_DLY, P_REV, P_FTYPE, P_FCUT, P_FRESO, P_FENV, P_FDEC, P_ITYPE, P_IA,
+                              P_IB, P_IC, P_IMIX, P_SRR};
 #define NFXI (sizeof FXI)
 static int is_fx(uint32_t id)
 {
@@ -76,14 +75,13 @@ static int is_fx(uint32_t id)
             return 1;
     return 0;
 }
-static void fx_fill(track_t *t, uint32_t seed)          /* each FX knob a value in its range, by seed (RESON: STRNG) */
+static void fx_fill(track_t *t, uint32_t seed)          /* each FX knob a value in its range, by seed */
 {
     uint32_t i;
     for (i = 0; i < NFXI; i++) {
         const param_desc_t *d = &TP[FXI[i]];
         t->p[FXI[i]] = (int16_t)(d->min + (int32_t)((seed * 13u + i * 29u + 5u) % (uint32_t)(d->max - d->min + 1)));
     }
-    t->p[P_RMODEL] = RS_STRNG;
 }
 static int fx_same(const int16_t *a, const int16_t *b)   /* two tracks' p[]: the same FX */
 {
@@ -107,7 +105,7 @@ static int8_t slot_fx(uint32_t slot, uint32_t id)       /* user slot's stored FX
     uint32_t i;
     for (i = 0; i < UPR_NFX; i++)
         if (UPR_FX[i] == id)
-            return upr.s[slot].f[i];
+            return upr.s[slot].f[upr_fb(i)];
     return -128;
 }
 
@@ -201,7 +199,7 @@ static void test_load_sets_voice_only(void)
         if (i < P_MODEL || i > P_E7)
             ok &= trk[2].p[i] == before.p[i];
     ok &= !memcmp(trk[2].step, before.step, sizeof before.step);
-    check("a factory load: MODEL + 8 knobs = the preset's; FX (FILTER, INSERT, RESON, sends, SRR), SLICER, LEVEL, PAN, "
+    check("a factory load: MODEL + 8 knobs = the preset's; FX (FILTER, INSERT, sends, SRR), SLICER, LEVEL, PAN, "
           "CHOKE 3, NOTE, LFO, steps unchanged", ok);
     check("a bad id or an empty user slot: refused, nothing changes",
           preset_load(&trk[2], user_id(4)) == -1 && preset_load(&trk[2], PRE_NONE) == -1 && trk[2].pre == id &&
@@ -700,8 +698,12 @@ static void test_record_layout(void)
             ;
         ok &= j < UPR_NFX && TP[FXI[i]].min >= -128 && TP[FXI[i]].max <= 127;
     }
-    check("the FX stored: DIST CHO DLY REV, RESON (MODEL TUNE DECAY MIX TONE STRCT POS KEYF), FILTER (TYPE CUT RESO ENV "
-          "DECAY), INSERT (TYPE A B C MIX), SRR; each fits a byte", ok);
+    check("the FX stored: DIST CHO DLY REV, FILTER (TYPE CUT RESO ENV DECAY), INSERT (TYPE A B C MIX), SRR; each fits a "
+          "byte", ok);
+    check("a slot's FX bytes: 23, the sends in 0..3, RESON's places 4..11 (FREITAKT removed it), the rest from 12, "
+          "FILTER ENV's 15",
+          UPR_NFB == 23u && upr_fb(3) == 3u && upr_fb(4) == 12u && upr_fb(UPR_NFX - 1u) == 22u && upr_fb(7) == UPR_FENV &&
+              upr_bfx(4) < 0 && upr_bfx(11) < 0 && upr_bfx(12) == 4);
     check("not stored: SLICER, LAYER, LFOs and their DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO",
           !is_fx(P_SLCR) && !is_fx(P_SLPAT) && !is_fx(P_LSET) && !is_fx(P_LFO1 + LF_DEST) && !is_fx(P_LS3DEST) &&
               !is_fx(P_LEVEL) && !is_fx(P_PAN) && !is_fx(P_NOTE) && !is_fx(P_CHOKE) && !is_fx(P_PRIO));
@@ -724,6 +726,9 @@ static void test_user_fx_round_trip(void)
     memcpy(want, trk[1].p, sizeof want);
     check("SAVE: the voice and the FX into the slot", preset_user_save(4, &trk[1]) == 0 && upr.s[4].used == 1u &&
           slot_fx(4, P_FCUT) == trk[1].p[P_FCUT] && slot_fx(4, P_ITYPE) == trk[1].p[P_ITYPE] && flash_has(4));
+    for (i = 4u, ok = 1; i < 12u; i++)
+        ok &= upr.s[4].f[i] == 0;
+    check("SAVE: RESON's places in the slot 0", ok);
     fx_fill(u, 2);
     u->p[P_SLCR] = 1;
     u->p[P_LEVEL] = 77;
@@ -733,7 +738,7 @@ static void test_user_fx_round_trip(void)
     u->p[P_PRIO] = 1;
     u->p[P_LFO1 + LF_DEST] = 2;
     u->p[P_LS3DEST] = 4;
-    u->p[P_LS4DEST] = 27;                            /* an appended DEST (the INSERT's C) is kept too */
+    u->p[P_LS4DEST] = LD_MAX;                        /* an appended DEST (the INSERT's C) is kept too */
     u->p[P_LSET] = 1;
     before = *u;
     ok = preset_load(u, user_id(4)) == 0 && preset_get(user_id(4), &p) && knobs_are(u, &p) && fx_same(u->p, want);
@@ -746,29 +751,6 @@ static void test_user_fx_round_trip(void)
     fx_fill(&trk[3], 7);
     check("power cycle: the FX back from flash, loaded onto another track", preset_load(&trk[3], user_id(4)) == 0 &&
           fx_same(trk[3].p, want) && trk[3].p[P_E1] == 33 && trk[3].p[P_SLCR] == 0 && trk[3].p[P_LEVEL] != 50);
-}
-
-/* RESON's caps on a user load (as a project load: CHORD / MODAL over their cap STRNG, RESON past 4 tracks OFF) */
-static void test_user_fx_caps(void)
-{
-    uint32_t k;
-    fresh();
-    fx_fill(&trk[6], 3);
-    trk[6].p[P_RMODEL] = RS_CHORD;
-    preset_user_save(0, &trk[6]);
-    trk[6].p[P_RMODEL] = RS_OFF;
-    for (k = 0; k < 4u; k++)
-        trk[k].p[P_RMODEL] = RS_STRNG;
-    preset_load(&trk[7], user_id(0));
-    check("RESON on 4 other tracks: a user load leaves RESON OFF (the rest of its FX loaded)",
-          trk[7].p[P_RMODEL] == RS_OFF && trk[7].p[P_FCUT] == trk[6].p[P_FCUT]);
-    trk[0].p[P_RMODEL] = trk[1].p[P_RMODEL] = RS_CHORD;
-    trk[2].p[P_RMODEL] = trk[3].p[P_RMODEL] = RS_OFF;
-    preset_load(&trk[7], user_id(0));
-    check("CHORD on 2 other tracks: the preset's CHORD loads as STRNG", trk[7].p[P_RMODEL] == RS_STRNG);
-    trk[0].p[P_RMODEL] = trk[1].p[P_RMODEL] = RS_OFF;
-    preset_load(&trk[7], user_id(0));
-    check("room again: CHORD", trk[7].p[P_RMODEL] == RS_CHORD);
 }
 
 /* MOTION playing an FX knob: a user load makes the preset's value the knob's base (STOP keeps it); SAVE stores the
@@ -853,10 +835,10 @@ static void test_edit_marks_fx(void)
     turn(EN_K1 + 0, 1);                              /* SLICER: not in a preset */
     frames(1);
     check("SLICER turned: not edited", !t->pre_ed && t->p[P_SLCR] != 0);
-    fx_page(P_RMODEL);
-    turn(EN_K1 + 3, 2);                              /* RESON MIX */
+    fx_page(P_IMIX);
+    turn(EN_K1 + 0, -2);                             /* INSERT MIX */
     frames(1);
-    check("RESON MIX turned: edited", t->pre_ed);
+    check("INSERT MIX turned: edited", t->pre_ed);
     preset_load(t, user_id(0));
     ml_set(t, P_DLY, 90);
     check("a learned CC on DLY: edited", t->pre_ed);
@@ -1004,7 +986,6 @@ int main(void)
     test_bank_order_old_refs();
     test_record_layout();
     test_user_fx_round_trip();
-    test_user_fx_caps();
     test_user_fx_motion();
     test_user_fx_audition();
     test_edit_marks_fx();

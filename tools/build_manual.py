@@ -263,7 +263,7 @@ mark { background:var(--w); color:var(--k); padding:0 2px; }
   </nav>
   <div>
     <p>By DEADACTIVE, built on Felucca by Leo Kuroshita (@kurogedelic), <a href="https://hugelton.com" target="_blank" rel="noopener">Hügelton Instruments</a>. GPL-3.0, no warranty.</p>
-    <p>Drum algorithms (Plaits, stmlib) and the compressor (Streams): Emilie Gillet, <a href="https://github.com/pichenettes/eurorack" target="_blank" rel="noopener">Mutable Instruments</a>. SKIN and RESON: <a href="https://github.com/electro-smith/DaisySP" target="_blank" rel="noopener">DaisySP</a>. Samples: Versilian Studios VSCO-2 CE and VCSL (CC0 1.0). Font: Terminus (Dimitar Toshkov Zhekov, SIL OFL 1.1). Machinedrum is a trademark of Elektron; M-VAVE and FM-1 are trademarks of their owners; Hortator is not affiliated with either.</p>
+    <p>Drum algorithms (Plaits, stmlib) and the compressor (Streams): Emilie Gillet, <a href="https://github.com/pichenettes/eurorack" target="_blank" rel="noopener">Mutable Instruments</a>. SKIN: <a href="https://github.com/electro-smith/DaisySP" target="_blank" rel="noopener">DaisySP</a>. Samples: Versilian Studios VSCO-2 CE and VCSL (CC0 1.0). Font: Terminus (Dimitar Toshkov Zhekov, SIL OFL 1.1). Machinedrum is a trademark of Elektron; M-VAVE and FM-1 are trademarks of their owners; Hortator is not affiliated with either.</p>
   </div>
 </footer>
 <script>

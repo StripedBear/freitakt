@@ -1,29 +1,29 @@
 # Effects
-<!--blurb: FILTER, SRR, DIST, INSERT, SLICER, RESON, delay, reverb, chorus and the master chain.-->
+<!--blurb: FILTER, SRR, DIST, INSERT, SLICER, delay, reverb, chorus and the master chain.-->
 
 ## The signal path
 
-Each track runs: voice, then **RESON**, **FILTER**, **SRR**, **DIST**, **INSERT**, **SLICER**, the compressor's duck, then LEVEL and PAN and the three sends (**chorus**, **delay**, **reverb**). The sends and the track mix go into the master: the PERFORM effects, the metronome, SPEAKER EQ, a DC blocker, the limiter and a soft clip.
+Each track runs: voice, then **FILTER**, **SRR**, **DIST**, **INSERT**, **SLICER**, the compressor's duck, then LEVEL and PAN and the three sends (**chorus**, **delay**, **reverb**). The sends and the track mix go into the master: the PERFORM effects, the metronome, SPEAKER EQ, a DC blocker, the limiter and a soft clip.
 
-Press [[FX]] for the track's effect pages. The footer counter counts the whole family: **FILTER 1/8**, **FILTER 2/8**, **FX 3/8**, **INSERT 4/8**, **INSERT 5/8**, **SLICER 6/8**, **RESON 7/8**, **RESON 8/8**. Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
+Press [[FX]] for the track's effect pages. The footer counter counts the whole family: **FILTER 1/6**, **FILTER 2/6**, **FX 3/6**, **INSERT 4/6**, **INSERT 5/6**, **SLICER 6/6**. Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
 
 All FX pages edit the selected track. **Delay, reverb and chorus** are global and live on the [[GLO]] pages 4 to 7 of 7 (stored in the project); their send knobs (CHO, DLY, REV) stay on the FX page.
 
-## FILTER (1/8 and 2/8)
+## FILTER (1/6 and 2/6)
 
-A filter on every track, after RESON and before DIST. Each hit sweeps it by ENV (accents sweep further).
+A filter on every track, after the voice and before DIST. Each hit sweeps it by ENV (accents sweep further).
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 1/8 | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
-| 1/8 | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
-| 1/8 | **KNOB 3** | RESO | 0 to 127 (0) |
-| 1/8 | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
-| 2/8 | **KNOB 1** | DECAY | 5 ms to 2 s (40, about 32 ms) |
+| 1/6 | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
+| 1/6 | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
+| 1/6 | **KNOB 3** | RESO | 0 to 127 (0) |
+| 1/6 | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
+| 2/6 | **KNOB 1** | DECAY | 5 ms to 2 s (40, about 32 ms) |
 
 LFO destinations F.CUT and F.RES move the filter.
 
-## FX (3/8): DIST and the sends
+## FX (3/6): DIST and the sends
 
 | Knob | Label | Meaning (default 0) |
 | --- | --- | --- |
@@ -32,11 +32,11 @@ LFO destinations F.CUT and F.RES move the filter.
 | **KNOB 3** | DLY | delay send |
 | **KNOB 4** | REV | reverb send |
 
-## INSERT (4/8 and 5/8)
+## INSERT (4/6 and 5/6)
 
 An effect on every track, after DIST and before the SLICER.
 
-**4/8:** [[KNOB 1]] **TYPE**: OFF (default), SOFT, HARD, FOLD, FUZZ, CRUSH, PHASR, FLANG, CHOR. [[KNOB 2]] to [[KNOB 4]] are **A**, **B**, **C**, named by the TYPE (with TYPE OFF they read A B C):
+**4/6:** [[KNOB 1]] **TYPE**: OFF (default), SOFT, HARD, FOLD, FUZZ, CRUSH, PHASR, FLANG, CHOR. [[KNOB 2]] to [[KNOB 4]] are **A**, **B**, **C**, named by the TYPE (with TYPE OFF they read A B C):
 
 | TYPE | A | B | C |
 | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ An effect on every track, after DIST and before the SLICER.
 | CRUSH | BITS (1 to 16, default 9) | RATE (689 Hz to 44 kHz, default about 11 kHz) | LPF (cutoff) |
 | PHASR, FLANG, CHOR | RATE (Hz) | DEPTH (default 75 %) | FDBK (75 %) |
 
-**5/8:** [[KNOB 1]] **MIX** (dry to wet, 100 % by default; for the swept types the wet is the effect added to the dry, so 100 % is the whole effect), [[KNOB 2]] **SRR**.
+**5/6:** [[KNOB 1]] **MIX** (dry to wet, 100 % by default; for the swept types the wet is the effect added to the dry, so 100 % is the whole effect), [[KNOB 2]] **SRR**.
 
 - A TYPE change fades over 3 ms, without a click. TYPE OFF, MIX 0 and SRR OFF leave the sound exactly as before.
 - A, B, C, MIX and SRR take MOTION, step locks, LFO DEST and MIDI LEARN (`T3 I.DRIVE`, `T3 SRR`). TYPE does not.
@@ -54,7 +54,7 @@ An effect on every track, after DIST and before the SLICER.
 
 It samples and holds the track's sound after the FILTER and before DIST, aliasing on purpose, for the gritty sound of the classic drum machines. OFF at 0, down to 347 Hz at 127; the screen shows the rate.
 
-## SLICER (6/8)
+## SLICER (6/6)
 
 An insert after INSERT and before LEVEL, PAN and the sends. It chops the track with one of 16 patterns of 16 steps.
 
@@ -77,27 +77,6 @@ Patterns (x = open or live, . = gated or repeated):
 | 6 | `xxxx....xxxx....` | 14 | `xx.x.xx.xx.x.x.x` |
 | 7 | `x...x...x...x...` | 15 | `x.xxx.x.xx.xxx.x` |
 | 8 | `x.x..x.x..x.x.x.` | 16 | `xxx.x..xx.x.xxx.` |
-
-## RESON (7/8 and 8/8)
-
-A resonator insert, before FILTER: the track rings through a string, pipe, chord or modal bar, tuned in semitones. Limits: RESON on **4 tracks**, CHORD on **2**, MODAL on **2** (`RESON: 4 TRACKS MAX`, `CHORD: 2 TRACKS MAX`, `MODAL: 2 TRACKS MAX`).
-
-| Page | Knob | Label | Values (default) |
-| --- | --- | --- | --- |
-| 7/8 | **KNOB 1** | MODEL | OFF (default), STRNG, PIPE, CHORD, MODAL |
-| 7/8 | **KNOB 2** | TUNE | notes C1 to C7 (C3) |
-| 7/8 | **KNOB 3** | DECAY | T60 from 10 ms to 10 s (72) |
-| 7/8 | **KNOB 4** | MIX | % (50 %) |
-| 8/8 | **KNOB 1** | TONE | % (79 %) |
-| 8/8 | **KNOB 2** | STRCT | structure (0). On CHORD this becomes the chord type |
-| 8/8 | **KNOB 3** | POS | excitation position, % (50 %) |
-| 8/8 | **KNOB 4** | KEYF | KEYFOLLOW, 0 to 100 % (0 = off) |
-
-**KEYF** makes the ring follow the note of each hit from C4: at 100 % a step at C5 (or a KEYS note, or a ratchet's note) rings an octave above TUNE, at 50 % half an octave. MIDI notes play their track at C4, so they ring at TUNE. A new note under a ringing tail glides to it in a few ms, without a click. It works on every RESON model. KEYF 0 sounds as before.
-
-CHORD types (0 to 127 split into 20): OCT, 5TH, 4TH, MAJ, MIN, SUS2, SUS4, DIM, AUG, MAJ6, MIN6, MAJ7, MIN7, DOM7, M7b5, DIM7, 7SUS4, ADD9, QUART, CLUST.
-
-LFO destinations R.TUN, R.DCY, R.MIX, R.TON, R.STR and R.POS move RESON's knobs.
 
 ## Delay (GLO DLY 4/7 and 5/7)
 

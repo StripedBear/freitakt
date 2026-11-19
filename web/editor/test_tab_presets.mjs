@@ -78,7 +78,7 @@ export async function runPresetsTests(log = console.log) {
     const text = JSON.stringify(pm.toFile({ created: "2026-10-31T12:00:00.000Z" }));
     const f = JSON.parse(text);
     ok(f.format === "hortator-presets" && f.version === 2 && f.slots.length === 96 && f.upr2.size === 3204 && f.moved.length === 32
-      && f.upr2.crc32 === P.crcHex(P.crc32(before)) && f.slots.filter(Boolean).every((x) => x.fx.length === 23),
+      && f.upr2.crc32 === P.crcHex(P.crc32(before)) && f.slots.filter(Boolean).every((x) => x.fx.length === 15),
     "file: hortator-presets, version 2, 96 slots with their FX, the record's CRC-32");
     const pm2 = new PresetsModel(s, { storage: null });
     pm2.modelNames = pm.modelNames;
@@ -113,20 +113,21 @@ export async function runPresetsTests(log = console.log) {
       && pm.record()[4 + 33 * c] === 1, "Save track N here: the track's MODEL, SOUND knobs and FX (DUMP) in the slot");
 
     /* ------------------------------------------------------------------- FX --- */
-    const cut = LAYOUT.uprFx.indexOf(m.P.FCUT), ftype = LAYOUT.uprFx.indexOf(m.P.FTYPE), rtune = LAYOUT.uprFx.indexOf(m.P.RTUNE);
-    ok(pm.fxDesc.length === 23 && pm.fxDesc[rtune].min === 24 && pm.fxDesc[rtune].max === 96 && pm.fxDesc[ftype].names.length === 5
+    const cut = LAYOUT.uprFx.indexOf(m.P.FCUT), ftype = LAYOUT.uprFx.indexOf(m.P.FTYPE), fenv = LAYOUT.uprFx.indexOf(m.P.FENV);
+    const at = (k) => 4 + 33 * c + 10 + LAYOUT.uprFb[k]; // FX k's byte in the record
+    ok(pm.fxDesc.length === 15 && pm.fxDesc[fenv].min === -64 && pm.fxDesc[fenv].max === 63 && pm.fxDesc[ftype].names.length === 5
       && pm.fxText(ftype, 1) === pm.fxDesc[ftype].names[1] && pm.fxText(cut, 64) === "64",
     "FX: each one's range and names as the FM-1 describes them (DESC)");
     pm.setFx(c, cut, 300);
     const r2 = pm.record();
-    pm.setFx(c, rtune, 0);
-    ok(pm.slots[c].fx[cut] === 127 && r2[4 + 33 * c + 10 + cut] === 127 && pm.slots[c].fx[rtune] === 24, "FX: an edit kept inside its range, in the record");
+    pm.setFx(c, fenv, -100);
+    ok(pm.slots[c].fx[cut] === 127 && r2[at(cut)] === 127 && pm.slots[c].fx[fenv] === -64, "FX: an edit kept inside its range, in the record");
     pm.keepFx(c, false);
     const r3 = pm.record();
     pm.setFx(c, cut, 5);
     ok(r3[4 + 33 * c] === 3 && pm.slots[c].voiceOnly && pm.slots[c].fx[cut] === 127, "FX: the voice only (used 3); its FX not edited then");
     pm.keepFx(c, true);
-    ok(pm.record()[4 + 33 * c] === 1 && eqB(pm.record(), r2.map((x, i) => (i === 4 + 33 * c + 10 + rtune ? 24 : x))), "FX: kept again (used 1)");
+    ok(pm.record()[4 + 33 * c] === 1 && eqB(pm.record(), r2.map((x, i) => (i === at(fenv) ? P.fxByte(-64, LAYOUT.uprFenv, 0) : x))), "FX: kept again (used 1)");
 
     /* ------------------------------------------------------------------ files --- */
     const g = JSON.parse(text);

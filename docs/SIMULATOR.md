@@ -110,14 +110,14 @@ draws what the firmware computes.
 
 | Unit | File | Job |
 |---|---|---|
-| Lab C | `tests/sim_lab.c` (in `sim_core.c`'s translation unit) | a blank project at 120 BPM; models, parameters, steps (PROB, RATCH), globals, the transport, a hit, a PERFORM key held; one track's hit rendered alone (`lab_voice`, with or without its RESON and FILTER); the mix; the Grids lanes; TRACKS' mute (now or on the bar); MOTION (armed, a knob turned through `motion_capture`); per audio half a probe: the compressor's gain reduction, both LFOs of every track, the tracks that fired, each track's step, the waiting and applied mutes, a watched knob |
-| Ids | `tests/sim_ids.c` → `lab_ids.json` | the parameter, global, model, PERFORM and RESON ids with their labels, ranges, defaults and name tables, the PROB list (`cond_store` / `cond_format`) and the LFO SYNC names, printed from the firmware at build time: the page never copies a number |
+| Lab C | `tests/sim_lab.c` (in `sim_core.c`'s translation unit) | a blank project at 120 BPM; models, parameters, steps (PROB, RATCH), globals, the transport, a hit, a PERFORM key held; one track's hit rendered alone (`lab_voice`, with or without its FILTER); the mix; the Grids lanes; TRACKS' mute (now or on the bar); MOTION (armed, a knob turned through `motion_capture`); per audio half a probe: the compressor's gain reduction, both LFOs of every track, the tracks that fired, each track's step, the waiting and applied mutes, a watched knob |
+| Ids | `tests/sim_ids.c` → `lab_ids.json` | the parameter, global, model, PERFORM ids with their labels, ranges, defaults and name tables, the PROB list (`cond_store` / `cond_format`) and the LFO SYNC names, printed from the firmware at build time: the page never copies a number |
 | Analyser | `web/sim/lab.js` `Lab` | a second wasm instance in the page, silent; started when the section nears the screen; `voice`, `renderMono`, `grids`, `probes`, `dice` |
 | Player | `web/sim/lab.js` `LabPlayer`, `worklet.js` `fm1lab` | a third instance in an AudioWorklet, started by the first Play (one AudioContext): the same calls as messages (a whitelist), probes posted back about 60 times a second, an AnalyserNode on its output |
 | Screens' clips | `tests/sim_feature_reel.c` (+ `sim_reel.h`, shared with `sim_record.c`) → `features.bin.gz`, `features.json` | a clip per chapter: from a fresh demo 1, playing, the chapter's page while a scripted hand turns its knobs to their ends (models and waves stepped through, ranges swept, PERFORM keys held); FM1R at 15 fps |
 | Frame | `web/sim/features.js` | the chapters, each with the FM-1's own screen beside the text: its clip looped while in view; a change in the piece shows the live screen for 5 s (`Lab.screen`: the panel moves that open the page, run on the analyser's state), then the clip again; one piece plays at a time; a piece off screen or a hidden tab stops; `audition()` starts a piece's sound from a pad or a key without its loop; diagrams (Bluetooth) mount without the analyser |
 | Parts | `lab_ui.js`, `lab_dsp.js`, `lab_draw.js` | knobs (drag, arrows, Page, Home / End), chips, the pad, canvases at the pixel ratio; the FFT, spectrum and tail; the traces |
-| Pieces | `lab_voices.js`, `lab_reson.js`, `lab_comp.js`, `lab_lfo.js`, `lab_seq.js`, `lab_grids.js`, `lab_fx.js`, `lab_ble.js` | drum voices, resonators, the pump compressor, two LFOs, the sequencer's chance and live hands, Grids, effects and PERFORM, Bluetooth MIDI (an animated diagram of part 1, from `docs/ble/DEVICE_STEPS.md`) |
+| Pieces | `lab_voices.js`, `lab_comp.js`, `lab_lfo.js`, `lab_seq.js`, `lab_grids.js`, `lab_fx.js`, `lab_ble.js` | drum voices, the pump compressor, two LFOs, the sequencer's chance and live hands, Grids, effects and PERFORM, Bluetooth MIDI (an animated diagram of part 1, from `docs/ble/DEVICE_STEPS.md`) |
 
 `lab_reset` stops a transport another piece left running, so each piece starts from its own PLAY, and clears the pages each family remembers (`ui.fam_last`), as at power-on. The lab's styles are scoped to `.plate` (an unscoped `.knob` once restyled the power switch's thumb; `tests/sim_site.mjs` guards it).
 
@@ -181,7 +181,7 @@ Autorepeat and shortcuts with Cmd / Ctrl / Alt are ignored. Leaving the tab rele
   - the footer links `source.tar.gz`, which holds the firmware and the sim.
 
 - `tests/sim_lab_test.c` (built and run by `tools/build_sim.sh`) checks the lab on the firmware: every model is
-  heard and models differ, DECAY lengthens a hit, RESON rings longer than dry, Grids' lanes follow X / Y, the
+  heard and models differ, DECAY lengthens a hit, Grids' lanes follow X / Y, the
   compressor reduces gain when keyed, the LFO probes move, PROB 50 % fires sometimes, PERFORM changes the output, a
   mute waits for the bar line, a recorded knob move plays back at its step.
 - `tests/sim_glue.mjs`'s lab tests run the page's own `lab.js` / `lab_dsp.js` on the built wasm: the ids, the FFT (a

@@ -716,7 +716,7 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
         rev_side_fold(wet, n);
 }
 
-/* one block of the whole mix (shared with the host tests): events -> each drum track -> RESON -> FILTER -> SRR -> dist
+/* one block of the whole mix (shared with the host tests): events -> each drum track -> FILTER -> SRR -> dist
  * -> INSERT -> SLICER -> level / pan / sends -> buses -> master; out: stereo Q15 */
 static void events_block(uint32_t n);                    /* seq.c */
 static void midi_drop(void);                             /* seq.c */
@@ -797,7 +797,7 @@ static void mix_part(track_t *t, uint32_t n, uint32_t src)
 {
     int32_t *b = part_buf;
     uint32_t i, is_src = (uint32_t)(t - trk) == src, snd = track_render(t, b, n);
-    snd = trk_inserts(t, b, n, snd);                   /* RESON, then FILTER (filter.c), SRR (insert.c), before DIST */
+    snd = trk_inserts(t, b, n, snd);                   /* FILTER (filter.c), SRR (insert.c), before DIST */
     if (snd)
         t->tail = (uint8_t)(16 + 48 * ins_on(t));       /* blocks of DIST / INSERT state to run out after the last voice
                                                          * (the INSERT's: 46 ms, a flanger's feedback) */

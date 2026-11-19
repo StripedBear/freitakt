@@ -20,7 +20,6 @@ hh_render 288
 mix_part 731
 comp_block 133
 lfo_track 424
-reson_block 588
 rev_room 210
 rev_spring 126
 perf_begin 28
@@ -29,9 +28,7 @@ perf_block 793
 perf_harm 0
 chain_apply 174
 memb_render 290
-reson_modal 125
 px_memb_block 106
-px_modal_block_q 113
 trk_filter 228
 fm_render 83
 acid_render 326

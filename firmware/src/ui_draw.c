@@ -1503,59 +1503,6 @@ static void graph_ldest(void)
     cv_vdot(192, 3, 97, C_INK);
 }
 
-/* RESON pages: the model in large type, the pitch (CHORD: its four notes), the ring's partials on a 4-octave
- * axis (STRNG all, PIPE odd, CHORD its notes), a meter of the ring */
-static void graph_reson(uint16_t c)
-{
-    static const uint8_t HX[16] = {0, 34, 54, 68, 79, 88, 95, 102, 108, 113, 118, 122, 126, 129, 133, 136};
-    const track_t *t = TSEL;
-    uint32_t m = (uint32_t)clamp(t->p[P_RMODEL], 0, RS_NMODEL - 1), h, n;
-    int32_t note = clamp(t->p[P_RTUNE], 24, 96);
-    char b[24];
-    if (!m) {
-        off_word();
-        return;
-    }
-    md_text(4, 4, &MD_F3, 4, N_RMODEL[m], C_INK);
-    b[0] = 0;
-    if (m == RS_CHORD) {
-        note = note < 48 ? 48 : note;
-        for (h = 0; h < 4u; h++) {                    /* "C3 E3 G3 C4" */
-            int32_t nn = note + RS_CHORD_IV[rs_chord(t)][h];
-            str_cpy(b + str_len(b), N_NOTE[(uint32_t)nn % 12u], sizeof b - str_len(b));
-            fmt_int(b + str_len(b), nn / 12 - 1);
-            str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
-        }
-    } else {
-        str_cpy(b, N_NOTE[(uint32_t)note % 12u], sizeof b);
-        fmt_int(b + str_len(b), note / 12 - 1);
-    }
-    md_text(4, 44, &MD_F3, 2, b, C_INK);
-    cv_hdot(100, 235, 74, C_INK);
-    if (m == RS_MODAL) {
-        for (h = 0; h < PX_NMODE; h++) {
-            uint32_t r = px_modal_ratio(clamp(t->p[P_RSTRCT], 0, 127) * 516, h), lg = 0, x;
-            while (r >= (2u << 16)) {                 /* log2: whole octaves, then the linear rest */
-                r >>= 1;
-                lg += 256u;
-            }
-            lg += (r - 65536u) >> 8;
-            x = lg * 34u / 256u;
-            if (x < 136u)
-                cv_rect(100 + (int32_t)x, 74 - (int32_t)(56u - h * 4u), 2, (int32_t)(56u - h * 4u), C_INK);
-        }
-    } else
-    for (h = 0; h < (m == RS_CHORD ? 4u : 16u); h++) {
-        uint32_t x = m == RS_CHORD ? (uint32_t)RS_CHORD_IV[rs_chord(t)][h] * 136u / 48u : HX[h];
-        if (m == RS_PIPE && (h & 1u))
-            continue;                                 /* PIPE: odd partials only (h = 0 is the 1st) */
-        n = m == RS_CHORD ? 50u : 56u - h * 3u;
-        cv_rect(100 + (int32_t)x, 74 - (int32_t)n, 2, (int32_t)n, C_INK);
-    }
-    (void)c;
-    hmeter(4, 80, 86, (int32_t)((uint32_t)t->rs.peak * 1000u / 32767u), 0);   /* the ring's level */
-}
-
 /* FILTER: TYPE's response at CUT / RESO (an approximation: flat, the RESO peak, 12 dB / octave; BP 6 dB; the
  * notch's width by RESO), 30 Hz .. 16 kHz across x 100..235 (15 px an octave), +18 .. -36 dB; ENV's reach a
  * dotted line at CUT + ENV */
@@ -1847,8 +1794,6 @@ static uint32_t graph_signature(void)
                 h ^= ((ui.tr_h[l] + 1u) * 97u + ui.tr_n[l] * 65537u) * (l + 3u);
         }
     }
-    if (pg->graph == GR_RESON)
-        h ^= ((uint32_t)t->rs.peak >> 9) * 2654435761u + (uint32_t)rs_chord(t) * 7919u;
     return h;
 }
 
@@ -2203,9 +2148,6 @@ static uint32_t graph_paint(int whole)
         break;
     case GR_LDEST:
         graph_ldest();
-        break;
-    case GR_RESON:
-        graph_reson(c);
         break;
     case GR_FILTER:
         graph_filter(c);

@@ -20,7 +20,6 @@
 | **FILL** | a step flag; plays only during a fill (hold REC off SEQ). |
 | **FM-Link** | two FM-1s in time over Bluetooth. |
 | **GO action** | a TOOLS / PROJECT knob that needs two detents within 1.5 s. |
-| **KEYF** | RESON KEYFOLLOW: the ring follows each hit's note. |
 | **KEYS** | the keys play the selected track chromatically ([[SCL]]). |
 | **LAYER** | a sample layered under any model. |
 | **LOCK** | a per-step value for a knob (parameter lock). |
@@ -31,7 +30,6 @@
 | **PRIO** | HIGH or LOW voice priority. |
 | **PROB** | a step's probability. |
 | **RATCH** | a step's ratchet repeats (1 to 4). |
-| **RESON** | the resonator insert (STRNG, PIPE, CHORD, MODAL). |
 | **ROUT** | MIDI-in routing: NOTE, SEL, TRACK. |
 | **SCL** | the button for KEYS (SEL on the simulator). |
 | **SLICER** | the GATE / STUT pattern insert. |

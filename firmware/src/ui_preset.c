@@ -102,7 +102,7 @@ static void pl_audition(uint32_t hit, uint32_t key)
         for (i = 0; i < SENV_N; i++)
             ui.pr.sv_k[8u + i] = motion_rest(k, P_SATK + i);
         for (i = 0; i < UPR_NFX; i++)
-            ui.pr.sv_f[i] = (int8_t)motion_rest(k, UPR_FX[i]);
+            ui.pr.sv_f[upr_fb(i)] = (int8_t)motion_rest(k, UPR_FX[i]);
         ui.pr.pv_fx = 0;
         ui.pr.sv_pre = t->pre;
         ui.pr.sv_ed = t->pre_ed;

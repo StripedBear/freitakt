@@ -228,7 +228,7 @@ static int ed_knob(uint32_t cmd, uint32_t scope, uint32_t track, uint32_t id, ed
         x->t = &trk[x->k];
         x->d = track_desc(x->t, id);
         x->flags = (motion_param(id) ? ED_DF_LOCK : 0u) | (id == P_MODEL || enum_order(x->d) ? ED_DF_ORDER : 0u) |
-                   ((id >= P_E0 && id <= P_E7) || (id >= P_IA && id <= P_IC) || id == P_RSTRCT || x->d->fmt == F_LDEST
+                   ((id >= P_E0 && id <= P_E7) || (id >= P_IA && id <= P_IC) || x->d->fmt == F_LDEST
                         ? ED_DF_CONTEXT : 0u);
     } else if (scope == ED_SC_GLOBAL && id < G_COUNT) {
         x->d = &GP[id];
@@ -337,13 +337,6 @@ static int ed_set(uint32_t cmd, const ed_knob_t *x, uint32_t scope, uint32_t id,
         fm1_irq_on();
         ui.force = 1;
         return 0;
-    }
-    if (id == P_RMODEL && v != t->p[P_RMODEL]) {
-        const char *why = reson_refused(t, t->p[P_RMODEL], v);
-        if (why) {
-            ed_fail(cmd, ED_E_REFUSED, ED_D_NONE, why);
-            return 1;
-        }
     }
     if (id >= P_SLEN && id <= P_SSWING) {
         if (chain_busy())

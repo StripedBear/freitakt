@@ -33,14 +33,6 @@ static const act_t VOICES[] = {                           /* SOUND: the MODEL li
     {6.4f, 's', EN_K3, 5, 14}, {7.4f, 's', EN_K3, -5, 14},
     {8.4f, 's', EN_K2, 3, 12}, {9.2f, 's', EN_K2, -3, 12},
 };
-static const act_t RESON[] = {                            /* FX to RESON; the four models, TUNE, DECAY, MIX swept */
-    {0.3f, 'b', B_FX, 0, 0}, {0.5f, 'b', B_FX, 0, 0}, {0.7f, 'b', B_FX, 0, 0}, {0.9f, 'b', B_FX, 0, 0},
-    {1.1f, 'b', B_FX, 0, 0}, {1.3f, 'b', B_FX, 0, 0}, {1.5f, 'b', B_FX, 0, 0},   /* (.. INSERT 1/2, 2/2 on the way) */
-    {2.0f, 'e', EN_K1, 1, 0}, {2.8f, 'e', EN_K1, 1, 0}, {3.6f, 'e', EN_K1, 1, 0}, {4.4f, 'e', EN_K1, 1, 0},
-    {5.2f, 'e', EN_K1, -3, 0},
-    {5.6f, 's', EN_K2, 4, 14}, {6.6f, 's', EN_K2, -4, 14},
-    {7.6f, 's', EN_K3, 6, 14}, {8.6f, 's', EN_K4, 6, 14},
-};
 static const act_t COMP[] = {                             /* COMP: keyed by track 1, three tracks ducked, THR / RATIO /
                                                            * REL to their ends while the meter answers (from TRACKS:
                                                            * HOME to the HOME screen, SELECT to COMP 2/3) */
@@ -80,7 +72,7 @@ static const act_t FX[] = {                               /* FILTER's CUT swept,
 };
 #define CLIP(name, s, a) {name, s, a, sizeof a / sizeof a[0]}
 static const clip_t CLIPS[] = {
-    CLIP("voices", 10.0f, VOICES), CLIP("reson", 9.8f, RESON), CLIP("comp", 8.2f, COMP), CLIP("lfo", 10.0f, LFO),
+    CLIP("voices", 10.0f, VOICES), CLIP("comp", 8.2f, COMP), CLIP("lfo", 10.0f, LFO),
     CLIP("seq", 8.0f, SEQ), CLIP("fx", 10.6f, FX),
 };
 #define NCLIPS (sizeof CLIPS / sizeof CLIPS[0])

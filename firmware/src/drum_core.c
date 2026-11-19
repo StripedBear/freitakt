@@ -36,9 +36,6 @@ static void dv_cut(track_t *t, dvoice_t *v)
 static void drum_cut(track_t *t)                         /* every voice of t, with the declick tail */
 {
     uint32_t i;
-    if (t->rs.ring)
-        t->rs.kill = 1;                                  /* RESON: the ring fades out with the voices */
-    t->rs.hold = 1;                                      /* ... and the cut voices' declick tail starts no new one */
     for (i = 0; i < NDV; i++) {
         dv_cut(t, &t->v[i]);
         dv_cut(t, &t->lv[i]);
@@ -163,8 +160,6 @@ static void drum_play(track_t *t, uint32_t vel, int32_t nt)
             if (&trk[i] != t && trk[i].p[P_CHOKE] == t->p[P_CHOKE])
                 drum_cut(&trk[i]);
     model_follow(t);
-    t->rs.hold = 0;                                     /* RESON hears this hit (a model change's cut came first) */
-    t->rs.knt = t->nt;                                  /* .. and KEYF follows its note (reson.c reson_key) */
     if ((uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL && smpl_playable(t))
         for (i = 0; i < NDV; i++)                       /* SAMPLE: CUT ON cuts the voice sounding; a LOOPI one ends
                                                          * at the next hit, CUT or not (declicked: dtail) */
@@ -240,7 +235,7 @@ static void drum_hit(track_t *t, uint32_t vel)
 }
 
 /* the engine view's rendered hit (ui_draw.c vg_step), on the UI thread: t's model, one voice (a two-voice model's one
- * hit; no sample layer, no FX, no RESON, no LFO), struck on the scratch track vg_trk (dm_dsp.c) with t's knobs at C4,
+ * hit; no sample layer, no FX, no LFO), struck on the scratch track vg_trk (dm_dsp.c) with t's knobs at C4,
  * velocity vel. Nothing live is touched: no voice from the pool, no voice cap, no choke, no age or seed from dvage (age
  * 1 and its seed, as the first hit after power-on: the same knobs, the same sound), the metal bank and SKIN's body the
  * scratch's own. A SAMPLE with no sample: no voice */

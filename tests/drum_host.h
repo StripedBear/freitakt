@@ -44,7 +44,6 @@ static void fm1_irq_on(void)
 #include "../firmware/src/dmodels.c"
 #include "../firmware/src/presets.c"
 #include "../firmware/src/params.c"
-#include "../firmware/src/reson.c"
 #include "../firmware/src/filter.c"
 #include "../firmware/src/lfo.c"
 #include "../firmware/src/drum_core.c"

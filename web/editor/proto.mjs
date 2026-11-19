@@ -57,9 +57,8 @@ export const WRITES = new Set([CMD.SET, CMD.SELECT, CMD.PRESET_LOAD, CMD.STEPS_S
 export const LONG = new Set([CMD.SAVE, CMD.SMP_BEGIN, CMD.SMP_DATA, CMD.SMP_END, CMD.SMP_CLEAR, CMD.SMP_RENAME]);
 export const SCOPE = { TRACK: 0, GLOBAL: 1, MODEL: 2 };
 /** the core.h ids the page names (protocol 1: ids are the firmware's enums, §2.2; test_editor.mjs checks them against
- * device_data.json): P_MODEL P_RMODEL P_ITYPE (scope 0); G_SYNC (scope 1). Everything else comes from PAGES /
- * DESC */
-export const ID = { MODEL: 0, RMODEL: 47, ITYPE: 70, SYNC: 12 };
+ * device_data.json): P_MODEL P_ITYPE (scope 0); G_SYNC (scope 1). Everything else comes from PAGES / DESC */
+export const ID = { MODEL: 0, ITYPE: 62, SYNC: 12 };
 export const GR = { LFO: 9 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
 export const DF = { SPLIT: 0x01, ORDER: 0x02, LOCK: 0x04, RO: 0x08, CONTEXT: 0x10 };
 export const SF = { RESTORING: 0x01, SONG: 0x02, NOFLASH: 0x04 };
@@ -83,26 +82,30 @@ export const OLD_PROJECTS = new Map([[0x31524446, 1564], [0x32524446, 2624], [0x
   [0x41524446, 3672], [0x42524446, 3672], [0x43524446, 3688], [0x44524446, 3712], [0x45524446, 3840], [0x46524446, 3840]]);
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 8, nstep: 64, pcount: 81, gcount: 32, pStored: 68, gStored: 31,
-  // a record keeps the places of the removed Grids (FREITAKT; project.c PR_G / PR_P): [first, count], written 0
-  gGap: [22, 10], pGap: [30, 1], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
-  xpDef: [0, 0, 0, 64, 96, 96, 127], // P_RKEY P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp; FDRF: step rsv)
+  ntrk: 8, nstep: 64, pcount: 73, gcount: 32, pStored: 61, gStored: 31,
+  // a record keeps the places of the removed Grids and RESON (FREITAKT; project.c PR_G / PR_P): [first id after the
+  // gap, its count], written 0
+  gGap: [22, 10], pGap: [30, 1], rGap: [47, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
+  xpN: 7, xpAt: 1, // xp: 7 B a track (FDRF: steps 0..6's spare bytes), the parameters from byte 1 (byte 0: RESON KEYF's, 0)
+  xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp; FDRF: step rsv)
   xp2Def: [0, 0, 40, 0], // P_SATK P_SSUS P_SREL P_SLOOP (the SAMPLE model's ATK SUS REL LOOP): xp2; 0 in every record before them
   xp3Def: [0, 0], // P_SPLAY P_SCUT (the SAMPLE model's PLAY: KEY 0, CHOP 1; CUT OFF 0, ON 1): xp3; 0 before them
   envDef: [0, 0, 40, 0, 0, 0], // a SAMPLE user preset's ATK SUS REL LOOP PLAY CUT: their power-on values
   envMax: [127, 127, 127, 4, 1, 1], // .. their ranges (from 0; LOOP OFF FWD PING LOOPI ONE)
   uprKbit: [3, 1, 2], // the SOUND knobs (DRIVE DECAY TONE) whose bytes' top bits are a SAMPLE preset's bits 23..25
   smpl: 14, // DM_SMPL: the SAMPLE model, the only one whose user presets hold ATK SUS REL LOOP
-  uprFenv: 15, // FILTER ENV's place in a user preset's FX (-64..63; the others 0..127)
+  uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
   timing: [22, 23, 24], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
   project: { size: 3840, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 3246, lk_link: 3248, var_link: 3252,
     var_len: 3256, xp: 3258, xp2: 3314, xp3: 3346, song: 3762, name: 3798, pre: 3810, pre_ed: 3826, sum: 3836 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
   vars: { slot: 4, used: 6, d: 8 },
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
-  // the FX a user preset holds (presets.c UPR_FX), in the record's order, and their power-on values (a voice-only slot's)
-  uprFx: [14, 15, 16, 17, 47, 48, 49, 50, 51, 52, 53, 68, 54, 55, 56, 57, 58, 70, 71, 72, 73, 74, 69],
-  uprFxDef: [0, 0, 0, 0, 0, 48, 72, 64, 100, 0, 64, 0, 0, 127, 0, 0, 40, 0, 64, 96, 96, 127, 0],
+  // the FX a user preset holds (presets.c UPR_FX), in the record's order, their bytes in a slot's 23 FX bytes (upr_fb:
+  // RESON's 4..11 between, 0) and their power-on values (a voice-only slot's)
+  uprFx: [14, 15, 16, 17, 47, 48, 49, 50, 51, 62, 63, 64, 65, 66, 61],
+  uprFb: [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], uprNfb: 23,
+  uprFxDef: [0, 0, 0, 0, 0, 127, 0, 0, 40, 0, 64, 96, 96, 127, 0],
   preNone: 0xffff, preRecUser: 0x8000,
 };
 export const NAME_SET = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+";
@@ -451,8 +454,8 @@ const microOf = (s) => Math.max(-STEP.MICRO_MAX, Math.min(STEP.MICRO_MAX, s.micr
  * UPR1: it loads as a factory preset does) */
 export const UPR = { USED: 1, VOICE: 2 };
 /** the labels of the FX a user preset holds (LAYOUT.uprFx's order), as the FM-1's pages name them */
-export const UPR_FX_LABELS = ["DIST", "CHO", "DLY", "REV", "RESON", "R.TUNE", "R.DECAY", "R.MIX", "R.TONE", "R.STRCT",
-  "R.POS", "R.KEYF", "FILTER", "CUT", "RESO", "F.ENV", "F.DECAY", "INSERT", "INS A", "INS B", "INS C", "INS MIX", "SRR"];
+export const UPR_FX_LABELS = ["DIST", "CHO", "DLY", "REV", "FILTER", "CUT", "RESO", "F.ENV", "F.DECAY", "INSERT", "INS A",
+  "INS B", "INS C", "INS MIX", "SRR"];
 export const fxDefaults = () => [...LAYOUT.uprFxDef];
 const i8 = (x) => (x << 24) >> 24;
 const c8 = (x) => Math.max(-128, Math.min(127, x | 0));
@@ -498,7 +501,7 @@ export function migratePresets(old, nmodels = 128) {
   });
   return { slots, moved, lost, from };
 }
-/** the user presets record ("UPR2", 3204 B) -> { slots: 96 x (null | { model, knobs[8], fx[23], voiceOnly }), moved:
+/** the user presets record ("UPR2", 3204 B) -> { slots: 96 x (null | { model, knobs[8], fx[15], voiceOnly }), moved:
  * [32] (UPR1's slots 97..128: new slot + 1, 0 none), lost: 0, old: false, bad: a slot or move the FM-1 refuses }. An
  * older "UPR1" record (1284 B, an FM-1 before minor 2) is moved into 96 slots as the firmware does (migratePresets:
  * old: true, lost: how many did not fit) */
@@ -511,11 +514,11 @@ export function decodePresets(b) {
   const slots = Array.from({ length: LAYOUT.nuser }, (_, i) => {
     const o = 4 + i * L.slot, u = b[o];
     if (u !== UPR.USED && u !== (UPR.USED | UPR.VOICE)) { bad ||= u !== 0; return null; }
-    const fb = [...b.subarray(o + L.fx, o + L.fx + LAYOUT.uprFx.length)];
+    const fb = [...b.subarray(o + L.fx, o + L.fx + LAYOUT.uprNfb)]; // (RESON's bytes: 0 but ATK .. LOOP's bits)
     const kb = [...b.subarray(o + 2, o + 10)], smpl = b[o + 1] === LAYOUT.smpl;
     const hi = LAYOUT.uprKbit.reduce((e, k, j) => e | ((kb[k] >> 7) << (23 + j)), 0);
     if (smpl) LAYOUT.uprKbit.forEach((k) => { kb[k] &= 0x7f; }); // (the bits off DRIVE DECAY TONE)
-    const s = { model: b[o + 1], knobs: kb.map(i8), fx: fb.map(fxValue), voiceOnly: u !== UPR.USED };
+    const s = { model: b[o + 1], knobs: kb.map(i8), fx: LAYOUT.uprFb.map((at) => fxValue(fb[at], at)), voiceOnly: u !== UPR.USED };
     if (smpl) s.env = envUnpack((fb.reduce((e, x, k) => e | (fxBit(x, k) << k), 0) | hi) >>> 0); // (SAMPLE only)
     return s;
   });
@@ -543,7 +546,7 @@ export function fxByte(v, k, bit) {
   const b = (k === LAYOUT.uprFenv ? Math.max(-64, Math.min(63, v)) : Math.max(0, Math.min(127, v))) & 0x7f;
   return b | ((k === LAYOUT.uprFenv ? ((b >> 6) & 1) ^ bit : bit) << 7);
 }
-/** 96 slots (null | { model, knobs[8], fx[23], voiceOnly, env? [ATK, SUS, REL, LOOP, PLAY, CUT] (SAMPLE only; none: the
+/** 96 slots (null | { model, knobs[8], fx[15], voiceOnly, env? [ATK, SUS, REL, LOOP, PLAY, CUT] (SAMPLE only; none: the
  * defaults) }) and the moves -> the UPR2 record. A slot without fx: the FX's power-on values, the voice only */
 export function encodePresets(slots, moved = noMoves()) {
   const b = new Uint8Array(SZ.PRESETS), v = dv(b), L = LAYOUT.presets;
@@ -557,7 +560,8 @@ export function encodePresets(slots, moved = noMoves()) {
     for (let k = 0; k < 8; k++) v.setInt8(o + 2 + k, c8(s.knobs[k]));
     const e = s.model === LAYOUT.smpl ? envPack(s.env) : 0;
     LAYOUT.uprKbit.forEach((k, j) => { if ((e >>> (23 + j)) & 1) b[o + 2 + k] = Math.max(0, Math.min(127, s.knobs[k])) | 0x80; });
-    (fx || LAYOUT.uprFxDef).forEach((x, k) => { b[o + L.fx + k] = fxByte(x, k, (e >>> k) & 1); });
+    for (let j = 0; j < LAYOUT.uprNfb; j++) b[o + L.fx + j] = fxByte(0, j, (e >>> j) & 1); // (RESON's bytes: 0)
+    (fx || LAYOUT.uprFxDef).forEach((x, k) => { const at = LAYOUT.uprFb[k]; b[o + L.fx + at] = fxByte(x, at, (e >>> at) & 1); });
   }
   for (let i = 0; i < LAYOUT.nuserOld - LAYOUT.nuser; i++) b[L.mv + i] = Math.max(0, Math.min(LAYOUT.nuser, moved[i] | 0));
   return b;
@@ -567,7 +571,8 @@ export function encodePresets(slots, moved = noMoves()) {
  * bytes and every NUDGE 0, as the firmware converts it at load (old: true); an older one: only magic, size and sum are
  * read). full: decoded (FDRG / FDRF) */
 const recG = (i) => (i < LAYOUT.gGap[0] ? i : i + LAYOUT.gGap[1]); // a global's place in a record
-const recP = (i) => (i < LAYOUT.pGap[0] ? i : i + LAYOUT.pGap[1]); // .. a track parameter's
+const recP = (i) => (i < LAYOUT.pGap[0] ? i : i < LAYOUT.rGap[0] ? i + LAYOUT.pGap[1] : i + LAYOUT.pGap[1] + LAYOUT.rGap[1]); // .. a track parameter's
+const recX = (f, o, k, j) => (f ? o + LAYOUT.project.trkStep + 4 * (LAYOUT.xpAt + j) + 3 : LAYOUT.project.xp + LAYOUT.xpN * k + LAYOUT.xpAt + j); // xp's j
 export function decodeProject(b) {
   const v = dv(b), L = LAYOUT.project, magic = v.getUint32(0, true), size = v.getUint32(4, true);
   const sumOk = b.length >= 8 && fnv1a(b, b.length - 4) === v.getUint32(b.length - 4, true);
@@ -586,7 +591,7 @@ export function decodeProject(b) {
     for (let i = 0; i < LAYOUT.pStored; i++) p.push(v.getInt16(o + 2 * recP(i), true));
     const nx = LAYOUT.xpDef.length, n2 = LAYOUT.xp2Def.length;
     for (let j = 0; j < nx; j++) // proj_xp_get (FDRF: proj_xp_move's source, steps 0..6's spare bytes)
-      p.push(LAYOUT.xpDef[j] + v.getInt8(f ? o + L.trkStep + 4 * j + 3 : L.xp + nx * k + j));
+      p.push(LAYOUT.xpDef[j] + v.getInt8(recX(f, o, k, j)));
     for (let j = 0; j < n2; j++) p.push(LAYOUT.xp2Def[j] + v.getInt8(L.xp2 + n2 * k + j)); // .. xp2 (FDRF: 0)
     LAYOUT.xp3Def.forEach((d, j) => p.push(d + v.getInt8(L.xp3 + LAYOUT.xp3Def.length * k + j))); // .. xp3
     for (let i = 0; i < LAYOUT.nstep; i++) {
@@ -603,7 +608,7 @@ export function decodeProject(b) {
     lk_n: v.getUint16(L.lk_n, true), lk_link: v.getUint32(L.lk_link, true), var_link: v.getUint32(L.var_link, true),
     var_len: v.getUint16(L.var_len, true), sum: v.getUint32(L.sum, true) };
 }
-/** p: { g[32], sel, tracks[8] { p[81], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, song?, lk_n,
+/** p: { g[32], sel, tracks[8] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, song?, lk_n,
  * lk_link, var_link, var_len } -> 3840 B with its sum; format "FDRF": the record an editor before NUDGE wrote (tests) */
 export function encodeProject(p, format = "FDRG") {
   const b = new Uint8Array(SZ.PROJECT), v = dv(b), L = LAYOUT.project, f = format === "FDRF", nx = LAYOUT.xpDef.length;
@@ -624,7 +629,7 @@ export function encodeProject(p, format = "FDRG") {
       if (!f) v.setInt8(q + 3, microOf(s));
     });
     for (let j = 0; j < nx; j++) // proj_xp_enc
-      b[f ? o + L.trkStep + 4 * j + 3 : L.xp + nx * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + j])) - LAYOUT.xpDef[j]) & 255;
+      b[recX(f, o, k, j)] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + j])) - LAYOUT.xpDef[j]) & 255;
     for (let j = 0; j < n2 && !f; j++) // .. xp2 (an FDRF record: 0 there)
       b[L.xp2 + n2 * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + j] ?? LAYOUT.xp2Def[j])) - LAYOUT.xp2Def[j]) & 255;
     LAYOUT.xp3Def.forEach((d, j) => { if (!f) b[L.xp3 + LAYOUT.xp3Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + j] ?? d)) - d) & 255; });
@@ -763,7 +768,7 @@ export function userPresetName(slot, modelName) {
   return m + (nn < 100 || m.length < 5 ? " " : "") + String(nn).padStart(2, "0");
 }
 const bankOf = (p) => (Array.isArray(p) ? { slots: p, moved: noMoves() } : { slots: p.slots, moved: p.moved || noMoves() });
-/** bank: { slots: 96 x (null | { name, model, knobs[8], fx[23], voiceOnly, env? (SAMPLE: ATK SUS REL LOOP) }), moved }
+/** bank: { slots: 96 x (null | { name, model, knobs[8], fx[15], voiceOnly, env? (SAMPLE: ATK SUS REL LOOP) }), moved }
  * (or the slots alone);
  * modelNames: the device's model names (DESC of MODEL) */
 export function makePresetsFile(bank, modelNames = [], meta) {

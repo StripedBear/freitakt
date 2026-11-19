@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: MIT
  * Copyright (c) 2020 Electrosmith, Corp, Emilie Gillet
  * Ported to fixed-point C for Felucca, 2026: Leo Kuroshita (@kurogedelic), Hügelton Instruments
- * Drum machine fork: 2026 DEADACTIVE (the modal and membrane parts; px_modal_block_q, px_modal_run_in, px_modal_ratio)
+ * Drum machine fork: 2026 DEADACTIVE (the modal and membrane parts)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@
  *           dispersion all-pass or curved bridge, DcBlock, OnePole damping, the low-note
  *           resampler) excited by StringVoice: a noise burst one period long (or Dust) through Svf
  * (DaisySP's Particle was ported too until the DUST model was dropped.) This fork keeps the modal resonator and
- * the membrane only (MEMB the drum model, MODAL the RESON model): the string, the double-sampled Svf and their
+ * the membrane only (MEMB the drum model): the string, the double-sampled Svf and their
  * notes below are upstream's.
  *
  * Number formats (no float anywhere):
@@ -413,81 +413,3 @@ static void px_modal_run(const px_modal_blk_t *B, px_modal_t *M, int32_t *out, i
     }
 }
 
-/* ------------------------------------------------- the fork's additions --- */
-/* RESON (reson.c): the modes fed by an input signal (in, Q22) instead of the exciter; out Q20 */
-static void px_modal_run_in(const px_modal_blk_t *B, px_modal_t *M, const int32_t *in, int32_t *out, uint32_t n)
-{
-    uint32_t i, k, nm = B->n;
-    for (i = 0; i < n; i++) {
-        int64_t acc = 0;
-        const px_mode_t *c = B->m;
-        int32_t (*st)[2] = M->s, xi = in[i];
-        for (k = 0; k < nm; k++, c++, st++) {
-            int32_t s1 = st[0][0], s2 = st[0][1], t, v;
-            t = px_m(c->gh, xi - px_m(c->rpg, s1, 28) - s2, 30);
-            v = s1 + t;
-            st[0][0] = v + t;
-            t = px_m(c->g, v, 28);
-            st[0][1] = s2 + t + t;
-            acc += (int64_t)c->a * v;
-        }
-        out[i] = (int32_t)(acc >> 30);
-    }
-}
-
-/* mode i's frequency over the note, Q16, as px_modal_block stretches the partials (the RESON graph) */
-static uint32_t px_modal_ratio(int32_t structure, uint32_t i)
-{
-    int32_t stiff = px_stiff(structure), st2 = stiff, stretch = 65536;
-    uint32_t k;
-    for (k = 0; k < i; k++) {
-        stretch += st2;
-        st2 = px_m(st2, st2 < 0 ? 60948 : 64225, 16);
-    }
-    return (uint32_t)(((uint64_t)(i + 1u) * (uint32_t)stretch));
-}
-
-/* RESON's MODAL (reson.c): px_modal_block's modes with the ring time given (t60, 0.1 ms) instead of DAMPING's curve
- * (DaisySP's starts at Q 500: a ring of ~30 s at C1 even at its shortest). Upstream's form kept: a mode's Q =
- * 1 + f q, q per cycle falling by ql from one mode to the next (BRIGHTNESS, STRUCTURE, damping), so mode i rings
- * T60 ql^i (Q >= 1: r = 1 / Q fits the SVF's coefficients); q from T60 = Q ln 1000 / (pi f): q = pi T60 / ln 1000 per
- * cycle. No exciter (the modes take the track's sound) */
-static __attribute__((noinline)) void px_modal_block_q(px_modal_blk_t *B, px_modal_t *M, uint32_t f0, int32_t structure,
-                                                       int32_t brightness, int32_t damping, uint32_t t60, int32_t pos)
-{
-    int32_t stiff = px_stiff(structure), st2 = stiff, stretch = 65536, ql;
-    uint32_t i, phs = 0;
-    uint64_t harm, q8 = ((uint64_t)33648942u * t60) >> 16;   /* Q8 per cycle (Q32): pi FS 256 / (ln 1000 10000) . T60 */
-    (void)px_modal_q(structure, brightness, damping, &ql);
-    f0 = (uint32_t)(((uint64_t)f0 * (uint32_t)(((uint64_t)1 << 32) /   /* NthHarmonicCompensation(3) */
-                     (uint32_t)(65536 + stiff + px_m(stiff, stiff < 0 ? 60948 : 64225, 16)))) >> 16);
-    harm = f0;
-    for (i = 0; i < PX_NMODE; i++) {
-        uint64_t mf = (harm * (uint32_t)stretch) >> 16;
-        int32_t att, amp;
-        if (mf >= 2143260078u)
-            break;
-        att = 65536 - (int32_t)(mf >> 15);               /* 1 - 2 f */
-        amp = px_m(px_sin(phs + 0x40000000u), 16384, 16);   /* cos(2 pi pos i) / 4 */
-        {
-            px_svf_t c;
-            px_svf_coef(&c, (uint32_t)mf, (uint32_t)(256u + ((mf * q8) >> 32)));   /* (as px_modal_block) */
-            B->m[i].g = c.g;
-            B->m[i].rpg = c.rpg;
-            B->m[i].gh = c.gh;
-            B->m[i].a = px_m(amp, att, 18);
-        }
-        stretch += st2;
-        st2 = px_m(st2, st2 < 0 ? 60948 : 64225, 16);
-        harm += f0;
-        q8 = (q8 * (uint32_t)ql) >> 16;
-        phs += (uint32_t)pos << 16;
-    }
-    B->n = i;
-    for (; i < PX_NMODE; i++)
-        M->s[i][0] = M->s[i][1] = 0;
-    for (i = 0; i < B->n; i++) {
-        M->s[i][0] = px_clamp(M->s[i][0], -(1 << 28), 1 << 28);
-        M->s[i][1] = px_clamp(M->s[i][1], -(1 << 28), 1 << 28);
-    }
-}

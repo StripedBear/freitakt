@@ -71,7 +71,6 @@ int main(void)
     ID(P_, LEVEL); ID(P_, PAN); ID(P_, MUTE); ID(P_, DIST); ID(P_, CHOR); ID(P_, DLY); ID(P_, REV);
     ID(P_, SLCR); ID(P_, SLPAT); ID(P_, SLRATE); ID(P_, SLDEPTH); ID(P_, SLEN); ID(P_, SDIV); ID(P_, SSWING);
     ID(P_, DUCK); ID(P_, LFO1); ID(P_, LFO2);
-    ID(P_, RMODEL); ID(P_, RTUNE); ID(P_, RDECAY); ID(P_, RMIX); ID(P_, RTONE); ID(P_, RSTRCT); ID(P_, RPOS);
     ID(P_, FTYPE); ID(P_, FCUT); ID(P_, FRESO); ID(P_, FENV); ID(P_, FDEC);
     printf("},\n\"LF\": {");
     first = 1;
@@ -85,9 +84,6 @@ int main(void)
     first = 1;
     ID(PF_, R8); ID(PF_, R16); ID(PF_, R32); ID(PF_, REV); ID(PF_, LPF); ID(PF_, HPF); ID(PF_, TAPE); ID(PF_, FRZ);
     ID(PF_, OUP); ID(PF_, ODN); ID(PF_, T1);
-    printf("},\n\"RS\": {");
-    first = 1;
-    ID(RS_, OFF); ID(RS_, STRNG); ID(RS_, PIPE); ID(RS_, CHORD); ID(RS_, MODAL);
     printf("},\n\"DM\": {");                     /* every model by the name the FM-1 shows (N_MODEL) */
     first = 1;
     for (m = 0; m < NMODELS; m++)
@@ -95,7 +91,7 @@ int main(void)
     printf("},\n\"tp\": {");
     first = 1;
     TPD(LEVEL); TPD(PAN); TPD(DIST); TPD(CHOR); TPD(DLY); TPD(REV); TPD(SLCR); TPD(SLPAT); TPD(SLRATE); TPD(SLDEPTH);
-    TPD(DUCK); TPD(RMODEL); TPD(RTUNE); TPD(RDECAY); TPD(RMIX); TPD(RTONE); TPD(RSTRCT); TPD(RPOS);
+    TPD(DUCK);
     TPD(FTYPE); TPD(FCUT); TPD(FRESO); TPD(FENV); TPD(FDEC);
     key("LFO_WAVE"); desc(&TP[P_LFO1 + LF_WAVE]);
     key("LFO_RATE"); desc(&TP[P_LFO1 + LF_RATE]);
@@ -130,8 +126,6 @@ int main(void)
     printf(",\n\"names\": {");
     first = 1;
     names("lwave", N_LWAVE, LW_COUNT);
-    names("rmodel", N_RMODEL, RS_NMODEL);
-    names("rchord", N_RCHORD, RS_NCHORD);
     names("ftype", N_FTYPE, FT_N);
     names("rtype", N_RTYPE, sizeof N_RTYPE / sizeof N_RTYPE[0]);
     names("ghost", N_GHOST, 3);

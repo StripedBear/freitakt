@@ -2,7 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
 /* Per-track SRR and INSERT (fx.c mix_part; included by fx.c after perform.c). The chain of a track:
- *   RESON -> FILTER -> SRR -> DIST -> INSERT -> SLICER -> the mutes, the COMP duck, LEVEL, PAN, the sends.
+ *   FILTER -> SRR -> DIST -> INSERT -> SLICER -> the mutes, the COMP duck, LEVEL, PAN, the sends.
  *
  * SRR (P_SRR, INSERT 2/2 KNOB 2): sample rate reduction, as the classic drum machines' (after the filter, before the
  * distortion): the track's signal sampled and held, no smoothing, aliasing on purpose. Each value is held

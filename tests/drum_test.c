@@ -735,10 +735,8 @@ static void test_stress(void)
 }
 
 static int kit_filter;                               /* kit_cost: the FILTER on all 8 (test_cost) */
-static int kit_keyf;                                 /* kit_cost: RESON KEYF 100 %, its 2 steps 2 octaves apart (every
-                                                      * hit retunes the ringing lines: they glide most of the time) */
 /* the cost of 8 tracks of model mi kept busy (1/32 at 240 BPM, DECAY 127, every FX), with or without layers */
-static double kit_cost(uint32_t mi, int layers, int reson)
+static double kit_cost(uint32_t mi, int layers)
 {
     uint64_t i0;
     uint32_t i;
@@ -761,9 +759,6 @@ static double kit_cost(uint32_t mi, int layers, int reson)
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 60;
         t->p[P_SLCR] = 1;
         t->p[P_SDIV] = 3;
-        t->p[P_RMODEL] = (int16_t)(!reson || i >= 4u ? RS_OFF : i < 2u ? RS_CHORD : reson == 2 ? RS_MODAL : RS_STRNG);
-                                                     /* RESON at most: 4 tracks, 2 CHORD (+ 2 MODAL: reson 2) */
-        t->p[P_RDECAY] = 127;
         if (kit_filter) {
             t->p[P_FTYPE] = FT_LP;
             t->p[P_FCUT] = 70;
@@ -773,11 +768,6 @@ static double kit_cost(uint32_t mi, int layers, int reson)
         memset(t->step, 0, sizeof t->step);
         t->step[0].on = t->step[1].on = 1;
         t->p[P_SLEN] = 2;
-        if (kit_keyf) {
-            t->p[P_RKEY] = 127;
-            t->step[0].nt = 12;
-            t->step[1].nt = -12;
-        }
     }
     song.g[G_BPM] = 240;
     transport_req = 1;
@@ -806,7 +796,7 @@ static void test_cost(void)
         "x...x...x...x..x", "....x.......x...", "....x.......x..x", "x.x.x.x.x.x.x.x.",
         "..x...x...x...x.", "......x....x....", ".x.....x..x.....", "x...............",
     };
-    double ref = cost_ref("ref"), emax = cost_ref("extreme_max"), rmax = cost_ref("extreme_reson_max"), worst = 0, real, c;
+    double ref = cost_ref("ref"), emax = cost_ref("extreme_max"), worst = 0, real, c;
     uint32_t mi, wm = 0, lay, wl_ = 0, i, k;
     uint64_t i0;
 #ifdef DM_QCHECK
@@ -823,7 +813,6 @@ static void test_cost(void)
         t->p[P_DIST] = 40;
         t->p[P_SLCR] = 1;
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 40;
-        t->p[P_RMODEL] = (int16_t)(i == 1u ? RS_CHORD : i == 3u ? RS_STRNG : RS_OFF);   /* RESON on 2 tracks */
     }
     transport_req = 1;
     render_mix(0, 0, SECS(0.5));
@@ -832,29 +821,15 @@ static void test_cost(void)
     real = i0 ? (double)(instr_now() - i0) / SECS(4) : 0;
     for (mi = 0; mi < NMODELS; mi++)                 /* the extreme: every model kept busy on 8 tracks */
         for (lay = 0; lay < 2; lay++) {
-            c = kit_cost(mi, (int)lay, 0);
+            c = kit_cost(mi, (int)lay);
             if (c > worst) {
                 worst = c;
                 wm = mi;
                 wl_ = lay;
             }
         }
-    c = kit_cost(wm, (int)wl_, 1);                   /* the same worst kit, every track ringing (2 CHORD) */
-    printf("     extreme kit with RESON on 4 tracks (2 CHORD): %.0f (its own limit %.0f)\n", c, rmax);
-    check("cost: the extreme kit with RESON at most (4 tracks, 2 CHORD) within its recorded limit", !i0 || rmax == 0 || c <= rmax);
-    c = kit_cost(wm, (int)wl_, 2);                   /* the same, the other 2 MODAL (PHYS) */
-    printf("     extreme kit with RESON on 4 tracks (2 CHORD + 2 MODAL): %.0f (its own limit %.0f)\n", c, rmax);
-    check("cost: the extreme kit with RESON at most (2 CHORD + 2 MODAL) within its recorded limit", !i0 || rmax == 0 || c <= rmax);
-    kit_keyf = 1;
-    c = kit_cost(wm, (int)wl_, 1);                   /* RESON's caps with KEYF: every hit glides the lines */
-    printf("     extreme kit with RESON on 4 tracks (2 CHORD), KEYF 100 %%, notes 2 octaves apart: %.0f (limit %.0f)\n", c, rmax);
-    check("cost: .. with KEYF retuning every hit (2 CHORD + 2 STRNG) within RESON's recorded limit", !i0 || rmax == 0 || c <= rmax);
-    c = kit_cost(wm, (int)wl_, 2);
-    printf("     extreme kit with RESON on 4 tracks (2 CHORD + 2 MODAL), KEYF 100 %%: %.0f (limit %.0f)\n", c, rmax);
-    check("cost: .. with KEYF retuning every hit (2 CHORD + 2 MODAL) within RESON's recorded limit", !i0 || rmax == 0 || c <= rmax);
-    kit_keyf = 0;
     kit_filter = 1;
-    c = kit_cost(wm, (int)wl_, 0);                   /* the same worst kit, the FILTER on all 8 */
+    c = kit_cost(wm, (int)wl_);                      /* the same worst kit, the FILTER on all 8 */
     kit_filter = 0;
     printf("     extreme kit with the FILTER on 8: %.0f (its own limit %.0f)\n", c, cost_ref("extreme_filter_max"));
     check("cost: the extreme kit with the FILTER on 8 within its recorded limit",
@@ -2477,48 +2452,7 @@ static void test_mute_next_bar_solo(void)
     check("unmute on the bar of a COMP source another track's SOLO silences: still silent in the mix", peak == 0);
 }
 
-/* RESON parameters (params.c): TUNE as a note, DECAY as a time, STRCT named CHORD (with chord names) on CHORD */
-static void test_reson_params(void)
-{
-    char v[12];
-    const char *u;
-    host_init();
-    param_format(&TP[P_RTUNE], 48, v, &u);
-    check("RESON TUNE 48 = C3", str_eq(v, "C3"));
-    param_format(&TP[P_RTUNE], 96, v, &u);
-    check("RESON TUNE 96 = C7", str_eq(v, "C7"));
-    param_format(&TP[P_RTUNE], 25, v, &u);
-    check("RESON TUNE 25 = C#1", str_eq(v, "C#1"));
-    param_format(&TP[P_RDECAY], 0, v, &u);
-    check("RESON DECAY 0 = 10 ms", str_eq(v, "10") && str_eq(u, "ms"));
-    param_format(&TP[P_RDECAY], 127, v, &u);
-    check("RESON DECAY 127 = 10.0 s", str_eq(v, "10.0") && str_eq(u, "s"));
-    check("RESON defaults: OFF, C3, MIX 50 %, STRCT 0",
-          trk[0].p[P_RMODEL] == RS_OFF && trk[0].p[P_RTUNE] == 48 && trk[0].p[P_RMIX] == 64 && trk[0].p[P_RSTRCT] == 0);
-    check("RESON STRCT on STRNG is STRCT", str_eq(track_desc(&trk[0], P_RSTRCT)->label, "STRCT"));
-    trk[0].p[P_RMODEL] = RS_CHORD;
-    param_format(track_desc(&trk[0], P_RSTRCT), 3 * 128 / RS_NCHORD + 1, v, &u);
-    check("RESON STRCT on CHORD is CHORD, with chord names (MAJ)",
-          str_eq(track_desc(&trk[0], P_RSTRCT)->label, "CHORD") && str_eq(v, "MAJ"));
-    param_format(track_desc(&trk[0], P_RSTRCT), 127, v, &u);
-    check("RESON CHORD 127 = CLUST", str_eq(v, "CLUST"));
-}
-
-/* RESON (reson.c) helpers: a rim click through track 0's resonator, ring only, bright, no stiffness */
-static void rs_setup(uint32_t model, int32_t tune)
-{
-    host_init();
-    old_set_model(&trk[0], DM_RIM);
-    trk[0].p[P_RMODEL] = (int16_t)model;
-    trk[0].p[P_RTUNE] = (int16_t)tune;
-    trk[0].p[P_RDECAY] = 110;
-    trk[0].p[P_RMIX] = 127;
-    trk[0].p[P_RTONE] = 127;
-    trk[0].p[P_RSTRCT] = 0;
-    trk[0].p[P_RPOS] = 0;
-}
-
-static double rs_goertzel(const int32_t *x, uint32_t n, double f)   /* magnitude of f in x[0..n) */
+static double tone_goertzel(const int32_t *x, uint32_t n, double f)   /* magnitude of f in x[0..n) */
 {
     double w = 2 * M_PI * f / FS, c = 2 * cos(w), s0, s1 = 0, s2 = 0;
     uint32_t i;
@@ -2530,178 +2464,12 @@ static double rs_goertzel(const int32_t *x, uint32_t n, double f)   /* magnitude
     return sqrt(s1 * s1 + s2 * s2 - c * s1 * s2) / n;
 }
 
-static double rs_freq(const int32_t *x, uint32_t n, double f0)       /* the autocorrelation peak near FS / f0 */
-{
-    uint32_t lo = (uint32_t)(FS / f0 * 0.8), hi = (uint32_t)(FS / f0 * 1.25) + 2, lag, best = lo, i, j;
-    double bv = -1e300, c[3], d;
-    for (lag = lo; lag <= hi; lag++) {
-        double s = 0;
-        for (i = 0; i < n; i++)
-            s += (double)x[i] * x[i + lag];
-        if (s > bv) {
-            bv = s;
-            best = lag;
-        }
-    }
-    for (j = 0; j < 3; j++) {
-        c[j] = 0;
-        for (i = 0; i < n; i++)
-            c[j] += (double)x[i] * x[i + best - 1 + j];
-    }
-    d = c[0] - 2 * c[1] + c[2];
-    return FS / (best + (d != 0 ? 0.5 * (c[0] - c[2]) / d : 0));
-}
-
-static double rs_note_hz(double note) { return 440.0 * pow(2.0, (note - 69) / 12); }
-
-static void test_reson_pitch(void)
-{
-    static const int32_t NOTES[] = {24, 36, 48, 60, 72, 84};
-    uint32_t i, ok = 1;
-    double worst = 0;
-    for (i = 0; i < sizeof NOTES / sizeof NOTES[0]; i++) {
-        double f, want = rs_note_hz(NOTES[i]), cents;
-        rs_setup(RS_STRNG, NOTES[i]);
-        drum_hit(&trk[0], 127);
-        render_mix(wl, wr, SECS(0.6));
-        f = rs_freq(wl + SECS(0.2), 8192, want);
-        cents = fabs(1200 * log2(f / want));
-        worst = cents > worst ? cents : worst;
-        ok &= cents < 10;
-    }
-    printf("     RESON STRNG pitch C1..C6: worst %.1f cents\n", worst);
-    check("RESON STRNG: the ring is at TUNE (C1..C6, within 10 cents)", ok);
-    rs_setup(RS_PIPE, 48);
-    drum_hit(&trk[0], 127);
-    render_mix(wl, wr, SECS(0.6));
-    {
-        double f0 = rs_note_hz(48), h1 = rs_goertzel(wl + SECS(0.2), 16384, f0), h2 = rs_goertzel(wl + SECS(0.2), 16384, 2 * f0);
-        double h3 = rs_goertzel(wl + SECS(0.2), 16384, 3 * f0), f = rs_freq(wl + SECS(0.2), 8192, f0);
-        printf("     RESON PIPE C3: %.1f Hz, harmonics 1 / 2 / 3: %.0f / %.0f / %.0f\n", f, h1, h2, h3);
-        check("RESON PIPE: at TUNE, odd harmonics only", fabs(1200 * log2(f / f0)) < 10 && h2 * 10 < h1 && h2 * 5 < h3);
-    }
-}
-
-static void test_reson_decay(void)
-{
-    static const int16_t DK[2] = {40, 80};
-    uint32_t j;
-    for (j = 0; j < 2u; j++) {
-        uint32_t w, pkw = 0, t40 = 0;
-        double pk = 0, want = RS_T60_MS10[DK[j]] / 10000.0, got;
-        rs_setup(RS_STRNG, 48);
-        trk[0].p[P_RDECAY] = DK[j];
-        drum_hit(&trk[0], 127);
-        render_mix(wl, wr, SECS(3));
-        for (w = 0; w + 441 <= SECS(3); w += 441) {   /* 10 ms windows: RMS */
-            double s = 0;
-            uint32_t i;
-            for (i = 0; i < 441; i++)
-                s += (double)wl[w + i] * wl[w + i];
-            s = sqrt(s / 441);
-            if (s > pk) {
-                pk = s;
-                pkw = w;
-            }
-            if (!t40 && pk > 0 && w > pkw && s < pk / 100)
-                t40 = w - pkw;
-        }
-        got = t40 * 1.5 / FS;                        /* -40 dB x 1.5 = -60 dB */
-        printf("     RESON DECAY %d: 60 dB in %.3f s (knob %.3f s)\n", DK[j], got, want);
-        check(j ? "RESON DECAY 80: the ring's 60 dB time as the knob (25 %)" : "RESON DECAY 40: the ring's 60 dB time as the knob (25 %)",
-              t40 && fabs(got - want) <= 0.25 * want);
-    }
-}
-
-static void test_reson_chord(void)
-{
-    static const int8_t MAJ[4] = {0, 4, 7, 12}, OFF[3] = {2, 6, 10};
-    uint32_t i, ok = 1;
-    double lo = 1e300, hi = 0;
-    rs_setup(RS_CHORD, 48);
-    trk[0].p[P_RSTRCT] = 3 * 128 / RS_NCHORD + 1;   /* MAJ */
-    drum_hit(&trk[0], 127);
-    render_mix(wl, wr, SECS(0.8));
-    for (i = 0; i < 4u; i++) {                       /* 2nd harmonics: a click hardly excites the fundamentals here */
-        double m = rs_goertzel(wl + SECS(0.1), 16384, 2 * rs_note_hz(48 + MAJ[i]));
-        lo = m < lo ? m : lo;
-    }
-    for (i = 0; i < 3u; i++) {                       /* (D4 F#4 A#4: no partial of C3 E3 G3 C4) */
-        double m = rs_goertzel(wl + SECS(0.1), 16384, 2 * rs_note_hz(48 + OFF[i]));
-        hi = m > hi ? m : hi;
-    }
-    ok = lo > 4 * hi;
-    printf("     RESON CHORD MAJ C3: weakest chord note %.0f, strongest other note %.0f\n", lo, hi);
-    check("RESON CHORD MAJ on C3: C3 E3 G3 C4 ring, D3 F#3 A#3 do not", ok);
-    rs_setup(RS_CHORD, 30);                           /* TUNE below C3: plays as C3 */
-    drum_hit(&trk[0], 127);
-    render_mix(wl, wr, SECS(0.6));
-    check("RESON CHORD below C3 plays at C3", fabs(1200 * log2(rs_freq(wl + SECS(0.2), 8192, rs_note_hz(48)) / rs_note_hz(48))) < 15);
-}
-
-static void test_reson_mix_off_tail(void)
-{
-    static int32_t dry[SECS(1)];
-    uint32_t i, same = 1;
-    int32_t late;
-    rs_setup(RS_OFF, 48);                             /* MIX 0 == OFF, bit for bit */
-    drum_hit(&trk[0], 127);
-    render_mix(dry, 0, SECS(1));
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RMIX] = 0;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(1));
-    for (i = 0; i < SECS(1); i++)
-        same &= wl[i] == dry[i];
-    check("RESON MIX 0: the dry sound, bit for bit", same);
-    rs_setup(RS_STRNG, 48);                           /* the ring outlives the voice */
-    trk[0].p[P_RDECAY] = 100;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(1));
-    late = peak_of(wl, SECS(0.8), SECS(1));
-    check("RESON: the ring sounds on after the hit's voice (0.8 s on)", late > 200 && trk[0].rs.ring);
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RDECAY] = 20;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(1.5));
-    check("RESON: a short ring ends (the track stops computing it)", !trk[0].rs.ring);
-}
-
-static void test_reson_switch_and_cut(void)
-{
-    int32_t before = 0, after = 0, i, pk;
-    rs_setup(RS_STRNG, 48);                           /* MODEL changed while ringing: the old ring fades out */
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.3));
-    for (i = SECS(0.3) - 2000; i < (int32_t)SECS(0.3); i++)
-        before = abs(wl[i] - wl[i - 1]) > before ? abs(wl[i] - wl[i - 1]) : before;
-    trk[0].p[P_RMODEL] = RS_CHORD;
-    render_mix(wl, 0, CTL * 4);
-    for (i = 1; i < CTL * 4; i++)
-        after = abs(wl[i] - wl[i - 1]) > after ? abs(wl[i] - wl[i - 1]) : after;
-    printf("     RESON model switch while ringing: largest step %d (ring before %d)\n", after, before);
-    check("RESON: switching MODEL while ringing does not click", after <= before + 64);
-    trk[0].p[P_RMODEL] = RS_OFF;                      /* OFF while ringing, then on again without a hit */
-    render_mix(wl, 0, CTL * 4);
-    trk[0].p[P_RMODEL] = RS_STRNG;
-    render_mix(wl, 0, SECS(0.2));
-    pk = peak_of(wl, 0, SECS(0.2));
-    check("RESON: no stale ring after OFF and on again", pk < 64);
-    rs_setup(RS_STRNG, 48);                           /* a cut (mute) fades the ring out within a block */
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.3));
-    drum_cut(&trk[0]);
-    render_mix(wl, 0, CTL * 3);
-    check("RESON: a cut (mute) ends the ring within a block", peak_of(wl, CTL * 2, CTL * 3) < 64 && !trk[0].rs.ring);
-}
-
-/* spec §7: TONE darkens the ring, STRCT stretches its overtones, POS thins harmonics (POS 64: a tap at a quarter
- * of the line, every 4th harmonic notched) */
-static double rs_peak_near(const int32_t *x, uint32_t n, double f, double span)   /* the strongest frequency near f */
+/* the strongest frequency near f */
+static double tone_peak_near(const int32_t *x, uint32_t n, double f, double span)
 {
     double best = f, bv = -1, g;
     for (g = f * (1 - span); g <= f * (1 + span); g += 0.5) {
-        double m = rs_goertzel(x, n, g);
+        double m = tone_goertzel(x, n, g);
         if (m > bv) {
             bv = m;
             best = g;
@@ -2724,370 +2492,17 @@ static void test_cowb_tune(void)
         trk[0].p[P_E1] = 127;
         drum_hit(&trk[0], 127);
         render_track(&trk[0], wl, SECS(0.3));
-        lo = rs_goertzel(wl + SECS(0.02), 8192, 540.0 * r);
-        hi = rs_goertzel(wl + SECS(0.02), 8192, 800.0 * r);
-        off = TUNES[i] ? rs_goertzel(wl + SECS(0.02), 8192, 540.0) : 0;
+        lo = tone_goertzel(wl + SECS(0.02), 8192, 540.0 * r);
+        hi = tone_goertzel(wl + SECS(0.02), 8192, 800.0 * r);
+        off = TUNES[i] ? tone_goertzel(wl + SECS(0.02), 8192, 540.0) : 0;
         if (lo < 4 * off || hi < 4 * off || lo < 20 || hi < 20 ||
-            fabs(rs_peak_near(wl + SECS(0.02), 8192, 540.0 * r, 0.03) / (540.0 * r) - 1) > 0.005) {
+            fabs(tone_peak_near(wl + SECS(0.02), 8192, 540.0 * r, 0.03) / (540.0 * r) - 1) > 0.005) {
             printf("     COWB TUNE %d: |%.0f Hz| %.1f, |%.0f Hz| %.1f, |540 Hz| %.1f, peak near %.0f: %.1f Hz\n",
-                   TUNES[i], 540 * r, lo, 800 * r, hi, off, 540 * r, rs_peak_near(wl + SECS(0.02), 8192, 540.0 * r, 0.03));
+                   TUNES[i], 540 * r, lo, 800 * r, hi, off, 540 * r, tone_peak_near(wl + SECS(0.02), 8192, 540.0 * r, 0.03));
             ok = 0;
         }
     }
     check("COWB: TUNE moves its pitch (540 / 800 Hz x 2^(TUNE / 12)), not only its filter", ok);
-}
-
-static void test_reson_knobs(void)
-{
-    double f0 = rs_note_hz(48), h1, h6, dark, bright, h4, h4pos, f4, stretch;
-    rs_setup(RS_STRNG, 48);                           /* TONE: the 6th harmonic against the 1st */
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.5));
-    h1 = rs_goertzel(wl + SECS(0.1), 16384, f0);
-    h6 = rs_goertzel(wl + SECS(0.1), 16384, 6 * f0);
-    h4 = rs_goertzel(wl + SECS(0.1), 16384, 4 * f0);
-    bright = h6 / h1;
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RTONE] = 30;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.5));
-    dark = rs_goertzel(wl + SECS(0.1), 16384, 6 * f0) / rs_goertzel(wl + SECS(0.1), 16384, f0);
-    printf("     RESON TONE: 6th / 1st harmonic bright %.3f, dark %.3f\n", bright, dark);
-    check("RESON TONE: darker damps the upper harmonics", dark * 3 < bright);
-    rs_setup(RS_STRNG, 48);                           /* STRCT: the 4th partial moves off 4 x f0 */
-    trk[0].p[P_RSTRCT] = 127;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.5));
-    f4 = rs_peak_near(wl + SECS(0.1), 16384, 4 * rs_freq(wl + SECS(0.1), 8192, f0), 0.08);
-    stretch = 1200 * log2(f4 / (4 * rs_freq(wl + SECS(0.1), 8192, f0)));
-    printf("     RESON STRCT 127: the 4th partial %.0f cents off 4 x f0\n", stretch);
-    check("RESON STRCT: stretches the overtones (4th partial > 20 cents off)", fabs(stretch) > 20);
-    rs_setup(RS_STRNG, 48);                           /* POS 64: the 4th harmonic notched */
-    trk[0].p[P_RPOS] = 64;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.5));
-    h4pos = rs_goertzel(wl + SECS(0.1), 16384, 4 * f0) / rs_goertzel(wl + SECS(0.1), 16384, f0);
-    printf("     RESON POS: 4th / 1st harmonic at POS 0 %.3f, POS 64 %.3f\n", h4 / h1, h4pos);
-    check("RESON POS 64: thins the 4th harmonic", h4pos * 4 < h4 / h1);
-}
-
-/* review focus 3: sustained loud input at DECAY max with DIST after: bounded, and the ring dies after */
-static void test_reson_sustain_bounded(void)
-{
-    uint32_t k;
-    int32_t pk, after;
-    rs_setup(RS_STRNG, 48);
-    old_set_model(&trk[0], DM_HNOIS);
-    trk[0].p[P_RMODEL] = RS_STRNG;
-    trk[0].p[P_RDECAY] = 127;
-    trk[0].p[P_DIST] = 127;
-    for (k = 0; k < 16u; k++)
-        trk[0].step[k].on = 1;
-    trk[0].p[P_SDIV] = 3;                             /* 1/32 */
-    song.g[G_BPM] = 240;
-    play();
-    render_mix(wl, 0, SECS(8));
-    pk = peak_of(wl, 0, SECS(8));
-    transport_req = 2;
-    render_mix(wl, 0, SECS(8));
-    for (k = 0; k < 4u; k++)
-        render_mix(wl, 0, SECS(8));                   /* 40 s after the input stopped */
-    after = peak_of(wl, SECS(6), SECS(8));
-    printf("     RESON DECAY max, noisy hits every 1/32, DIST: peak %d, 40 s later %d\n", pk, after);
-    check("RESON at DECAY max: bounded, and the ring dies after the input stops", pk <= 32767 && after * 100 < pk);
-}
-
-/* review focus 4: a muted COMP source with RESON: the ring keys the compressor, the mix does not hear it */
-static void test_reson_ghost_source(void)
-{
-    uint32_t k;
-    rs_setup(RS_STRNG, 48);
-    song.g[G_CSRC] = 1;
-    trk[0].p[P_MUTE] = 1;
-    for (k = 0; k < 16u; k += 4u)
-        trk[0].step[k].on = 1;
-    play();
-    render_mix(wl, 0, SECS(2));
-    check("RESON on a muted COMP source: not heard in the mix", peak_of(wl, SECS(0.1), SECS(2)) < 64);
-}
-
-static void test_reson_lfo(void)
-{
-    static const char *const NAME[6] = {"R.TUN", "R.DCY", "R.MIX", "R.TON", "R.STR", "R.POS"};
-    char v[12];
-    const char *u;
-    uint32_t i, ok = 1, k;
-    int32_t mv = 0, before = 0, during = 0;
-    uint32_t len0, lmin = 0xFFFFFFFFu, lmax = 0, jump = 0, prev;
-    host_init();
-    for (i = 0; i < 6u; i++) {
-        param_format(&TP[P_LFO1 + LF_DEST], 11 + (int32_t)i, v, &u);
-        ok &= str_eq(v, NAME[i]);
-    }
-    param_format(&TP[P_LFO1 + LF_DEST], 0, v, &u);
-    ok &= str_eq(v, "OFF");
-    check("LFO DEST 11..16: R.TUN R.DCY R.MIX R.TON R.STR R.POS; 0 OFF (the knob runs on to F.CUT / F.RES, 18, then SRR .. INSERT C, 27)",
-          ok && TP[P_LFO1 + LF_DEST].max == 27);
-    rs_setup(RS_STRNG, 48);                           /* R.TUN: a slow sweep moves the line length smoothly */
-    trk[0].p[P_RDECAY] = 127;
-    trk[0].p[P_LFO1 + LF_WAVE] = LW_TRI;
-    trk[0].p[P_LFO1 + LF_MODE] = LM_TIME;
-    trk[0].p[P_LFO1 + LF_RATE] = 100;
-    trk[0].p[P_LFO1 + LF_DEST] = 11;
-    trk[0].p[P_LFO1 + LF_DEPTH] = 64;
-    trk[0].p[P_LFO1 + LF_TRIG] = LT_FREE;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, CTL);
-    len0 = prev = trk[0].rs.len[0];
-    for (k = 0; k < 4000u; k++) {                     /* ~2.9 s */
-        uint32_t l;
-        render_mix(wl, 0, CTL);
-        l = trk[0].rs.len[0];
-        lmin = l < lmin ? l : lmin;
-        lmax = l > lmax ? l : lmax;
-        jump = (l > prev ? l - prev : prev - l) > jump ? (l > prev ? l - prev : prev - l) : jump;
-        prev = l;
-        if (k % 400u == 0u)
-            drum_hit(&trk[0], 127);
-    }
-    printf("     RESON R.TUN sweep: line %u .. %u (Q8), largest block step %u (start %u)\n", lmin, lmax, jump, len0);
-    check("LFO R.TUN: the resonator pitch sweeps smoothly (no semitone steps, over a semitone in total)",
-          lmax - lmin > len0 / 17u && jump * 300u < len0);
-    check("LFO R.TUN: the TUNE knob is untouched", trk[0].p[P_RTUNE] == 48);
-    check("LFO R.TUN: the EDIT marker reports the live pitch", lfo_live(&trk[0], P_RTUNE, &mv) && mv != 48);
-    rs_setup(RS_STRNG, 48);                           /* R.MIX: the modulated copy */
-    trk[0].p[P_LFO1 + LF_WAVE] = LW_SQUARE;
-    trk[0].p[P_LFO1 + LF_DEST] = 13;
-    trk[0].p[P_LFO1 + LF_DEPTH] = -64;
-    render_mix(wl, 0, CTL * 4);
-    check("LFO R.MIX: modulates RESON MIX", lfo_live(&trk[0], P_RMIX, &mv) && mv != trk[0].p[P_RMIX]);
-    rs_setup(RS_CHORD, 48);                           /* review focus 5: R.STR sweeping the chord types */
-    trk[0].p[P_RDECAY] = 127;
-    trk[0].p[P_LFO1 + LF_WAVE] = LW_SAW;
-    trk[0].p[P_LFO1 + LF_MODE] = LM_HZ;
-    trk[0].p[P_LFO1 + LF_RATE] = 90;
-    trk[0].p[P_LFO1 + LF_DEST] = 15;
-    trk[0].p[P_LFO1 + LF_DEPTH] = 64;
-    trk[0].p[P_RSTRCT] = 64;
-    drum_hit(&trk[0], 127);
-    render_mix(wl, 0, SECS(0.2));
-    before = peak_of(wl, 0, SECS(0.2));
-    render_mix(wl, 0, SECS(3));
-    during = peak_of(wl, 0, SECS(3));
-    check("LFO R.STR on CHORD: sweeping the chords under a ring stays bounded", during <= 32767 && during < before * 4 + 1000);
-}
-
-/* final review 1: every ring ends (the line all zero) after the input stops, at DECAY max and any pitch / TONE /
- * STRCT / POS; a mute after a long silence does not thump (no stuck DC in the line) */
-static void test_reson_ring_ends(void)
-{
-    static const int16_t NOTE[3] = {24, 48, 96}, END[2] = {0, 127}, POS[2] = {0, 64};
-    uint32_t m, a, b, c, d, i, stuck = 0, runs = 0, nz;
-    int32_t pk;
-    for (m = RS_STRNG; m < RS_NMODEL; m++)
-        for (a = 0; a < 3u; a++)
-            for (b = 0; b < 2u; b++)
-                for (c = 0; c < 2u; c++)
-                    for (d = 0; d < 2u; d++) {
-                        host_init();
-                        old_set_model(&trk[0], DM_K909);
-                        trk[0].p[P_RMODEL] = (int16_t)m;
-                        trk[0].p[P_RTUNE] = NOTE[a];
-                        trk[0].p[P_RTONE] = END[b];
-                        trk[0].p[P_RSTRCT] = END[c];
-                        trk[0].p[P_RPOS] = POS[d];
-                        trk[0].p[P_RDECAY] = 127;
-                        drum_hit(&trk[0], 127);
-                        render_mix(0, 0, SECS(20));
-                        for (i = 0, nz = 0; i < RS_LEN; i++)
-                            nz += rs_buf[0][i] != 0;
-                        runs++;
-                        if (trk[0].rs.ring || nz) {
-                            if (stuck < 4u)
-                                printf("     ring stuck: %s note %d TONE %d STRCT %d POS %d: ring %u, %u non-zero\n",
-                                       N_RMODEL[m], NOTE[a], END[b], END[c], POS[d], trk[0].rs.ring, nz);
-                            stuck++;
-                        }
-                    }
-    printf("     RESON ring end at DECAY max: %u of %u settings stuck after 20 s\n", stuck, runs);
-    check("RESON: every ring ends after the input stops (DECAY max, any pitch / TONE / STRCT / POS)", stuck == 0);
-    rs_setup(RS_STRNG, 48);                           /* a mute 20 s after the hit: nothing left to thump */
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_RSTRCT] = 127;
-    trk[0].p[P_RDECAY] = 127;
-    drum_hit(&trk[0], 127);
-    render_mix(0, 0, SECS(20));
-    drum_cut(&trk[0]);
-    render_mix(wl, 0, SECS(0.2));
-    pk = peak_of(wl, 0, SECS(0.2));
-    printf("     RESON mute 20 s after a hit (STRNG C3 STRCT 127): output peak %d\n", pk);
-    check("RESON: a mute long after a hit does not thump", pk < 16);
-}
-
-/* final review 2: a cut (mute / choke) ends the ring, and the cut voice's declick tail starts no new one */
-static void test_reson_cut_no_reexcite(void)
-{
-    static const uint32_t MODEL[2] = {DM_K909, DM_TOM};
-    uint32_t j;
-    for (j = 0; j < 2u; j++) {
-        int32_t pk;
-        uint32_t i, zc = 0;
-        host_init();
-        old_set_model(&trk[0], MODEL[j]);
-        trk[0].p[P_RMODEL] = RS_STRNG;
-        trk[0].p[P_RTUNE] = 36;
-        trk[0].p[P_RDECAY] = 127;
-        drum_hit(&trk[0], 127);
-        render_mix(0, 0, SECS(0.03));
-        drum_cut(&trk[0]);
-        render_mix(wl, 0, SECS(2));
-        pk = peak_of(wl, SECS(0.5), SECS(2));        /* (before 0.5 s the master DC blocker settles from the cut, as
-                                                         * without RESON: no zero crossing) */
-        for (i = SECS(0.1); i < SECS(2); i++)
-            zc += (wl[i] > 0) != (wl[i - 1] > 0);
-        printf("     RESON cut 30 ms after a %s hit: peak 0.5..2 s %d, zero crossings after 0.1 s %u, ring %u\n",
-               N_MODEL[MODEL[j]], pk, zc, trk[0].rs.ring);
-        check(j ? "RESON: a cut while a TOM sounds: no new ring from its declick" : "RESON: a cut while a K909 sounds: no new ring from its declick",
-              pk < 16 && zc <= 2u && !trk[0].rs.ring);   /* (a ring at C2 would cross zero hundreds of times) */
-    }
-}
-
-/* KEYFOLLOW (P_RKEY) at its default 0: every model renders bit for bit as before the knob existed (the hash taken
- * from the firmware before it): hits at C4, C5, G3, G4 and a ratchet of notes, STRNG / PIPE / CHORD / MODAL, the
- * drum's own pitch transposed by each note */
-static uint32_t rs_kf_hash(void)
-{
-    static const int8_t NT[6] = {0, 12, -5, 7, 24, -12};
-    uint32_t m, k, h = 0;
-    for (m = RS_STRNG; m < RS_NMODEL; m++) {
-        rs_setup(m, m == RS_CHORD ? 50 : 45);
-        trk[0].p[P_RSTRCT] = m == RS_CHORD ? 70 : 40;
-        trk[0].p[P_RPOS] = 30;
-        trk[0].p[P_RTONE] = 90;
-        for (k = 0; k < 6u; k++) {
-            drum_play(&trk[0], 100u + k, NT[k]);
-            render_mix(wl, 0, SECS(0.12));
-            h = h * 31u + fnv(wl, SECS(0.12));
-        }
-        render_mix(wl, 0, SECS(0.5));
-        h = h * 31u + fnv(wl, SECS(0.5));
-    }
-    return h;
-}
-
-static void test_reson_keyfollow_off(void)
-{
-    uint32_t h = rs_kf_hash();
-    printf("     RESON KEYF 0: render hash %08x\n", h);
-    check("RESON KEYF 0 (default): STRNG / PIPE / CHORD / MODAL bit for bit as before KEYFOLLOW", h == 0x55997335u);
-}
-
-/* KEYFOLLOW on: the ring's pitch follows the hit's note from C4 (C4 = TUNE), KEYF 0..127 = 0..100 % of it */
-static double rs_kf_cents(double f, double note) { return 1200 * log2(f / rs_note_hz(note)); }
-
-static void test_reson_keyfollow(void)
-{
-    static int32_t ref[SECS_MS(800)];
-    uint32_t m, i, same = 1;
-    double f, c, want;
-    int32_t before = 0, after = 0, k;
-    check("RESON KEYF: 0..127 (0..100 %), default 0 (off)",
-          TP[P_RKEY].min == 0 && TP[P_RKEY].max == 127 && TP[P_RKEY].def == 0 && TP[P_RKEY].fmt == F_PCT &&
-              str_eq(TP[P_RKEY].label, "KEYF"));
-    /* a sequencer step at C5 (NOTE +12): an octave above TUNE C3 */
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RKEY] = 127;
-    trk[0].step[0].on = 1;
-    trk[0].step[0].nt = 12;
-    seq_start();
-    render_mix(wl, 0, SECS(0.6));
-    song.playing = 0;
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(60));
-    c = rs_kf_cents(f, 60);
-    printf("     RESON KEYF 100 %%, a step at C5 on TUNE C3: ring %.1f Hz (C4 %.1f Hz, %+.1f cents)\n", f, rs_note_hz(60), c);
-    check("RESON KEYF 100 %: a step at C5 rings an octave above TUNE (C3 -> C4, within 10 cents)", fabs(c) < 10);
-    rs_setup(RS_STRNG, 48);                           /* KEYF 0: the same step rings at TUNE */
-    trk[0].step[0].on = 1;
-    trk[0].step[0].nt = 12;
-    seq_start();
-    render_mix(wl, 0, SECS(0.6));
-    song.playing = 0;
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(48));
-    check("RESON KEYF 0: a step at C5 rings at TUNE", fabs(rs_kf_cents(f, 48)) < 10);
-    /* KEYS: the selected track pitched from the keys, PIPE an octave down */
-    rs_setup(RS_PIPE, 60);
-    trk[0].p[P_RKEY] = 127;
-    song.sel = 0;
-    song.octave = -1;                                 /* key 7 (F3 + 2 = C4 at octave 0): C3 */
-    keys_on(7u);
-    keys_off();
-    song.octave = 0;
-    render_mix(wl, 0, SECS(0.6));
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(48));
-    c = rs_kf_cents(f, 48);
-    printf("     RESON KEYF 100 %%, PIPE TUNE C4, KEYS C3: ring %.1f Hz (%+.1f cents from C3)\n", f, c);
-    check("RESON KEYF 100 %: a KEYS note an octave down rings an octave below TUNE (PIPE C4 -> C3)", fabs(c) < 10);
-    /* MIDI: a note plays the track at C4, so the ring is at TUNE (after a keyed hit an octave up) */
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RKEY] = 127;
-    drum_play(&trk[0], 100u, 12);
-    render_mix(wl, 0, SECS(0.1));
-    drum_cut(&trk[0]);
-    render_mix(wl, 0, SECS(0.1));
-    midi_in(0x90, (uint32_t)song.g[G_DRCH] - 1u, (uint32_t)trk[0].p[P_NOTE], 100);
-    render_mix(wl, 0, SECS(0.6));
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(48));
-    check("RESON KEYF 100 %: a MIDI note (the track at C4) rings at TUNE", fabs(rs_kf_cents(f, 48)) < 10);
-    /* the amount: 50 % (64) of an octave up = 6.05 semitones */
-    rs_setup(RS_STRNG, 48);
-    trk[0].p[P_RKEY] = 64;
-    drum_play(&trk[0], 127u, 12);
-    render_mix(wl, 0, SECS(0.6));
-    want = 48 + 12.0 * 64 / 127;
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(want));
-    c = rs_kf_cents(f, want);
-    printf("     RESON KEYF 64 (50 %%), a hit at C5: ring %.1f Hz (%+.1f cents from %.2f semitones up)\n", f, c, want - 48);
-    check("RESON KEYF 50 %: a hit at C5 rings half an octave up (within 10 cents)", fabs(c) < 10);
-    /* every model: TUNE C3 + KEYF 100 % at C4 + 12 renders exactly as TUNE C4 (a fresh ring: no glide) */
-    for (m = RS_STRNG; m < RS_NMODEL; m++) {
-        rs_setup(m, 60);
-        drum_play(&trk[0], 127u, 12);
-        render_mix(ref, 0, SECS(0.8));
-        rs_setup(m, 48);
-        trk[0].p[P_RKEY] = 127;
-        drum_play(&trk[0], 127u, 12);
-        render_mix(wl, 0, SECS(0.8));
-        for (i = 0; i < SECS(0.8); i++)
-            same &= wl[i] == ref[i];
-    }
-    check("RESON KEYF 100 %: STRNG / PIPE / CHORD / MODAL at C3 + a hit at C5 = TUNE C4, bit for bit", same);
-    /* a retune of a ringing line glides: no click (KEYF turned up under a ring struck at C5) */
-    rs_setup(RS_STRNG, 48);
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_RDECAY] = 127;
-    drum_play(&trk[0], 127u, 12);
-    render_mix(wl, 0, SECS(0.5));
-    for (k = SECS(0.5) - 2000; k < (int32_t)SECS(0.5); k++)
-        before = abs(wl[k] - wl[k - 1]) > before ? abs(wl[k] - wl[k - 1]) : before;
-    trk[0].p[P_RKEY] = 127;
-    render_mix(wl, 0, SECS(0.3));
-    for (k = 1; k < (int32_t)SECS(0.05); k++)
-        after = abs(wl[k] - wl[k - 1]) > after ? abs(wl[k] - wl[k - 1]) : after;
-    f = rs_freq(wl + SECS(0.1), 8192, rs_note_hz(60));
-    printf("     RESON KEYF retune under a ring (C3 -> C4): largest step %d (ring before %d), then %.1f Hz\n", after, before, f);
-    check("RESON KEYF: retuning a ringing line glides, no click (largest step <= 3 x the ring's)", after <= 3 * before + 64);
-    check("RESON KEYF: .. and arrives (C4 within 10 cents)", fabs(rs_kf_cents(f, 60)) < 10);
-    /* a hit at another note while it rings: the same glide (no click), then the new note */
-    rs_setup(RS_STRNG, 48);
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_RDECAY] = 127;
-    trk[0].p[P_RKEY] = 127;
-    drum_play(&trk[0], 127u, 0);
-    render_mix(wl, 0, SECS(0.5));
-    drum_play(&trk[0], 127u, 7);
-    render_mix(wl, 0, SECS(0.5));
-    f = rs_freq(wl + SECS(0.2), 8192, rs_note_hz(55));
-    check("RESON KEYF: a hit at G4 while C4's ring sounds retunes it to G3 (TUNE C3)", fabs(rs_kf_cents(f, 55)) < 10);
 }
 
 /* upstream issue #31: track swing + global swing (each up to 100) is capped at 100 (1.4 / 0.6 steps), not 200
@@ -3553,12 +2968,12 @@ static void test_lfo_dest_slots(void)
         moved1 |= trk[0].lfo[1].ph != 0u;
     }
     check("LFO slots: two slots of LFO 1 on LVL add and clamp; LFO 2 unused, not computed", v == 127 && !moved1);
-    host_init();                                     /* R.TUN through slot 4 */
-    trk[0].p[P_RMODEL] = RS_STRNG;
+    host_init();                                     /* F.CUT through slot 4 */
+    trk[0].p[P_FCUT] = 64;
     lfo_q(0, 1)[LF_WAVE] = LW_SQUARE;
     lfo_slot_set(0, 3, 1, 11, 64);
     lfo_apply(CTL);
-    check("LFO slot 4 on R.TUN: the resonator's fine pitch", trk[0].rfine != 0 && lfo_live(&trk[0], P_RTUNE, &mv));
+    check("LFO slot 4 on F.CUT: the FILTER's CUT", trk[0].p[P_FCUT] != 64 && lfo_live(&trk[0], P_FCUT, &mv));
     lfo_restore();
     {
         double c0 = lfo_slots_cost(0), c2 = lfo_slots_cost(1), c4 = lfo_slots_cost(2);
@@ -3569,23 +2984,24 @@ static void test_lfo_dest_slots(void)
     }
 }
 
-/* LFO DEST 19..27: SRR DST CHO DLY REV MIX and the INSERT's A B C (appended: 1..18 keep their meaning) */
+/* LFO DEST 13..21: SRR DST CHO DLY REV MIX and the INSERT's A B C (after F.CUT F.RES; FREITAKT removed RESON's
+ * 11..16: the ones after them 6 lower) */
 static void test_lfo_fx_dests(void)
 {
     static const uint8_t want[9] = {P_SRR, P_DIST, P_CHOR, P_DLY, P_REV, P_IMIX, P_IA, P_IB, P_IC};
     uint32_t i, k, ok = 1, ids = 1;
     int32_t v, lo, hi;
     host_init();
-    for (i = 1; i <= 18u; i++)
+    for (i = 1; i <= 12u; i++)
         ids &= lfo_dest_param(i) == (i <= 8u ? P_E0 + i - 1u : i == 9u ? (uint32_t)P_LEVEL : i == 10u ? (uint32_t)P_PAN
-               : i == 11u ? 0xFFu : i <= 16u ? P_RDECAY + i - 12u : i == 17u ? (uint32_t)P_FCUT : (uint32_t)P_FRESO);
-    check("LFO DEST: ids 1..18 keep their knobs", ids);
-    check("LFO DEST: 19..27 are SRR DST CHO DLY REV MIX A B C, 28 none, DEST range 0..27",
-          lfo_dest_param(19) == P_SRR && lfo_dest_param(20) == P_DIST && lfo_dest_param(21) == P_CHOR &&
-          lfo_dest_param(22) == P_DLY && lfo_dest_param(23) == P_REV && lfo_dest_param(24) == P_IMIX &&
-          lfo_dest_param(25) == P_IA && lfo_dest_param(26) == P_IB && lfo_dest_param(27) == P_IC &&
-          lfo_dest_param(28) == 0xFFu && TP[P_LS3DEST].max == 27 && TP[P_LS4DEST].max == 27 &&
-          TP[P_LFO1 + LF_DEST].max == 27 && TP[P_LFO2 + LF_DEST].max == 27);
+               : i == 11u ? (uint32_t)P_FCUT : (uint32_t)P_FRESO);
+    check("LFO DEST: 1..12 the SOUND knobs, LVL, PAN, F.CUT, F.RES", ids);
+    check("LFO DEST: 13..21 are SRR DST CHO DLY REV MIX A B C, 22 none, DEST range 0..21",
+          lfo_dest_param(13) == P_SRR && lfo_dest_param(14) == P_DIST && lfo_dest_param(15) == P_CHOR &&
+          lfo_dest_param(16) == P_DLY && lfo_dest_param(17) == P_REV && lfo_dest_param(18) == P_IMIX &&
+          lfo_dest_param(19) == P_IA && lfo_dest_param(20) == P_IB && lfo_dest_param(21) == P_IC &&
+          lfo_dest_param(22) == 0xFFu && LD_MAX == 21 && TP[P_LS3DEST].max == 21 && TP[P_LS4DEST].max == 21 &&
+          TP[P_LFO1 + LF_DEST].max == 21 && TP[P_LFO2 + LF_DEST].max == 21);
     for (k = 0; k < 9u; k++) {
         uint32_t pid = want[k];
         int32_t base[3] = {64, 0, 127};
@@ -3595,7 +3011,7 @@ static void test_lfo_fx_dests(void)
             lfo_q(0, 0)[LF_WAVE] = LW_SQUARE;
             lfo_q(0, 0)[LF_MODE] = LM_HZ;
             lfo_q(0, 0)[LF_RATE] = 100;
-            lfo_slot_set(0, 2, 0, (int16_t)(19u + k), 64);
+            lfo_slot_set(0, 2, 0, (int16_t)(13u + k), 64);
             trk[0].p[pid] = (int16_t)base[i];
             lfo_start();
             for (v = 0, lo = 999, hi = -999; v < 600; v++) {
@@ -3607,25 +3023,26 @@ static void test_lfo_fx_dests(void)
             ok &= i == 0u ? lo < 64 && hi > 64 : i == 1u ? hi > 0 && lo >= 0 : lo < 127 && hi <= 127;
         }
         if (!ok)
-            printf("     DEST %u (knob %u) failed\n", 19u + k, pid);
+            printf("     DEST %u (knob %u) failed\n", 13u + k, pid);
     }
-    check("LFO DEST 19..27: each modulates its knob within range, the set value restored", ok);
+    check("LFO DEST 13..21: each modulates its knob within range, the set value restored", ok);
     host_init();
     trk[0].p[P_ITYPE] = IT_CRUSH;
     check("LFO DEST names: SRR DST CHO DLY REV MIX, the INSERT's by its TYPE (CRUSH: BITS RATE LPF), else A B C",
-          !strcmp(lfo_dest_label(&trk[0], 19), "SRR") && !strcmp(lfo_dest_label(&trk[0], 20), "DST") &&
-          !strcmp(lfo_dest_label(&trk[0], 21), "CHO") && !strcmp(lfo_dest_label(&trk[0], 22), "DLY") &&
-          !strcmp(lfo_dest_label(&trk[0], 23), "REV") && !strcmp(lfo_dest_label(&trk[0], 24), "MIX") &&
-          !strcmp(lfo_dest_label(&trk[0], 25), "BITS") && !strcmp(lfo_dest_label(&trk[0], 27), "LPF"));
+          !strcmp(lfo_dest_label(&trk[0], 13), "SRR") && !strcmp(lfo_dest_label(&trk[0], 14), "DST") &&
+          !strcmp(lfo_dest_label(&trk[0], 15), "CHO") && !strcmp(lfo_dest_label(&trk[0], 16), "DLY") &&
+          !strcmp(lfo_dest_label(&trk[0], 17), "REV") && !strcmp(lfo_dest_label(&trk[0], 18), "MIX") &&
+          !strcmp(lfo_dest_label(&trk[0], 19), "BITS") && !strcmp(lfo_dest_label(&trk[0], 21), "LPF") &&
+          !strcmp(lfo_dest_label(&trk[0], 11), "F.CUT") && !strcmp(lfo_dest_label(&trk[0], 12), "F.RES"));
     trk[0].p[P_ITYPE] = IT_OFF;
-    check("LFO DEST names: INSERT OFF shows A B C", !strcmp(lfo_dest_label(&trk[0], 25), "A") &&
-          !strcmp(lfo_dest_label(&trk[0], 26), "B") && !strcmp(lfo_dest_label(&trk[0], 27), "C"));
+    check("LFO DEST names: INSERT OFF shows A B C", !strcmp(lfo_dest_label(&trk[0], 19), "A") &&
+          !strcmp(lfo_dest_label(&trk[0], 20), "B") && !strcmp(lfo_dest_label(&trk[0], 21), "C"));
     /* reaching the DSP: MIX from 0 modulated up turns the INSERT on in the block; a send from 0 gets a level */
     host_init();
     trk[0].p[P_ITYPE] = IT_CRUSH;
     trk[0].p[P_IMIX] = 0;
     lfo_q(0, 0)[LF_WAVE] = LW_SQUARE;
-    lfo_slot_set(0, 2, 0, 24, 64);
+    lfo_slot_set(0, 2, 0, 18, 64);
     lfo_start();
     lfo_apply(CTL);
     v = trk[0].p[P_IMIX];
@@ -3667,21 +3084,7 @@ int main(void)
     test_lfo_fx_dests();
     test_mute_next_bar();
     test_mute_next_bar_solo();
-    test_reson_params();
     test_swing_cap();
-    test_reson_pitch();
-    test_reson_decay();
-    test_reson_chord();
-    test_reson_mix_off_tail();
-    test_reson_switch_and_cut();
-    test_reson_knobs();
-    test_reson_sustain_bounded();
-    test_reson_ghost_source();
-    test_reson_lfo();
-    test_reson_ring_ends();
-    test_reson_cut_no_reexcite();
-    test_reson_keyfollow_off();
-    test_reson_keyfollow();
     test_percent_display();
     test_q24();
     test_tables();

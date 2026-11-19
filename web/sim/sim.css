@@ -246,7 +246,7 @@ html { scroll-behavior: smooth; }
   .guides { margin-top: 64px; grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ---- the features: eight chapters, each a piece computed by the firmware's own sound code (features.js), on a
+/* ---- the features: six chapters, each a piece computed by the firmware's own sound code (features.js), on a
    plate drawn as the screen draws its pages: black, rules in the darkest tone, values bright */
 .features { width: 100%; color: var(--c5); padding: 96px max(16px, 5vw) 128px; background: var(--k); }
 .features-head { max-width: 1180px; margin: 0 auto 32px; }

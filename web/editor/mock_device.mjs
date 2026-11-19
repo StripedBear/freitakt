@@ -136,15 +136,6 @@ export class MockDevice {
     const s = id >= this.d.presets.length && id !== LAYOUT.preNone && !this.uprOld ? this.upr[id - this.d.presets.length] : null;
     return s && !s.voiceOnly ? s.fx : null;
   }
-  /** reson.c reson_refused: RESON MODEL from -> v on track ti, the caps; the message, or null */
-  resonRefused(ti, from, v) {
-    const c = this.d.consts, P = this.P, others = (f) => this.tracks.filter((x, i) => i !== ti && f(x.p[P.RMODEL])).length;
-    if (v === from) return null;
-    if (v !== c.RS_OFF && from === c.RS_OFF && others((m) => m !== c.RS_OFF) >= c.RS_MAXTRK) return "RESON: 4 TRACKS MAX";
-    if (v === c.RS_CHORD && from !== c.RS_CHORD && others((m) => m === c.RS_CHORD) >= 2) return "CHORD: 2 TRACKS MAX";
-    if (v === c.RS_MODAL && from !== c.RS_MODAL && others((m) => m === c.RS_MODAL) >= c.RS_MAXMODAL) return "MODAL: 2 TRACKS MAX";
-    return null;
-  }
   emptySteps() { return Array.from({ length: 8 }, () => Array.from({ length: 64 }, emptyStep)); }
   emptyImage(name, models, bpm) {
     const g = this.d.gp.map((x) => x.def);
@@ -157,14 +148,14 @@ export class MockDevice {
       for (const i of idx) row[i] = { flags: STEP.ON | f, cond, note, micro: 0 };
     };
     const range = (a, b, s = 1) => { const x = []; for (let i = a; i < b; i += s) x.push(i); return x; };
-    /* user presets: about half used, voices near the factory ones, most with their FX (a few changed; not RESON's
-     * model), some the voice only */
+    /* user presets: about half used, voices near the factory ones, most with their FX (a few changed), some the voice
+     * only */
     this.upr = Array.from({ length: this.nuser }, () => {
       if (r() > 0.45) return null;
       const f = this.d.presets[Math.floor(r() * this.d.presets.length)];
       const knobs = f.k.map((k, i) => this.clampKnob(f.model, i, k + Math.round((r() - 0.5) * 16)));
       if (this.uprOld) return { model: f.model, knobs };
-      const fx = LAYOUT.uprFx.map((id, k) => (id !== this.P.RMODEL && r() < 0.3 ? this.clampFx(k, this.d.tp[id].def + Math.round((r() - 0.5) * 60)) : this.d.tp[id].def));
+      const fx = LAYOUT.uprFx.map((id, k) => (r() < 0.3 ? this.clampFx(k, this.d.tp[id].def + Math.round((r() - 0.5) * 60)) : this.d.tp[id].def));
       return { model: f.model, knobs, fx, voiceOnly: r() < 0.2 };
     });
     /* A: TECHNO 1, four variations, locks and motion */
@@ -384,7 +375,6 @@ export class MockDevice {
       return ty <= 0 || ty >= 9 ? this.d.tp[id] : this.d.insDesc[ty < 5 ? 0 : ty === 5 ? 1 : 2][id - P.IA];
     }
     if (id >= P.E0 && id <= P.E7) return this.d.models[t.p[P.MODEL]].edit[id - P.E0];
-    if (id === P.RSTRCT && t.p[P.RMODEL] === 3) return this.d.rsChordDesc;
     return this.d.tp[id];
   }
   knob(scope, track, id) { // -> { desc, names, flags, t } or a refusal
@@ -393,9 +383,9 @@ export class MockDevice {
       if (id >= this.d.tp.length) refuse(RC.BAD, DETAIL.RANGE);
       const t = this.tracks[track === NONE ? this.sel : track], desc = this.trackDesc(t, id), P = this.P;
       let names = desc.names || [];
-      if (this.d.fmt[desc.fmt] === "LDEST") names = Array.from({ length: 28 }, (_, v) => this.ldestName(t, v));
+      if (this.d.fmt[desc.fmt] === "LDEST") names = Array.from({ length: this.d.consts.LD_MAX + 1 }, (_, v) => this.ldestName(t, v));
       let flags = (desc.split ? DF.SPLIT : 0) | (desc.order || id === P.MODEL ? DF.ORDER : 0) | (this.d.tp[id].lock ? DF.LOCK : 0);
-      if ((id >= P.E0 && id <= P.E7) || (id >= P.IA && id <= P.IC) || id === P.RSTRCT || this.d.fmt[desc.fmt] === "LDEST") flags |= DF.CONTEXT;
+      if ((id >= P.E0 && id <= P.E7) || (id >= P.IA && id <= P.IC) || this.d.fmt[desc.fmt] === "LDEST") flags |= DF.CONTEXT;
       return { desc, names, flags, t, order: id === P.MODEL ? this.d.modelList : desc.order };
     }
     if (scope === SCOPE.GLOBAL) {
@@ -463,10 +453,6 @@ export class MockDevice {
       t.pre = pre >= 0 ? pre : LAYOUT.preNone;
       t.preEd = 0;
       return v;
-    }
-    if (id === P.RMODEL && v !== t.p[id]) { // reson.c reson_refused: the caps
-      const why = this.resonRefused(ti, t.p[id], v);
-      if (why) refuse(RC.REFUSED, DETAIL.NONE, why);
     }
     if (id >= P.SLEN && id <= P.SSWING && this.song) return t.p[id]; // a song's rows set PATTERN
     // presets.c preset_marks: a SOUND knob; an FX knob of a user preset that holds them
@@ -631,15 +617,7 @@ export class MockDevice {
         t.p[P.MODEL] = p.model;
         p.knobs.forEach((k, i) => { t.p[P.E0 + i] = this.clampKnob(p.model, i, k); });
         if (p.model === this.d.consts.DM_SMPL) this.envPut(t, a.id >= nf ? p.env : null); // presets.c preset_apply
-        if (fx) LAYOUT.uprFx.forEach((id, k) => { // presets.c preset_fx_put: RESON within its caps (STRNG, else OFF)
-          let v = fx[k];
-          if (id === P.RMODEL) {
-            const c = this.d.consts, strng = this.d.tp[P.RMODEL].names.indexOf("STRNG");
-            if (this.resonRefused(ti, t.p[id], v)) v = strng;
-            if (this.resonRefused(ti, t.p[id], v)) v = c.RS_OFF;
-          }
-          t.p[id] = v;
-        });
+        if (fx) LAYOUT.uprFx.forEach((id, k) => { t.p[id] = fx[k]; }); // presets.c preset_fx_put
         t.pre = a.id;
         t.preEd = 0; // (no shadow update, as editor_pattern.c: the selected track's moved knobs are pushed as CHANGED)
         return { track: ti, id: a.id, model: p.model };

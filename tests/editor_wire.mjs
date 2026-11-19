@@ -75,7 +75,7 @@ function xcheck(bin) {
   const set = (what, scope, track, id, value, s) => rq(what, CMD.SET, { scope, track, id, value }, s);
   const push = (line, what) => steps.push([what, null, null, line]);   // the pushes since the last such step
   const A = m.flashObjects(0), parts = [A.record, A.locks, A.vars];
-  /* A as the editor before NUDGE saved it: an FDRF record (KEYF / SRR / INSERT in steps 0..6's spare bytes), its parts */
+  /* A as the editor before NUDGE saved it: an FDRF record (SRR / INSERT in steps 0..6's spare bytes), its parts */
   const fa = decodeProject(A.record);
   fa.tracks[1].p[P.SRR] = 40;
   const F = sealProject({ record: encodeProject(fa, "FDRF"), locks: A.locks, vars: A.vars }, 0), fparts = [F.record, F.locks, F.vars];
@@ -90,11 +90,6 @@ function xcheck(bin) {
   set("SET MODEL ACID (track 2)", 0, 1, P.MODEL, M.ACID);
   set("SET MODEL ACID (track 3)", 0, 2, P.MODEL, M.ACID);
   set("SET MODEL ACID onto a third track: rc 2 18", 0, 3, P.MODEL, M.ACID);
-  for (let k = 0; k < 4; k++) set(`SET RESON MODEL STRNG (track ${k + 1})`, 0, k, P.RMODEL, 1);
-  set("SET RESON MODEL on a fifth track: rc 2 0 + the device's message", 0, 4, P.RMODEL, 1);
-  set("SET RESON MODEL CHORD (track 1)", 0, 0, P.RMODEL, data.consts.RS_CHORD);
-  set("SET RESON MODEL CHORD (track 2)", 0, 1, P.RMODEL, data.consts.RS_CHORD);
-  set("SET RESON MODEL CHORD on a third track: rc 2 0", 0, 2, P.RMODEL, data.consts.RS_CHORD);
   set("SET LFO 1 PHASE: the degree unit as \"deg\"", 0, 0, P.LFO1_PHASE, 64);
   set("SET CLOCK USB", 1, 0, G.CLOCK, 1);
   set("SET BPM following a clock: rc 0, unchanged", 1, 0, G.BPM, 150);
