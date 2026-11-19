@@ -2,6 +2,8 @@
 # Host suite of the drum fork (no hardware, no toolchain): generated headers, drum_test, guards.
 set -e
 cd "$(dirname "$0")/.."
+# host builds: no glibc fortify (newer glibc + gcc reject its va_arg_pack wrappers at -O0)
+cc() { command cc -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 "$@"; }
 PY="${PYTHON:-python3}"
 "$PY" tools/build.py --gen-only >/dev/null
 "$PY" tools/gen_presets.py --check                 # firmware/src/preset_bank.h = tools/presets.json

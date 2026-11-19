@@ -8,6 +8,8 @@
 set -e
 export AC79_SDK="${AC79_SDK:-$HOME/fw-AC79_AIoT_SDK}"
 cd "$(dirname "$0")/.."
+# host builds: no glibc fortify (newer glibc + gcc reject its va_arg_pack wrappers at -O0)
+cc() { command cc -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 "$@"; }
 OUT=build/host
 PKG=build/felucca-UNTESTED.fwsc
 mkdir -p "$OUT"
