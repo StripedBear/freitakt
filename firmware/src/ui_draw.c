@@ -1055,31 +1055,6 @@ static void graph_fx(const track_t *t, uint16_t c)
     }
 }
 
-static void graph_slicer(const track_t *t, uint16_t c)
-{
-    uint32_t i, pat = sl_pattern(t), mode = (uint32_t)t->p[P_SLCR], cur = sl[t - trk].idx;
-    int32_t open = 70 - t->p[P_SLDEPTH] * 70 / 127;      /* px a closed GATE step keeps */
-    (void)c;
-    for (i = 0; i < 16u; i++) {
-        int32_t x = 4 + (int32_t)i * 14 + (int32_t)(i / 4u) * 2, y;
-        if ((pat >> i) & 1u) {
-            if (mode == SL_OFF)                          /* off: the pattern dithered */
-                cv_dither(x, 10, 11, 70, C_INK);
-            else
-                cv_rect(x, 10, 11, 70, C_INK);
-        } else if (mode == SL_STUT) {
-            for (y = 10; y < 80; y += 4)
-                cv_rect(x, y, 11, 1, C_INK);
-        } else {
-            cv_hdot(x, x + 10, 79, C_INK);
-            if (open)
-                cv_dither(x, 80 - open, 11, open, C_INK);
-        }
-        if (mode != SL_OFF && i == cur)
-            cv_rect(x, 85, 11, 3, C_INK);
-    }
-}
-
 /* oscilloscope of the output, triggered on a rising zero crossing: a 1 px wave round cy (+- amp), a dotted zero
  * line */
 static void graph_scope(int32_t cy, int32_t amp, int fresh)   /* fresh: a new snapshot (else the one shown again) */
@@ -1751,8 +1726,6 @@ static uint32_t graph_signature(void)
             h = (h ^ (uint32_t)song.g[i] + (uint32_t)song.g[G_DMODE] * 7u + (uint32_t)song.g[G_RTYPE] * 11u +
                  (uint32_t)song.g[G_RSIZE] * 13u + (uint32_t)song.g[G_RDAMP] * 17u + (uint32_t)song.g[G_BPM] * 19u) *
                 16777619u;
-    if (pg->graph == GR_SLCR && t->p[P_SLCR])
-        h ^= (sl[song.sel].idx + 1u) * 2654435761u;
     if (pg->graph == GR_SLOTS) {
         char nb[NAME_LEN + 1u];
         for (i = 0; i < 4u; i++) {
@@ -2136,9 +2109,6 @@ static uint32_t graph_paint(int whole)
         break;
     case GR_FX:
         graph_fx(t, c);
-        break;
-    case GR_SLCR:
-        graph_slicer(t, c);
         break;
     case GR_COMP:
         graph_comp(c, pg->id[0] == G_CATK);

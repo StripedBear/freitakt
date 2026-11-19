@@ -166,7 +166,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   that preset id, not edited; a model without one: its default sound, no preset); ACID onto a third track: rc 2
   detail 18. A knob the track's preset holds marks it edited when it changes, as on the
   device: a SOUND knob always; one of the FX a user preset holds (§6: the sends, FILTER, INSERT, SRR) when the
-  track was loaded from a user preset that holds its FX (not a factory or voice-only one; the SLICER, LEVEL, PAN, the
+  track was loaded from a user preset that holds its FX (not a factory or voice-only one; LEVEL, PAN, the
   LFOs never). MOTION's base (and a
   locked step's value under the LOCK) moves when MOTION plays that knob. Two knobs answer rc 0 **unchanged**, as their
   knobs on the device do: G_BPM while following an external clock (G_CLOCK not INT: the clock's tempo), and the
@@ -185,7 +185,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   their names live only in the page and files).
 - **PRESET_LOAD** loads a preset onto a track as the device's PRESETS list does: MODEL and the 8 SOUND knobs; a user
   preset that holds its FX (used 1, §6) sets them too; a factory or voice-only preset leaves the track's FX. Never LEVEL, PAN, NOTE,
-  CHOKE, the SLICER, LAYER, the LFOs or the steps. rc 2 detail 17: an empty user slot; detail 18: ACID onto a third
+  CHOKE, LAYER, the LFOs or the steps. rc 2 detail 17: an empty user slot; detail 18: ACID onto a third
   track. The push shadows are not updated (editor_pattern.c): on the **selected** track the knobs that moved arrive
   as CHANGED pushes (as if turned on the device; at most 4 a pass); another track: no push. Neither carries the
   preset id (DUMP): the page re-reads the track it shows.
@@ -621,7 +621,7 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   used u8 (1 = used; an empty slot is 10 zero bytes), model u8, knobs 8 × i8 (P_E0..P_E7).
 - **Project record "FDRG"** (3,840): magic u32 0x47524446 @0; size u32 = 3840 @4; g 41 × i16 @8 (G_BPM..G_RTYPE; places 22..31,
   once Grids', 0); sel u8 @90; rsv[3] @91 (rsv[0] = G_DMODE); 8 tracks × 394 B @94, each: p 69 × i16 (P_MODEL..P_LS4DEPTH;
-  place 30, once Grids' SRC, 0), then 64 steps
+  places 18..21, once the SLICER's, place 30, once Grids' SRC, and 48..54, once RESON's: 0), then 64 steps
   × 4 B {flags (bit 0 on, 1 acc, 2 slide, 3 tie, 4..5 ratch), cond u8, nt i8 (NOTE − C4), micro i8 (NUDGE, −50..+50)};
   lk_n u16 @3246; lk_link u32 @3248 (FNV-1a of the 3,208-byte lock bank, | 1); var_link u32 @3252 (FNV-1a of the
   variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (byte 0 reserved, 0 (RESON's KEYF);

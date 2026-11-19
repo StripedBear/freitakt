@@ -26,7 +26,6 @@
 #include "filter.c"          /* FILTER: the per-track filter (fx.c mix_part) */
 #include "lfo.c"            /* LFOs (two per track) */
 #include "drum_core.c"       /* 8 drum tracks */
-#include "slicer.c"          /* per-track SLICER insert, used by fx.c */
 #include "fx.c"
 #ifndef FELUCCA_OTA
 #define FELUCCA_OTA 1            /* M-UPGRADE update entry; needs FELUCCA_FLASH */

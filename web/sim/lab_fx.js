@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Drum machine fork: 2026 DEADACTIVE
 // Piece 7, effects per track and live: an MD groove (BDTRX, RSTRX, CHTRX) whose rim shot runs through its track's
-// chain (FILTER, DIST, SLICER, then the delay, reverb and chorus sends), each stage switchable with one knob;
+// chain (FILTER, DIST, then the delay, reverb and chorus sends), each stage switchable with one knob;
 // stopped, the firmware renders a bar of it. Playing, the picture is the output as heard, scrolling, and the PERFORM
 // keys (the black keys with FX held, perform.c PF_BLACK) repeat, reverse, stop, filter, freeze or shift the whole mix
 // while held.
@@ -17,13 +17,11 @@ const RIM = [0, 3, 6, 10, 11, 14];                   // the rimshot's figure
 
 export default function fx(plate, { lab, ids, audition, screen }) {
   const { fs, P, DM, tp, names } = ids;
-  const ft = n => names.ftype.indexOf(n), sl = n => tp.SLCR.names.indexOf(n);
+  const ft = n => names.ftype.indexOf(n);
   const STAGES = [                                   // [name, on, the knob's descriptor, value, its parameters on / off]
     { name: 'FILTER', on: true, d: tp.FCUT, v: 58,
       set: (on, v) => [[P.FTYPE, on ? ft('LP') : 0], [P.FCUT, v], [P.FRESO, 70], [P.FENV, 40]] },
     { name: 'DIST', on: false, d: tp.DIST, v: 70, set: (on, v) => [[P.DIST, on ? v : 0]] },
-    { name: 'SLICER', on: false, d: tp.SLPAT, v: 5,
-      set: (on, v) => [[P.SLCR, on ? sl('GATE') : 0], [P.SLPAT, v], [P.SLRATE, 1], [P.SLDEPTH, 127]] },
     { name: 'DELAY', send: true, on: true, d: tp.DLY, v: 50, set: (on, v) => [[P.DLY, on ? v : 0]] },
     { name: 'REVERB', send: true, on: false, d: tp.REV, v: 60, set: (on, v) => [[P.REV, on ? v : 0]] },
     { name: 'CHORUS', send: true, on: false, d: tp.CHOR, v: 70, set: (on, v) => [[P.CHOR, on ? v : 0]] },

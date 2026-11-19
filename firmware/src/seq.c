@@ -756,7 +756,6 @@ static void seq_start(void)
     lfo_start();
     song.tick = 0;
     song.playing = 1;
-    slicer_start();
     motion_begin();
     cue_start();                                    /* cue.c: the grid's time from PLAY */
     chain_start();                                  /* song.c: an armed song from row 1 */

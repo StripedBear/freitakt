@@ -2,11 +2,11 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
 /* Drum machine core types: 8 drum tracks; each plays one drum model (1 or 2 voices) and an
- * optional sample layer, through Felucca's per-track DIST / INSERT / SLICER / sends (fx.c). */
+ * optional sample layer, through Felucca's per-track DIST / INSERT / sends (fx.c). */
 #include <stdint.h>
 #include "dm_state.h"
 #define NTRK 8                   /* drum tracks */
-#define NPART NTRK               /* fx.c / slicer.c: every track is mixed the same way */
+#define NPART NTRK               /* fx.c: every track is mixed the same way */
 #define NDV 2                    /* voices per track; a model uses 1 or 2 */
 #define NSTEP 64
 #define HALF_FRAMES 256          /* I2S half buffer: 5.8 ms at 44.1 kHz */
@@ -43,7 +43,6 @@ enum {                          /* per-track parameters */
     P_E0, P_E1, P_E2, P_E3, P_E4, P_E5, P_E6, P_E7,   /* the model's: TUNE DECAY TONE CHAR + 4 extras */
     P_LEVEL, P_PAN, P_MUTE, P_CHOKE, P_NOTE,
     P_DIST, P_CHOR, P_DLY, P_REV,
-    P_SLCR, P_SLPAT, P_SLRATE, P_SLDEPTH,
     P_SLEN, P_SDIV, P_SSWING,
     P_LSET, P_LKEY, P_LLEVEL, P_LTUNE, P_LDEC,       /* sample layer */
     P_DUCK,                      /* M3: the COMP source ducks this track */

@@ -29,7 +29,7 @@ The tabs are **Sound**, **Presets**, **Projects**, **Patterns** and **Samples**.
 
 ## Sound
 
-The Sound tab shows **the selected track's pages** (SOUND for its model, LAYER, FILTER, FX, INSERT, SRR, SLICER, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
+The Sound tab shows **the selected track's pages** (SOUND for its model, LAYER, FILTER, FX, INSERT, SRR, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
 
 - It works **both ways**. Turn a knob on the FM-1 and it moves in the page (the value flashes). Move it in the page and the FM-1 plays it at once.
 - Choosing a track in the page selects it on the FM-1, and the other way round.

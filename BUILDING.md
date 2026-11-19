@@ -67,7 +67,7 @@ tests/run_tests.sh
 ```
 
 Runs the host tests (flash storage, user presets, MIDI parser, update entry, update
-loader, a DSP render, the 4-track mix, project formats, the SLICER, the regression suite,
+loader, a DSP render, the 4-track mix, project formats, the regression suite,
 the command-line installer) and, with Node.js, the web page tests. Run it after `./build.sh`
 (it uses `build/` and needs `AC79_SDK` set as for the build).
 

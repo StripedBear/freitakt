@@ -14,7 +14,7 @@
 | A knob effect is stuck on | PERFORM FILTER, CRUSH, THROW or DEPTH stay on until turned to 0 (amber `FX` in the top bar). TOOLS `INIT*` switches them off. |
 | LFO or lock seems to ignore a knob | MODEL, FILTER TYPE, INSERT TYPE, WAVE, DEST and SRC cannot be locked, recorded or learned (CUT cannot be locked either). |
 | `ACID: 2 TRACKS MAX` | At most two ACID tracks. |
-| Red CPU icon | An audio block took over 85 %; a voice was stopped. Set less important tracks to PRIO LOW, reduce SLICER or heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
+| Red CPU icon | An audio block took over 85 %; a voice was stopped. Set less important tracks to PRIO LOW, reduce heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
 | Sound stutters with Bluetooth on | A saved device that is not connected is searched for again and again: FORGET it or switch BLUETOOTH OFF. |
 | No `Hortator` in the DAW | A computer may list Hortator and Hortator 8ch as two devices after switching 2 CH / 10 CH: choose the one shown. Windows may not accept 10 CH: use 2 CH. |
 | MIDI notes play nothing | Check GLO CH (10 by default) and ROUT (NOTE needs the track's NOTE to match; SEL plays the selected track; TRACK uses channels 1 to 8). |

@@ -1,29 +1,29 @@
 # Effects
-<!--blurb: FILTER, SRR, DIST, INSERT, SLICER, delay, reverb, chorus and the master chain.-->
+<!--blurb: FILTER, SRR, DIST, INSERT, delay, reverb, chorus and the master chain.-->
 
 ## The signal path
 
-Each track runs: voice, then **FILTER**, **SRR**, **DIST**, **INSERT**, **SLICER**, the compressor's duck, then LEVEL and PAN and the three sends (**chorus**, **delay**, **reverb**). The sends and the track mix go into the master: the PERFORM effects, the metronome, SPEAKER EQ, a DC blocker, the limiter and a soft clip.
+Each track runs: voice, then **FILTER**, **SRR**, **DIST**, **INSERT**, the compressor's duck, then LEVEL and PAN and the three sends (**chorus**, **delay**, **reverb**). The sends and the track mix go into the master: the PERFORM effects, the metronome, SPEAKER EQ, a DC blocker, the limiter and a soft clip.
 
-Press [[FX]] for the track's effect pages. The footer counter counts the whole family: **FILTER 1/6**, **FILTER 2/6**, **FX 3/6**, **INSERT 4/6**, **INSERT 5/6**, **SLICER 6/6**. Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
+Press [[FX]] for the track's effect pages. The footer counter counts the whole family: **FILTER 1/5**, **FILTER 2/5**, **FX 3/5**, **INSERT 4/5**, **INSERT 5/5**. Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
 
 All FX pages edit the selected track. **Delay, reverb and chorus** are global and live on the [[GLO]] pages 4 to 7 of 7 (stored in the project); their send knobs (CHO, DLY, REV) stay on the FX page.
 
-## FILTER (1/6 and 2/6)
+## FILTER (1/5 and 2/5)
 
 A filter on every track, after the voice and before DIST. Each hit sweeps it by ENV (accents sweep further).
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 1/6 | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
-| 1/6 | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
-| 1/6 | **KNOB 3** | RESO | 0 to 127 (0) |
-| 1/6 | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
-| 2/6 | **KNOB 1** | DECAY | 5 ms to 2 s (40, about 32 ms) |
+| 1/5 | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
+| 1/5 | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
+| 1/5 | **KNOB 3** | RESO | 0 to 127 (0) |
+| 1/5 | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
+| 2/5 | **KNOB 1** | DECAY | 5 ms to 2 s (40, about 32 ms) |
 
 LFO destinations F.CUT and F.RES move the filter.
 
-## FX (3/6): DIST and the sends
+## FX (3/5): DIST and the sends
 
 | Knob | Label | Meaning (default 0) |
 | --- | --- | --- |
@@ -32,11 +32,11 @@ LFO destinations F.CUT and F.RES move the filter.
 | **KNOB 3** | DLY | delay send |
 | **KNOB 4** | REV | reverb send |
 
-## INSERT (4/6 and 5/6)
+## INSERT (4/5 and 5/5)
 
-An effect on every track, after DIST and before the SLICER.
+An effect on every track, after DIST and before LEVEL, PAN and the sends.
 
-**4/6:** [[KNOB 1]] **TYPE**: OFF (default), SOFT, HARD, FOLD, FUZZ, CRUSH, PHASR, FLANG, CHOR. [[KNOB 2]] to [[KNOB 4]] are **A**, **B**, **C**, named by the TYPE (with TYPE OFF they read A B C):
+**4/5:** [[KNOB 1]] **TYPE**: OFF (default), SOFT, HARD, FOLD, FUZZ, CRUSH, PHASR, FLANG, CHOR. [[KNOB 2]] to [[KNOB 4]] are **A**, **B**, **C**, named by the TYPE (with TYPE OFF they read A B C):
 
 | TYPE | A | B | C |
 | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ An effect on every track, after DIST and before the SLICER.
 | CRUSH | BITS (1 to 16, default 9) | RATE (689 Hz to 44 kHz, default about 11 kHz) | LPF (cutoff) |
 | PHASR, FLANG, CHOR | RATE (Hz) | DEPTH (default 75 %) | FDBK (75 %) |
 
-**5/6:** [[KNOB 1]] **MIX** (dry to wet, 100 % by default; for the swept types the wet is the effect added to the dry, so 100 % is the whole effect), [[KNOB 2]] **SRR**.
+**5/5:** [[KNOB 1]] **MIX** (dry to wet, 100 % by default; for the swept types the wet is the effect added to the dry, so 100 % is the whole effect), [[KNOB 2]] **SRR**.
 
 - A TYPE change fades over 3 ms, without a click. TYPE OFF, MIX 0 and SRR OFF leave the sound exactly as before.
 - A, B, C, MIX and SRR take MOTION, step locks, LFO DEST and MIDI LEARN (`T3 I.DRIVE`, `T3 SRR`). TYPE does not.
@@ -53,30 +53,6 @@ An effect on every track, after DIST and before the SLICER.
 ## SRR: sample rate reduction
 
 It samples and holds the track's sound after the FILTER and before DIST, aliasing on purpose, for the gritty sound of the classic drum machines. OFF at 0, down to 347 Hz at 127; the screen shows the rate.
-
-## SLICER (6/6)
-
-An insert after INSERT and before LEVEL, PAN and the sends. It chops the track with one of 16 patterns of 16 steps.
-
-| Knob | Label | Values (default) |
-| --- | --- | --- |
-| **KNOB 1** | SLCR | OFF (default), GATE, STUT |
-| **KNOB 2** | PAT | pattern 1 to 16 (1) |
-| **KNOB 3** | RATE | 1/8, 1/16 (default), 1/32, 8T, 16T, 32T |
-| **KNOB 4** | DEPTH | 0 to 100 % (100 %). GATE: how far a gated step closes. STUT: the repeat level |
-
-Patterns (x = open or live, . = gated or repeated):
-
-| # | Pattern | # | Pattern |
-| --- | --- | --- | --- |
-| 1 | `x.x.x.x.x.x.x.x.` | 9 | `xx..xx..xx..x.x.` |
-| 2 | `xx.xx.xx.xx.xx.x` | 10 | `x..x.x..x..x.x.x` |
-| 3 | `x..x..x..x..x.x.` | 11 | `xxxxxxxx.x.x.x.x` |
-| 4 | `xxx.xxx.xxx.xx.x` | 12 | `x.......x.x.x.xx` |
-| 5 | `x.xx.xx.x.xx.xx.` | 13 | `.x.x.x.x.x.x.x.x` |
-| 6 | `xxxx....xxxx....` | 14 | `xx.x.xx.xx.x.x.x` |
-| 7 | `x...x...x...x...` | 15 | `x.xxx.x.xx.xxx.x` |
-| 8 | `x.x..x.x..x.x.x.` | 16 | `xxx.x..xx.x.xxx.` |
 
 ## Delay (GLO DLY 4/7 and 5/7)
 

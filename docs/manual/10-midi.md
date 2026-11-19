@@ -70,7 +70,7 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 ### How to learn a control
 
 1. **Turn it on:** hold [[GLO]] (the MUTE screen) and press **G4**: `G4 LEARN: ON`, and `MIDI LEARN ON` in the top bar. Let go of GLO; the footer's first row shows `LEARN: TURN OR PRESS`.
-2. **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND, LAYER), FX (FILTER, the sends, INSERT and SRR, SLICER), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the footer says `T3 DECAY: SEND A CC`.
+2. **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND, LAYER), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the footer says `T3 DECAY: SEND A CC`.
 3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of doing their job. The footer says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
 4. **Move the controller's knob, or press its button or pad.** The first CC (or, for an action, note) that arrives on any channel is learned: `CC74 -> T3 DECAY`, `NOTE36 -> PLAY`, `CC20 -> FX FILTER`. Then pick the next one. An already learned one shows `T3 DECAY = CC74`; sending another replaces it.
 5. **Finish:** [[OCT+]] ends LEARN (`LEARN DONE`), as GLO + G4 does.

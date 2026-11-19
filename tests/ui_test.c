@@ -210,13 +210,10 @@ static void test_select_pages(void)
     sel(1);
     check("SELECT on FX: INSERT 1/2 (TYPE A B C)", str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_ITYPE);
     sel(1);                                          /* INSERT 2/2 */
+    check("SELECT on INSERT 1/2: INSERT 2/2", str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_IMIX);
     sel(1);
-    check("SELECT on INSERT 2/2: SLICER", str_eq(cur_page()->title, "SLICER"));
-    sel(1);
-    check("SELECT again: SLICER is FX's last page, it stays", str_eq(cur_page()->title, "SLICER"));
-    sel(-1);
-    check("SELECT back: INSERT 2/2", str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_IMIX);
-    sel(1);
+    check("SELECT again: INSERT 2/2 is FX's last page, it stays",
+          str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_IMIX);
     k = ui.page;
     turn(EN_PRESET, 3);
     ui_frame();
@@ -226,7 +223,8 @@ static void test_select_pages(void)
           ui.page == k && song.g[G_BPM] == bpm && song.sel == 0 && (uint32_t)TSEL->p[P_MODEL] == m0);
     tap(B_SEQ);
     tap(B_FX);
-    check("FX again later: the page SELECT left it on (SLICER)", str_eq(cur_page()->title, "SLICER"));
+    check("FX again later: the page SELECT left it on (INSERT 2/2)",
+          str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_IMIX);
     tap(B_EDIT);                                     /* SOUND 1/3 .. 3/3; page 4 is empty for every engine: skipped */
     for (k = 0; k < 6u; k++)
         sel(1);
@@ -4710,7 +4708,7 @@ static void test_ui_frame_cost(void)
     check("ui frame cost: under 4,000,000 host instructions (8 s watchdog, 100x margin)", !i0 || worst < 4000000u);
 }
 
-/* a white key on a per-track page (SOUND, TRACK, MIDI, LAYER, FX, SLICER) selects its track and still plays it;
+/* a white key on a per-track page (SOUND, TRACK, MIDI, LAYER, FX, INSERT) selects its track and still plays it;
  * HOME, the STEP grid, PATTERN and the global pages keep the selection */
 static int key_selects(const char *title, uint32_t fam_btn, uint32_t presses)
 {
@@ -4738,7 +4736,7 @@ static void test_key_selects_track(void)
 {
     static const struct { const char *title; uint32_t btn, presses; int want; } C[] = {
         {"SOUND", B_EDIT, 1, 1},
-        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"SLICER", B_FX, 6, 1},
+        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"INSERT", B_FX, 5, 1},
         {"DLY", B_GLO, 4, 0}, {"CHORUS", B_GLO, 7, 0},
         {"PATTERN", B_SEQ, 2, 0},
     };
@@ -5009,7 +5007,7 @@ static void test_div_order(void)
           param_turn(&GP[G_DTIME], 0, -1) == 11 && param_turn(&GP[G_DTIME], 0, 1) == 12);
     check("DIV gauge: by length (4BAR empty, 1/32 full, 1/4 at 4/9)",
           RATIO(d, 9) == 0 && RATIO(d, 3) == 1000 && RATIO(d, 0) == 444);
-    check("other knobs keep their order (SLICER RATE, ids as shown)", param_turn(&TP[P_SLRATE], 1, 1) == 2);
+    check("other knobs keep their order (INSERT TYPE, ids as shown)", param_turn(&TP[P_ITYPE], 1, 1) == 2);
     ui_host_init();
     settings.accel = 0;
     seq_open("PATTERN");
@@ -5976,7 +5974,7 @@ static void test_filter_screens(void)
     }
 }
 
-/* INSERT (insert.c, from Skiff / Felucca 1.5): two pages after FX (DIST and the sends), before the SLICER: TYPE A B
+/* INSERT (insert.c, from Skiff / Felucca 1.5): two pages after FX (DIST and the sends), FX's last: TYPE A B
  * C (A B C named by the TYPE), then MIX and SRR; the graph per TYPE */
 static void test_insert_screens(void)
 {
@@ -9971,7 +9969,7 @@ static void test_lock_entry_every_page(void)
     home_tracks();
     ui_frame();
     ok &= (uint32_t)lock_page_ok("TRACKS");
-    check("locks: on every SOUND, LAYER, FX, SLICER, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
+    check("locks: on every SOUND, LAYER, FX, INSERT, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
           "a recordable knob writes a lock (its own value + 1), the knob and the base untouched; MODEL, TYPE, WAVE, "
           "DEST, SRC and the rest change nothing", ok && pages > 12u);
 }

@@ -134,7 +134,6 @@ static void sim_mark(uint32_t off, uint32_t n)
 #include "../firmware/src/filter.c"
 #include "../firmware/src/lfo.c"
 #include "../firmware/src/drum_core.c"
-#include "../firmware/src/slicer.c"
 #include "../firmware/src/fx.c"
 #include "../firmware/src/usb_app8.c"
 #include "../firmware/src/midi_uart.c"

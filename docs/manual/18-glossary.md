@@ -32,7 +32,6 @@
 | **RATCH** | a step's ratchet repeats (1 to 4). |
 | **ROUT** | MIDI-in routing: NOTE, SEL, TRACK. |
 | **SCL** | the button for KEYS (SEL on the simulator). |
-| **SLICER** | the GATE / STUT pattern insert. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
 | **SRC** | an LFO slot's source, or COMP's key track. |

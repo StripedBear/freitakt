@@ -52,17 +52,22 @@
 #define PROJ_MAGIC_V1 0x31524446u              /* "FDR1": M1 projects, converted on load */
 /* FREITAKT removed Grids; a record keeps their places (written 0, never read): the 10 globals after G_DRCH (MODE X
  * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). FREITAKT removed RESON the same way: its
- * 7 knobs' places before the FILTER's (MODEL TUNE DECAY MIX TONE STRCT POS) and KEYF's, xp's first byte. PR_G / PR_P:
- * an id's place in a record; PR_NG / PR_NP: a record's globals / a track's parameters (the block) */
+ * 7 knobs' places before the FILTER's (MODEL TUNE DECAY MIX TONE STRCT POS) and KEYF's, xp's first byte; and the
+ * SLICER: its 4 knobs' places after REV's (SLCR PAT RATE DEPTH). PR_G / PR_P: an id's place in a record; PR_NG /
+ * PR_NP: a record's globals / a track's parameters (the block) */
 #define PR_GR G_CSRC                            /* the Grids globals' place (10) */
-#define PR_SRC P_DUCK                           /* SRC's place (1) */
+#define PR_SL P_SLEN                            /* the SLICER's 4 places, before SLEN's */
+#define PR_SRC P_DUCK                           /* SRC's place: before DUCK's */
 #define PR_RSN P_FTYPE                          /* RESON's 7 places, after SRC's */
 #define PR_G(i) ((uint32_t)(i) < (uint32_t)PR_GR ? (uint32_t)(i) : (uint32_t)(i) + 10u)
-#define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i)                                                    \
-                 : (uint32_t)(i) < (uint32_t)PR_RSN ? (uint32_t)(i) + 1u : (uint32_t)(i) + 8u)
+#define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SL ? (uint32_t)(i)                                                     \
+                 : (uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i) + 4u                                            \
+                 : (uint32_t)(i) < (uint32_t)PR_RSN ? (uint32_t)(i) + 5u : (uint32_t)(i) + 12u)
+#define PR_SLS (PR_P(PR_SL) - 4u)               /* the SLICER's first place (SLCR's) */
+#define PR_SRCP (PR_P(PR_SRC) - 1u)             /* SRC's place */
 #define PR_RS (PR_P(PR_RSN) - 7u)               /* RESON's first place (its MODEL's) */
 #define PR_NG (G_NSTORED + 10)
-#define PR_NP (P_NSTORED + 8)
+#define PR_NP (P_NSTORED + 12)
 typedef struct {
     int16_t p[PR_NP];                           /* the block; P_NSTORED + j: xp[track][j] (FDRE / FDRF: step[j].rsv) */
     step_t step[NSTEP];                         /* FDRG: rsv = the step's MICRO */
@@ -286,13 +291,13 @@ typedef char project_va_steps[__builtin_offsetof(project_va_t, t[1].step[1]) ==
                               __builtin_offsetof(project_vb_t, t[1].step[1]) ? 1 : -1];
 
 #if FELUCCA_FLASH
-/* M1's format: the globals before Grids' (PR_GR), the parameters before SRC (PR_SRC), steps of {on, acc} */
+/* M1's format: the globals before Grids' (PR_GR), the parameters before SRC (PR_SRCP), steps of {on, acc} */
 typedef struct { uint8_t on, acc; } step_v1_t;
 typedef struct {
     uint32_t magic, size;
     int16_t g[PR_GR];
     uint8_t sel, rsv[3];
-    struct { int16_t p[PR_SRC]; step_v1_t step[NSTEP]; } t[NTRK];
+    struct { int16_t p[PR_SRCP]; step_v1_t step[NSTEP]; } t[NTRK];
     uint32_t sum;
 } project_v1_t;
 /* M2's format: the globals before G_CSRC, the parameters before P_DUCK */
@@ -670,7 +675,8 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
             tm[j] = v1 ? v1->t[k].p[PR_P(CHAIN_TIMING[j])] : 0;
         for (i = 0; i < P_NSTORED; i++)
             p->t[k].p[PR_P(i)] = motion_rest(k, i);
-        p->t[k].p[PR_SRC] = 0;                          /* (SRC's place) */
+        p->t[k].p[PR_SRCP] = 0;                         /* (SRC's place) */
+        memset(&p->t[k].p[PR_SLS], 0, 4u * sizeof p->t[k].p[0]);   /* (the SLICER's places) */
         memset(&p->t[k].p[PR_RS], 0, 7u * sizeof p->t[k].p[0]);   /* (RESON's places) */
         p->xp[k][0] = 0;                                /* (KEYF's) */
         if (keep)

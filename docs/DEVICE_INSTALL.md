@@ -70,7 +70,7 @@ the first 30 s as a failed start, and two in a row send it to the built-in bootl
 ## 5. Hands-on
 For each: what you should see / hear. Note anything different (page, knob, what happened).
 - Every page: SOUND 1/3..3/3 (EDIT: MODEL, the engine's knobs, LVL PAN NOTE CHOKE), LAYER 1/2 and 2/2 (EDIT,
-  then OCT+; EDIT blinks; EDIT steps, OCT- back), FX, SLICER,
+  then OCT+; EDIT blinks; EDIT steps, OCT- back), FX, INSERT,
   COMP (HOME 2/3 and 3/3: SELECT right on the HOME screen), STEP, PATTERN, GLOBAL 1/7, SYSTEM,
   GLOBAL 3/7 (MUTE NOW / BAR, METRO), DLY 4/7 and 5/7, REVERB 6/7, CHORUS 7/7 (GLO, after GLOBAL 3/7), LFO 1/4..3/4
   and DEST 4/4,
@@ -79,7 +79,7 @@ For each: what you should see / hear. Note anything different (page, knob, what 
   the new screens in `build/ui_shots/fixes/`).
 - Every engine: KNOB 1 (MODEL) on EDIT's first page steps through the 21 engines; each plays on its key.
 - SELECT knob, on any screen but TRACKS: the section's next / previous page (HOME 1/3 <-> COMP 2/3 <-> 3/3, FX <->
-  SLICER <-> DLY ..., the SOUND pages, the LAYER pages in the layer); it stops at the first / last page.
+  INSERT ..., the SOUND pages, the LAYER pages in the layer); it stops at the first / last page.
   In the menu it moves the cursor. On TRACKS it sets the BPM (the top bar follows; with CLK USB it says `CLK USB`).
   The PRESETS knob does nothing anywhere; ALGORITHM picks the track.
 - HOME: a HOME tap on TRACKS opens the HOME screen, a HOME tap there TRACKS again; from EDIT, SEQ, GLOBAL ... a HOME
@@ -300,7 +300,6 @@ Report what you saw first; we'll go through it together.
 - FX + KNOB 1..4: FILTER (left LPF, right HPF), CRUSH, THROW (into the delay / reverb), DEPTH (SHIMMER while OCT
   plays); let go of FX: they stay on and keep working on every page (amber `FX` in the top bar); back to 0 on the
   PERFORM screen: off, the `FX` mark goes.
-- A STUT slicer track keeps playing while a buffer effect plays and stutters again afterwards.
 - At 40 BPM REPEAT 1/8 and REVERSE are dimmed and do nothing.
 - With CLK USB from a DAW: REPEAT starts on the DAW's 1/16 grid.
 
@@ -810,7 +809,7 @@ ACC`).
 - STEPS on SOUND, play a 4-on-the-floor kick: hold step 5's key, turn DECAY up a lot: the top bar says
   `LOCK STEP 5`, the DECAY cell shows the new value inverted; let go: the cell shows the knob's own value again. Step
   5's kick is long, the others as before (snap back). Repeat a lock on each family: LAYER (LEVEL), FX (DIST, REV),
-  SLICER, FILTER (CUT), LFO (RATE, DEPTH), LFO DEST slot 3 DEPTH, HOME (a macro), TRACKS (LEVEL,
+  INSERT (MIX), FILTER (CUT), LFO (RATE, DEPTH), LFO DEST slot 3 DEPTH, HOME (a macro), TRACKS (LEVEL,
   PAN): each plays on its step only. MODEL, FILTER TYPE, an LFO's WAVE / DEST / SRC: nothing happens while
   a step is held.
 - An LFO on DECAY plus a lock on DECAY: on the locked step the wobble is round the locked value.
@@ -906,7 +905,7 @@ ACC`).
 
 The screens: `build/ui_shots/insert/` (each TYPE, and `mix_srr.png`).
 
-- FX: after FX (DIST and the sends) come INSERT 1/2 (TYPE A B C) and INSERT 2/2 (MIX SRR), then SLICER. A B C read
+- FX: after FX (DIST and the sends) come INSERT 1/2 (TYPE A B C) and INSERT 2/2 (MIX SRR), FX's last page. A B C read
   DRIVE TONE LEVEL on SOFT HARD FOLD FUZZ, BITS RATE LPF on CRUSH, RATE DEPTH FDBK on PHASR FLANG CHOR.
 - A snare with a busy pattern: step through every TYPE while it plays: each change fades in without a click. SOFT /
   HARD / FOLD / FUZZ: DRIVE up gets dirtier, TONE darker to the left, LEVEL 112 about as loud as dry. CRUSH: BITS 1
@@ -952,7 +951,7 @@ The screens: `build/ui_shots/glo_chorus.png`, `glo_chorus_graph.png`, `glo_choru
 headphones: 2 bars each ROOM, SPRNG, then HALL at SIZE 0 / 64 / 90 / 127, and 127 with DAMP 0).
 
 - GLO steps GLOBAL 1/7, SYSTEM 2/7, GLOBAL 3/7, DLY 4/7, DLY 5/7, REVERB 6/7, CHORUS 7/7 and round again. FX has no
-  CHORUS page any more (FILTER .. SLICER). On CHORUS a white key plays its drum, the selection stays.
+  CHORUS page any more (FILTER .. INSERT). On CHORUS a white key plays its drum, the selection stays.
 - CHORUS: RATE and DEPTH as before; the graph's wave runs faster with RATE (a filled band past about 8 Hz) and taller
   with DEPTH, the delay's range in ms under the rate.
 - REVERB TYPE: ROOM, SPRNG, HALL (KNOB 1 stops at HALL). A snare with REV up, on headphones: HALL's tail is smooth
@@ -992,7 +991,7 @@ Two FM-1s for the move test, or one FM-1 and two slots. Note the times with a st
   an INSERT and DLY up: its FX button shows those values. Change CUT there, Write to FM-1, load that preset onto
   another track on the FM-1: the voice, CUT as set in the page and the other FX. Untick "Loading it sets these FX",
   Write, load it again over a track with other FX: the track keeps its own. On a track loaded from a +FX preset,
-  turning CUT in the Sound page marks the preset `*` on the FM-1 (a SLICER knob does not). Back up all, then Restore
+  turning CUT in the Sound page marks the preset `*` on the FM-1 (PAN does not). Back up all, then Restore
   all on the same FM-1: the presets and their FX as before. Open a presets file and a backup made by the earlier test
   build of the editor (128 presets): they open, those past 96 in the first empty slots, and the page says how many
   did not fit; Restore all from that old backup: projects that used a preset past 96 load it from its new slot.
@@ -1111,13 +1110,13 @@ past 96), and save a project with a track loaded from one of those (note its slo
   was lost shows `PRESET -`, its sound unchanged.
 - A moved (old) preset loads the sound only: set FILTER LP, CUT low and an INSERT on a track, load it: the FILTER and
   INSERT stay; turning CUT then leaves no `*`.
-- SAVE a track with FILTER, INSERT (e.g. FOLD), SRR and DLY / REV sends up, and a SLICER pattern. On
+- SAVE a track with FILTER, INSERT (e.g. FOLD), SRR and DLY / REV sends up. On
   another track with other FX, LOAD it: the voice and every FX as saved (the INSERT fades in, no click), its own
-  SLICER, LEVEL, PAN, NOTE, CHOKE, LFOs untouched. Power off and on, LOAD again: the same.
+  LEVEL, PAN, NOTE, CHOKE, LFOs untouched. Power off and on, LOAD again: the same.
 - Scrub the list over that USER preset and then a factory one: the FX follow the USER preset, then go back to the
   track's own for the factory one; EDIT out of the list: the track's own sound and FX, exactly as before.
-- On a track loaded from a USER preset, turning CUT, an INSERT knob, or a send shows `*`; turning a
-  SLICER knob does not. On a factory preset only the SOUND knobs do, as before.
+- On a track loaded from a USER preset, turning CUT, an INSERT knob, or a send shows `*`; turning
+  LEVEL or PAN does not. On a factory preset only the SOUND knobs do, as before.
 - SAVE while playing with MOTION moving CUT: the preset holds CUT as you set it. LOAD while it plays: no click beyond
   a voice change's; STOP: CUT the preset's.
 - Bluetooth version: the same, and the variations, the INSERTs and the TOOLS' copy still work (they share the memory

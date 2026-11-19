@@ -67,7 +67,7 @@ int main(void)
     _Static_assert(sizeof FMT / sizeof FMT[0] == F_LSLOT + 1, "every F_ named");
     PNAME(MODEL); PNAME(E0); PNAME(E1); PNAME(E2); PNAME(E3); PNAME(E4); PNAME(E5); PNAME(E6); PNAME(E7);
     PNAME(LEVEL); PNAME(PAN); PNAME(MUTE); PNAME(CHOKE); PNAME(NOTE); PNAME(DIST); PNAME(CHOR); PNAME(DLY); PNAME(REV);
-    PNAME(SLCR); PNAME(SLPAT); PNAME(SLRATE); PNAME(SLDEPTH); PNAME(SLEN); PNAME(SDIV); PNAME(SSWING);
+    PNAME(SLEN); PNAME(SDIV); PNAME(SSWING);
     PNAME(LSET); PNAME(LKEY); PNAME(LLEVEL); PNAME(LTUNE); PNAME(LDEC); PNAME(DUCK);
     PNAME(FTYPE); PNAME(FCUT); PNAME(FRESO); PNAME(FENV); PNAME(FDEC); PNAME(PRIO); PNAME(LSRC1); PNAME(LSRC2);
     PNAME(LS3SRC); PNAME(LS3DEST); PNAME(LS3DEPTH); PNAME(LS4SRC); PNAME(LS4DEST); PNAME(LS4DEPTH);
@@ -96,13 +96,13 @@ int main(void)
            "\"NT_MIN\": %d, \"NT_MAX\": %d, \"LK_MAX\": %u, \"VAR_BYTES\": %u, \"VAR_N\": %u, \"NAME_LEN\": %u, "
            "\"ACID\": %u, \"ACID_MAXTRK\": %u, \"MICRO_MAX\": %u, \"UPR_NOLD\": %u, \"UPR_NFX\": %u, "
            "\"UPR_NFB\": %u, \"UPR_USED\": %u, \"UPR_VOICE\": %u, \"DM_SMPL\": %u, \"UPR_FENV\": %u, \"SND_N\": %u, "
-           "\"PR_GR\": %u, \"PR_NG\": %u, \"PR_SRC\": %u, \"PR_RSN\": %u, \"PR_NP\": %u, \"PROJ_XP\": %u, "
+           "\"PR_GR\": %u, \"PR_NG\": %u, \"PR_SL\": %u, \"PR_SRC\": %u, \"PR_RSN\": %u, \"PR_NP\": %u, \"PROJ_XP\": %u, "
            "\"LD_MAX\": %u},\n",
            NTRK, NSTEP, P_COUNT, G_COUNT, P_NSTORED, G_NSTORED, NMODELS, (unsigned)PRE_NFACT, (unsigned)PRE_NUSER,
            (unsigned)COND_MAX, NT_MIN, NT_MAX, (unsigned)LK_MAX, (unsigned)VAR_BYTES, (unsigned)VAR_N,
            (unsigned)NAME_LEN, (unsigned)DM_ACID, (unsigned)ACID_MAXTRK, (unsigned)MICRO_MAX, (unsigned)UPR_NOLD,
            (unsigned)UPR_NFX, (unsigned)UPR_NFB, (unsigned)UPR_USED, (unsigned)UPR_VOICE, (unsigned)DM_SMPL,
-           (unsigned)UPR_FENV, (unsigned)SND_N, (unsigned)PR_GR, (unsigned)PR_NG, (unsigned)PR_SRC, (unsigned)PR_RSN,
+           (unsigned)UPR_FENV, (unsigned)SND_N, (unsigned)PR_GR, (unsigned)PR_NG, (unsigned)PR_SL, (unsigned)PR_SRC, (unsigned)PR_RSN,
            (unsigned)PR_NP, (unsigned)PROJ_XP, (unsigned)LD_MAX);
     printf("\"uprFx\": [");                         /* the FX a user preset holds (presets.c UPR_FX), in its order */
     for (i = 0; i < UPR_NFX; i++)

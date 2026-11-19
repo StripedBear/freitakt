@@ -107,7 +107,7 @@ While playing, the repeats land on the grid of the rate (following swing, the te
 
 ### Locking a step
 
-In STEPS, on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND, LAYER, FX, INSERT and SRR, SLICER, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
+In STEPS, on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND, LAYER, FX, INSERT and SRR, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
 
 - The top bar says `LOCK STEP 5` while a step is held; the knob cells show that step's values (a locked one inverted).
 - Knobs MOTION cannot record (MODEL, FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.

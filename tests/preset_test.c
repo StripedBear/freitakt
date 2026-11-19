@@ -2,7 +2,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Presets (spec docs/superpowers/specs/2026-10-19-presets-design.md, plan 2026-10-19-presets.md Task 2) on the host,
  * with the host flash: a factory preset is the voice only (MODEL + the 8 SOUND knobs), a user preset the voice and the
- * track's FX but the SLICER (2026-11-01), the banks' order and the step through them (wrapping, empty user slots and a
+ * track's FX (2026-11-01), the banks' order and the step through them (wrapping, empty user slots and a
  * capped ACID skipped), the 96 user slots (save, load, delete, overwrite, the flash record "UPR2", the deferred save
  * while playing, a power cut, MIDI LEARN's map untouched, an older "UPR1" bank of 128 moved into 96), no default choke
  * (a MODEL change or a load never touches CHOKE), the project's reference (FDRD, FDRC converted) and the edited mark. */
@@ -63,7 +63,7 @@ static const char *name_of(uint32_t id)
     return b;
 }
 
-/* the FX a user preset holds (2026-11-01: every FX of the track but the SLICER), listed here on their own */
+/* the FX a user preset holds (2026-11-01: every FX of the track), listed here on their own */
 static const uint8_t FXI[] = {P_DIST, P_CHOR, P_DLY, P_REV, P_FTYPE, P_FCUT, P_FRESO, P_FENV, P_FDEC, P_ITYPE, P_IA,
                               P_IB, P_IC, P_IMIX, P_SRR};
 #define NFXI (sizeof FXI)
@@ -189,7 +189,6 @@ static void test_load_sets_voice_only(void)
     trk[2].step[5].on = 1;
     trk[2].step[9].acc = 1;
     fx_fill(&trk[2], 5);                               /* the FX a user preset would carry: a factory one keeps them */
-    trk[2].p[P_SLCR] = 1;
     before = trk[2];
     id = preset_first_of(DM_KTRX);
     ok = preset_load(&trk[2], id) == 0;
@@ -199,8 +198,8 @@ static void test_load_sets_voice_only(void)
         if (i < P_MODEL || i > P_E7)
             ok &= trk[2].p[i] == before.p[i];
     ok &= !memcmp(trk[2].step, before.step, sizeof before.step);
-    check("a factory load: MODEL + 8 knobs = the preset's; FX (FILTER, INSERT, sends, SRR), SLICER, LEVEL, PAN, "
-          "CHOKE 3, NOTE, LFO, steps unchanged", ok);
+    check("a factory load: MODEL + 8 knobs = the preset's; FX (FILTER, INSERT, sends, SRR), LEVEL, PAN, CHOKE 3, "
+          "NOTE, LFO, steps unchanged", ok);
     check("a bad id or an empty user slot: refused, nothing changes",
           preset_load(&trk[2], user_id(4)) == -1 && preset_load(&trk[2], PRE_NONE) == -1 && trk[2].pre == id &&
               knobs_are(&trk[2], &p));
@@ -689,7 +688,7 @@ static void test_bank_order_old_refs(void)
 }
 
 
-/* 2026-11-01: a user preset holds the voice and the track's FX but the SLICER: the record "UPR2", 96 slots */
+/* 2026-11-01: a user preset holds the voice and the track's FX: the record "UPR2", 96 slots */
 static void test_record_layout(void)
 {
     uint32_t i, j, ok = UPR_NFX == NFXI;
@@ -704,8 +703,8 @@ static void test_record_layout(void)
           "FILTER ENV's 15",
           UPR_NFB == 23u && upr_fb(3) == 3u && upr_fb(4) == 12u && upr_fb(UPR_NFX - 1u) == 22u && upr_fb(7) == UPR_FENV &&
               upr_bfx(4) < 0 && upr_bfx(11) < 0 && upr_bfx(12) == 4);
-    check("not stored: SLICER, LAYER, LFOs and their DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO",
-          !is_fx(P_SLCR) && !is_fx(P_SLPAT) && !is_fx(P_LSET) && !is_fx(P_LFO1 + LF_DEST) && !is_fx(P_LS3DEST) &&
+    check("not stored: LAYER, LFOs and their DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO",
+          !is_fx(P_LSET) && !is_fx(P_LFO1 + LF_DEST) && !is_fx(P_LS3DEST) &&
               !is_fx(P_LEVEL) && !is_fx(P_PAN) && !is_fx(P_NOTE) && !is_fx(P_CHOKE) && !is_fx(P_PRIO));
     check("the record: 4 + 96 x 33 + 32 = 3204 B, <= 3584 (one sector, below the loader's scan)",
           sizeof(upr_rec_t) == 3204u && sizeof(upr_rec_t) <= 3584u && sizeof(upr_rec_t) <= ST_PAYLOAD_MAX &&
@@ -720,7 +719,6 @@ static void test_user_fx_round_trip(void)
     uint32_t i, ok;
     fresh();
     fx_fill(&trk[1], 1);
-    trk[1].p[P_SLCR] = 2;
     trk[1].p[P_LEVEL] = 50;
     trk[1].p[P_E1] = 33;
     memcpy(want, trk[1].p, sizeof want);
@@ -730,7 +728,6 @@ static void test_user_fx_round_trip(void)
         ok &= upr.s[4].f[i] == 0;
     check("SAVE: RESON's places in the slot 0", ok);
     fx_fill(u, 2);
-    u->p[P_SLCR] = 1;
     u->p[P_LEVEL] = 77;
     u->p[P_PAN] = -20;
     u->p[P_NOTE] = 50;
@@ -745,12 +742,12 @@ static void test_user_fx_round_trip(void)
     for (i = 0; i < P_COUNT; i++)
         if ((i < P_MODEL || i > P_E7) && !is_fx(i))
             ok &= u->p[i] == before.p[i];
-    check("a user load: the voice and the FX = the slot's; SLICER, LAYER, LFOs, slots, LEVEL, PAN, NOTE, CHOKE, PRIO "
+    check("a user load: the voice and the FX = the slot's; LAYER, LFOs, slots, LEVEL, PAN, NOTE, CHOKE, PRIO "
           "unchanged", ok && u->pre == user_id(4) && !u->pre_ed);
     power_cycle();
     fx_fill(&trk[3], 7);
     check("power cycle: the FX back from flash, loaded onto another track", preset_load(&trk[3], user_id(4)) == 0 &&
-          fx_same(trk[3].p, want) && trk[3].p[P_E1] == 33 && trk[3].p[P_SLCR] == 0 && trk[3].p[P_LEVEL] != 50);
+          fx_same(trk[3].p, want) && trk[3].p[P_E1] == 33 && trk[3].p[P_LEVEL] != 50);
 }
 
 /* MOTION playing an FX knob: a user load makes the preset's value the knob's base (STOP keeps it); SAVE stores the
@@ -822,7 +819,6 @@ static void test_edit_marks_fx(void)
     fresh();
     track_select(0);
     t->p[P_FCUT] = 60;
-    t->p[P_SLCR] = 0;
     preset_user_save(0, t);
     preset_load(t, user_id(0));
     fx_page(P_FTYPE);
@@ -831,10 +827,6 @@ static void test_edit_marks_fx(void)
     check("loaded from a user preset: FILTER CUT turned: edited", t->pre_ed && t->p[P_FCUT] != 60);
     preset_load(t, user_id(0));
     check("loaded again: not edited, CUT the preset's", !t->pre_ed && t->p[P_FCUT] == 60);
-    fx_page(P_SLCR);
-    turn(EN_K1 + 0, 1);                              /* SLICER: not in a preset */
-    frames(1);
-    check("SLICER turned: not edited", !t->pre_ed && t->p[P_SLCR] != 0);
     fx_page(P_IMIX);
     turn(EN_K1 + 0, -2);                             /* INSERT MIX */
     frames(1);

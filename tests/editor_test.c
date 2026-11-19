@@ -436,9 +436,9 @@ static void t_get_set(void)
         req_knob(ED_SET, ED_SC_TRACK, 1, P_FCUT, trk[1].p[P_FCUT] == 40 ? 41 : 40);
         check("SET FILTER CUT on a track loaded from a user preset with FX: edited", trk[1].pre_ed == 1u);
         trk[1].pre_ed = 0;
-        req_knob(ED_SET, ED_SC_TRACK, 1, P_SLCR, trk[1].p[P_SLCR] ? 0 : 1);
+        req_knob(ED_SET, ED_SC_TRACK, 1, P_PAN, trk[1].p[P_PAN] ? 0 : 1);
         req_knob(ED_SET, ED_SC_TRACK, 1, P_LEVEL, trk[1].p[P_LEVEL] == 90 ? 91 : 90);
-        check(".. the SLICER, LEVEL: not edited", trk[1].pre_ed == 0u);
+        check(".. PAN, LEVEL: not edited", trk[1].pre_ed == 0u);
         upr.s[5].used = UPR_USED | UPR_VOICE;           /* a voice-only (migrated) preset */
         req_knob(ED_SET, ED_SC_TRACK, 1, P_DLY, trk[1].p[P_DLY] == 30 ? 31 : 30);
         check(".. a voice-only user preset: DLY not edited", trk[1].pre_ed == 0u);

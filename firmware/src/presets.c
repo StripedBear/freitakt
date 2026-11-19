@@ -2,8 +2,8 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Presets (spec docs/superpowers/specs/2026-10-19-presets-design.md): a factory preset is a voice, MODEL + the 8 SOUND
  * knobs P_E0..P_E7, nothing else (loading one leaves the track's FX, LFOs, LEVEL, PAN, NOTE, CHOKE, steps as they are).
- * A user preset (user decision 2026-11-01) is the voice and the track's FX but the SLICER: UPR_FX (sends, FILTER,
- * INSERT, SRR); not the SLICER, LAYER, LFOs / DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO, steps. One id for every
+ * A user preset (user decision 2026-11-01) is the voice and the track's FX: UPR_FX (sends, FILTER,
+ * INSERT, SRR); not the LAYER, LFOs / DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO, steps. One id for every
  * preset: the factory banks in order (MACHINEDRUM, MODERN, CLASSIC: const tables, preset_bank.h), then the 96 USER
  * slots (PRE_NFACT + slot). A track remembers the id it was loaded from (track_t.pre, PRE_NONE none) and whether a knob
  * the preset holds moved since (pre_ed: preset_marks, preset_touch); projects store both (project.c, FDRD: the
@@ -417,7 +417,7 @@ static int upr_fx_index(uint32_t id)                    /* id's place in UPR_FX,
 }
 /* turning knob id marks t's preset edited: what loading it again would put back. The 8 SOUND knobs always; an FX knob
  * (UPR_FX) when t was loaded from a user preset that holds FX (a factory preset, an older user preset: the voice only;
- * the SLICER, LEVEL, ...: never) */
+ * LEVEL, ...: never) */
 static int preset_marks(const track_t *t, uint32_t id)
 {
     return PRE_SOUND(id) || (upr_fx_index(id) >= 0 && upr_fx(t->pre));

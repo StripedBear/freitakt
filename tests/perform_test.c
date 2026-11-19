@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* PERFORM (perform.c): the FX hold layer's effects on the master. The effects alone on synthetic signals
- * (perf_begin + perf_block, as mix_block runs them), and in the whole mix (REPEAT STEP, the SLICER's buffer, the 1/16). */
+ * (perf_begin + perf_block, as mix_block runs them), and in the whole mix (REPEAT STEP, the 1/16). */
 #include "drum_host.h"
 
 static int fails;
@@ -684,29 +684,6 @@ static void test_stacking(void)
     check("stack: FREEZE let go, the REPEAT held before plays again", pf.src == PF_R16);
 }
 
-static void test_slicer_lend(void)
-{
-    uint32_t k, b, lent_rec = 0;
-    pf_fresh(120);
-    kit();
-    trk[0].p[P_SLCR] = SL_STUT;
-    transport_req = 1;
-    render_mix(0, 0, 22050u / CTL * CTL);             /* STUT records its live steps */
-    check("slicer: STUT records before the layer takes its buffer", sl[0].rec > 0u || sl[0].rec_on);
-    hold(PF_R16);
-    for (b = 0; b < 22050u / CTL; b++) {
-        render_mix(0, 0, CTL);
-        for (k = 0; sl_lent && k < NTRK; k++)       /* (from the lend on: it starts on the next 1/16) */
-            lent_rec |= sl[k].rec | sl[k].rec_on;
-    }
-    check("slicer: the buffer lent, STUT records nothing", sl_lent && !lent_rec);
-    let_go(PF_R16);
-    render_mix(0, 0, 1024u);
-    check("slicer: the buffer given back once the effect faded out", !sl_lent);
-    render_mix(0, 0, 22050u / CTL * CTL);
-    check("slicer: STUT records again", sl[0].rec > 0u || sl[0].rec_on);
-}
-
 static void test_kill(void)
 {
     pf_fresh(120);
@@ -926,7 +903,6 @@ int main(void)
     test_throw();
     test_depth();
     test_stacking();
-    test_slicer_lend();
     test_kill();
     test_kill_keeps_knobs();
     test_sixteenth();

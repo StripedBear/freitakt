@@ -2,7 +2,7 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
 /* Per-track SRR and INSERT (fx.c mix_part; included by fx.c after perform.c). The chain of a track:
- *   FILTER -> SRR -> DIST -> INSERT -> SLICER -> the mutes, the COMP duck, LEVEL, PAN, the sends.
+ *   FILTER -> SRR -> DIST -> INSERT -> the mutes, the COMP duck, LEVEL, PAN, the sends.
  *
  * SRR (P_SRR, INSERT 2/2 KNOB 2): sample rate reduction, as the classic drum machines' (after the filter, before the
  * distortion): the track's signal sampled and held, no smoothing, aliasing on purpose. Each value is held
@@ -12,7 +12,7 @@
  * starts on a fresh sample. Its state: track_t srr_h / srr_a.
  *
  * INSERT (P_ITYPE .. P_IMIX, FX > INSERT): Felucca 1.5's (its Discussions #78 and #177) as Skiff 1.3 ported it (Skiff
- * src/fx.c track_insert), on a drum track. One effect per track, after DIST and before the SLICER, with a dry / wet
+ * src/fx.c track_insert), on a drum track. One effect per track, after DIST and before the level, with a dry / wet
  * MIX. TYPE and its three values A B C (what they mean: params.c ins_desc):
  *   SOFT HARD FOLD FUZZ  DRIVE (1x .. ~13x, squared), TONE (two one-pole low-passes at F_CUTOFF), LEVEL (F_DB, as the
  *                        track's LEVEL: 112 is 0 dB). A slow low cut in front (~27 Hz), a DC blocker after (FUZZ is
@@ -27,16 +27,16 @@
  *                        0 .. 0.4. A DC blocker on the swept copy (a clipped loud input is lopsided).
  * The swept ones are the pedals': their wet is (dry + swept) / 2, the notches need both, so MIX 100 % is the whole
  * effect and less a lighter one. MIX blends dry and wet linearly; MIX 0 or TYPE OFF: the track bit for bit as before
- * (nothing runs). MIX glides (2.9 ms, SL_SLOPE); a TYPE change fades the old one out, clears the state, fades the new
+ * (nothing runs). MIX glides (2.9 ms, INS_SLOPE); a TYPE change fades the old one out, clears the state, fades the new
  * one in; so does a start from MIX 0 (no stale line or filter). While it runs (TYPE on, MIX above 0) the track's tail
  * after its last voice is 64 blocks (46 ms: a flanger's feedback rings), DIST's 16 otherwise; TYPE OFF or MIX 0 while
  * the track is silent: the INSERT at rest at once (ins_idle).
- * Order: DIST -> INSERT -> SLICER, as Skiff and Felucca 1.5: the insert colours the sound as DIST does; the SLICER's
- * gate (and its STUT recordings) comes after, so its edges stay sharp and a STUT repeats the processed sound.
+ * Order: DIST -> INSERT, as Skiff and Felucca 1.5: the insert colours the sound as DIST does.
  * State per track (ins[], 580 B each, 4640 B): the standard build's pool; the Bluetooth build has no pool or .bss room
  * for it: the RAM-code region's spare (app_ble.ld .ram_bss, after .ram_text's PC-guard window, below 0x01C06000, as the
  * variations' banks), which crt0 does not zero: project.c persist_boot does. Loops one per TYPE (no switch a sample);
  * each noinline, out of mix_part (tests/target_budget.py). */
+#define INS_SLOPE (32768 / 128)     /* MIX and fades: 128 samples, 2.9 ms */
 #define IL_LEN 256u                     /* FLANG / CHOR: the line, samples (a power of 2: masked) */
 #define IN_ST 4u                        /* PHASR: all-pass stages */
 static const uint8_t INS_HOLD[16] = {64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3, 2, 1};   /* CRUSH RATE */
@@ -149,7 +149,7 @@ static __attribute__((noinline)) void ins_drive(ins_t *s, const track_t *t, int3
 #define INS_DRIVE_LOOP(TY)                                                                                           \
     for (i = 0; i < n; i++) {                                                                                        \
         int32_t x = b[i], y, v;                                                                                      \
-        s->w += clamp(tw - s->w, -SL_SLOPE, SL_SLOPE);                                                              \
+        s->w += clamp(tw - s->w, -INS_SLOPE, INS_SLOPE);                                                              \
         s->hp += ((x << 8) - s->hp) >> 8;               /* ~27 Hz low cut (Q8: no offset left by the rounding) */  \
         v = clamp(x - (s->hp >> 8), -230000, 230000);                                                                \
         y = ins_shape(TY, ((v >> 3) * g) >> 9, 0);      /* (>> 3 first: 32 bits) */                                 \
@@ -177,7 +177,7 @@ static __attribute__((noinline)) void ins_crush(ins_t *s, const track_t *t, int3
     int32_t k = ins_lpk(t->p[P_IC]);
     for (i = 0; i < n; i++) {
         int32_t x = b[i], y;
-        s->w += clamp(tw - s->w, -SL_SLOPE, SL_SLOPE);
+        s->w += clamp(tw - s->w, -INS_SLOPE, INS_SLOPE);
         if (!s->cnt) {
             s->hold = ins_shape(IT_CRUSH, clamp(x, -262144, 262143), sh);
             s->cnt = (uint8_t)hold;
@@ -202,7 +202,7 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
         for (i = 0; i < n; i++) {
             int32_t x = b[i], xs = clamp((x + 4) >> 3, -16383, 16383), u = xs + ((s->fb * fbk + 16384) >> 15), y = u;
             uint32_t st;
-            s->w += clamp(tw - s->w, -SL_SLOPE, SL_SLOPE);
+            s->w += clamp(tw - s->w, -INS_SLOPE, INS_SLOPE);
             for (st = 0; st < IN_ST; st++) {            /* y = a (u - y1) + u1 */
                 y = clamp(s->px[st] + ((a * (u - s->py[st]) + 8192) >> 14), -65535, 65535);
                 s->px[st] = u;
@@ -223,7 +223,7 @@ static __attribute__((noinline)) void ins_swept(ins_t *s, const track_t *t, int3
         for (i = 0; i < n; i++, s->ph += inc) {
             int32_t x = b[i], r0, r1, v, fr;
             uint32_t d;                                 /* the delay, Q16 samples */
-            s->w += clamp(tw - s->w, -SL_SLOPE, SL_SLOPE);
+            s->w += clamp(tw - s->w, -INS_SLOPE, INS_SLOPE);
             if (chorus) {
                 d = (uint32_t)((140 << 16) + ((osc_sine(s->ph) * (int32_t)dep * 50) >> 5));   /* 3.2 +- 2.3 ms */
             } else {

@@ -24,7 +24,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the scope, the track's first four knobs, the keys play the tracks; SELECT goes on to the compressor's pages). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
 | **EDIT** | The selected track's sound: its model and knobs. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
 | **SEQ** | The steps on the white keys, then PATTERN, MOTION and SONG (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a key with it) for the step TOOLS screen. |
-| **FX** | The track's FILTER, FX (the sends), INSERT (with SRR), SLICER: 6 pages. **Hold FX** for PERFORM. |
+| **FX** | The track's FILTER, FX (the sends), INSERT (with SRR): 5 pages. **Hold FX** for PERFORM. |
 | **LFO** | The track's two LFOs side by side, then DEST. |
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | KEYS: the keys play the selected track chromatically. Labelled SEL in the web simulator. |

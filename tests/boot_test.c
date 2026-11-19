@@ -873,7 +873,7 @@ static int fdr2_converts(void)
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < P_DUCK; i++)
             v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].p[PR_SRC] = 3;                            /* (Grids' SRC: not read) */
+    v.t[2].p[PR_SRCP] = 3;                           /* (Grids' SRC: not read) */
     v.t[2].step[9].on = 1;
     v.t[2].step[9].cond = 33;
     v.t[2].step[9].rat = 2;

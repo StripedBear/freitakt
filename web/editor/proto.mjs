@@ -58,8 +58,8 @@ export const LONG = new Set([CMD.SAVE, CMD.SMP_BEGIN, CMD.SMP_DATA, CMD.SMP_END,
 export const SCOPE = { TRACK: 0, GLOBAL: 1, MODEL: 2 };
 /** the core.h ids the page names (protocol 1: ids are the firmware's enums, §2.2; test_editor.mjs checks them against
  * device_data.json): P_MODEL P_ITYPE (scope 0); G_SYNC (scope 1). Everything else comes from PAGES / DESC */
-export const ID = { MODEL: 0, ITYPE: 62, SYNC: 12 };
-export const GR = { LFO: 9 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
+export const ID = { MODEL: 0, ITYPE: 58, SYNC: 12 };
+export const GR = { LFO: 8 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
 export const DF = { SPLIT: 0x01, ORDER: 0x02, LOCK: 0x04, RO: 0x08, CONTEXT: 0x10 };
 export const SF = { RESTORING: 0x01, SONG: 0x02, NOFLASH: 0x04 };
 export const STEP = { ON: 0x01, ACC: 0x02, SLIDE: 0x04, TIE: 0x08, RAT_SHIFT: 4, NT_OFFSET: 60, MICRO_OFFSET: 64, MICRO_MAX: 50 };
@@ -82,10 +82,10 @@ export const OLD_PROJECTS = new Map([[0x31524446, 1564], [0x32524446, 2624], [0x
   [0x41524446, 3672], [0x42524446, 3672], [0x43524446, 3688], [0x44524446, 3712], [0x45524446, 3840], [0x46524446, 3840]]);
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 8, nstep: 64, pcount: 73, gcount: 32, pStored: 61, gStored: 31,
-  // a record keeps the places of the removed Grids and RESON (FREITAKT; project.c PR_G / PR_P): [first id after the
-  // gap, its count], written 0
-  gGap: [22, 10], pGap: [30, 1], rGap: [47, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
+  ntrk: 8, nstep: 64, pcount: 69, gcount: 32, pStored: 57, gStored: 31,
+  // a record keeps the places of the removed Grids, RESON and SLICER (FREITAKT; project.c PR_G / PR_P): [first id
+  // after the gap, its count], written 0
+  gGap: [22, 10], sGap: [18, 4], pGap: [26, 1], rGap: [43, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
   xpN: 7, xpAt: 1, // xp: 7 B a track (FDRF: steps 0..6's spare bytes), the parameters from byte 1 (byte 0: RESON KEYF's, 0)
   xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp; FDRF: step rsv)
   xp2Def: [0, 0, 40, 0], // P_SATK P_SSUS P_SREL P_SLOOP (the SAMPLE model's ATK SUS REL LOOP): xp2; 0 in every record before them
@@ -95,7 +95,7 @@ export const LAYOUT = {
   uprKbit: [3, 1, 2], // the SOUND knobs (DRIVE DECAY TONE) whose bytes' top bits are a SAMPLE preset's bits 23..25
   smpl: 14, // DM_SMPL: the SAMPLE model, the only one whose user presets hold ATK SUS REL LOOP
   uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
-  timing: [22, 23, 24], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
+  timing: [18, 19, 20], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
   project: { size: 3840, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 3246, lk_link: 3248, var_link: 3252,
     var_len: 3256, xp: 3258, xp2: 3314, xp3: 3346, song: 3762, name: 3798, pre: 3810, pre_ed: 3826, sum: 3836 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
@@ -103,7 +103,7 @@ export const LAYOUT = {
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
   // the FX a user preset holds (presets.c UPR_FX), in the record's order, their bytes in a slot's 23 FX bytes (upr_fb:
   // RESON's 4..11 between, 0) and their power-on values (a voice-only slot's)
-  uprFx: [14, 15, 16, 17, 47, 48, 49, 50, 51, 62, 63, 64, 65, 66, 61],
+  uprFx: [14, 15, 16, 17, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62, 57],
   uprFb: [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], uprNfb: 23,
   uprFxDef: [0, 0, 0, 0, 0, 127, 0, 0, 40, 0, 64, 96, 96, 127, 0],
   preNone: 0xffff, preRecUser: 0x8000,
@@ -571,7 +571,8 @@ export function encodePresets(slots, moved = noMoves()) {
  * bytes and every NUDGE 0, as the firmware converts it at load (old: true); an older one: only magic, size and sum are
  * read). full: decoded (FDRG / FDRF) */
 const recG = (i) => (i < LAYOUT.gGap[0] ? i : i + LAYOUT.gGap[1]); // a global's place in a record
-const recP = (i) => (i < LAYOUT.pGap[0] ? i : i < LAYOUT.rGap[0] ? i + LAYOUT.pGap[1] : i + LAYOUT.pGap[1] + LAYOUT.rGap[1]); // .. a track parameter's
+const recP = (i) => (i < LAYOUT.sGap[0] ? i : i < LAYOUT.pGap[0] ? i + LAYOUT.sGap[1] : i < LAYOUT.rGap[0] ? i + LAYOUT.sGap[1] + LAYOUT.pGap[1]
+  : i + LAYOUT.sGap[1] + LAYOUT.pGap[1] + LAYOUT.rGap[1]); // .. a track parameter's
 const recX = (f, o, k, j) => (f ? o + LAYOUT.project.trkStep + 4 * (LAYOUT.xpAt + j) + 3 : LAYOUT.project.xp + LAYOUT.xpN * k + LAYOUT.xpAt + j); // xp's j
 export function decodeProject(b) {
   const v = dv(b), L = LAYOUT.project, magic = v.getUint32(0, true), size = v.getUint32(4, true);

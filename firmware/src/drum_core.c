@@ -17,7 +17,7 @@ static const uint8_t KIT_DEF[NTRK][2] = {
 
 static const dmodel_t *trk_model(const track_t *t) { return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS]; }
 
-/* a track's swing: its own + the global one, capped at 100 (upstream #31: 200 made 1.8 / 0.2 steps); seq.c, slicer.c */
+/* a track's swing: its own + the global one, capped at 100 (upstream #31: 200 made 1.8 / 0.2 steps); seq.c */
 #define SWING_MAX 100
 static inline int32_t track_swing(const track_t *t)
 {

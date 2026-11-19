@@ -69,7 +69,7 @@ int main(void)
     first = 1;
     ID(P_, MODEL); ID(P_, E0); ID(P_, E1); ID(P_, E2); ID(P_, E3); ID(P_, E4); ID(P_, E5); ID(P_, E6); ID(P_, E7);
     ID(P_, LEVEL); ID(P_, PAN); ID(P_, MUTE); ID(P_, DIST); ID(P_, CHOR); ID(P_, DLY); ID(P_, REV);
-    ID(P_, SLCR); ID(P_, SLPAT); ID(P_, SLRATE); ID(P_, SLDEPTH); ID(P_, SLEN); ID(P_, SDIV); ID(P_, SSWING);
+    ID(P_, SLEN); ID(P_, SDIV); ID(P_, SSWING);
     ID(P_, DUCK); ID(P_, LFO1); ID(P_, LFO2);
     ID(P_, FTYPE); ID(P_, FCUT); ID(P_, FRESO); ID(P_, FENV); ID(P_, FDEC);
     printf("},\n\"LF\": {");
@@ -90,7 +90,7 @@ int main(void)
         key(N_MODEL[m]), printf("%u", m);
     printf("},\n\"tp\": {");
     first = 1;
-    TPD(LEVEL); TPD(PAN); TPD(DIST); TPD(CHOR); TPD(DLY); TPD(REV); TPD(SLCR); TPD(SLPAT); TPD(SLRATE); TPD(SLDEPTH);
+    TPD(LEVEL); TPD(PAN); TPD(DIST); TPD(CHOR); TPD(DLY); TPD(REV);
     TPD(DUCK);
     TPD(FTYPE); TPD(FCUT); TPD(FRESO); TPD(FENV); TPD(FDEC);
     key("LFO_WAVE"); desc(&TP[P_LFO1 + LF_WAVE]);

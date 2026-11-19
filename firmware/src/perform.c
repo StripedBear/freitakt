@@ -25,8 +25,7 @@
  * tap's jump back; reads between samples, linear. Left and right apart, at 44.1 kHz in the loop's frames (4096 of
  * them). Out: 0.56 the live mix + 0.7 the shifted one. While it plays, DEPTH (KNOB 4) is its SHIMMER instead of
  * the level: the shifted sound fed back into its own delay (0 .. 0.82, through the soft clip).
- * The buffer: the SLICER's recordings (sl_buf, 8 x 4096 int16 = 64 KB) borrowed as one stereo loop of 16384
- * frames at 22.05 kHz (743 ms). While borrowed, STUT tracks play live; their recordings are dropped afterwards. A
+ * The buffer: pf_buf (64 KB) as one stereo loop of 16384 frames at 22.05 kHz (743 ms). A
  * REPEAT 1/8 or REVERSE longer than the loop at the tempo (40 BPM) does nothing (the map shows it dimmed).
  * KNOB 1..4 with FX: the macros FILTER (the LPF / HPF), CRUSH, THROW (the dry mix into the delay and reverb
  * sends), DEPTH (the buffer effects' level; OCT UP / DN: the shimmer). They stay on after the PERFORM screen closes,
@@ -42,7 +41,7 @@ enum { PF_R8, PF_R16, PF_R32, PF_REV, PF_LPF, PF_HPF, PF_TAPE, PF_FRZ, PF_OUP, P
 #define PF_BUF (PF_REPEAT | PF_BIT(PF_REV) | PF_BIT(PF_TAPE) | PF_BIT(PF_FRZ) | PF_HARM)
 #define PF_TRK (((1u << NTRK) - 1u) << PF_T1)            /* REPEAT STEP's tracks (seq.c rep_keys) */
 enum { PR_4, PR_8, PR_16, PR_32, PR_N };                 /* REPEAT STEP's rates (D5 E5 F5 G5) */
-#define PB_FRAMES (NTRK * SL_LEN / 2u)        /* stereo frames in sl_buf: 16384, 743 ms at 22.05 kHz */
+#define PB_FRAMES 16384u /* stereo frames in pf_buf: 16384, 743 ms at 22.05 kHz */
 #define PB_MAX (2u * PB_FRAMES)               /* the longest loop, 44.1 kHz samples */
 #define PB_TAPE 32000u                        /* TAPE STOP takes 1 beat, at most this (it lags a quarter of it) */
 #define PB_FREC 4096u                         /* FREEZE: frames it records (186 ms) */
@@ -51,6 +50,10 @@ enum { PR_4, PR_8, PR_16, PR_32, PR_N };                 /* REPEAT STEP's rates 
 #define HB_BASE 128u                          /* .. the taps' shortest delay, samples; the sweep: 2048 */
 #define HB_FB 269                             /* .. KNOB 4 (0 .. 100) -> the shimmer, Q15: 0 .. 0.82 */
 #define PF_TOP (63 << 8)                      /* filter cutoff index, Q8 (PF_SVF): the LPF's open end */
+#define PF_RAMP_LOG2 7
+#define PF_RAMP (1 << PF_RAMP_LOG2)           /* fades and glides: 128 samples, 2.9 ms */
+#define PF_SLOPE (32768 / PF_RAMP)
+static int16_t pf_buf[2u * PB_FRAMES] __attribute__((section(".pool")));   /* the buffer effects' loop, 64 KB */
 #define PF_LOW (14 << 8)                      /* .. the LPF sweep's end, the HPF sweep's (and K1's) top */
 enum { BM_NONE, BM_LOOP, BM_TAPE, BM_FRZ, BM_HARM };
 
@@ -170,14 +173,6 @@ static void perf_key_down(uint32_t k)
         perf_press(perf_key(k), 1);
 }
 
-/* the SLICER's recordings dropped (when the buffer is taken and given back) */
-static void perf_drop_slicer(void)
-{
-    uint32_t k;
-    for (k = 0; k < NTRK; k++)
-        sl[k].rec = sl[k].loop = sl[k].rec_on = 0;
-}
-
 /* the buffer effect to play: the last pressed of those running */
 static uint32_t perf_pick(uint32_t a)
 {
@@ -191,10 +186,6 @@ static uint32_t perf_pick(uint32_t a)
 
 static void perf_buf_start(uint32_t e)
 {
-    if (!sl_lent) {
-        sl_lent = 1;
-        perf_drop_slicer();
-    }
     pf.src = (uint8_t)e;
     pf.next = PF_N;
     pf.wr = pf.rp = 0;
@@ -238,7 +229,7 @@ static void perf_buf_select(uint32_t e)
         pf.xrp = pf.rp;
         pf.xlen = pf.len;
         pf.xrev = pf.rev;
-        pf.xn = SL_RAMP;
+        pf.xn = PF_RAMP;
         pf.src = (uint8_t)e;
         pf.next = PF_N;
         pf.len = perf_len(e);
@@ -322,7 +313,7 @@ static __attribute__((noinline)) void perf_pre(const int32_t *ml, const int32_t 
     uint32_t i;
     int32_t m = perf_k[2] * 327;
     for (i = 0; i < n; i++) {
-        pf.td += clamp(m - pf.td, -SL_SLOPE, SL_SLOPE);
+        pf.td += clamp(m - pf.td, -PF_SLOPE, PF_SLOPE);
         if (pf.td) {
             int32_t x = mulq16((ml[i] + mr[i]) >> 1, (uint32_t)pf.td << 1);
             sd[i] += x;
@@ -340,7 +331,7 @@ static inline int32_t pf_mix(int32_t x, int32_t y, int32_t w)
 /* the loop: frame f of it, both channels (Q15) */
 static inline void pb_put(uint32_t f, int32_t l, int32_t r)
 {
-    int16_t *p = &sl_buf[0][0] + 2u * (f & (PB_FRAMES - 1u));
+    int16_t *p = pf_buf + 2u * (f & (PB_FRAMES - 1u));
     p[0] = (int16_t)clamp(l, -32768, 32767);
     p[1] = (int16_t)clamp(r, -32768, 32767);
 }
@@ -348,7 +339,7 @@ static inline void pb_put(uint32_t f, int32_t l, int32_t r)
 static inline void pb_at(uint32_t s, uint32_t n, int32_t *l, int32_t *r)
 {
     uint32_t f = s >> 1 < n ? s >> 1 : n - 1u;    /* (an odd loop's last sample: the frame before) */
-    const int16_t *p = &sl_buf[0][0] + 2u * (f & (PB_FRAMES - 1u));
+    const int16_t *p = pf_buf + 2u * (f & (PB_FRAMES - 1u));
     const int16_t *q;                               /* a frame is the mean of samples 2f, 2f + 1: sample s */
     if (s & 1u)                                     /* lies a quarter frame from it, towards f + 1 or f - 1 */
         q = f + 1u < n ? p + 2 : p;
@@ -364,9 +355,9 @@ static inline void pb_loop(uint32_t rp, uint32_t len, int rev, uint32_t n, int32
     pb_at(rev ? e : rp, n, l, r);
     if (rp < e)
         e = rp;
-    if (e < (uint32_t)SL_RAMP) {
-        *l = (*l * (int32_t)e) >> SL_RAMP_LOG2;
-        *r = (*r * (int32_t)e) >> SL_RAMP_LOG2;
+    if (e < (uint32_t)PF_RAMP) {
+        *l = (*l * (int32_t)e) >> PF_RAMP_LOG2;
+        *r = (*r * (int32_t)e) >> PF_RAMP_LOG2;
     }
 }
 
@@ -408,8 +399,8 @@ static inline void hb_tap(uint32_t ph, int32_t *l, int32_t *r)
         *l = *r = 0;
         return;
     }
-    p = &sl_buf[0][0] + 2u * ((pf.wr - di) & HB_MASK);
-    q = &sl_buf[0][0] + 2u * ((pf.wr - di - 1u) & HB_MASK);
+    p = pf_buf + 2u * ((pf.wr - di) & HB_MASK);
+    q = pf_buf + 2u * ((pf.wr - di - 1u) & HB_MASK);
     *l = p[0] + (((q[0] - p[0]) * f) >> 15);
     *r = p[1] + (((q[1] - p[1]) * f) >> 15);
 }
@@ -430,9 +421,9 @@ static __attribute__((noinline)) void perf_harm(int32_t l, int32_t r, int32_t *y
             xl += softclip(mulq15(sl_, pf.hfb));
             xr += softclip(mulq15(sr_, pf.hfb));
         }
-        if (pf.len < (uint32_t)SL_RAMP) {           /* the recording fades in (2.9 ms): no step where it */
-            xl = (xl * (int32_t)pf.len) >> SL_RAMP_LOG2;   /* begins, for a tap to read across */
-            xr = (xr * (int32_t)pf.len) >> SL_RAMP_LOG2;
+        if (pf.len < (uint32_t)PF_RAMP) {           /* the recording fades in (2.9 ms): no step where it */
+            xl = (xl * (int32_t)pf.len) >> PF_RAMP_LOG2;   /* begins, for a tap to read across */
+            xr = (xr * (int32_t)pf.len) >> PF_RAMP_LOG2;
         }
         pb_put(pf.wr & HB_MASK, xl, xr);
     }
@@ -452,10 +443,6 @@ static __attribute__((noinline)) void perf_buf_done(void)
         perf_buf_start(pf.next);
     } else {
         pf.mode = BM_NONE;
-        if (sl_lent) {
-            sl_lent = 0;
-            perf_drop_slicer();
-        }
     }
 }
 
@@ -475,8 +462,8 @@ static inline void perf_buf(int32_t *pl, int32_t *pr)
             if (pf.xn) {                            /* the loop it switched from, fading out */
                 int32_t ol, orr, g = (int32_t)pf.xn;
                 pb_loop(pf.xrp, pf.xlen, pf.xrev, pf.wr, &ol, &orr);
-                yl += (ol * g) >> SL_RAMP_LOG2;
-                yr += (orr * g) >> SL_RAMP_LOG2;
+                yl += (ol * g) >> PF_RAMP_LOG2;
+                yr += (orr * g) >> PF_RAMP_LOG2;
                 pf.xn--;
                 if (++pf.xrp >= pf.xlen)
                     pf.xrp = 0;
@@ -490,8 +477,8 @@ static inline void perf_buf(int32_t *pl, int32_t *pr)
         if (pf.wr >= 2u) {                          /* read behind the writing, slower and slower */
             uint32_t f = pf.tpos >> 16;
             int32_t fr = (int32_t)((pf.tpos >> 1) & 0x7FFFu), a, b, env;
-            const int16_t *p = &sl_buf[0][0] + 2u * (f & (PB_FRAMES - 1u));
-            const int16_t *s = &sl_buf[0][0] + 2u * ((f + 1u) & (PB_FRAMES - 1u));
+            const int16_t *p = pf_buf + 2u * (f & (PB_FRAMES - 1u));
+            const int16_t *s = pf_buf + 2u * ((f + 1u) & (PB_FRAMES - 1u));
             a = p[0];
             b = s[0];
             yl = (a + (((b - a) * fr) >> 15)) << 1;
@@ -520,7 +507,7 @@ static inline void perf_buf(int32_t *pl, int32_t *pr)
         on = 2;                                     /* (KNOB 4 is the shimmer: the level stays full) */
     }
     pf.tw = on && pf.src != PF_N ? on == 2 ? 32768 : 32768 - perf_k[3] * 327 : 0;
-    pf.w += clamp(pf.tw - pf.w, -SL_SLOPE, SL_SLOPE);
+    pf.w += clamp(pf.tw - pf.w, -PF_SLOPE, PF_SLOPE);
     if (pf.w) {
         *pl = pf_mix(l, yl, pf.w);
         *pr = pf_mix(r, yr, pf.w);
@@ -565,7 +552,7 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
         if (pf.mode != BM_NONE)
             perf_buf(&l, &r);
         lt = (a & PF_BIT(PF_LPF)) || perf_k[0] < 0 || pf.lc < PF_TOP ? 32768 : 0;
-        pf.la += clamp(lt - pf.la, -SL_SLOPE, SL_SLOPE);
+        pf.la += clamp(lt - pf.la, -PF_SLOPE, PF_SLOPE);
         if (pf.la) {
             int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.lz[0], pf.lk, 0) << 2;
             int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.lz[2], pf.lk, 0) << 2;
@@ -575,7 +562,7 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
             pf.lz[0] = pf.lz[1] = pf.lz[2] = pf.lz[3] = 0;
         }
         ht = (a & PF_BIT(PF_HPF)) || perf_k[0] > 0 || pf.hc > 0 ? 32768 : 0;
-        pf.ha += clamp(ht - pf.ha, -SL_SLOPE, SL_SLOPE);
+        pf.ha += clamp(ht - pf.ha, -PF_SLOPE, PF_SLOPE);
         if (pf.ha) {
             int32_t fl = pf_svf(clamp(l >> 2, -32767, 32767), &pf.hz[0], pf.hk, 1) << 2;
             int32_t fr = pf_svf(clamp(r >> 2, -32767, 32767), &pf.hz[2], pf.hk, 1) << 2;
@@ -585,7 +572,7 @@ static __attribute__((noinline)) void perf_block(int32_t *bl, int32_t *br, uint3
             pf.hz[0] = pf.hz[1] = pf.hz[2] = pf.hz[3] = 0;
         }
         {   /* CRUSH: fewer bits, a held sample (KNOB 2) */
-            pf.cw += clamp(ct - pf.cw, -SL_SLOPE, SL_SLOPE);
+            pf.cw += clamp(ct - pf.cw, -PF_SLOPE, PF_SLOPE);
             if (pf.cw) {
                 if (++pf.cn >= hold) {
                     pf.cn = 0;

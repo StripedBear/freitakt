@@ -47,7 +47,6 @@ static void fm1_irq_on(void)
 #include "../firmware/src/filter.c"
 #include "../firmware/src/lfo.c"
 #include "../firmware/src/drum_core.c"
-#include "../firmware/src/slicer.c"
 #include "../firmware/src/fx.c"
 static void fm1_delay_ms(uint32_t ms) { (void)ms; }
 #include "../firmware/src/usb_app8.c"                /* the app's driver: usb_app.c + USB AUDIO 10 CH */
@@ -59,7 +58,7 @@ static int proj_cue_apply(void) { return CUE_E_NOSLOT; }
 #endif
 #include "old_defs.h"                                 /* the knob defaults up to drum 0.20.0 (the tests' "default") */
 
-static void host_reset_fx(void)                     /* FX buses, master, slicer, metal: as at power-on */
+static void host_reset_fx(void)                     /* FX buses, master, metal: as at power-on */
 {
     memset(dly_buf, 0, sizeof dly_buf);
     memset(cho_buf, 0, sizeof cho_buf);
@@ -68,8 +67,7 @@ static void host_reset_fx(void)                     /* FX buses, master, slicer,
     memset(&fx, 0, sizeof fx);
     memset(&dpp, 0, sizeof dpp);                    /* the delay's MODE: NORMAL running, nothing to clear */
     memset(&hl, 0, sizeof hl);                      /* the reverb's HALL at rest */
-    memset(sl, 0, sizeof sl);
-    memset(sl_buf, 0, sizeof sl_buf);
+    memset(pf_buf, 0, sizeof pf_buf);
     memset(ins, 0, sizeof ins);                     /* the INSERTs (insert.c) at rest */
     lim_env = LIM_T;
     lc_l1 = lc_l2 = lc_r1 = lc_r2 = dc_l = dc_r = dce_l = dce_r = 0;
@@ -102,7 +100,6 @@ static void host_reset_fx(void)                     /* FX buses, master, slicer,
     perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;
     perf_seq = 0;
     memset(perf_ord, 0, sizeof perf_ord);
-    sl_lent = 0;
     memset(&mo, 0, sizeof mo);                     /* MOTION: no events, nothing held */
     memset(&chain, 0, sizeof chain);               /* SONG: none */
     comp_reset();

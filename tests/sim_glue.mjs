@@ -510,7 +510,7 @@ test('lab: every PERFORM key held changes the mix; each chain stage on changes t
     assert.ok(!same(loop([], k), base), `${k} held changes the output`);
   const ft = ids.names.ftype.indexOf('LP');
   for (const [name, params] of [['FILTER', [[P.FTYPE, ft], [P.FCUT, 40]]],
-    ['DIST', [[P.DIST, 90]]], ['SLICER', [[P.SLCR, 1], [P.SLPAT, 5]]], ['DELAY', [[P.DLY, 60]]], ['REVERB', [[P.REV, 60]]],
+    ['DIST', [[P.DIST, 90]]], ['DELAY', [[P.DLY, 60]]], ['REVERB', [[P.REV, 60]]],
     ['CHORUS', [[P.CHOR, 70]]]])
     assert.ok(!same(loop(params), base), `${name} changes the bar`);
 });

@@ -717,12 +717,12 @@ static void fx_buses(const int32_t *cho_in, const int32_t *dly_in, const int32_t
 }
 
 /* one block of the whole mix (shared with the host tests): events -> each drum track -> FILTER -> SRR -> dist
- * -> INSERT -> SLICER -> level / pan / sends -> buses -> master; out: stereo Q15 */
+ * -> INSERT -> level / pan / sends -> buses -> master; out: stereo Q15 */
 static void events_block(uint32_t n);                    /* seq.c */
 static void midi_drop(void);                             /* seq.c */
 static int32_t send_c[CTL], send_d[CTL], send_r[CTL], wet[CTL], mix_l[CTL], mix_r[CTL];
 /* MENU > USB AUDIO 10 CH (ui_menu.c, usb_app8.c): each track's block for USB channels 3..10. The track as the dry mix
- * gets it (mix_part's x: after the inserts, DIST, SLICER, the mutes, the COMP duck and LEVEL) before PAN, the sends
+ * gets it (mix_part's x: after the inserts, DIST, the mutes, the COMP duck and LEVEL) before PAN, the sends
  * and the master FX, scaled as the master scales the mix (MASTER, or full with USB LEVEL FIXED): with the pans centred
  * and no sends, the tracks add up to the master bus before its limiter (mix_l / mix_r), to rounding. Out of line, after
  * mix_part's loop, and only in 10 CH: 2 CH's mix is as before. A track that does not reach the mix this block stays 0. */
@@ -791,7 +791,7 @@ static __attribute__((noinline)) void usb8_tap_clear(uint32_t n)
 
 /* one track into the dry mix and the sends; a track with no voice sounding costs the LFO tick and a cleared
  * buffer only (after the DIST tail has run out). src: the COMP source (NTRK = off). The source's block (after
- * DIST / SLICER, before LEVEL and MUTE) feeds the compressor; a muted source (trk_silent: SOLO too) is heard by it
+ * DIST / INSERT, before LEVEL and MUTE) feeds the compressor; a muted source (trk_silent: SOLO too) is heard by it
  * only (ghost key) with GHOST KEEP, by nobody with MUTE; with HIDE the source is never heard in the mix (G_CGHOST). A DUCK track is multiplied by the compressor's gain before its level, pan and sends. */
 static void mix_part(track_t *t, uint32_t n, uint32_t src)
 {
@@ -801,9 +801,8 @@ static void mix_part(track_t *t, uint32_t n, uint32_t src)
     if (snd)
         t->tail = (uint8_t)(16 + 48 * ins_on(t));       /* blocks of DIST / INSERT state to run out after the last voice
                                                          * (the INSERT's: 46 ms, a flanger's feedback) */
-    else if ((!t->tail || !(t->p[P_DIST] | ins_on(t)) || !--t->tail) && !slicer_busy(t)) {
+    else if (!t->tail || !(t->p[P_DIST] | ins_on(t)) || !--t->tail) {
         ins_idle(t);                                    /* (insert.c: TYPE OFF / MIX 0 meanwhile: at rest) */
-        slicer_track(t, 0, n);                          /* (the SLICER's step clock runs on) */
         if (is_src) {
             comp_block(0, n);                           /* silence: the detector decays */
             t->gfade = trk_silent(t) || song.g[G_CGHOST] == CG_HIDE ? 32767u : 0u;   /* nothing sounds: at once */
@@ -817,8 +816,8 @@ static void mix_part(track_t *t, uint32_t n, uint32_t src)
         int32_t xmax = c > d ? c : d;
         xmax = 0x7FFFFFFF / ((xmax > r ? xmax : r) | 1);   /* sends: loud chords at a high LEVEL */
         track_dist(t, b, n);
-        track_insert(t, b, n);                          /* insert.c: after DIST, before the SLICER (OFF: nothing) */
-        slicer_track(t, b, n);                          /* slicer.c: before the level, pan and sends */
+        track_insert(t, b, n);                          /* insert.c: after DIST, before the level, pan and sends
+                                                         * (OFF: nothing) */
         if (is_src) {
             int sil = trk_silent(t), hide = sil || song.g[G_CGHOST] == CG_HIDE;
             comp_block(sil && song.g[G_CGHOST] == CG_MUTE ? 0 : b, n);   /* GHOST MUTE: muted keys nothing */

@@ -53,9 +53,9 @@ firmware ([below](#back-to-the-official-firmware)).
 - **Compressor.** The Streams compressor keyed by any track, for ducking and pumping; GHOST keeps the pump with the
   key track muted.
 - **Movement.** Two LFOs per track, ten waves with a morph between them, synced to the tempo.
-- **Effects.** DIST and the SLICER per track; delay, ROOM, SPRING or stereo
+- **Effects.** DIST per track; delay, ROOM, SPRING or stereo
   HALL reverb and chorus sends; a master limiter; SPEAKER EQ with BASS+ for the small speaker.
-- **INSERT and SRR.** Each track has an INSERT effect after DIST and before the SLICER (FX > INSERT, the two pages
+- **INSERT and SRR.** Each track has an INSERT effect after DIST (FX > INSERT, the two pages
   after FX). INSERT 1/2: **TYPE** OFF, SOFT, HARD, FOLD, FUZZ (drives), CRUSH (bit and sample-rate crusher), PHASR,
   FLANG, CHOR (swept), and its three knobs, named by the TYPE: DRIVE / TONE / LEVEL for the drives, BITS / RATE / LPF
   for CRUSH, RATE / DEPTH / FDBK for the swept ones. INSERT 2/2: **MIX** (dry to wet, 100 % by default; the swept
@@ -102,7 +102,7 @@ firmware ([below](#back-to-the-official-firmware)).
 | **HOME** | two modes: **TRACKS** (levels, lengths, pans; the selected track's steps on the keys) and **HOME** (the scope, the selected track's first four knobs, the keys play the tracks; SELECT on to the compressor's pages). A HOME tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. Hold HOME for the menu |
 | **EDIT** | the selected track's sound: its model and knobs (on HOME, EDIT, FX and LFO the selected track's key is lit; a white key F3..F4 selects its track) |
 | **SEQ** | the steps on the white keys (a short tap: on / off, on the release; hold a step 0.3 s: an off step turns on at once, an on step stays as it is; while held KNOB 1 / 2 / 3 / 4: PROB / RATCH / ACCENT (right on, left off) / NUDGE, on STEP, PATTERN, MOTION, SONG and TRACKS alike (the page's own knobs rest while a step is held); hold OCT+ and tap a step: its accent; OCT+ alone / OCT-: the bank), then PATTERN, MOTION and SONG (each tap on its release); held: the TOOLS screen ([step tools](#step-tools): copy and paste steps, pages, selections, DUPLICATE, CLEAR) |
-| **FX** | FILTER, FX (the sends), INSERT (and SRR), SLICER; hold it for PERFORM |
+| **FX** | FILTER, FX (the sends), INSERT (and SRR); hold it for PERFORM |
 | **LFO** | the track's two LFOs, side by side on every page (LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4), then DEST: 4 slots, each a source (LFO 1 / LFO 2), a destination knob (the engine's knobs, LVL, PAN, the FILTER knobs, SRR, DST, the CHO / DLY / REV sends, the INSERT's MIX and its A B C) and its own depth |
 | **REC** | on TRACKS: arms / disarms the selected track for recording (`T3 REC ARMED` / `T3 REC OFF`; during REC ALL: REC ALL ends, the selected track armed). On every other screen: REC ALL on / off (every track armed, each white key records its own track; off: the arm state from before back). It never starts play: PLAY does. On STEP with KEYS on and stopped: step record. Held on a SEQ page: CLEAR TRACK; on SONG: DELETE ROW / CLEAR SONG |
 | **GLO** | a tap: global and system settings, then the delay, the reverb and the chorus; held: the MUTE screen ([mutes](#mutes); G4: [MIDI LEARN](#midi-learn)) |
@@ -124,7 +124,7 @@ page). KNOB 1 to 4 edit what the screen shows. PRESETS loads the next / previous
 each detent (a popup shows the bank and the presets around it); EDIT held opens the PRESETS list (LOAD, SAVE into the
 USER bank, DELETE). A factory preset is the sound only (MODEL and the 8 SOUND knobs): loading one leaves the track's FX
 as they are. A USER preset (96 slots) keeps the sound and the track's FX: the DIST / CHO / DLY / REV sends, FILTER,
-INSERT, and SRR, not the SLICER (nor LAYER, the LFOs, LEVEL, PAN, NOTE, CHOKE, PRIO or the steps); loading it
+INSERT, and SRR (not LAYER, the LFOs, LEVEL, PAN, NOTE, CHOKE, PRIO or the steps); loading it
 sets them all. The SOUND pages show the track's preset, with `*` once a knob the preset holds moved (a SOUND knob; on a
 USER preset an FX knob too). USER presets saved by an earlier version (the voice only, up to 128) move into slots 1
 to 96 at the first start (those past 96 into the first empty slots; if all are full, the rest are lost and the screen
@@ -164,7 +164,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
 - **Turn it on:** hold GLO (the MUTE screen) and press **G4**: `G4 LEARN: ON`, and `MIDI LEARN ON` in the top bar.
   Let go of GLO: the footer's first row (where the steps are) shows `LEARN: TURN OR PRESS`.
 - **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND, LAYER), FX (FILTER, the sends,
-  INSERT and SRR, SLICER), LFO, PATTERN, or LEVEL / LEN / PAN on HOME's TRACKS mode. It edits as usual and the footer says
+  INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on HOME's TRACKS mode. It edits as usual and the footer says
   `T3 DECAY: SEND A CC`.
 - **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of
   doing their job (they work again after OCT+): the footer says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`,
@@ -406,7 +406,7 @@ also across projects. Let go of SEQ: back to the page you were on.
 ### Parameter locks
 
 In STEPS (ENV lit), on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND, LAYER,
-FX, INSERT (and SRR), SLICER, FILTER, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that
+FX, INSERT (and SRR), FILTER, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that
 step plays with its own value for that knob, and the next step plays the knob's value again (the LFO, if any,
 modulates round the locked value). The top bar says `LOCK STEP 5` while a step is held, and the knob cells show that
 step's values (a locked one inverted). Knobs MOTION can't record (MODEL, FILTER TYPE, INSERT TYPE, an LFO's WAVE,
@@ -521,7 +521,7 @@ The FM-1 is a USB audio input as well as a MIDI port: a DAW, AUM or Audio MIDI S
 
 - **2 CH** (the default): the master, stereo, exactly as before. The device is **Hortator**.
 - **10 CH MIX**: channels 1-8 the tracks **T1..T8**, one mono channel each: the track as the mix gets it (its
-  FILTER, SRR, DIST, INSERT, SLICER, mute, COMP duck and LEVEL), before PAN, the CHOR / DLY / REV sends and the master's effects and
+  FILTER, SRR, DIST, INSERT, mute, COMP duck and LEVEL), before PAN, the CHOR / DLY / REV sends and the master's effects and
   limiter, at the MASTER level (or full level with USB LEVEL FIXED); channels 9-10 the master L R (with every effect,
   as in 2 CH). The device is **Hortator 8ch**; hosts that read channel names show T1 .. T8, Main L, Main R.
 - **10 CH FX**: the same, but channels 9-10 carry only the **send effects**: what the chorus, delay and reverb return

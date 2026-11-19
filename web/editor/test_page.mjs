@@ -261,7 +261,7 @@ export async function runPageTests(log = console.log, mods = {}) {
     const labelOf = (scope, id) => snd.descOf(scope, id)?.label;
     const valuesMatch = () => m.tracks[m.sel].p.every((v, id) => snd.value(SCOPE.TRACK, id)?.value === v)
       && m.g.every((v, id) => snd.value(SCOPE.GLOBAL, id)?.value === v);
-    ok(["SOUND", "LAYER", "FILTER", "FX", "INSERT", "SLICER", "LFO 1", "LFO 2", "DEST 1", "DLY", "GLOBAL"].every((t) => titles.includes(t))
+    ok(["SOUND", "LAYER", "FILTER", "FX", "INSERT", "LFO 1", "LFO 2", "DEST 1", "DLY", "GLOBAL"].every((t) => titles.includes(t))
       && !titles.includes("SONG") && byTitle("SOUND").ids.length > 8, `pages from PAGES, merged by title (${titles.length}: ${titles.join(" ")})`);
     ok(byTitle("INSERT").ids.includes(m.P.SRR) && labelOf(SCOPE.TRACK, m.P.SRR) === "SRR" && byTitle("INSERT").ids.includes(m.P.ITYPE)
       && byTitle("DLY").scope === SCOPE.GLOBAL && byTitle("DLY").ids.includes(m.G.DMODE)

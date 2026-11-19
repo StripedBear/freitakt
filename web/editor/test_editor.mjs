@@ -47,7 +47,7 @@ const fresh = (o) => createMockDevice(data, o);
   const rec = P.decodeProject(fresh().flashObjects(0).record), ia = data.P.indexOf("SATK");
   rec.tracks[4].p[ia] = 9; rec.tracks[4].p[ia + 1] = 100; rec.tracks[4].p[ia + 2] = 127; rec.tracks[4].p[ia + 3] = 2; rec.tracks[4].p[ia + 4] = 1; rec.tracks[4].p[ia + 5] = 1;
   const rb = P.encodeProject(rec), back = P.decodeProject(rb), x2 = P.LAYOUT.project.xp2 + 4 * 4;
-  ok(back.tracks[4].p.length === 73 && same(back.tracks[4].p.slice(ia), [9, 100, 127, 2, 1, 1]) && same(back.tracks[0].p.slice(ia), [0, 0, 40, 0, 0, 0])
+  ok(back.tracks[4].p.length === 69 && same(back.tracks[4].p.slice(ia), [9, 100, 127, 2, 1, 1]) && same(back.tracks[0].p.slice(ia), [0, 0, 40, 0, 0, 0])
     && rb[x2] === 9 && rb[x2 + 2] === 87 && rb[P.LAYOUT.project.xp2] === 0 && rb[P.LAYOUT.project.xp3 + 2 * 4] === 1 && rb[P.LAYOUT.project.xp3 + 2 * 4 + 1] === 1 && eqb(P.encodeProject(back), rb),
     "project: ATK SUS REL LOOP in xp2, PLAY CUT in xp3 (their offset from the power-on value; 0 = before them), round trip");
 }
@@ -133,7 +133,8 @@ const fresh = (o) => createMockDevice(data, o);
   ok(P.LAYOUT.pcount === c.P_COUNT && P.LAYOUT.gcount === c.G_COUNT && P.LAYOUT.pStored === c.P_NSTORED && P.LAYOUT.gStored === c.G_NSTORED
     && P.LAYOUT.nuser === c.PRE_NUSER && P.LAYOUT.lkMax === c.LK_MAX && P.LAYOUT.nameLen === c.NAME_LEN && P.SZ.VARS_MAX === c.VAR_BYTES
     && P.NAME_SET === data.nameSet && P.LAYOUT.gGap[0] === c.PR_GR && P.LAYOUT.gStored + P.LAYOUT.gGap[1] === c.PR_NG
-    && P.LAYOUT.pGap[0] === c.PR_SRC && P.LAYOUT.rGap[0] === c.PR_RSN && P.LAYOUT.pStored + P.LAYOUT.pGap[1] + P.LAYOUT.rGap[1] === c.PR_NP
+    && P.LAYOUT.sGap[0] === c.PR_SL && P.LAYOUT.pGap[0] === c.PR_SRC && P.LAYOUT.rGap[0] === c.PR_RSN
+    && P.LAYOUT.pStored + P.LAYOUT.sGap[1] + P.LAYOUT.pGap[1] + P.LAYOUT.rGap[1] === c.PR_NP
     && P.LAYOUT.xpN === c.PROJ_XP && P.LAYOUT.xpAt + P.LAYOUT.xpDef.length === c.PROJ_XP, "layout: counts = the firmware's");
   ok(P.LAYOUT.xp2Def.every((d, j) => data.tp[data.P.indexOf("SATK") + j].def === d) && P.LAYOUT.xp2Def.length === 4
     && data.P.indexOf("SATK") === c.P_NSTORED + P.LAYOUT.xpDef.length && data.P.indexOf("SCUT") === c.P_COUNT - 1
@@ -197,7 +198,7 @@ m.feed = (f) => { const out = feed0(f); seen.push(...out); return out; };
 const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
-  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 8 && info.pcount === 73
+  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 8 && info.pcount === 69
     && info.gcount === 32 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
@@ -219,8 +220,8 @@ const q = (cmd, args) => m.request(cmd, args);
   ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "SONG", "STEP", "TRACKS"].includes(p.title))
     && pages[0].title === "SOUND" && same(pages[0].ids, [0, 1, 2, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
   "PAGES: paged, DEST x 4, no slot / motion / song / tools pages, SOUND list, DLY MODE");
-  ok(t0.p.length === 73 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
-    "DUMP: 73 parameters, 32 globals, the model");
+  ok(t0.p.length === 69 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
+    "DUMP: 69 parameters, 32 globals, the model");
   const names = [];
   let d0;
   for (let first = 0; ;) {
@@ -240,8 +241,8 @@ const q = (cmd, args) => m.request(cmd, args);
     && (e1.flags & (P.DF.LOCK | P.DF.CONTEXT)) === (P.DF.LOCK | P.DF.CONTEXT) && mdl.label === data.models[0].edit[0].label
     && (ro.flags & P.DF.RO) && same(ro.items, ["A", "B", "C", "D"]), "DESC: an order, LDEST names, LOCK / CONTEXT / RO flags, scope MODEL");
   const vals = [];
-  for (let id = 0; id < 73;) { const r = q(CMD.GET, { scope: 0, track: 0, id, count: 73 - id }); vals.push(...r.values); id += r.values.length; }
-  ok(vals.length === 73 && vals.every((v, i) => v.value === t0.p[i]) && vals[0].text === "BDTRX", "GET: all 73 values with their texts, about 25 a reply");
+  for (let id = 0; id < 69;) { const r = q(CMD.GET, { scope: 0, track: 0, id, count: 69 - id }); vals.push(...r.values); id += r.values.length; }
+  ok(vals.length === 69 && vals.every((v, i) => v.value === t0.p[i]) && vals[0].text === "BDTRX", "GET: all 69 values with their texts, about 25 a reply");
   const lvl = data.P.indexOf("LEVEL"), s1 = q(CMD.SET, { scope: 0, track: 0, id: lvl, value: 500 }), tx = q(CMD.TEXT, { scope: 0, track: 0, id: lvl, value: 3 });
   ok(s1.value === 127 && q(CMD.DUMP, { track: 0 }).p[lvl] === 127 && tx.value === 3 && q(CMD.DUMP, { track: 0 }).p[lvl] === 127,
     "SET: clamped, kept; TEXT changes nothing");
@@ -545,12 +546,12 @@ function restore(dev, kind, slot, parts) {
     d.request(CMD.SET, { scope: 0, track: 1, id: Pi.FCUT, value: 40 });
     const e1 = d.tracks[1].preEd;
     d.tracks[1].preEd = 0;
-    d.request(CMD.SET, { scope: 0, track: 1, id: Pi.SLCR, value: 1 });
+    d.request(CMD.SET, { scope: 0, track: 1, id: Pi.PAN, value: 1 });
     const e2 = d.tracks[1].preEd;
     d.request(CMD.PRESET_LOAD, { track: 1, id: nf + 8 });
     d.request(CMD.SET, { scope: 0, track: 1, id: Pi.FCUT, value: 50 });
     ok(e1 === 1 && e2 === 0 && d.tracks[1].p[Pi.DLY] === 90 && d.tracks[1].preEd === 0,
-      "mock SET: CUT marks a user preset with FX edited, the SLICER not; a voice-only preset leaves the FX and is not marked");
+      "mock SET: CUT marks a user preset with FX edited, PAN not; a voice-only preset leaves the FX and is not marked");
   }
 
   /* project restore: A -> D (copy to another slot), re-sealed */
