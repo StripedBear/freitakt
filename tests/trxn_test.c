@@ -13,6 +13,7 @@ static int check(const char *what, int ok)
     return ok;
 }
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(8)];
 static double ref[SECS(8)];
 
@@ -285,7 +286,7 @@ static void test_cp_clip_room(void)
 {
     static const int16_t LOUD[8] = {15, 127, 127, 127, 32, 0, 64, 64}, R0[8] = {0, 64, 64, 64, 64, 0, 0, 0},
                          R0b[8] = {0, 64, 64, 64, 64, 0, 127, 127}, R1[8] = {0, 64, 64, 64, 64, 127, 127, 64};
-    static int32_t a[SECS(0.6)];
+    static int32_t a[SECS_MS(600)];
     int32_t pk = 0, ceil = mulq15(mulq15(32760 * CP_OUT / 4, vel_gain(&(dvoice_t){.vel = 127})), VOICE_FS) + 2;
     double tail0, tail1;
     uint32_t i;

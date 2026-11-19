@@ -14,6 +14,7 @@ static int check(const char *what, int ok)
     return ok;
 }
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(8)];
 static double ref[SECS(8)];
 
@@ -315,7 +316,7 @@ static void test_bdefm_laws(void)
         }
         {                                               /* MOD 0: MFB (CLIC on XTEFM aside) changes nothing */
             int16_t kk[8] = {0, 64, 0, 64, 0, 40, 64, 0};
-            static int32_t a[SECS(0.3)];
+            static int32_t a[SECS_MS(300)];
             int same;
             bdefm_hit(mi, kk, 127, SECS(0.3));
             memcpy(a, wl, sizeof a);

@@ -11,6 +11,7 @@ static int check(const char *what, int ok)
 }
 
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(8)], wr[SECS(8)];
 
 static int32_t peak_of(const int32_t *x, uint32_t a, uint32_t b)
@@ -877,7 +878,7 @@ static uint32_t fnv(const int32_t *x, uint32_t n)
  * with TUNE 7 (every model), and the transpose is clamped to +-24 */
 static void test_drum_transpose(void)
 {
-    static int32_t a[SECS(0.5)];
+    static int32_t a[SECS_MS(500)];
     uint32_t mi, ok = 1, clamp_ok = 1;
     for (mi = 0; mi < NMODELS; mi++) {
         if (mi == DM_ACID)                           /* ACID plays the note itself, unclamped (acid_test) */
@@ -908,7 +909,7 @@ static void test_drum_transpose(void)
 /* a transposed step moves the sample layer as it moves the model: nt +7 = LTUNE + 7 (and TUNE + 7) at nt 0 */
 static void test_layer_transpose(void)
 {
-    static int32_t a[SECS(0.5)];
+    static int32_t a[SECS_MS(500)];
     host_init();
     old_set_model(&trk[0], DM_K909);
     trk[0].p[P_E0] = 0;
@@ -2045,7 +2046,7 @@ static void test_comp_ghost_modes(void)
 /* GHOST changed while the source rings (KEEP -> HIDE -> KEEP -> MUTE with the source muted): 5 ms fades, no click */
 static void test_comp_ghost_switch(void)
 {
-    static int32_t ref[SECS(0.12)], out[SECS(0.12)];
+    static int32_t ref[SECS_MS(120)], out[SECS_MS(120)];
     int32_t dref = 0, dout = 0, hid = 0;
     uint32_t r, f, i;
     for (r = 0; r < 2u; r++) {
@@ -3141,7 +3142,7 @@ static double rs_kf_cents(double f, double note) { return 1200 * log2(f / rs_not
 
 static void test_reson_keyfollow(void)
 {
-    static int32_t ref[SECS(0.8)];
+    static int32_t ref[SECS_MS(800)];
     uint32_t m, i, same = 1;
     double f, c, want;
     int32_t before = 0, after = 0, k;

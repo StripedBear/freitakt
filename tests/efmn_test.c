@@ -13,6 +13,7 @@ static int check(const char *what, int ok)
     return ok;
 }
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(6)], w2[SECS(1)];
 static double ref[SECS(1)];
 
@@ -394,7 +395,7 @@ static void test_efmn_noise(void)
     static const int16_t N0[8] = {0, 64, 0, 64, 0, 64, 64, 0}, N32[8] = {0, 64, 32, 64, 0, 64, 64, 0},
                          N64[8] = {0, 64, 64, 64, 0, 64, 64, 0}, F[8] = {0, 64, 0, 64, 64, 64, 64, 0},
                          DC[8] = {0, 64, 64, 64, 64, 64, 64, 0}, DR[8] = {0, 64, 64, 0, 64, 64, 64, 64};
-    static int32_t body[SECS(0.1)];
+    static int32_t body[SECS_MS(100)];
     static const uint32_t M[3] = {DM_SDEFM, DM_CPEFM, DM_RSEFM};
     double a, a0, b;
     uint32_t i, m, n = SECS(0.1), same = 1, differ = 0;

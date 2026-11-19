@@ -13,6 +13,7 @@ static int check(const char *what, int ok)
     return ok;
 }
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(6)], w2[SECS(1)];
 static double ref[SECS(1)];
 
@@ -293,7 +294,7 @@ static void test_sdtrx_snap(void)
                          S64[8] = {0, 64, 64, 64, 0, 64, 0, 0};
     double a, b;
     uint32_t i, same = 1, n = SECS(0.1);
-    static int32_t body[SECS(0.1)];
+    static int32_t body[SECS_MS(100)];
     sd_hit(S0, 127, body, n);
     sd_hit(S32, 127, wl, n);
     for (i = 0; i < n; i++)

@@ -6,7 +6,12 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
+#ifdef __APPLE__
 #include <libproc.h>
+#else
+#include <linux/perf_event.h>
+#include <sys/syscall.h>
+#endif
 #include <sys/resource.h>
 #define __attribute__(x)
 #define memset felucca_memset
@@ -167,6 +172,7 @@ static uint32_t hit_age(const track_t *t)          /* changes on every hit of t 
     return a;
 }
 
+#ifdef __APPLE__
 static uint64_t instr_now(void)
 {
     struct rusage_info_v4 ri;
@@ -174,3 +180,23 @@ static uint64_t instr_now(void)
         return ri.ri_instructions;
     return 0;
 }
+#else
+static uint64_t instr_now(void)                      /* Linux: the perf counter (0 where none: WSL without PMU) */
+{
+    static int fd = -2;
+    uint64_t n = 0;
+    if (fd == -2) {
+        struct perf_event_attr a;
+        felucca_memset(&a, 0, sizeof a);
+        a.type = PERF_TYPE_HARDWARE;
+        a.size = sizeof a;
+        a.config = PERF_COUNT_HW_INSTRUCTIONS;
+        a.exclude_kernel = 1;
+        a.exclude_hv = 1;
+        fd = (int)syscall(SYS_perf_event_open, &a, 0, -1, -1, 0);
+    }
+    if (fd >= 0 && read(fd, &n, sizeof n) == (ssize_t)sizeof n)
+        return n;
+    return 0;
+}
+#endif

@@ -11,6 +11,7 @@ static int check(const char *what, int ok)
     return ok;
 }
 #define SECS(s) ((uint32_t)((s) * FS) / CTL * CTL)
+#define SECS_MS(ms) ((uint32_t)((ms) * FS / 1000) / CTL * CTL)   /* (an integer constant: gcc sizes static arrays) */
 static int32_t wl[SECS(4)], wr[SECS(4)];
 
 static void flt_set(track_t *t, int ty, int cut, int reso, int env, int dec)
@@ -177,7 +178,7 @@ static void test_tail(void)
         rang |= !trk[0].v[0].active && !trk[0].dtail && trk[0].fring;
     }
     check("tail: the filter rings on after the voice, then the track is silent and idle",
-          rang && !trk[0].fring && !trk[0].v[0].active && wl[SECS(3) - 1] == 0 && wl[SECS(2.5)] == 0);
+          rang && !trk[0].fring && !trk[0].v[0].active && wl[SECS(3) - 1] == 0 && wl[SECS_MS(2500)] == 0);
 }
 
 /* Review Focus 1: TYPE changed while ringing; from OFF the filter starts from silence */
