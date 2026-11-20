@@ -10,8 +10,7 @@
  * 4. level within 3 dB of ROOM's (the same burst); stereo: the tail's left / right correlation under 0.5.
  * 5. model changes through fx_buses while the bus rings (ROOM / SPRING / HALL both ways): no step larger than the tail's
  *    own, both sides; the new model starts silent; every buffer and state cleared.
- * 6. the master: HALL's left and right differ (its stereo), ROOM's are equal (mono as before); USB 10 CH FX: channels
- *    9 and 10 HALL's left and right.
+ * 6. the master: HALL's left and right differ (its stereo), ROOM's are equal (mono as before).
  * 7. cost: host instructions per sample of rev_hall against rev_room (printed; HALL at most ROOM + 30 %, Skiff's).
  * 8. ROOM after its send stops: its tail ends in exact silence (no offset, no buzz held by its loops' rounding) at
  *    SIZE 127 DAMP 0 and other corners, after a loud noise burst and after a quiet chord. */
@@ -304,42 +303,6 @@ static void test_master_stereo(void)
     }
 }
 
-/* MENU > USB AUDIO 10 CH FX: channels 9-10 carry HALL's left and right */
-static void test_usb_fx(void)
-{
-    static int32_t UL[2u * FS], UR[2u * FS];
-    uint32_t f, i, k;
-    double dd = 0, e = 0;
-    host_init();
-    for (k = 0; k < NTRK; k++)
-        trk[k].p[P_REV] = trk[k].p[P_CHOR] = trk[k].p[P_DLY] = 0;
-    trk[1].step[0].on = 1;
-    trk[1].p[P_REV] = 127;
-    trk[1].p[P_SLEN] = 64;
-    song.g[G_RTYPE] = M_HALL;
-    usb10 = 1;
-    usb_fxpair = 1;
-    usb8_g = 32768;
-    transport_req = 1;
-    for (f = 0; f < 2u * FS; f += CTL) {
-        const int32_t *p;
-        mix_block(mixo, CTL);
-        p = usb8_main(mixo, CTL);
-        for (i = 0; i < CTL && f + i < 2u * FS; i++) {
-            UL[f + i] = p[2u * i];
-            UR[f + i] = p[2u * i + 1u];
-        }
-    }
-    usb10 = 0;
-    usb_fxpair = 0;
-    usb8_g = 0;
-    for (i = FS / 4u; i < 2u * FS; i++) {
-        dd += fabs((double)UL[i] - UR[i]);
-        e += fabs((double)UL[i]) + fabs((double)UR[i]);
-    }
-    check("HALL on USB 10 CH FX: channels 9 and 10 its left and right (they differ)", dd > 0.2 * e && e > 0);
-}
-
 static void test_cost(void)
 {
     static int32_t in[CTL], o[CTL], sd[CTL];
@@ -411,7 +374,6 @@ int main(void)
     test_hall_level_stereo();
     test_switch();
     test_master_stereo();
-    test_usb_fx();
     test_cost();
     printf(fails ? "reverb_test: %d FAILED\n" : "reverb_test: all passed\n", fails);
     return fails ? 1 : 0;

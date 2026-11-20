@@ -246,28 +246,10 @@ Report what you saw first; we'll go through it together.
   the speaker / headphones follow the knob.
 - With nothing recording (DAW closed or another input chosen), the CPU meter is as without USB audio.
 
-### USB AUDIO 10 CH (check on the FM-1)
+### USB AUDIO 10 CH removed (check on the FM-1)
 
-- MENU > USB AUDIO shows 2 CH after the install (an older settings record reads 2 CH); Audio MIDI Setup lists
-  **Hortator**, 2 channels, as before.
-- Set 10 CH MIX and close the menu (OCT-) while a pattern plays: `USB RECONNECT: 10 CH`; the sound and the steps go on;
-  about a second later Audio MIDI Setup lists **Hortator 8ch**, 10 channels, 44.1 kHz.
-- In a DAW / AUM: 10 inputs (named T1 .. T8, Main L, Main R where the host shows names; T1 .. T8 on inputs 1-8, the
-  master on 9-10). Record T1 .. T8 on eight mono tracks and the master on a stereo one for 5 minutes of a heavy kit:
-  no tears or dropouts; each track on its own channel, nothing of the others in it; with the pans centred and no
-  sends, the eight summed sound like the master.
-  Optional: console `status`: `usb_audio_10ch 1`, `uac8_underruns 0`, `uac8_missed 0` (or a few), `uac8_rate_hz`
-  near 44100.
-- MIDI from the DAW plays after the reconnect (choose the Hortator 8ch port if the DAW lists it as new). CLK USB: the
-  steps pause with the reconnect and go on with the DAW's clock; without it they stop 2 s after.
-- Power off and on: 10 CH is kept (Hortator 8ch). SAFE START (SEQ held): **Hortator**, 2 channels, and the installer
-  finds it there. The installer and the editor also find Hortator 8ch.
-- 10 CH FX (KNOB 1 once more, no reconnect: the DAW keeps recording): channels 9-10 now only the echoes and the
-  reverb (nothing with every send at 0). T1 .. T8 panned like the FM-1 (DAW pan law 0 dB) + the FX pair sound like
-  the master (not PERFORM's master effects, METRO, SPEAKER EQ or the limiter). Switching MIX <-> FX while playing:
-  no click on channels 9-10. Power off and on: 10 CH FX kept.
-- Back to 2 CH, close the menu: Hortator again; the CPU meter as before 10 CH. Windows: note whether it accepts 10
-  CH (it may not).
+- The MENU has no USB AUDIO row (USB LEVEL is followed by PERFORM). Audio MIDI Setup lists **Hortator**, 2 channels,
+  as before, also after installing over a firmware that had 10 CH saved (the stored setting is ignored).
 
 ### MIDI clock (check on the FM-1)
 
@@ -951,10 +933,9 @@ headphones: 2 bars each ROOM, SPRNG, then HALL at SIZE 0 / 64 / 90 / 127, and 12
   The graph shows HALL's tail and its RT.
 - Switching TYPE while a tail rings (ROOM, SPRNG, HALL, either way): no click; the new reverb starts quiet.
 - HALL with the send stopped: the tail ends in silence, no hiss or hum left at high volume.
-- ROOM, SIZE up and DAMP 0, a snare with REV up, then stop: on USB AUDIO 10 CH FX (channels 9-10, the DAW's gain
+- ROOM, SIZE up and DAMP 0, a snare with REV up, then stop: on USB audio (the DAW's gain
   up) the tail fades to true silence, no faint hum or offset left. ROOM otherwise sounds as before.
 - SAVE with HALL, power cycle, LOAD: HALL comes back; a project saved before loads with its ROOM or SPRNG.
-- USB AUDIO 10 CH FX: with HALL, channels 9 and 10 carry its left and right (they differ).
 - CPU: HALL on a busy pattern with every send up: GLOBAL -> SYSTEM CPU about as with ROOM, no crackle. Bluetooth
   version too.
 

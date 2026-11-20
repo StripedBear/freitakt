@@ -68,4 +68,4 @@ The screen has an inverted **top bar** (title, track T1 to T8, tempo icon, messa
 - **Held step.** While a step is held, [[KNOB 1]] / [[KNOB 2]] / [[KNOB 3]] / [[KNOB 4]] set its PROB / RATCH / ACCENT / NUDGE (-50 to +50). This works on STEP, PATTERN, MOTION and TRACKS; the page's own knobs rest while a step is held. [[OCT+]] held plus a step toggles that step's accent.
 - **Bank.** With KEYS off, [[OCT+]] alone (on its release) and [[OCT-]] move to the next / previous bank of 16. While [[OCT+]] is held the keys show the bank's accents.
 - **Knob acceleration.** With MENU ACCEL ON, turning a knob fast over a wide value speeds it up (see Settings).
-- **Safe start.** Hold [[SEQ]] while powering on: nothing is loaded, every LED is dark, USB audio is 2 CH, Bluetooth does not autostart.
+- **Safe start.** Hold [[SEQ]] while powering on: nothing is loaded, every LED is dark, Bluetooth does not autostart.

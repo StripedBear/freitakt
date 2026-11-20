@@ -28,13 +28,7 @@ static void audio_block(int32_t *out, uint32_t n)       /* mix (fx.c), then Q15 
     uint32_t i;
     mix_block(out, n);
 #if FELUCCA_UAC
-#if USB8_OK
-    if (usb10)
-        uac8_tap(usb8_main(out, n), n);                 /* MENU > USB AUDIO 10 CH: the master (MIX) or the send
-                                                         * effects (FX) + the tracks (fx.c) */
-    else
-#endif
-        uac_tap(out, n);                                /* the USB audio input: the same master output */
+    uac_tap(out, n);                                    /* the USB audio input: the same master output */
 #endif
     if (fx_usb_fixed)                                   /* USB LEVEL FIXED: USB took the full level, the DAC */
         usb_fixed_dac(out, n);                          /* (speaker, headphones) gets MASTER's (fx.c) */
@@ -91,12 +85,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
         }
         mout_half(t0);                                  /* midi_out.c: SYNC's Clocks are timed from this IRQ */
 #if FELUCCA_UAC
-#if USB8_OK
-        if (usb10)
-            uac8_render_start();                        /* MENU > USB AUDIO 10 CH */
-        else
-#endif
-            uac_render_start();
+        uac_render_start();
 #endif
         if (!rest)
             for (b = 0; b < HALF_FRAMES; b += CTL) {

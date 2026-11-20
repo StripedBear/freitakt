@@ -16,7 +16,7 @@
 | `ACID: 2 TRACKS MAX` | At most two ACID tracks. |
 | Red CPU icon | An audio block took over 85 %; a voice was stopped. Set less important tracks to PRIO LOW, reduce heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
 | Sound stutters with Bluetooth on | A saved device that is not connected is searched for again and again: FORGET it or switch BLUETOOTH OFF. |
-| No `Hortator` in the DAW | A computer may list Hortator and Hortator 8ch as two devices after switching 2 CH / 10 CH: choose the one shown. Windows may not accept 10 CH: use 2 CH. |
+| No `Hortator` in the DAW | A computer that knew an older firmware's Hortator 8ch may list it beside Hortator: choose Hortator. |
 | MIDI notes play nothing | Check GLO CH (10 by default) and ROUT (NOTE needs the track's NOTE to match; SEL plays the selected track; TRACK uses channels 1 to 8). |
 | The FM-1 follows no tempo | GLO CLK is INT; set USB, TRS or BLE to follow a clock. |
 | A project says `LOAD FAILED` at power-on | The last-saved slot is empty or unreadable: YES forgets it. Projects saved by 1.0.0 or later look empty on 0.26.0 and older. |
@@ -33,7 +33,6 @@
 | `MIDI LEARN ON`, `LEARN: TURN OR PRESS`, `LEARN DONE`, `LEARN FULL`, `CC NOT LEARNABLE`, `NOT LEARNABLE`, `CLEAR ALL LEARNED?` | MIDI LEARN |
 | `CUE>B3`, `VARIATIONS FULL`, `SAVE C FIRST` | live cue |
 | `DISCARD EDITS?`, `OVERWRITE B*?`, `RENAMED (SAVE TO KEEP)`, `AGAIN: <action>` | projects and tools |
-| `USB RECONNECT: 10 CH`, `CLK USB PAUSED` | USB audio mode switch |
 | `BT CONNECTED`, `BT LOST`, `BT AUTOSTART SKIPPED`, `WAITING FOR A HOST`, `NOTHING FOUND` | Bluetooth |
 | `FM-LINK: LEADING` / `FM-LINK: FOLLOWING`, `FOLLOWING LINK` | FM-Link |
 | `NO RF TRIM IN FLASH`, `BT START TIMEOUT` | Bluetooth cannot start: this FM-1 lacks RF data, or switch off and on |
@@ -48,4 +47,3 @@
 
 - The Bluetooth version is experimental; while Bluetooth is on the audio has less headroom, and a saved but absent device can make the sound stutter.
 - Hortator is beta software and untested on most hardware.
-- 10 CH USB audio may not work on Windows.

@@ -183,11 +183,11 @@ async function updater() {
   const devH = new FakeFM1(image, { identity: "FM-1_900", name: "Hortator", after: "FM-1_901", afterName: "Hortator" });
   const gotH = await new Updater(devH.access).install(image, "FM-1_901").then((r) => r, (x) => x);
   ok(gotH === "FM-1_901" && devH.bad === 0, "fm1ota.js: install: running Hortator -> loader -> Hortator");
-  // MENU > USB AUDIO 10 CH: the app's USB name is "Hortator 8ch" (and comes back as "Hortator" from a 2 CH build)
+  // an older firmware's MENU > USB AUDIO 10 CH (removed in FREITAKT): the USB name "Hortator 8ch"; the installer still updates it
   for (const [nm, back] of [["Hortator 8ch", "Hortator 8ch"], ["Hortator 8ch MIDI 1", "Hortator"], ["Hortator 8ch Port 1", "Hortator"]]) {
     const dev8 = new FakeFM1(image, { identity: "FM-1_900", name: nm, after: "FM-1_901", afterName: back });
     const got8 = await new Updater(dev8.access).install(image, "FM-1_901").then((r) => r, (x) => x);
-    ok(got8 === "FM-1_901" && dev8.bad === 0, `fm1ota.js: install: running ${nm} (USB AUDIO 10 CH) -> loader -> ${back}`);
+    ok(got8 === "FM-1_901" && dev8.bad === 0, `fm1ota.js: install: running ${nm} (an older USB AUDIO 10 CH) -> loader -> ${back}`);
   }
 
   const dev2 = new FakeFM1(image, { unplugAfter: 3 });

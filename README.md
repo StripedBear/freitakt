@@ -88,8 +88,7 @@ firmware ([below](#back-to-the-official-firmware)).
   REC, next / previous track, or holds a PERFORM effect ([below](#midi-learn)).
 - **Connections.** MIDI in over USB and the TRS jack, MIDI clock in (USB or TRS) and out (USB), MIDI THRU
   ([below](#midi)), and USB audio: the FM-1 records
-  into a DAW over its USB cable, the master or, with MENU USB AUDIO 10 CH, the eight tracks on their own too
-  ([below](#usb-audio-2-or-10-channels)). On a computer or an iPad it shows up as **Hortator** (USB MIDI and audio, in a DAW
+  its stereo master into a DAW over its USB cable ([below](#usb-audio)). On a computer or an iPad it shows up as **Hortator** (USB MIDI and audio, in a DAW
   or AUM; earlier versions: Felucca); while an update is being written it shows up as **Felucca Update**
   (the update loader, upstream Felucca's). The Bluetooth version adds Bluetooth MIDI ([below](#bluetooth-midi)): a BLE-MIDI
   keyboard or clock, or the M-VAVE SMC-Mixer as a mixer for the eight tracks.
@@ -511,44 +510,13 @@ only, so there is no TRS out):
 (and Bluetooth), Bluetooth in to USB, USB in to Bluetooth; never back to the input they came from. Realtime messages
 (the clock) follow SYNC instead.
 
-### USB audio: 2 or 10 channels
+### USB audio
 
 The FM-1 is a USB audio input as well as a MIDI port: a DAW, AUM or Audio MIDI Setup records it over the cable,
-16-bit, 44.1 kHz. MENU (hold HOME) **USB AUDIO** picks what it sends:
-
-- **2 CH** (the default): the master, stereo, exactly as before. The device is **Hortator**.
-- **10 CH MIX**: channels 1-8 the tracks **T1..T8**, one mono channel each: the track as the mix gets it (its
-  FILTER, SRR, DIST, INSERT, mute, COMP duck and LEVEL), before PAN, the CHOR / DLY / REV sends and the master's effects and
-  limiter, at the MASTER level (or full level with USB LEVEL FIXED); channels 9-10 the master L R (with every effect,
-  as in 2 CH). The device is **Hortator 8ch**; hosts that read channel names show T1 .. T8, Main L, Main R.
-- **10 CH FX**: the same, but channels 9-10 carry only the **send effects**: what the chorus, delay and reverb return
-  (THROW's share too), at the MASTER level. The FM-1's effect buses are mono, so L = R, except the delay in PING,
-  whose echoes go left and right here too, and the HALL reverb, stereo here too. T1 .. T8 panned in the DAW plus this pair make the whole mix, each part on
-  its own fader.
-
-What T1 .. T8 + FX cannot give back: the **master chain**, which only channels 9-10 in MIX (and 2 CH) carry: PERFORM's
-master effects (REPEAT, REVERSE, TAPE STOP, FREEZE, OCT, LPF, HPF, CRUSH; its REPEAT STEP and THROW are in the
-channels), METRO, SPEAKER EQ (LOWCUT, BASS+), the DC blocker, the limiter and the soft clip. COMP's ducking is a gain
-on each ducked track, so the T channels and their sends are already ducked. The FM-1 pans with full level on both
-sides at the centre: set the DAW's pan law to 0 dB to match it. Each channel is 16-bit: a single track or the sum may
-reach full scale where the FM-1's limiter would have held the master down (the test: T1 .. T8 panned + FX equal the
-master bus before its chain within 18 LSB).
-
-KNOB 1 on the row steps 2 CH, 10 CH MIX, 10 CH FX; OCT+ steps on and wraps. MIX <-> FX changes channels 9-10 at once
-(a 6 ms cross-fade, no reconnect: the same device). 2 CH <-> 10 CH reaches the computer when the menu closes: the
-FM-1 leaves USB for a second (`USB RECONNECT: 10 CH` in the top bar) and comes back as the other device. The
-sequencer and the sound play on; MIDI in and out work again once the computer has found the device (a DAW may list
-Hortator and Hortator 8ch as two devices: choose the one shown). Following **CLK USB**, the clock pauses with the
-cable (`CLK USB PAUSED`): the steps wait up to 2 s after the reconnect for the clock to come back, then stop as when
-the cable is pulled. A device setting: saved, not part of projects. A **safe start** (SEQ held at power-on) is always
-2 CH, and the installers and the editor find the FM-1 under both names.
-
-**10 CH needs the standard, non-Bluetooth build**: the Bluetooth version has no USB AUDIO row and is always 2 CH (its
-memory is full; a 10 CH setting saved by the standard build is not read there, and a settings save there clears it).
-
-Computers: macOS and iPadOS take the 10 channels (class-compliant USB audio 1.0). Linux takes them. **Windows may not
-accept 10 CH** (its USB audio 1.0 driver and the channel layout): use 2 CH there. 10 CH uses about 920 bytes of every
-1 ms USB frame (2 CH: 184): plug the FM-1 straight into the computer or a hub with little else on it.
+16-bit stereo, 44.1 kHz. It sends the master, as the speaker and headphones hear it; the device is **Hortator**.
+MENU (hold HOME) **USB LEVEL** picks whether it follows the MASTER knob (MASTER) or gets the full level (FIXED).
+macOS, iPadOS, Linux and Windows take it (class-compliant USB audio 1.0). FREITAKT removed the older USB AUDIO 10 CH
+mode (the eight tracks on their own channels); a 10 CH setting saved by an older firmware is ignored.
 
 ### CPU and PRIO
 
@@ -626,8 +594,6 @@ Please credit me if you using bluetooth code in your firmware🙏🏻
 
 The Bluetooth stack needs memory and CPU of its own, so the Bluetooth version has less than the plain one:
 
-- **USB AUDIO 10 CH MIX and 10 CH FX** are not in it: USB audio is always 2 CH (the stereo master), and the menu has no
-  USB AUDIO row. For 10 channels into a DAW use the plain version.
 - **The simulator** on the website runs the plain version: it has no Bluetooth page.
 - It is **experimental**: the audio has less headroom while Bluetooth is on (see the known issue below).
 

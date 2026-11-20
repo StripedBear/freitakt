@@ -184,8 +184,8 @@ plain build is byte-identical, and the BLE unit (layer 1) stays as copied. The h
 | **0.25.0, Bluetooth (packaged)** | **488,284** | **93,280** | **92,160** (6,144 spare, 4,096 kept) | **334,216** (9,848 spare, 8,192 kept) | **6,864** |
 
 The locks (1,024 events a project) took about 19 KB of `.data + .bss` in every build; the Bluetooth build still keeps
-both floors with the chorus line in `.bss`. USB AUDIO 10 CH stays out of the Bluetooth build (build.py's check: no
-`uac8_service`, `ua8_ring`, `usb8_tap` there), as on main. The Bluetooth store (0x9F000 / 0xFE000) does not touch the
+both floors with the chorus line in `.bss`. USB AUDIO 10 CH was never in the Bluetooth build (FREITAKT
+removed it from both). The Bluetooth store (0x9F000 / 0xFE000) does not touch the
 lock banks (0xD4000..0xDBFFF), the shortened USR3 (0xC8000..0xD3FFF) or any other object (bt_devs_test).
 
 ## Merged with the patterns branch (live cue, variations, MIDI SYNC / ROUT / THRU), 2026-10-27

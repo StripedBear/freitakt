@@ -17,7 +17,6 @@ Each release has a second version, **Hortator + Bluetooth MIDI** (experimental).
 
 ### What it leaves out
 
-- **USB AUDIO 10 CH MIX and 10 CH FX**: USB audio is always 2 CH and the menu has no USB AUDIO row. Use the plain version for 10 channels.
 - **The web simulator** runs the plain version; it has no Bluetooth page.
 - **The web editor** works over USB only, in both versions; Bluetooth is not an editor link.
 - It is **experimental**: the audio has less headroom while Bluetooth is on.

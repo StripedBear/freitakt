@@ -16,7 +16,7 @@ Before installing: keep M-VAVE's official updater and stock firmware at hand, no
 | Version | File | Notes |
 | --- | --- | --- |
 | **Plain** (default) | `hortator-X.Y.Z.fwsc` | everything except Bluetooth; never enables the radio |
-| **Bluetooth** (experimental) | `hortator-X.Y.Z-bluetooth.fwsc` | adds Bluetooth MIDI, FM-Link, SMC-Mixer; no USB AUDIO 10 CH |
+| **Bluetooth** (experimental) | `hortator-X.Y.Z-bluetooth.fwsc` | adds Bluetooth MIDI, FM-Link, SMC-Mixer |
 
 The installer offers both with the plain one selected. Releases are on [GitHub](https://github.com/DeadActive/hortator/releases) with `LICENSE`, `LICENSING.md` and `LICENSES.zip`; the changelog says what changed in each.
 
@@ -37,7 +37,7 @@ fm1_install.py --info [--port NAME]
 
 ### Names on USB
 
-The running firmware appears as **Hortator** (earlier versions: Felucca), as **Hortator 8ch** in 10 CH USB audio, and as **Felucca Update** while an update is being written. The installers and tools find all of them, so updating from any earlier build works. The editor asks ports named Hortator, Felucca or FM-1 who they are (macOS keeps the first name it saw), and never sends anything to a port named "... Update".
+The running firmware appears as **Hortator** (earlier versions: Felucca), as **Hortator 8ch** in an older firmware's 10 CH USB audio, and as **Felucca Update** while an update is being written. The installers and tools find all of them, so updating from any earlier build works. The editor asks ports named Hortator, Felucca or FM-1 who they are (macOS keeps the first name it saw), and never sends anything to a port named "... Update".
 
 ### Privacy
 
@@ -49,7 +49,7 @@ Run the installer again with the newer version; it uses the same update path as 
 
 ## Safe start
 
-Power off, **hold SEQ**, power on and keep holding until the screen shows `SAFE START` (`NO AUDIO - USB UPDATE READY`). SEQ is read once, right after the start screen appears. No drum code runs, but USB answers, so you can update or go back to stock. A safe start loads no project, is always USB 2 CH, keeps every LED dark and skips Bluetooth autostart. Power off to leave.
+Power off, **hold SEQ**, power on and keep holding until the screen shows `SAFE START` (`NO AUDIO - USB UPDATE READY`). SEQ is read once, right after the start screen appears. No drum code runs, but USB answers, so you can update or go back to stock. A safe start loads no project, keeps every LED dark and skips Bluetooth autostart. Power off to leave.
 
 Use it after a `FELUCCA CRASH` screen, repeated restarts or a blank screen.
 

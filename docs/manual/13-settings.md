@@ -24,14 +24,13 @@ Tap [[GLO]] for seven pages: **GLOBAL 1/7**, **SYSTEM 2/7**, **GLOBAL 3/7**, the
 
 ## The menu
 
-Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] changes the value (on COLOR it wraps; on SPEAKER EQ, BACKLIGHT and USB AUDIO it stops at the ends; on ON / OFF rows right is ON, left is OFF), [[OCT+]] is OK (it steps on and wraps, or toggles), [[OCT-]] goes back or closes, and holding [[HOME]] again closes it. The menu saves when it closes.
+Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] changes the value (on COLOR it wraps; on SPEAKER EQ and BACKLIGHT it stops at the ends; on ON / OFF rows right is ON, left is OFF), [[OCT+]] is OK (it steps on and wraps, or toggles), [[OCT-]] goes back or closes, and holding [[HOME]] again closes it. The menu saves when it closes.
 
 | Row | Values (default) | Notes |
 | --- | --- | --- |
 | **COLOR** | RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV (RED) | the screen's two colours; applies at once. RED is the default red ground and dark ink; RED INV red on black; BLUE white on blue; BLUE INV blue on white; GREEN dark on green; GREEN INV green on black |
 | **SPEAKER EQ** | FLAT, LOWCUT, BASS+ (FLAT) | LOWCUT is a high-pass at about 110 Hz; BASS+ lifts about 220 Hz and adds bass harmonics for the small speaker |
 | **USB LEVEL** | MASTER, FIXED (MASTER) | whether USB follows the MASTER knob |
-| **USB AUDIO** | 2 CH, 10 CH MIX, 10 CH FX (2 CH) | standard build only; see *USB audio* |
 | **PERFORM** | HOLD, PAGE (HOLD) | PAGE keeps the PERFORM screen up after FX is released |
 | **ZOOM** | OFF, ON (OFF) | shows the touched value large in a popup |
 | **ACCEL** | OFF, ON (ON) | knob acceleration |
@@ -39,7 +38,7 @@ Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] 
 | **HARDWARE CALIBRATION** | OCT+ runs it | teach each button and knob; also reachable by holding [[OCT-]] and [[OCT+]] at power-on; times out after 30 s idle |
 | **ABOUT** | OCT+ opens | the logo, version (`DRUM-1.0.1`), build date; [[SELECT]] scrolls the credits |
 | **BACK** | OCT+ closes the menu | the last row |
-| **BLUETOOTH** | Bluetooth version only | between HARDWARE CALIBRATION and ABOUT; the USB AUDIO row is absent there; see *Bluetooth* |
+| **BLUETOOTH** | Bluetooth version only | between HARDWARE CALIBRATION and ABOUT; see *Bluetooth* |
 
 ### COLOR
 

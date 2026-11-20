@@ -379,44 +379,6 @@ static void test_pingpong_master(void)
     check("PING-PONG through the master: the first echo on the left, the second on the right (NORMAL: L = R)", ok);
 }
 
-/* MENU > USB AUDIO 10 CH FX: channels 9-10 carry the delay's left and right in PING-PONG */
-static void test_pingpong_usb_fx(void)
-{
-    static int32_t UL[60000], UR[60000];
-    uint32_t f, i, k, ok = 1;
-    host_init();
-    for (k = 0; k < NTRK; k++)
-        trk[k].p[P_REV] = trk[k].p[P_CHOR] = trk[k].p[P_DLY] = 0;
-    trk[3].step[0].on = 1;
-    trk[3].p[P_DLY] = 127;
-    trk[3].p[P_SLEN] = 64;
-    song.g[G_DMODE] = 1;
-    song.g[G_DTIME] = 0;
-    song.g[G_DFDBK] = 60;
-    usb10 = 1;
-    usb_fxpair = 1;
-    usb8_g = 32768;
-    transport_req = 1;
-    for (f = 0; f < 60000u; f += CTL) {
-        const int32_t *p;
-        mix_block(mixo, CTL);
-        p = usb8_main(mixo, CTL);
-        for (i = 0; i < CTL && f + i < 60000u; i++) {
-            UL[f + i] = p[2u * i];
-            UR[f + i] = p[2u * i + 1u];
-        }
-    }
-    usb10 = 0;
-    usb_fxpair = 0;
-    usb8_g = 0;
-    {
-        double l1 = energy(UL, 21000u, 30000u), r1 = energy(UR, 21000u, 30000u);
-        double l2 = energy(UL, 43000u, 52000u), r2 = energy(UR, 43000u, 52000u);
-        ok &= l1 > 50.0 * r1 && r2 > 50.0 * l2 && l1 > 0 && r2 > 0;
-    }
-    check("PING-PONG on USB 10 CH FX: channel 9 the first echo, channel 10 the second", ok);
-}
-
 int main(void)
 {
     test_times();
@@ -427,7 +389,6 @@ int main(void)
     test_pingpong_loud();
     test_switch_clears();
     test_pingpong_master();
-    test_pingpong_usb_fx();
     printf("%s (%d failed)\n", fails ? "delay_test: FAILED" : "delay_test: all passed", fails);
     return fails ? 1 : 0;
 }

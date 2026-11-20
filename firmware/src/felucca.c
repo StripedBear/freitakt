@@ -42,8 +42,7 @@
 #ifndef FELUCCA_UAC
 #define FELUCCA_UAC 1            /* USB audio input: the master output, 16-bit stereo 44.1 kHz (usb_app.c) */
 #endif
-#include "usb_app8.c"        /* upstream 1.0's USB driver usb_app.c + MENU > USB AUDIO 10 CH (insertions only,
-                                tools/check_usb_fork.py; the update loader keeps usb.c) */
+#include "usb_app.c"         /* upstream 1.0's USB driver (the update loader keeps usb.c) */
 #ifndef FELUCCA_UART
 #define FELUCCA_UART 1           /* TRS MIDI IN on UART1 / PH8 (upstream 1.0: on, RX verified on hardware) */
 #endif
@@ -214,21 +213,9 @@ static void ota_commit(const uint8_t *parm)
 #include "main.c"
 #undef fm1_timer5_irq
 /* Every TIMER5 tick (10 kHz). First GLO SYNC / THRU (midi_out.c mout_tick): what is due goes into the USB out ring
- * before main.c's handler polls USB (its usb_poll sends it in this tick). Then main.c's handler.
- * MENU > USB AUDIO 10 CH: EP4 polled on every tick, after main.c's handler (usb_app8.c uac8_service: the 920 B packet
- * leaves 0.36 ms of the frame to queue the next one). Same context as usb_poll and the nested uac_service (TIMER5 never
- * nests into itself), so INDEX is never shared; the time spent nested is not the render's. 2 CH: main.c's handler
- * alone, as before. */
+ * before main.c's handler polls USB (its usb_poll sends it in this tick). Then main.c's handler. */
 void fm1_timer5_irq(void)
 {
     mout_tick(fm1_ticks(), felucca_dbg.in_audio);
     fm1_timer5_irq_main();
-#if USB8_OK
-    if (usb10) {
-        uint32_t t0 = fm1_ticks();
-        uac8_service();
-        if (felucca_dbg.in_audio)
-            t5_nested_ticks += fm1_ticks() - t0;
-    }
-#endif
 }

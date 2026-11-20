@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* The web editor's core (firmware/src/editor.c, Hortator editor protocol 1: web/EDITOR_PROTOCOL.md) on the host, with
- * the firmware's real USB SysEx path (usb_app8.c sysex_byte -> sx_frame, ota_wire_send -> the SysEx out ring), project
+ * the firmware's real USB SysEx path (usb_app.c sysex_byte -> sx_frame, ota_wire_send -> the SysEx out ring), project
  * code and a host flash (tests/flash_host.h), built with ASan + UBSan: every core command's reply and refusals, the
  * duplicate rule, the pushes, the update-silence rule (an update frame arriving while an editor frame waits is not
  * lost on its retry; then the editor is silent 10 s), MIDI clock out not paused by editor frames. */
 #define FELUCCA_FLASH 1
-#define FELUCCA_OTA 1                                 /* (usb_app8.c's SysEx frame and out ring; ui_host.h sets 0 after) */
+#define FELUCCA_OTA 1                                 /* (usb_app.c's SysEx frame and out ring; ui_host.h sets 0 after) */
 #include <stdint.h>
 static uint8_t hflash[0x100000];
 #define SMP_USER_XIP(k) ((const uint8_t *)hflash + 0xA0000u + (k) * 0x14000u)
