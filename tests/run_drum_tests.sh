@@ -160,13 +160,19 @@ if command -v node >/dev/null 2>&1; then
 else
     echo "sample_xcheck: SKIPPED (no node)"
 fi
-cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base,array-bounds -fno-sanitize-recover=all -Wall \
+# "no array-bounds check": clang's name for it, or gcc's (bounds + object-size)
+if echo 'int main(void){return 0;}' | cc -x c -fsanitize=undefined -fno-sanitize=array-bounds -o /dev/null - 2>/dev/null; then
+    NOBOUNDS=array-bounds
+else
+    NOBOUNDS=bounds,object-size
+fi
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base,$NOBOUNDS -fno-sanitize-recover=all -Wall \
     -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/slot_test" \
     tests/slot_test.c -lm   # (the SAMPLE / LAYER sample knobs: SLOT, START, END, old KEY values: ASan + UBSan; a user
                             # slot's zones read through SMP_DATA rebased, as the firmware does: no array-bounds check)
 "$OUT/slot_test" > "$OUT/slot_test.txt" 2>&1 || { grep -v "^ok" "$OUT/slot_test.txt" | tail -30; exit 1; }
 tail -1 "$OUT/slot_test.txt"
-cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base,array-bounds -fno-sanitize-recover=all -Wall \
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base,$NOBOUNDS -fno-sanitize-recover=all -Wall \
     -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/sampenv_test" \
     tests/sampenv_test.c -lm   # (the SAMPLE model's ATK SUS REL LOOP: the defaults bit-identical, the gate, the loops
                                # exact both ways, projects / presets / locks: ASan + UBSan)

@@ -451,7 +451,7 @@ static void writeback_var_not_record(void)
     ok = proj_writeback() == 0;
     for (k = 0; k < NTRK; k++)
         ok &= !memcmp(want1[k], proj_slot[0].t[k].step, sizeof want1[k]);
-    ok &= proj_slot[0].t[4].p[P_SLEN] == 16 && var_get(live_bank(), 2, VRP, VTR) == 1 && VR[4][9].on == 1u &&
+    ok &= proj_slot[0].t[4].p[PR_P(P_SLEN)] == 16 && var_get(live_bank(), 2, VRP, VTR) == 1 && VR[4][9].on == 1u &&
           VTR[4][0] == 12 && (var_dirty & 1u);
     var_cur = 0;
     check("RAM model: playing variation 3, a write-back packs the live steps and LEN into variation 3, the record "
