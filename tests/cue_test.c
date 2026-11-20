@@ -1310,9 +1310,10 @@ static void cue_keys_queue(void)
     check("SAVE + key 2 then black key 3: B and its variation 3 queued; key 2 again: at the next step", (int)ok);
 }
 
-/* ---- the black keys cue variations (2026-10-27): the first 8 black keys from F#3 (key index from F3: F#3 G#3 A#3
- * C#4 D#4 F#4 G#4 A#4) are variations 1..8 of the playing slot on HOME (both modes), TRACKS and the SEQ pages; SAVE
- * held: white keys 1..4 the slots, the black keys the variations (white keys 5..12 no longer) */
+/* ---- the variations' keys. SAVE held (the cue map): white keys 1..4 the slots, the first 8 black keys from F#3 (key
+ * index from F3: F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4) variations 1..8. FREITAKT: the bare black keys no longer cue (they
+ * keep their pages' jobs); GLO held: white key n slot n, 2 or more whites a chain (on GLO's release), C#5 / D#5
+ * variations 1 / 2, on every page */
 static const uint8_t BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
 static int key_led(uint32_t k)                        /* key k's LED lit (ui_leds' last frame) */
 {
@@ -1351,55 +1352,49 @@ static void black(uint32_t v)                         /* black key v (variation 
     keys(0);
     ui_frame();
 }
-static void cue_black_keys_queue(void)
+static void glo_key(uint32_t key)                     /* key tapped while GLO is held (GLO pressed already) */
 {
-    uint32_t ok = 1, p, env;
+    uint32_t g = 1u << panel.btn[B_GLO];
+    fm1_in.buttons |= g;
+    keys(1u << key);
+    ui_frame();                                       /* (the render hands the key over after the UI's pass) */
+    fm1_in.buttons |= g;
+    ui_frame();
+    keys(0);
+    fm1_in.buttons |= g;
+    ui_frame();
+}
+static void glo_down(void)
+{
+    press(B_GLO);
+    ui_frame();
+}
+static void glo_up(void)
+{
+    release_all();
+    ui_frame();
+    ui_frame();
+}
+static void cue_black_keys_bare(void)
+{
+    uint32_t ok = 1, p, i, env;
     for (env = 0; env < 2u; env++)
-        for (p = 0; p < PG_OK_N; p++) {
+        for (p = 0; p < PG_N; p++) {                 /* every page: a bare black key queues nothing */
             two_slots();
             play();
             release_all();
-            ui.env = (uint8_t)env;                    /* STEPS mode too */
+            ui.env = (uint8_t)env;
             go_page(p);
-            black(2);                                 /* A#3: variation 3 queued */
-            if (!(cue.q_var == 3u && !cue.q_slot && !cue.now && var_cur == 0u && proj_loaded() == 0)) {
-                printf("     %s%s: q_var %u q_slot %u now %u var %u\n", PG_NAME[p], env ? " (STEPS)" : "", cue.q_var,
-                       cue.q_slot, cue.now, var_cur);
+            black(2);
+            black(0);
+            if (cue.q_var || cue.q_slot || var_cur) {
+                printf("     %s%s: q_var %u var %u\n", PG_NAME[p], env ? " (STEPS)" : "", cue.q_var, var_cur);
                 OK(0);
             }
-            black(2);                                 /* again: at the next step */
-            OK(cue.now == 1u || (!cue.q_var && var_cur == 2u));
-            black(0);                                 /* variation 1, the playing one: cancels */
-            OK(!cue.q_var && (var_cur == 0u || var_cur == 2u));
             stop();
         }
-    two_slots();                                      /* stopped: at once */
-    release_all();
-    go_page(PG_HOME);
-    black(2);
-    OK(var_cur == 2u && !cue.q_var);
-    black(0);
-    OK(var_cur == 0u && !cue.q_var);
-    check("black keys: F#3 .. A#4 queue variations 1..8 on HOME, TRACKS, STEP, PATTERN, MOTION (STEPS on or off); "
-          "again: at the next step; stopped: at once", (int)ok);
-}
-static void cue_black_keys_elsewhere(void)
-{
-    uint32_t ok = 1, p, i;
-    for (p = PG_OK_N; p < PG_N; p++) {               /* the other pages: the black keys keep their jobs (none) */
-        two_slots();
-        play();
-        release_all();
-        go_page(p);
-        black(2);
-        if (cue.q_var || var_cur) {
-            printf("     %s: q_var %u var %u\n", PG_NAME[p], cue.q_var, var_cur);
-            OK(0);
-        }
-        stop();
-    }
+    ui.env = 0;
     two_slots();                                      /* KEYS: the black keys play the track */
-    play();
     release_all();
     go_page(PG_HOME);
     keys_toggle();
@@ -1410,14 +1405,8 @@ static void cue_black_keys_elsewhere(void)
     keys(0);
     ui_frame();
     keys_toggle();
-    go_page(PG_STEP);                                 /* KEYS on a SEQ page too */
-    keys_toggle();
-    ui_frame();
-    black(2);
-    OK(!cue.q_var);
-    keys_toggle();
-    ui_frame();
-    for (i = 0; i < 2u; i++) {                        /* GLO held (the MUTE screen), FX held (PERFORM) */
+    play();
+    for (i = 0; i < 2u; i++) {                        /* GLO held (black 3: not a variation key), FX held (PERFORM) */
         uint32_t b = i ? B_FX : B_GLO;
         go_page(i ? PG_STEP : PG_HOME);
         press(b);
@@ -1435,49 +1424,159 @@ static void cue_black_keys_elsewhere(void)
         ui_frame();
         ui_frame();
     }
-    ui.menu = 1;                                      /* the menu */
-    ui_frame();
-    black(2);
-    OK(!cue.q_var);
-    ui.menu = 0;
     stop();
-    check("black keys: no cue on SOUND, FX, LFO, COMP, GLOBAL, PROJECT, under KEYS, the MUTE screen, PERFORM "
-          "or the menu", (int)ok);
+    check("black keys alone: no cue on any page (STEPS on or off), under KEYS (the notes), GLO + black 3, PERFORM", (int)ok);
 }
-static void cue_black_leds(void)
+static void cue_glo_vars(void)
 {
-    uint32_t ok = 1, v, i, on = 0, off = 0;
-    two_slots();
+    uint32_t ok = 1, p;
+    for (p = 0; p < PG_N; p++) {                     /* GLO + C#5 / D#5: variation 1 / 2, on every page */
+        two_slots();
+        var_put(live_bank(), 1, VSP, VTM);            /* (variation 2 of A used) */
+        play();
+        release_all();
+        go_page(p);
+        glo_down();
+        glo_key(KEY_VAR2);                            /* D#5: variation 2 queued */
+        if (!(cue.q_var == 2u && !cue.q_slot && !cue.now && var_cur == 0u)) {
+            printf("     %s: q_var %u q_slot %u now %u var %u\n", PG_NAME[p], cue.q_var, cue.q_slot, cue.now, var_cur);
+            OK(0);
+        }
+        glo_key(KEY_VAR2);                            /* again: at the next step */
+        OK(cue.now == 1u || (!cue.q_var && var_cur == 1u));
+        glo_key(KEY_VAR1);                            /* variation 1, the playing one: cancels */
+        OK(!cue.q_var);
+        glo_key(BK[2]);                               /* black 3 with GLO: nothing */
+        OK(!cue.q_var);
+        glo_up();
+        OK(p == PG_GLOBAL || cur_fam() != FAM_GLO);   /* (no GLOBAL page: a key was pressed) */
+        stop();
+    }
+    two_slots();                                      /* stopped: at once */
+    var_put(live_bank(), 1, VSP, VTM);
+    release_all();
+    go_page(PG_HOME);
+    glo_down();
+    glo_key(KEY_VAR2);
+    OK(var_cur == 1u && !cue.q_var);
+    glo_key(KEY_VAR1);
+    OK(var_cur == 0u && !cue.q_var);
+    glo_up();
+    OK(ui.home);
+    check("GLO + C#5 / D#5: variation 1 / 2 on every page; again: at the next step; stopped: at once; GLO + black 3: "
+          "nothing; GLO let go after a key: no GLOBAL page", (int)ok);
+}
+static void cue_glo_slots(void)
+{
+    uint32_t ok = 1, n;
+    four_slots();
+    play();
+    release_all();
+    go_page(PG_SOUND);                                /* (every page) */
+    glo_down();
+    glo_key(STEP_KEY[2]);                             /* GLO + white 3: slot C */
+    OK(cue.q_slot == 3u && !cue.now && !chain.n);
+    glo_up();
+    OK(cue.q_slot == 3u && !chain.n && cur_fam() != FAM_GLO);
+    glo_down();
+    glo_key(STEP_KEY[2]);                             /* again (a new hold): at the next step */
+    OK(cue.now == 1u || (!cue.q_slot && proj_loaded() == 2));
+    glo_up();
+    stop();
+    four_slots();
+    play();
+    release_all();
+    for (n = 4; n < 16u; n++) {                       /* whites 5..16: no slot (yet) */
+        glo_down();
+        glo_key(STEP_KEY[n]);
+        glo_up();
+        OK(!cue.q_slot && !chain.n && proj_loaded() == 0);
+    }
+    stop();
+    four_slots();                                     /* stopped: at once */
+    release_all();
+    glo_down();
+    glo_key(STEP_KEY[1]);
+    glo_up();
+    OK(proj_loaded() == 1 && !cue.q_slot);
+    check("GLO + white n: pattern slot n queued (again: at the next step; stopped: at once); whites 5..16 nothing",
+          (int)ok);
+}
+static void cue_glo_chain(void)
+{
+    uint32_t ok = 1;
+    four_slots();
     play();
     release_all();
     go_page(PG_HOME);
-    OK(key_led(BK[0]) && key_led(KEY_TRK_KEY[0]));   /* variation 1 playing lit; the selected track's key still */
-    for (v = 1; v < 8u; v++)
-        OK(!key_led(BK[v]));                          /* (variation 3 used: dark too, no dim level) */
-    black(2);
-    for (i = 0; i < 12u; i++) {                       /* the queued one blinks, the playing one stays lit */
+    glo_down();
+    glo_key(STEP_KEY[1]);                             /* B: queued at once (a plain cue so far) */
+    OK(cue.q_slot == 2u && !chain.n);
+    glo_key(STEP_KEY[9]);                             /* (white 10: no slot, left out) */
+    glo_key(STEP_KEY[3]);                             /* D */
+    glo_key(STEP_KEY[1]);                             /* B again (repeats allowed) */
+    OK(!chain.n);                                     /* (set on the release) */
+    glo_up();
+    OK(chain.n == 3u && chain.s[0] == 1u && chain.s[1] == 3u && chain.s[2] == 1u && cue.chain && cue.q_slot == 2u);
+    OK(cur_fam() != FAM_GLO && ui.home);              /* (no GLOBAL page) */
+    glo_down();
+    glo_key(STEP_KEY[2]);                             /* one white: a plain cue, the chain ends */
+    glo_up();
+    OK(!chain.n && !cue.chain && cue.q_slot == 3u);
+    glo_down();
+    glo_key(STEP_KEY[0]);
+    glo_key(STEP_KEY[0]);                             /* A A: a chain of two */
+    glo_up();
+    OK(chain.n == 2u && chain.s[0] == 0u && chain.s[1] == 0u);
+    stop();
+    ui_frame();
+    check("GLO + 2 or more whites: the chain of their slots in press order on GLO's release (repeats kept, whites past "
+          "the slots left out); one white: a plain cue that ends the chain", (int)ok);
+}
+static void cue_glo_leds(void)
+{
+    uint32_t ok = 1, i, on = 0, off = 0;
+    two_slots();
+    var_put(live_bank(), 1, VSP, VTM);
+    play();
+    release_all();
+    go_page(PG_SOUND);
+    OK(!key_led(KEY_VAR1));                           /* GLO not held: the variation keys dark */
+    glo_down();
+    ui_frame();
+    OK(key_led(STEP_KEY[0]) && !key_led(STEP_KEY[1]) && key_led(KEY_VAR1) && !key_led(KEY_VAR2));
+    glo_key(STEP_KEY[1]);                             /* B queued: its key blinks, A's stays lit */
+    for (i = 0; i < 12u; i++) {
         host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+        fm1_in.buttons |= 1u << panel.btn[B_GLO];
         ui_leds();
-        on += (uint32_t)key_led(BK[2]);
-        off += (uint32_t)!key_led(BK[2]);
-        OK(key_led(BK[0]));
+        on += (uint32_t)key_led(STEP_KEY[1]);
+        off += (uint32_t)!key_led(STEP_KEY[1]);
+        OK(key_led(STEP_KEY[0]));
     }
     OK(on && off);
-    go_page(PG_STEP);                                 /* STEP: the steps on the white keys, the variations on the black */
-    trk[0].step[0].on = 1;
-    trk[0].step[1].on = 0;
-    ui_frame();
-    OK(key_led(BK[0]) && !key_led(BK[1]) && key_led(STEP_KEY[1]) == (song.playing && view_idx(&trk[0]) == 1u));
-    go_page(PG_SOUND);                                /* elsewhere: the black keys as before (dark) */
-    OK(!key_led(BK[0]));
-    go_page(PG_HOME);
-    keys_toggle();                                    /* KEYS: the keyboard's (the keys held lit) */
-    ui_frame();
-    OK(!key_led(BK[0]));
-    keys_toggle();
+    glo_up();
     stop();
-    check("black keys' LEDs: the playing variation lit, a queued one blinking, the rest dark; the step keys and the "
-          "selected track's key as before; not elsewhere or under KEYS", (int)ok);
+    two_slots();
+    var_put(live_bank(), 1, VSP, VTM);
+    play();
+    release_all();
+    glo_down();
+    glo_key(KEY_VAR2);                                /* variation 2 queued: D#5 blinks, C#5 (playing) lit */
+    for (i = 0, on = off = 0; i < 12u; i++) {
+        host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+        fm1_in.buttons |= 1u << panel.btn[B_GLO];
+        ui_leds();
+        on += (uint32_t)key_led(KEY_VAR2);
+        off += (uint32_t)!key_led(KEY_VAR2);
+        OK(key_led(KEY_VAR1));
+    }
+    OK(on && off);
+    glo_up();
+    OK(!key_led(KEY_VAR1) && !key_led(KEY_VAR2));
+    stop();
+    check("GLO held: the playing slot's white key lit, a queued one blinking; C#5 / D#5 the playing variation, a queued "
+          "one blinking; dark when let go", (int)ok);
 }
 static void cue_save_black(void)
 {
@@ -1947,9 +2046,11 @@ int main(void)
     cue_map_leds();
     cue_top_line();
     cue_keys_queue();
-    cue_black_keys_queue();
-    cue_black_keys_elsewhere();
-    cue_black_leds();
+    cue_black_keys_bare();
+    cue_glo_vars();
+    cue_glo_slots();
+    cue_glo_chain();
+    cue_glo_leds();
     cue_save_black();
     fill_steps_saved();
     paste_copies_all();

@@ -23,11 +23,12 @@ You do not need to remember button names yet: every section of the screen is rea
 - **Pages:** each button has several pages. Press it again, or turn [[SELECT]], to reach the next page. The footer shows `n/m`.
 - **Tempo:** on HOME's TRACKS mode, [[SELECT]] sets the tempo. On any page, GLOBAL 1/7 [[KNOB 1]] does.
 - **Bank:** a track has up to 64 steps. [[OCT+]] / [[OCT-]] move between banks of 16.
-- **Mute and solo:** hold [[GLO]]: a white key mutes its track, a black key solos it.
+- **Mute, solo, select:** black keys 1 to 6 are tracks 1 to 6: hold [[SEQ]] and press one to mute it, hold [[ARP]] to solo it, hold [[SCL]] (SEL) to select it.
+- **Patterns:** hold [[GLO]] and press white key 1 to 4 to queue pattern A to D (several: a chain).
 - **Perform:** hold [[FX]]: the black keys are live effects (repeat, reverse, tape stop...), the white keys repeat a track's step, the knobs become FILTER / CRUSH / THROW / DEPTH.
 - **Step tools:** hold [[SEQ]] for copy, paste, fill and duplicate on the steps.
 - **Finger-drum:** tap [[REC]] on any page except TRACKS to arm all tracks, then play the white keys while playing. [[REC]] never starts the transport; [[PLAY]] does.
-- **Play a melody:** tap [[SCL]] (shown as SEL on the simulator) for KEYS: the keys become a keyboard for the selected track, [[OCT-]] / [[OCT+]] its octave.
+- **Play a melody:** tap [[SCL]] (labelled SEL) for KEYS: the keys become a keyboard for the selected track, [[OCT-]] / [[OCT+]] its octave.
 - **Lock a step:** tap [[ENV]] (the padlock appears), hold a step and turn a knob: that step plays its own value for that knob.
 - **Sound menu:** hold [[HOME]] for the device menu (colour theme, backlight, USB level, speaker EQ, about).
 - **Panic:** hold [[SEQ]] while powering on for a *safe start* that loads nothing.

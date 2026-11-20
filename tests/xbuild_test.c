@@ -5,7 +5,7 @@
  * the other's through a file (tests/run_drum_tests.sh):
  *   std-make IMG  (standard) slots A and B saved with variations (A: 4, B: 3), a long USR2 shortened by the boot
  *   ble IMG       (Bluetooth) boots on it: nothing written, no VARIATIONS LOST; LOAD A has its variation 4, the
- *                 black keys on HOME play variations, an edit SAVEd onto A keeps them; B has its variation 3 and gets
+ *                 variations play (GLO + C#5 cues 1), an edit SAVEd onto A keeps them; B has its variation 3 and gets
  *                 a variation 6, saved; SAVE held, white key 2 then a black key queues CUE>B3 and the switch plays it
  *   std-check IMG (standard) boots on what the Bluetooth build left: no VARIATIONS LOST, A has the Bluetooth build's
  *                 edit on variation 1 and its variation 4 as saved, B its variation 3 and the Bluetooth build's 6
@@ -171,11 +171,15 @@ static int live_is_made(void)                         /* the live steps are VS *
             return 0;
     return 1;
 }
-static void bk_tap(uint32_t n)                        /* black key n (0..7: F#3 .. A#4) pressed and let go, a frame each */
+static void glo_var_tap(uint32_t key)                /* FREITAKT: GLO held + C#5 / D#5 (variation 1 / 2), a frame each */
 {
-    keys(1u << CUE_BK[n]);
+    press(B_GLO);
+    ui_frame();
+    keys(1u << key);
     ui_frame();
     keys(0);
+    ui_frame();
+    release_all();
     ui_frame();
 }
 
@@ -247,11 +251,12 @@ static void ble_round(const char *img)
     check("Bluetooth: SAVE onto A keeps its variations", ok);
     ui.home = 1;                                      /* HOME, stopped: a black key plays its variation at once */
     ui.hmode = 1;
-    bk_tap(3);                                        /* C#4: variation 4 */
+    cue_var(3);                                       /* variation 4 (the panel exposes only 1 and 2) */
+    ui_frame();
     ok = var_cur == 3 && live_is_made();
-    bk_tap(0);                                        /* F#3: variation 1 (the edit) */
+    glo_var_tap(KEY_VAR1);                            /* GLO + C#5: variation 1 (the edit) */
     ok &= var_cur == 0 && trk[0].step[8].on && trk[0].step[0].on;
-    check("Bluetooth: the black keys on HOME play A's variation 4, then variation 1", ok);
+    check("Bluetooth: variation 4 cued, then GLO + C#5 plays A's variation 1", ok);
     project_load(1);
     var_make(42);
     ok = str_eq(ui.msg, "LOADED") && var_is_made(2);

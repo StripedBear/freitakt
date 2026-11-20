@@ -120,7 +120,7 @@ static void ml_holds(void)
 
 /* entry i's button pressed / let go (a CC: edges only; a note: every note on is a press). A PERFORM effect is held
  * while it is down, as its key in the layer (the last pressed buffer effect plays: perf_ord); not while PERFORM's
- * effects are off (perf_kill: the menu, a dialog, NAME, the MUTE screen). PLAY REC NEXT / PREV: the press to the UI */
+ * effects are off (perf_kill: the menu, a dialog, NAME, TOOLS). PLAY REC NEXT / PREV: the press to the UI */
 static __attribute__((noinline)) void ml_press(uint32_t i, uint32_t down, uint32_t note)
 {
     uint32_t c = ml_map[i].code, bit = 1u << i;

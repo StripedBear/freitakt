@@ -340,7 +340,7 @@
  {"title": "CHORUS", "fam": 5, "scope": 1, "graph": 15, "id": [9, 10, 255, 255]},
  {"title": "PROJECT", "fam": 6, "scope": 1, "graph": 5, "id": [15, 16, 17, 18]},
  {"title": "TOOLS", "fam": 6, "scope": 1, "graph": 0, "id": [19, 20, 32, 33]},
- {"title": "COPY", "fam": 6, "scope": 1, "graph": 5, "id": [15, 36, 37, 255]},
+ {"title": "COPY", "fam": 6, "scope": 1, "graph": 5, "id": [15, 36, 37, 40]},
  {"title": "LFO", "fam": 7, "scope": 0, "graph": 8, "id": [27, 29, 35, 37]},
  {"title": "LFO", "fam": 7, "scope": 0, "graph": 8, "id": [30, 34, 38, 42]},
  {"title": "LFO", "fam": 7, "scope": 0, "graph": 8, "id": [33, 28, 41, 36]},

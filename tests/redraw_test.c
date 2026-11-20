@@ -242,7 +242,7 @@ static void fuzz(uint32_t seed, uint32_t steps)
             if (!rnd(6))
                 transport_req = song.playing ? 2 : 1;
             break;
-        case 9:                                       /* FX held (PERFORM) / GLO held (MUTE) a while */
+        case 9:                                       /* FX held (PERFORM) / GLO held (its combos) a while */
             if (!rnd(3)) {
                 held = rnd(2) ? B_FX : B_GLO;
                 hold = rnd(40) + 1u;
@@ -350,9 +350,6 @@ static void sentinel(void)
     ui.msg_t = ui.bpm_t = 0, ui.layer = 0, ui.home = 0, ui.pr.pop = 0, settings.zoom = 0;
     settings.palette = THEME_TAG | 0u;
     theme_set(settings.palette);
-    ui.mute = 1;
-    no_holes("MUTE");
-    ui.mute = 0;
     for (p = 0; p < NPAGES; p++)
         for (h = 0; h < 2u; h++) {
             ui.page = (uint8_t)p;
@@ -431,6 +428,54 @@ static void lock_icon_partial(void)
     add(&e, frame());
     report("TRACKS: ENV tapped (STEPS: the padlock)", &e);
     check("the padlock: an ENV tap sends no full repaint (the top bar, the keys' strip)", ui.env == 1u && e.full == 0u);
+}
+
+/* FREITAKT combos: SEQ / ARP / SEL + a black key mute, solo or select a track while the page stays up (no screen of
+ * their own any more): every page and HOME must show it as a full repaint would */
+static void combo_key(uint32_t b, uint32_t key)
+{
+    uint32_t i;
+    press(b);
+    frame();
+    keys(1u << key);
+    for (i = 0; i < 3u; i++) {
+        fm1_in.buttons |= 1u << panel.btn[b];
+        frame();
+    }
+    keys(0);
+    fm1_in.buttons |= 1u << panel.btn[b];
+    frame();
+    release_all();
+    frame();
+}
+static void combos_redraw(void)
+{
+    static const uint32_t B[3] = {B_SEQ, B_ARP, B_SCL};
+    uint32_t p, h, c;
+    char b[96];
+    for (p = 0; p < NPAGES; p++)
+        for (h = 0; h < 2u; h++) {
+            if (p && h)
+                continue;
+            for (c = 0; c < 3u; c++) {
+                ui_host_init();
+                pattern();
+                settings.mutebar = 0;
+                if (h) {
+                    home_screen();
+                } else {
+                    ui.page = (uint8_t)p;
+                    ui.home = 0;
+                    page_entered();
+                }
+                settle(30);
+                combo_key(B[c], 1u);                   /* black 1: track 1 (the selected one) */
+                combo_key(B[c], 3u);                   /* black 2: track 2 */
+                snprintf(b, sizeof b, "%s + black 1, 2 on %s", c == 0 ? "SEQ" : c == 1 ? "ARP" : "SEL",
+                         h ? "HOME" : PAGES[p].title);
+                same_as_full(b);
+            }
+        }
 }
 
 int main(void)
@@ -564,6 +609,7 @@ int main(void)
     msg_tempo();
     popup_strip();
     sentinel();
+    combos_redraw();
 
     for (i = 1; i <= 24u; i++)
         fuzz(i * 7919u, 400);

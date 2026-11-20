@@ -1,9 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
- * Drum machine fork: 2026 DEADACTIVE (GLO + G4, the track a parameter is learned on, CLEAR ALL's confirm, the
+ * Drum machine fork: 2026 DEADACTIVE (turned on / off by a knob, the track a parameter is learned on, CLEAR ALL's confirm, the
  * actions) */
 /* MIDI LEARN, the UI's side (upstream Felucca 1.5's midi_learn.c, adapted; spec
- * docs/superpowers/specs/2026-10-13-midi-learn-design.md). GLO held (the MUTE screen) + G4 turns it on and off. On: a
+ * docs/superpowers/specs/2026-10-13-midi-learn-design.md). SAVE's COPY page, KNOB 4 (LEARN) turns it on and off
+ * (FREITAKT; it was GLO + G4 on the MUTE screen). On: a
  * knob turned that edits a per-track parameter picks it on the track it edits, as it edits it (ml_knob); the next CC
  * that comes (midi_learn.c ml_heard: any channel, USB, TRS, Bluetooth in MIDI mode) is set to it, on that track,
  * whichever track is selected later. The actions (spec §7): PLAY, REC, ALGORITHM right / left (NEXT / PREV TRACK), a
@@ -112,7 +113,7 @@ static void ml_pick_check(void)
     if (ui.ml.pick && !ui.ml.act && !ml_knob_real(track_desc(&trk[ui.ml.trk % NTRK], ui.ml.id)))
         ml_unpick();
 }
-static void ml_toggle(void)                        /* GLO + G4 */
+static void ml_toggle(void)                        /* the COPY page's LEARN knob */
 {
     if (ui.ml.on) {
         ml_off();

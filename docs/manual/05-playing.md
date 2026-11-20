@@ -3,11 +3,11 @@
 
 ## KEYS: the keys as a keyboard
 
-Tap [[SCL]] (SEL on the simulator): the 27 keys play the selected track chromatically. [[OCT-]] / [[OCT+]] set the octave, -2 to +2. Drum tracks play their sound transposed (C4 plays as tuned); ACID plays a bass line.
+Tap [[SCL]] (labelled SEL; on its release): the 27 keys play the selected track chromatically. [[OCT-]] / [[OCT+]] set the octave, -2 to +2. Drum tracks play their sound transposed (C4 plays as tuned); ACID plays a bass line.
 
 - With KEYS on, [[OCT-]] / [[OCT+]] are the octave. LAYER (from EDIT) and the LFO pages' RATE MODE need KEYS off.
 - On the STEP page the bank stays on [[KNOB 1]]; on TRACKS the OCT buttons remain the bank.
-- TRACKS, COMP, NAME, the menu, PERFORM (FX held), the MUTE screen (GLO held), the step TOOLS (SEQ held) and the cue map (SAVE held) keep their own key jobs.
+- TRACKS, COMP, NAME, the menu, PERFORM (FX held), the combos (GLO, SEL, SEQ or ARP held), the step TOOLS (SEQ held) and the cue map (SAVE held) keep their own key jobs.
 - KEYS notes send **no MIDI out**. An ACID note (or a tied chain) longer than 5.5 s is cut, a safety limit.
 - [[ENV]] turns KEYS off, and [[SCL]] turns STEPS off.
 
@@ -51,23 +51,21 @@ Start in KEYS mode, on the STEP page, with the transport **stopped**, by a [[REC
 
 Hold [[REC]] on a SEQ page: **CLEAR TRACK**. Hold [[REC]] (0.4 s) on any other page to play a **fill** while you hold it (`FILL` on top).
 
-## Mutes and solo
+## Mutes, solo and track select
 
-Hold [[GLO]]: the **MUTE screen**, up while GLO is held (a quick tap opens GLOBAL instead; a key pressed while GLO is down opens the screen at once).
+Black keys 1 to 6 (F#3 G#3 A#3 C#4 D#4 F#4) are tracks 1 to 6. Hold a button and press them, on any page:
 
-| Key | Does |
+| Combo | Does |
 | --- | --- |
-| white F3 to D4 | toggle the mute of tracks 1 to 6 |
-| black F#3 to F#4 | **solo** tracks 1 to 6 (G#4 and A#4 do nothing; several at once; their LEDs lit while soloed) |
-| C#5 (top C#) | `MUTE: NOW` |
-| D#5 (top D#) | `MUTE: NEXT BAR` |
-| F#5 | solo mode: **TGL** (a tap solos / unsolos) or **MOM** (soloed only while the key is held, also after GLO is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`) |
-| G4 | MIDI LEARN on / off |
+| [[SEQ]] + black 1 to 6 | toggle the mute of tracks 1 to 6 (their LEDs lit while heard, while SEQ is held) |
+| [[ARP]] + black 1 to 6 | **solo** tracks 1 to 6 (several at once; their LEDs lit while soloed, while ARP is held) |
+| [[ARP]] + F#5 | solo mode: **TOGGLE** (a press solos / unsolos) or **MOMENTARY** (soloed only while the key is held, also after ARP is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`; F#5 lit while MOMENTARY) |
+| [[SCL]] (SEL) + black 1 to 6 | select track 1 to 6 (its key lit while SEL is held) |
 
-- The six tracks are boxes: **filled = heard, outline = muted, half filled = hushed by a solo elsewhere**, an **S** in the corner of a soloed box; each with its number and model, and under it the key.
-- `MUTE: NEXT BAR` (the same setting as GLOBAL 3/7 MUTE): a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
-- Solo itself is not saved (INIT and power-on clear it); mutes stay as they are under a solo. It is the same solo state the SMC-Mixer uses.
-- While the screen is up the keys play nothing and the knobs and other buttons rest, [[PLAY]] aside. Let go of GLO to return.
+- A SEQ hold that began with a black key opens no TOOLS screen and turns no page; once TOOLS is up (SEQ held 0.4 s, or a white key pressed first) the black keys are its tools.
+- GLOBAL 3/7 **MUTE** sets `NOW` or `NEXT BAR`: with NEXT BAR a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
+- Solo itself is not saved (INIT and power-on clear it); mutes stay as they are under a solo. It is the same solo state the SMC-Mixer uses. HOME's TRACKS mode shows the mutes.
+- The keys pressed with the button play nothing, send no MIDI and record nothing.
 
 ## PERFORM
 
@@ -99,7 +97,7 @@ While the PERFORM screen is up the knobs are only these, and [[SELECT]] turns no
 
 Hold [[FX]], then hold a track key (F3 = track 1 .. D4 = track 6): the track plays the step it was on, again and again at the rate, while its own steps pause. The repeat plays the step's note, loud when the step has an accent; a step that is off, a TIE or a Grids track repeats the track's last note (no PROB, no RATCH). Let go and its pattern carries on in time as if it had played all along.
 
-While playing, the repeats land on the grid of the rate (following swing, the tempo and an incoming MIDI clock), the first on the next grid point; while stopped they start at once at the tempo. Several tracks can repeat together. A change of rate while repeating takes over at the next grid point. The repeats are drum hits from the sequencer, so the master effects work on top of them. *If you used FX plus a white key to mute a track in an older version, use the MUTE screen instead.* A controller button learned to a PERFORM mute now holds that track's REPEAT STEP.
+While playing, the repeats land on the grid of the rate (following swing, the tempo and an incoming MIDI clock), the first on the next grid point; while stopped they start at once at the tempo. Several tracks can repeat together. A change of rate while repeating takes over at the next grid point. The repeats are drum hits from the sequencer, so the master effects work on top of them. *If you used FX plus a white key to mute a track in an older version, hold SEQ and press its black key instead.* A controller button learned to a PERFORM mute now holds that track's REPEAT STEP.
 
 ## ENV and parameter locks
 

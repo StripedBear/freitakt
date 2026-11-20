@@ -1901,7 +1901,7 @@ static void persist_boot(void)                    /* before settings_init / pane
         midi_thru = (uint8_t)((p.palette >> 14) & 1u);   /* bit 14 = MIDI THRU (midi_out.c): older records read OFF */
         rec_quant = (uint8_t)((p.palette >> 16) & 3u);   /* bits 16..17 = QUANT (seq.c rec_hit): older records read
                                                            * 1/16 */
-        solo_mom = (uint8_t)((p.palette >> 15) & 1u);    /* bit 15 = SOLO MOMENTARY (the MUTE screen's F#5, ui_input.c):
+        solo_mom = (uint8_t)((p.palette >> 15) & 1u);    /* bit 15 = SOLO MOMENTARY (ARP + F#5, ui_input.c):
                                                            * older records read TOGGLE */
         /* bits 12..13: USB AUDIO's 10 CH (removed in FREITAKT): reserved, ignored, written 0 */
         lc_unpack(p.lowcut);

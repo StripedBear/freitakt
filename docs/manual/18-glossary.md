@@ -31,7 +31,7 @@
 | **PROB** | a step's probability. |
 | **RATCH** | a step's ratchet repeats (1 to 4). |
 | **ROUT** | MIDI-in routing: NOTE, SEL, TRACK. |
-| **SCL** | the button for KEYS (SEL on the simulator). |
+| **SCL** | the button labelled SEL: a tap KEYS; held + black key 1 to 6 selects a track. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
 | **SRC** | an LFO slot's source, or COMP's key track. |
@@ -54,7 +54,7 @@
 | **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/7 KNOB 4). |
 | **REPEAT STEP** | PERFORM: a held white key (F3 to D4) repeats that track's step; D5 to G5 pick the rate. |
 | **SET / SLOT** | SAMPLE and LAYER: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
-| **SOLO** | MUTE screen black keys; TGL or MOM mode. |
+| **SOLO** | ARP + black keys 1 to 6; TOGGLE or MOMENTARY mode (ARP + F#5). |
 | **SRR** | sample rate reduction on a track (INSERT 2/2). |
 | **START / END** | SAMPLE: play part of a sample, 0 to 127 over its length. |
 | **TOOLS (hold SEQ)** | the step tools screen: copy, paste, fill, duplicate. (The SAVE page's TOOLS is a different screen.) |
@@ -73,4 +73,4 @@ HOME, EDIT, SEQ, FX, ARP, LFO, ENV, SCL, GLO, SAVE, PLAY, REC, OCT-, OCT+, SELEC
 | white keys, steps 1 to 16 | F3, G3, A3, B3, C4, D4, E4, F4, G4, A4, B4, C5, D5, E5, F5, G5 |
 | black keys | F#3, G#3, A#3, C#4, D#4, F#4, G#4, A#4, C#5, D#5, F#5 |
 | PERFORM effects | F#3 REPEAT 1/8, G#3 REPEAT 1/16, A#3 REPEAT 1/32, C#4 REVERSE, D#4 TAPE STOP, F#4 LPF, G#4 HPF, A#4 FREEZE, C#5 OCT UP, D#5 OCT DOWN; white F3 to D4 REPEAT STEP of tracks 1 to 6; D5 E5 F5 G5 its rate 1/4, 1/8, 1/16 (default), 1/32; G4 A4 B4 C5 and F#5 nothing |
-| MUTE screen | white F3 to D4 mute tracks 1 to 6; black F#3 to F#4 solo them; C#5 `MUTE: NOW`; D#5 `MUTE: NEXT BAR`; F#5 solo TGL / MOM; G4 MIDI LEARN |
+| Combos (button held + key) | black 1 to 11 = F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5; SEL + black 1 to 6 select tracks 1 to 6; SEQ + black 1 to 6 mute them; ARP + black 1 to 6 solo them, ARP + F#5 solo TOGGLE / MOMENTARY; GLO + white 1 to 4 queue slots A to D (2 or more: a chain), GLO + C#5 / D#5 variations 1 / 2 |

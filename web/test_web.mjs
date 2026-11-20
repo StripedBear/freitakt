@@ -317,12 +317,27 @@ async function simCue() {
   const seq = page.slice(page.indexOf('id="f-seq"'), page.indexOf('data-piece="seq"'));
   ok(/variation/i.test(seq) && /FILL/.test(seq) && /COPY/.test(seq) && /PASTE/.test(seq),
     "sim: the features' steps chapter names variations, FILL and COPY / PASTE");
-  ok(/black keys? variation/i.test(save.tip || "") && !/5-12/.test(save.tip || "") && /black keys queue a variation/i.test(seq) &&
-    !/5–12/.test(seq), "sim: the variations are on the black keys (SAVE's tip, the steps chapter), no longer keys 5-12");
+  ok(/black keys? variation/i.test(save.tip || "") && !/5-12/.test(save.tip || "") && /the black keys a variation/i.test(seq) &&
+    !/5–12/.test(seq), "sim: the variations are on the black keys with SAVE (its tip, the steps chapter), no longer keys 5-12");
+  ok(!/black keys queue a variation on HOME/i.test(seq), "sim: the bare black keys no longer queue variations (FREITAKT)");
+}
+
+/* ------------------------------------------------- the simulator: FREITAKT combos --- */
+async function simCombos() {
+  const { BTN } = await import("./sim/controls.js");
+  const tip = (c) => (BTN.find((b) => b.c === c) || {}).tip || "";
+  ok(/KEYS/.test(tip("B_SCL")) && /select/i.test(tip("B_SCL")), "sim: SEL's tip: a tap KEYS, + black keys select");
+  ok(/mute/i.test(tip("B_SEQ")) && /tools/i.test(tip("B_SEQ")), "sim: SEQ's tip: the step tools, + black keys mute");
+  ok(/solo/i.test(tip("B_ARP")) && !/unused/.test(tip("B_ARP")), "sim: ARP's tip: + black keys solo");
+  ok(/GLOBAL/.test(tip("B_GLO")) && /chain/i.test(tip("B_GLO")) && /variation/i.test(tip("B_GLO")) && !/MUTE screen/.test(tip("B_GLO")),
+    "sim: GLO's tip: GLOBAL, + white keys a pattern or a chain, + C# / D# a variation; no MUTE screen");
+  const page = readFileSync(join(HERE, "sim/index.html"), "utf8");
+  ok(!/MUTE screen/.test(page) && !/G4/.test(page), "sim: the page no longer names the MUTE screen or GLO + G4");
 }
 
 await simLocks();
 await simCue();
+await simCombos();
 await editorPage();
 await editorSite();
 await (async () => { const r = await (await import("./editor/test_tab_projects.mjs")).runProjectsTests((s) => console.log(s)); ok(!r.failed, `editor: Projects tab against the mock device (${r.passed} checks)`); })();

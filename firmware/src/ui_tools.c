@@ -1,10 +1,12 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
 /* The step tools (spec docs/superpowers/specs/2026-10-31-microtiming-quantize-copytools-design.md §3). SEQ held
- * TL_HOLD_MS, or SEQ + a key at once: the TOOLS screen while SEQ is held, as GLO's MUTE screen; a SEQ tap still turns
- * the SEQ pages, on its release (it opened them on the press before). Every key pressed with SEQ is the screen's until
- * let go (seq.c keyboard_block, mute_mask: no note, no MIDI, nothing recorded). Pressed in the menu, a confirm, NAME,
- * the PRESETS list, the MUTE screen or the cue map: dead until let go; with the PERFORM layer up or FX held: a plain
+ * TL_HOLD_MS, or SEQ + a white key at once: the TOOLS screen while SEQ is held; a SEQ tap still turns the SEQ pages, on
+ * its release (it opened them on the press before). FREITAKT: a black key pressed before TOOLS opened makes the hold
+ * the mutes instead (TL_MUTE: black 1..6 mute / unmute tracks 1..6, as MUTE NOW / NEXT BAR says; no TOOLS, no page).
+ * Every key pressed with SEQ is the screen's until let go (seq.c keyboard_block, mute_mask: no note, no MIDI, nothing
+ * recorded). Pressed in the menu, a confirm, NAME, the PRESETS list or the cue map: dead until let go; with the
+ * PERFORM layer up or FX held: a plain
  * button (the release turns the pages). SEQ held at power-on is the safe start, as before (ui.c safe_start_check).
  * On the selected track (DUPLICATE: every track): the white keys the bank's 16 steps (OCT- / OCT+ the bank, as on
  * STEP), the black keys the tools (TL_K_*). A copied step is its whole step_t (on, accent, PROB, ratchet, note, slide /
@@ -17,6 +19,8 @@
 #define TL_OPEN 2u
 #define TL_DEAD 4u
 #define TL_PLAIN 8u
+#define TL_MUTE 16u                 /* a black key pressed before TOOLS opened: the hold mutes (SEQ + black 1..6:
+                                     * tracks 1..6), no TOOLS, no page */
 #define TL_LK 192u                  /* the clipboard's lock events (3 B each: spec §3) */
 #define TL_SLK 52u                  /* the step buffer's: every recordable knob (motion.c motion_param: 49) */
 /* the tools' black keys (key index from F3) */
@@ -317,7 +321,7 @@ static void tl_keys(uint32_t hits)
 }
 
 /* ---- SEQ: tap / hold */
-static int tools_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.mute || ui.cue_map; }
+static int tools_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.cue_map; }
 static int tools_owns_keys(void)                       /* SEQ held (GLO not): the keys pressed now are the screen's */
 {
     return (((fm1_in.buttons >> panel.btn[B_SEQ]) & 1u) || ui.seq_t0) &&
@@ -348,6 +352,13 @@ static void tl_close(void)
         ui.force = 1;
     }
 }
+static void tl_mutes(uint32_t hits)                 /* SEQ + black 1..6 (TL_MUTE): tracks 1..6 muted / unmuted */
+{
+    uint32_t k;
+    for (k = 0; k < NTRK; k++)
+        if ((hits >> CUE_BK[k]) & 1u)
+            track_mute_toggle(k);
+}
 static void tools_input(uint32_t now, uint32_t notes)
 {
     uint32_t bit = 1u << panel.btn[B_SEQ], *t0 = &ui.seq_t0, hits = 0;
@@ -359,13 +370,19 @@ static void tools_input(uint32_t now, uint32_t notes)
     }
     if (fm1_in.buttons & bit) {
         if (!*t0)
-            *t0 = (now & ~15u) | TL_DOWN;
+            *t0 = (now & ~31u) | TL_DOWN;
         if (!(*t0 & TL_OPEN) && tools_dead())
             *t0 |= TL_DEAD;
         else if (!(*t0 & TL_OPEN) && (ui.layer || ui.fx_t0))
             *t0 |= TL_PLAIN;
-        if (!(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN)) &&
-            (notes || hits || now - (*t0 & ~15u) >= TL_HOLD_MS * 1000u * FM1_TICKS_PER_US)) {
+        if (!(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN)) && ((hits | notes) & BLACK_MASK))
+            *t0 |= TL_MUTE;                         /* (a black key first: the mutes) */
+        if (*t0 & TL_MUTE) {
+            tl_mutes(hits);
+            hits = 0;
+        }
+        if (!(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN | TL_MUTE)) &&
+            ((notes & ~BLACK_MASK) || hits || now - (*t0 & ~31u) >= TL_HOLD_MS * 1000u * FM1_TICKS_PER_US)) {
             *t0 |= TL_OPEN;                         /* the TOOLS screen */
             ui.tools = 1;
             ui.force = 1;
@@ -376,18 +393,23 @@ static void tools_input(uint32_t now, uint32_t notes)
         if (hits && (*t0 & TL_OPEN))
             tl_keys(hits);
     } else if (*t0) {
-        if (hits && !(*t0 & (TL_DEAD | TL_PLAIN))) {
+        if (hits && !(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN)) && ((*t0 & TL_MUTE) || (hits & BLACK_MASK))) {
+            *t0 |= TL_MUTE;                         /* (black keys struck as SEQ went: the mutes; no tap) */
+            tl_mutes(hits);
+            hits = 0;
+        }
+        if (hits && !(*t0 & (TL_DEAD | TL_PLAIN | TL_MUTE))) {
             *t0 |= TL_OPEN;                         /* (keys struck as SEQ went: theirs; no tap) */
             if (ui.tools)
                 tl_keys(hits);
         }
-        if (!(*t0 & (TL_OPEN | TL_DEAD)) && !tools_dead())
+        if (!(*t0 & (TL_OPEN | TL_DEAD | TL_MUTE)) && !tools_dead())
             open_family(FAM_SEQ);                   /* a tap: the SEQ pages, as the button always did (on the press) */
         *t0 = 0;
         tl_close();
     }
     mute_mask = (mute_mask & ~bit) |
-                ((*t0 & TL_OPEN) || (!(*t0 & (TL_DEAD | TL_PLAIN)) && !tools_dead() && !ui.layer && !ui.fx_t0) ? bit
+                ((*t0 & (TL_OPEN | TL_MUTE)) || (!(*t0 & (TL_DEAD | TL_PLAIN)) && !tools_dead() && !ui.layer && !ui.fx_t0) ? bit
                                                                                                                 : 0u);
 }
 /* the screen owns the panel (ui_input): PLAY as ever; OCT- / OCT+ the bank; the selection page's KNOB 1 START,

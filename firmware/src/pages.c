@@ -50,7 +50,8 @@ static const page_t PAGES[] = {
     {"CHORUS", FAM_GLO, SC_GLOBAL, GR_CHO, {G_CRATE, G_CDEPTH, 0xFF, 0xFF}},   /* GLO 7/7: RATE DEPTH */
     {"PROJECT", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_NAME, G_LOAD, G_SAVE}},   /* NAME: rename (ui_name.c) */
     {"TOOLS", FAM_SAVE, SC_GLOBAL, GR_NONE, {G_CLRSEQ, G_INITSND, G_CLRALL, G_INITALL}},   /* track; all */
-    {"COPY", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_COPY, G_PASTE, 0xFF}},   /* a slot's COPY / PASTE (project.c) */
+    {"COPY", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_COPY, G_PASTE, G_LEARN}},   /* a slot's COPY / PASTE (project.c);
+                                                                                 * KNOB 4: MIDI LEARN on / off */
     /* LFO: both LFOs on every page, LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4; then DEST, the track's 4 slots: KNOB 1 the
      * slot (song.lslot), 2-4 its SRC DEST DEPTH (page_id; lfo.c LS_ID) */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LFO1 + LF_WAVE, P_LFO1 + LF_RATE, P_LFO2 + LF_WAVE, P_LFO2 + LF_RATE}},
@@ -114,8 +115,8 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     *valp = 0;
     if (id == 0xFFu || pg->scope == SC_GRID || pg->scope == SC_MIX)
         return 0;
-    if (pg->scope == SC_GLOBAL && id >= G_COUNT) {   /* TOOLS actions, MUTE, METRO, COPY / PASTE, THRU, QUANT */
-        id = id - G_COUNT < 8u ? id - G_COUNT : 0u;
+    if (pg->scope == SC_GLOBAL && id >= G_COUNT) {   /* TOOLS actions, MUTE, METRO, COPY / PASTE, THRU, QUANT, LEARN */
+        id = id - G_COUNT < 9u ? id - G_COUNT : 0u;
         *valp = &song.act[id < 4u ? id : id < 6u ? id - 4u : id - 2u];   /* (COPY / PASTE: GO buttons, 0 at rest:
                                                                          * CLR* / INIT*'s act) */
         return &GP_ACT[id];

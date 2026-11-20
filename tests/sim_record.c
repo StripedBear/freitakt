@@ -34,10 +34,10 @@ static const act_t SCRIPT[] = {                           /* HOME's scope first;
     {26.0f, 'b', B_HOME, 0}, {26.0f, 'm', 0, 0, "tracks"},   /* HOME's TRACKS mode (HOME on COMP: the scope, */
     {26.2f, 'b', B_HOME, 0},                              /* HOME again: TRACKS): the mixer's meters (two taps in two
                                                            * frames, so the UI sees the release between them) */
-    {27.0f, 'p', B_GLO, 0},                               /* GLO held: the MUTE screen (after 0.4 s) */
-    {27.8f, 'k', 6, 0}, {28.2f, 'k', 7, 0},               /* B3, C4: the hats (tracks 4, 5) muted (MUTE: NOW) */
-    {29.0f, 'k', 6, 0}, {29.4f, 'k', 7, 0},               /* and back */
-    {29.8f, 'r', B_GLO, 0},                               /* let go: TRACKS again */
+    {27.6f, 'p', B_SEQ, 0},                               /* SEQ held + black keys: the mutes */
+    {27.8f, 'k', 8, 0}, {28.2f, 'k', 10, 0},              /* C#4, D#4: the hats (tracks 4, 5) muted (MUTE: NOW) */
+    {29.0f, 'k', 8, 0}, {29.4f, 'k', 10, 0},              /* and back */
+    {29.8f, 'r', B_SEQ, 0},                               /* let go: TRACKS still (no SEQ page: keys were pressed) */
     {30.4f, 'b', B_LFO, 0}, {30.4f, 'm', 0, 0, "lfo"},    /* LFO 1 of track 1, its knobs turned */
     {30.9f, 'e', EN_K2, 3}, {31.4f, 'e', EN_K3, 2}, {31.9f, 'e', EN_K2, -3}, {32.4f, 'e', EN_K3, -2},
     {33.0f, 'b', B_HOME, 0}, {33.0f, 'm', 0, 0, "end"},  /* back to HOME's scope for the loop (TRACKS, */

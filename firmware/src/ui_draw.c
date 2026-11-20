@@ -1814,94 +1814,6 @@ static void graph_perf(void)
         cv_blit(0, Y_GRAPH);
     }
 }
-/* the MUTE screen (spec §5, GLO held): the 6 tracks as boxes, a row of 4 and one of 2 (screen y MU_Y.., a 240 x 124 canvas) */
-#define MU_Y 22u
-#define MU_BW 55u
-#define MU_BH 40u
-#define MU_BX(k) (4u + (k) % 4u * 59u)
-#define MU_BY(k) (MU_Y + 4u + (k) / 4u * 60u)
-/* filled = audible, outline = muted, a mute waiting for the bar blinks (250 ms, amber), a track another's SOLO
- * silences: half filled (dithered), a soloed one: an S in its corner; in each the track and its model, under it the
- * key that toggles it; below, the mute mode and its keys, G4's MIDI LEARN and F#5's SOLO mode. The top bar as
- * everywhere */
-static void draw_mute(void)
-{
-    uint32_t k, blink = (fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u;
-    uint32_t sig = settings.mutebar * 7u + song.mute_q * 977u + (song.mute_q ? blink + 1u : 0u) * 131u + ui.ml.on * 5003u +
-                   song.solo * 65537u + solo_mom * 1000003u;
-    int32_t x, w;
-    char b[24];
-    for (k = 0; k < NTRK; k++)
-        sig = (sig ^ ((uint32_t)(trk[k].p[P_MUTE] != 0) + (uint32_t)trk[k].p[P_MODEL] * 2u)) * 16777619u;
-    if (ui.force) {                                   /* the ground between the two canvases (y 22..145, 164..225) */
-        static const uint8_t BAND[3][2] = {{H_HEAD, MU_Y}, {MU_Y + 124u, 164u}, {226u, 239u}};
-        for (k = 0; k < 3u; k++) {
-            lcd_fill(1, BAND[k][0], 238, (uint32_t)(BAND[k][1] - BAND[k][0]), C_BG);
-            lcd_fill(0, BAND[k][0], 1, (uint32_t)(BAND[k][1] - BAND[k][0]), C_INK);
-            lcd_fill(239, BAND[k][0], 1, (uint32_t)(BAND[k][1] - BAND[k][0]), C_INK);
-        }
-        lcd_fill(0, 239, 240, 1, C_INK);
-    }
-    draw_head();
-    if (ui.msg_t)
-        ui.msg_t--;
-    if (ui.bpm_t)
-        ui.bpm_t--;
-    if (!ui.force && sig == ui.graph_sig)
-        return;
-    ui.graph_sig = sig;
-    ui.force = 0;
-    cv_begin_at(240, 124, MU_Y, C_BG);
-    cv_oy = 0;
-    cv_rect(0, 0, 1, 124, C_INK);
-    cv_rect(239, 0, 1, 124, C_INK);
-    for (k = 0; k < NTRK; k++) {                     /* audible: solid; muted: an outline; waiting for the bar: the
-                                                       * box blinks solid / outline */
-        int32_t bx = (int32_t)MU_BX(k), by = (int32_t)(MU_BY(k) - MU_Y);
-        uint32_t wait = (song.mute_q >> k) & 1u;
-        int on = !trk[k].p[P_MUTE] ^ (wait && blink);
-        const char *mn = N_MODEL[(uint32_t)trk[k].p[P_MODEL] % NMODELS];
-        uint16_t pen = on ? C_BG : C_INK;
-        int hushed = on && song.solo && !((song.solo >> k) & 1u);   /* (another track's SOLO) */
-        if (on)
-            cv_rect(bx, by, MU_BW, MU_BH, C_INK);
-        else
-            cv_frame(bx, by, MU_BW, MU_BH, C_INK);
-        if (hushed)
-            cv_dither(bx + 1, by + 1, (int32_t)MU_BW - 2, (int32_t)MU_BH - 2, C_BG);
-        b[0] = (char)('1' + k);
-        b[1] = 0;
-        md_text(bx + ((int32_t)MU_BW - md_text_w(&MD_F3, 2, b)) / 2, by + 6, &MD_F3, 2, b, pen);
-        md_text(bx + ((int32_t)MU_BW - md_text_w(&MD_F3, 2, mn)) / 2, by + 22, &MD_F3, 2, mn, pen);
-        if ((song.solo >> k) & 1u)
-            md_text(bx + 4, by + 6, &MD_F3, 2, "S", pen);
-        note_text(b, 53 + KEY_TRK_KEY[k]);
-        md_text(bx + ((int32_t)MU_BW - md_text_w(&MD_F3, 2, b)) / 2, by + (int32_t)MU_BH + 4, &MD_F3, 2, b, C_INK);
-    }
-    cv_blit(0, MU_Y);
-    cv_begin_at(240, 62, 164, C_BG);                  /* "MUTE: NOW", "C# NOW  D# NEXT BAR" (the mode's dithered
-                                                       * when not chosen), "G4 LEARN: OFF" / "ON" (MIDI LEARN) */
-    cv_rect(0, 0, 1, 62, C_INK);
-    cv_rect(239, 0, 1, 62, C_INK);
-    str_cpy(b, settings.mutebar ? "MUTE: NEXT BAR" : "MUTE: NOW", sizeof b);
-    md_text((240 - md_text_w(&MD_F3, 2, b)) / 2, 4, &MD_F3, 2, b, C_INK);
-    w = md_text_w(&MD_F3, 2, "C# NOW  D# NEXT BAR");
-    x = (240 - w) / 2;
-    k = (uint32_t)md_text(x, 24, &MD_F3, 2, "C# NOW", C_INK);
-    if (settings.mutebar)
-        cv_dither(x, 24, (int32_t)k - x, 10, C_BG);
-    x = (int32_t)k + 12;
-    k = (uint32_t)md_text(x, 24, &MD_F3, 2, "D# NEXT BAR", C_INK);
-    if (!settings.mutebar)
-        cv_dither(x, 24, (int32_t)k - x, 10, C_BG);
-    w = md_text_w(&MD_F3, 2, "G4 LEARN") + 12 + md_text_w(&MD_F3, 2, solo_mom ? "F# SOLO MOM" : "F# SOLO TGL");
-    x = (240 - w) / 2;
-    k = (uint32_t)md_text(x, 44, &MD_F3, 2, "G4 LEARN", C_INK);
-    if (!ui.ml.on)
-        cv_dither(x, 44, (int32_t)k - x, 10, C_BG);
-    md_text((int32_t)k + 12, 44, &MD_F3, 2, solo_mom ? "F# SOLO MOM" : "F# SOLO TGL", C_INK);
-    cv_blit(0, 164);
-}
 /* PERFORM: KNOB 1..4 FILTER CRUSH THROW DEPTH (SHIMMER while OCT UP / DN plays) */
 static void perf_columns(void)
 {
@@ -2801,10 +2713,6 @@ __attribute__((always_inline)) static inline void ui_draw(void)
     }
     if (pl_on()) {                                    /* the PRESETS list (ui_preset.c): its own screen */
         draw_plist();
-        return;
-    }
-    if (ui.mute) {                                    /* GLO held: the MUTE screen */
-        draw_mute();
         return;
     }
     if (ui.tools) {                                   /* SEQ held: the TOOLS screen (ui_tools.c) */

@@ -77,7 +77,7 @@
           <li>SELECT turns the pages (on TRACKS: the tempo). ALGORITHM picks the track.</li>
           <li>HOME switches TRACKS and HOME; hold it for the menu.</li>
           <li>REC arms the selected track, on any page.</li>
-          <li>Hold GLO: the white keys mute the tracks.</li>
+          <li>Hold SEQ and press a black key: it mutes a track. SEL, a black key: selects one; ARP: solos one.</li>
         </ul>
       </div>
       <div>
@@ -121,13 +121,14 @@
           a tap switches. Hold it: the menu.</li>
         <li data-ctl="EDIT"><b>EDIT</b> The track's sound: its model and knobs. Hold it: the PRESETS list.</li>
         <li data-ctl="SEQ"><b>SEQ</b> The steps on the white keys, then PATTERN and MOTION. Hold it: the step
-          tools, copy and paste.</li>
+          tools, copy and paste. Hold it and press black keys 1 to 6: mute tracks 1 to 6.</li>
         <li data-ctl="FX"><b>FX</b> FILTER, FX, INSERT (and SRR). Hold it: PERFORM.</li>
         <li data-ctl="LFO"><b>LFO</b> The track's two LFOs, then DEST: what they move.</li>
         <li data-ctl="ENV"><b>ENV</b> STEPS: the white keys are the track's steps on every page, for locks.</li>
-        <li data-ctl="SEL"><b>SEL</b> KEYS: the keys play the selected track, a keyboard.</li>
-        <li data-ctl="GLO"><b>GLO</b> A tap: GLOBAL (tempo, swing, clock, MIDI channel, sync, routing, thru, metronome), then the delay, the reverb and the chorus. Hold it: the MUTE
-          screen.</li>
+        <li data-ctl="SEL"><b>SEL</b> A tap: KEYS, the keys play the selected track, a keyboard. Hold it and press black
+          keys 1 to 6: select tracks 1 to 6.</li>
+        <li data-ctl="GLO"><b>GLO</b> A tap: GLOBAL (tempo, swing, clock, MIDI channel, sync, routing, thru, metronome), then the delay, the reverb and the chorus. Hold it with a
+          white key: queue that pattern (two or more: a chain); with the top C# or D#: variation 1 or 2.</li>
         <li data-ctl="SAVE"><b>SAVE</b> PROJECT (save, load and name slots A to D), then TOOLS.</li>
         <li data-ctl="PLAY"><b>PLAY</b> Play and stop.</li>
         <li data-ctl="REC"><b>REC</b> Arms tracks to record: on TRACKS the selected one, on any other page all of them.</li>
@@ -137,8 +138,9 @@
       <h3>Keys</h3>
       <ul>
         <li data-ctl="white">The 16 white keys: the steps, 1 to 16. On HOME, F3 to D4 play tracks 1 to 6; with GLO held
-          they mute them.</li>
-        <li data-ctl="black">The 11 black keys: with FX held, live effects on the whole mix. In KEYS, the sharps.</li>
+          white keys 1 to 4 queue patterns A to D.</li>
+        <li data-ctl="black">The 11 black keys: with FX held, live effects on the whole mix. In KEYS, the sharps. Black
+          keys 1 to 6 are tracks 1 to 6: SEL selects, SEQ mutes, ARP solos.</li>
       </ul>
     </div>
   </div>
@@ -161,7 +163,8 @@
     </li>
     <li class="guide" id="m-copy">
       <h3>Copy and paste steps</h3>
-      <p>Hold SEQ: the TOOLS screen, for the selected track. The white keys are the 16 steps shown, OCT- and OCT+ the
+      <p>Hold SEQ: the TOOLS screen, for the selected track (it opens after a moment, or at once with a step; a black
+        key pressed first mutes instead). The white keys are the 16 steps shown, OCT- and OCT+ the
         others; the black keys copy and paste. Hold F#3 and tap a step to copy it, hold G#3 and tap steps to paste it;
         A#3 copies the 16 steps, C#4 pastes them over others, D#4 adds their hits, F#4 fills the whole pattern. G#4
         picks a stretch with KNOB1 and KNOB2 (G#4 again copies it) and A#4 then a step pastes it there. C#5 doubles
@@ -186,12 +189,11 @@
       <p class="where"><b>SEL</b> KEYS, <b>REC</b> to arm, <b>PLAY</b> to go.</p>
     </li>
     <li class="guide" id="m-mute">
-      <h3>Mute tracks</h3>
-      <p>Hold GLO: the MUTE screen. The white keys F3 to D4 mute and unmute tracks 1 to 6 (a filled box is heard, an
-        outline muted). The top C# makes a mute land at once, the top D# on the next bar: made while playing, it blinks
-        until the downbeat. The black keys F#3 to F#4 solo tracks 1 to 6; the top F# switches solo between toggle and
-        momentary (held). Let go of GLO to go back.</p>
-      <p class="where">Hold <b>GLO</b>, press the white keys (mute) or the black keys (solo).</p>
+      <h3>Mute, solo and select tracks</h3>
+      <p>Black keys 1 to 6 (F#3 to F#4) are tracks 1 to 6. Hold SEQ and press them: mute and unmute (lit while heard;
+        GLOBAL's MUTE setting makes a mute land at once or on the next bar, blinking until the downbeat). Hold ARP:
+        solo (the top F# switches solo between toggle and momentary, held). Hold SEL: select the track.</p>
+      <p class="where">Hold <b>SEQ</b> (mute), <b>ARP</b> (solo) or <b>SEL</b> (select), press the black keys.</p>
     </li>
     <li class="guide" id="m-perform">
       <h3>Perform</h3>
@@ -223,10 +225,11 @@
         NOTE matches (ROUT NOTE; SEL plays the selected track and TRACK channels 1 to 6 the six tracks, pitched), and
         CLK follows a clock from either. SYNC sends a MIDI clock out over USB for a DAW or AUM to follow, and THRU passes
         the TRS jack's notes on to USB. MIDI LEARN ties up to 32 controls of a controller to knobs,
-        PLAY, REC or PERFORM: hold GLO and press G4, turn a knob (or press PLAY), then move the controller's knob.</p>
+        PLAY, REC or PERFORM: on SAVE's COPY page turn KNOB4 (LEARN) on, turn a knob (or press PLAY), then move the
+        controller's knob.</p>
       <p>Over USB the FM&#8209;1 is also an audio interface, Hortator, that records the stereo master into a
         computer.</p>
-      <p class="where">Tap <b>GLO</b> for CH and CLK. Hold <b>GLO</b> + G4 to learn, <b>OCT+</b> when done.</p>
+      <p class="where">Tap <b>GLO</b> for CH and CLK. <b>SAVE</b> COPY, <b>KNOB4</b> to learn, <b>OCT+</b> when done.</p>
     </li>
     <li class="guide" id="m-ble">
       <h3>Bluetooth</h3>
@@ -301,9 +304,10 @@
         knob moves record into the pattern. Parameter locks give one step its own value for a knob, on any sound
         page: the next step plays the knob again. Each slot has 8 variations; queue the next slot or variation and it
         comes in at the pattern's end. Steps set to FILL play only while you hold a fill. COPY and PASTE a whole slot.</p>
-      <p class="where"><b>SEQ</b>: hold a step, <b>KNOB1</b> chance, <b>KNOB2</b> ratchet. Hold <b>GLO</b> for mutes; <b>REC</b> records knob moves.
+      <p class="where"><b>SEQ</b>: hold a step, <b>KNOB1</b> chance, <b>KNOB2</b> ratchet. Hold <b>SEQ</b> + black keys for mutes; <b>REC</b> records knob moves.
         <b>ENV</b>: the keys are the steps on every page; hold one and turn a knob to lock it, <b>OCT-</b> clears.
-        The black keys queue a variation on HOME and SEQ; hold <b>SAVE</b>: white keys 1–4 queue a slot. Hold <b>REC</b> off SEQ: FILL. SAVE's third page:
+        Hold <b>GLO</b>: white keys 1–4 queue a slot (two or more a chain), the top C# / D# queue variation 1 / 2;
+        hold <b>SAVE</b>: white keys 1–4 a slot, the black keys a variation. Hold <b>REC</b> off SEQ: FILL. SAVE's third page:
         COPY / PASTE.</p>
       <figure class="device-screen">
         <canvas width="240" height="240" role="img" aria-label="The FM-1's screen"></canvas>

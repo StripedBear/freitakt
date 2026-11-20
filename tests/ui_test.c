@@ -72,11 +72,14 @@ static void test_families(void)
     release_all();
     press(B_SCL);
     ui_frame();
+    check("SEL pressed: KEYS waits for the release (SEL + a black key selects a track)", !ui.keys);
     release_all();
+    ui_frame();
     check("ENV (STEPS, 2026-10-24) then SCL: KEYS on (STEPS off), the page stays", !ui.home && cur_page()->fam == FAM_LFO && ui.keys);
     press(B_SCL);                                    /* KEYS off again */
     ui_frame();
     release_all();
+    ui_frame();
     press(B_EDIT);
     ui_frame();
     release_all();
@@ -1482,200 +1485,263 @@ static void test_quick_mute(void)
           trk[5].p[P_MUTE] == 1 && trk[0].p[P_MUTE] == 0);
 }
 
-/* spec §5: the MUTE screen. GLO tapped (let go within 0.4 s, no key meanwhile): the GLOBAL pages, on the release; GLO
- * held 0.4 s, or a key pressed with it: the MUTE screen while GLO is held (the white keys F3..F4 toggle the tracks'
- * mutes, top C# / D# the mode; the keys play nothing); let go: the screen before */
+/* FREITAKT combos (Elektron Model:Cycles style): hold a button, press a key. GLO tapped (let go within 0.4 s, no key
+ * meanwhile): the GLOBAL pages, on the release; GLO + white n: pattern slot n, + C#5 / D#5 variation 1 / 2 (cue_test);
+ * SEL + black 1..6: select; SEQ + black 1..6: mute; ARP + black 1..6: solo, + F#5 the SOLO mode. The keys pressed
+ * with one of them play nothing, record nothing, toggle no step */
 static uint32_t glo_bit(void) { return 1u << panel.btn[B_GLO]; }
-static void glo_hold_frames(uint32_t n)
+static void btn_hold_frames(uint32_t b, uint32_t n)
 {
     uint32_t i;
     for (i = 0; i < n; i++) {
-        fm1_in.buttons |= glo_bit();
+        fm1_in.buttons |= 1u << panel.btn[b];
         ui_frame();
     }
 }
-static void glo_key(uint32_t key)                    /* a key tapped while GLO is held */
+static void btn_key(uint32_t b, uint32_t key)          /* a key tapped while button b is held */
 {
     keys(1u << key);
-    glo_hold_frames(2);                              /* (the render hands the key over after the UI's pass) */
+    btn_hold_frames(b, 2);                           /* (the render hands the key over after the UI's pass) */
     keys(0);
-    glo_hold_frames(1);
+    btn_hold_frames(b, 1);
 }
-static int mute_box_filled(uint32_t k)               /* track k's box: lit inside (audible), not just its outline */
-{
-    return fb[(MU_BY(k) + MU_BH - 3u) * 240u + MU_BX(k) + 3u] == C_INK;
-}
-/* SOLO on the MUTE screen: the black keys F#3 .. A#4 solo tracks 1..8 (TOGGLE: a tap on / off; MOMENTARY: while
- * held), F#5 flips the mode (a device setting, its key lit while MOMENTARY); the soloed keys lit; no sound */
-static const uint8_t SOLO_BK[NTRK] = {1, 3, 5, 8, 10, 13};
-static void test_mute_screen_solo(void)
+static void glo_hold_frames(uint32_t n) { btn_hold_frames(B_GLO, n); }
+static void glo_key(uint32_t key) { btn_key(B_GLO, key); }
+static const uint8_t SOLO_BK[NTRK] = {1, 3, 5, 8, 10, 13};   /* black keys 1..6 */
+/* ARP + black 1..6: SOLO tracks 1..6 (TOGGLE: a tap on / off; MOMENTARY: while held), ARP + F#5 flips the mode (a
+ * device setting, its key lit while ARP is held and MOMENTARY); the soloed keys lit while ARP is held; no sound */
+static void test_arp_solo(void)
 {
     uint32_t a, k, ok;
     ui_host_init();
     solo_mom = 0;
     song.solo = 0;
-    press(B_GLO);
-    glo_hold_frames(450);
-    check("SOLO: the MUTE screen up, nothing soloed, F#5 dark (TOGGLE)", ui.mute && !song.solo && !led_lit(14u + 25u));
+    press(B_ARP);
+    btn_hold_frames(B_ARP, 50);
+    check("ARP held: nothing soloed, its keys dark, F#5 dark (TOGGLE)", !song.solo && !led_lit(14u + 25u) &&
+          !led_lit(14u + SOLO_BK[0]));
     a = hit_age(&trk[2]);
-    glo_key(SOLO_BK[2]);
-    check("SOLO TOGGLE: black key 3 solos track 3, its key lit, no sound, no select",
+    btn_key(B_ARP, SOLO_BK[2]);
+    check("SOLO TOGGLE: ARP + black key 3 solos track 3, its key lit, no sound, no select",
           song.solo == 1u << 2 && led_lit(14u + SOLO_BK[2]) && hit_age(&trk[2]) == a && song.sel == 0);
-    glo_key(SOLO_BK[5]);
-    check("SOLO TOGGLE: black key 6 adds track 6", song.solo == (1u << 2 | 1u << 5));
+    btn_key(B_ARP, SOLO_BK[5]);
+    check("SOLO TOGGLE: ARP + black key 6 adds track 6", song.solo == (1u << 2 | 1u << 5));
     ok = 1;
     for (k = 0; k < NTRK; k++)
         ok &= trk_silent(&trk[k]) == !(k == 2u || k == 5u);
     check("SOLO: only the soloed tracks are heard", ok);
-    snap_page("fixes/mute_screen_solo");
-    glo_key(SOLO_BK[2]);
-    glo_key(SOLO_BK[5]);
+    btn_key(B_ARP, SOLO_BK[2]);
+    btn_key(B_ARP, SOLO_BK[5]);
     check("SOLO TOGGLE: the same keys again unsolo", song.solo == 0u && !led_lit(14u + SOLO_BK[2]));
-    glo_key(25u);                                    /* F#5 */
-    check("F#5 flips the mode to MOMENTARY (saved), its key lit, the top line says so",
+    btn_key(B_ARP, 25u);                             /* F#5 */
+    check("ARP + F#5 flips the mode to MOMENTARY (saved), its key lit, the top line says so",
           solo_mom == 1u && led_lit(14u + 25u) && str_eq(ui.msg, "SOLO: MOMENTARY"));
     keys(1u << SOLO_BK[0]);
-    glo_hold_frames(3);
+    btn_hold_frames(B_ARP, 3);
     check("SOLO MOMENTARY: black key 1 held = track 1 soloed", song.solo == 1u);
     keys(0);
-    glo_hold_frames(2);
+    btn_hold_frames(B_ARP, 2);
     check("SOLO MOMENTARY: let go = unsoloed", song.solo == 0u);
     keys(1u << SOLO_BK[5]);
-    glo_hold_frames(3);
-    release_all();                                   /* GLO let go first, the key still held */
+    btn_hold_frames(B_ARP, 3);
+    release_all();                                   /* ARP let go first, the key still held */
     ui_frame();
     ui_frame();
-    check("SOLO MOMENTARY: GLO let go with the key held: still soloed, the screen gone",
-          song.solo == 1u << 5 && !ui.mute);
+    check("SOLO MOMENTARY: ARP let go with the key held: still soloed, its LED back to the page's",
+          song.solo == 1u << 5 && !led_lit(14u + 25u));
     keys(0);
     ui_frame();
     ui_frame();
     check("SOLO MOMENTARY: the key let go later: unsoloed", song.solo == 0u);
-    press(B_GLO);
-    glo_hold_frames(450);
-    glo_key(25u);
-    check("F#5 again: TOGGLE", solo_mom == 0u && !led_lit(14u + 25u) && str_eq(ui.msg, "SOLO: TOGGLE"));
+    press(B_SAVE);                                   /* (a black key with SAVE: a variation, no unsolo) */
+    song.solo = 1u;
+    keys(1u << SOLO_BK[0]);
+    btn_hold_frames(B_SAVE, 3);
+    keys(0);
+    btn_hold_frames(B_SAVE, 2);
     release_all();
     ui_frame();
+    check("SOLO MOMENTARY: a black key let go that ARP did not hold unsolos nothing", song.solo == 1u);
+    song.solo = 0;
+    press(B_ARP);
+    btn_key(B_ARP, 25u);
+    check("ARP + F#5 again: TOGGLE", solo_mom == 0u && !led_lit(14u + 25u) && str_eq(ui.msg, "SOLO: TOGGLE"));
+    release_all();
+    ui_frame();
+    check("ARP let go: no page change", ui.home);
 }
-static void test_mute_screen(void)
+/* SEL + black 1..6: track 1..6 selected (on every page), the selected one's black key lit while SEL is held; a SEL
+ * tap with no key: KEYS on / off, on the release */
+static void test_sel_select(void)
+{
+    uint32_t a, k, ok = 1;
+    ui_host_init();
+    tap(B_EDIT);                                     /* (any page: SOUND) */
+    a = hit_age(&trk[3]);
+    press(B_SCL);
+    btn_hold_frames(B_SCL, 2);
+    check("SEL held: track 1's black key lit", led_lit(14u + SOLO_BK[0]) && !led_lit(14u + SOLO_BK[3]));
+    btn_key(B_SCL, SOLO_BK[3]);
+    check("SEL + black key 4: track 4 selected, its key lit, no sound", song.sel == 3u && led_lit(14u + SOLO_BK[3]) &&
+          !led_lit(14u + SOLO_BK[0]) && hit_age(&trk[3]) == a);
+    for (k = 0; k < NTRK; k++) {
+        btn_key(B_SCL, SOLO_BK[k]);
+        ok &= song.sel == k;
+    }
+    btn_key(B_SCL, 20u);                             /* (C#5: nothing) */
+    check("SEL + black keys 1..6 select tracks 1..6; other keys nothing", ok && song.sel == 5u);
+    release_all();
+    ui_frame();
+    check("SEL let go after a key: KEYS stays off, the page stays", !ui.keys && !ui.home && cur_fam() == FAM_SND);
+    tap(B_SCL);
+    check("SEL tapped alone: KEYS on", ui.keys);
+    a = hit_age(&trk[5]);
+    press(B_SCL);
+    btn_key(B_SCL, SOLO_BK[1]);
+    release_all();
+    ui_frame();
+    check("KEYS: SEL + black key 2 selects track 2, plays no note, KEYS stays on", song.sel == 1u && ui.keys &&
+          !kz.key && hit_age(&trk[5]) == a);
+    tap(B_SCL);
+    check("SEL tapped again: KEYS off", !ui.keys);
+    press(B_SCL);
+    btn_hold_frames(B_SCL, 2000);
+    release_all();
+    ui_frame();
+    check("SEL held 2 s alone, let go: still a KEYS toggle (no key pressed)", ui.keys);
+    tap(B_SCL);
+    ui.menu = 1;
+    ui.force = 1;
+    press(B_SCL);
+    btn_key(B_SCL, SOLO_BK[2]);
+    release_all();
+    ui_frame();
+    check("menu: SEL dead (no select, no KEYS)", song.sel == 1u && !ui.keys);
+    ui.menu = 0;
+    ui.force = 1;
+    ui_frame();
+}
+/* SEQ + black 1..6: tracks 1..6 muted / unmuted (MUTE NOW / NEXT BAR), no TOOLS, no page turn; the audible tracks'
+ * black keys lit while SEQ is held (a mute waiting for the bar blinks); SEQ + a white key, or held 0.4 s: TOOLS */
+static void test_seq_mute(void)
 {
     uint32_t a, k, ok, l1, l2;
     ui_host_init();
     settings.mutebar = 0;
     kit_session();                                   /* track 6 muted */
     song.rec = 0;
-    press(B_GLO);
-    ui_frame();
-    check("GLO pressed: nothing yet (GLOBAL waits for the release)", ui.home && !ui.mute);
-    release_all();
-    ui_frame();
-    check("GLO tapped: GLOBAL 1/3 on the release, no MUTE screen",
-          !ui.home && cur_fam() == FAM_GLO && ui.page == page_first(FAM_GLO) && !ui.mute);
-    tap(B_GLO);
-    tap(B_GLO);
-    check("GLO taps go on: SYSTEM 2/3, GLOBAL 3/3", !ui.home && ui.page == page_first(FAM_GLO) + 2u);
-    tap(B_HOME);
-    check("(HOME again)", ui.home);
-    press(B_GLO);
-    glo_hold_frames(150);
-    check("GLO held 0.15 s: no screen yet", !ui.mute && ui.home);
-    glo_hold_frames(300);
-    check("GLO held 0.4 s: the MUTE screen over HOME", ui.mute && ui.home);
-    snap_page("fixes/mute_screen");
+    a = hit_age(&trk[2]);
+    press(B_SEQ);
+    btn_hold_frames(B_SEQ, 2);
     ok = 1;
     for (k = 0; k < NTRK; k++)
-        ok &= led_lit(14u + KEY_TRK_KEY[k]) == !trk[k].p[P_MUTE] && mute_box_filled(k) == !trk[k].p[P_MUTE];
-    check("MUTE screen: boxes filled and keys lit for the audible tracks (track 6 muted: outline, dark)", ok);
-    check("MUTE screen: top C# lit (NOW), top D# dark", led_lit(14u + 20u) && !led_lit(14u + 22u));
-    a = hit_age(&trk[2]);
-    glo_key(KEY_TRK_KEY[2]);
-    check("MUTE screen: key 3 mutes track 3; no sound, no track select", trk[2].p[P_MUTE] == 1 &&
-          hit_age(&trk[2]) == a && song.sel == 0 && !mute_box_filled(2) && !led_lit(14u + KEY_TRK_KEY[2]));
-    glo_key(KEY_TRK_KEY[5]);
-    check("MUTE screen: key 6 unmutes track 6", trk[5].p[P_MUTE] == 0 && mute_box_filled(5));
-    glo_key(22u);                                    /* top D# */
-    check("MUTE screen: top D# = NEXT BAR (the setting), its key lit", settings.mutebar == 1u && led_lit(14u + 22u) &&
-          !led_lit(14u + 20u));
-    transport_req = 1;
-    seq_play_to(0, 2);
-    glo_key(KEY_TRK_KEY[0]);
-    check("NEXT BAR while playing: track 1's mute waits for the bar", trk[0].p[P_MUTE] == 0 && (song.mute_q & 1u));
-    host_ticks += 250u * 1000u * FM1_TICKS_PER_US;
-    glo_hold_frames(1);
-    l1 = led_lit(14u + KEY_TRK_KEY[0]);
-    a = mute_box_filled(0);
-    host_ticks += 250u * 1000u * FM1_TICKS_PER_US;
-    glo_hold_frames(1);
-    l2 = led_lit(14u + KEY_TRK_KEY[0]);
-    check("the waiting mute blinks (key LED and box, 250 ms)", l1 != l2 && a != (uint32_t)mute_box_filled(0));
-    for (k = 0; k < 400u && mute_box_filled(0); k++)  /* the screenshot in the outline phase */
-        glo_hold_frames(1);
-    shot("build/ui_shots/fixes/mute_waiting.ppm");
-    seq_play_to(0, 0);
-    check("at the bar: track 1 muted", trk[0].p[P_MUTE] == 1 && !song.mute_q);
-    glo_key(20u);                                    /* top C# */
-    check("MUTE screen: top C# = NOW", settings.mutebar == 0u);
-    turn(EN_K2, 5);
-    a = (uint32_t)trk[0].p[P_E1];
-    glo_hold_frames(1);
-    check("MUTE screen: the knobs edit nothing under it", (uint32_t)trk[0].p[P_E1] == a);
+        ok &= led_lit(14u + SOLO_BK[k]) == !trk[k].p[P_MUTE];
+    check("SEQ held: the audible tracks' black keys lit (track 6 muted: dark)", ok && !ui.tools);
+    btn_key(B_SEQ, SOLO_BK[2]);
+    check("SEQ + black key 3 mutes track 3; no sound, no select, no TOOLS", trk[2].p[P_MUTE] == 1 &&
+          hit_age(&trk[2]) == a && song.sel == 0 && !ui.tools && !led_lit(14u + SOLO_BK[2]));
+    btn_key(B_SEQ, SOLO_BK[5]);
+    check("SEQ + black key 6 unmutes track 6", trk[5].p[P_MUTE] == 0 && led_lit(14u + SOLO_BK[5]));
+    btn_hold_frames(B_SEQ, 600);
+    btn_key(B_SEQ, STEP_KEY[0]);
+    check("SEQ held past 0.4 s after a black key: still no TOOLS (a white key neither)", !ui.tools &&
+          trk[0].p[P_MUTE] == 0);
     release_all();
     ui_frame();
-    check("GLO let go: the screen gone, HOME as before (no GLOBAL page: not a tap)", !ui.mute && ui.home);
+    check("SEQ let go: no page turn (HOME still)", ui.home && !ui.tools);
+    settings.mutebar = 1;                            /* NEXT BAR */
+    transport_req = 1;
+    seq_play_to(0, 2);
+    press(B_SEQ);
+    btn_key(B_SEQ, SOLO_BK[0]);
+    check("NEXT BAR while playing: track 1's mute waits for the bar", trk[0].p[P_MUTE] == 0 && (song.mute_q & 1u));
+    host_ticks += 250u * 1000u * FM1_TICKS_PER_US;
+    btn_hold_frames(B_SEQ, 1);
+    l1 = led_lit(14u + SOLO_BK[0]);
+    host_ticks += 250u * 1000u * FM1_TICKS_PER_US;
+    btn_hold_frames(B_SEQ, 1);
+    l2 = led_lit(14u + SOLO_BK[0]);
+    check("the waiting mute's key blinks (250 ms)", l1 != l2);
+    seq_play_to(0, 0);
+    check("at the bar: track 1 muted", trk[0].p[P_MUTE] == 1 && !song.mute_q);
+    release_all();
+    ui_frame();
     transport_req = 2;
     ui_frame();
     settings.mutebar = 0;
+    trk[0].p[P_MUTE] = trk[2].p[P_MUTE] = 0;
+    press(B_SEQ);                                    /* the black key as SEQ is let go: still the mutes */
+    keys(1u << SOLO_BK[1]);
+    ui_frame();
+    release_all();
+    ui_frame();
+    keys(0);
+    ui_frame();
+    check("a black key struck as SEQ went: track 2 muted, no page turn", trk[1].p[P_MUTE] == 1 && ui.home);
+    trk[1].p[P_MUTE] = 0;
+    press(B_SEQ);
+    btn_key(B_SEQ, STEP_KEY[0]);
+    check("SEQ + a white key: TOOLS, as before", ui.tools);
+    btn_key(B_SEQ, SOLO_BK[0]);
+    check("TOOLS up: black key 1 is COPY STEP's, no mute", ui.tools && trk[0].p[P_MUTE] == 0);
+    release_all();
+    ui_frame();
+    press(B_SEQ);
+    btn_hold_frames(B_SEQ, 500);
+    check("SEQ held 0.5 s alone: TOOLS", ui.tools);
+    btn_key(B_SEQ, SOLO_BK[3]);
+    check("TOOLS up: black key 4 is a tool's, no mute", trk[3].p[P_MUTE] == 0);
+    release_all();
+    ui_frame();
+    tap(B_SEQ);
+    check("a SEQ tap still turns the SEQ pages", !ui.home && cur_fam() == FAM_SEQ);
 }
-
-/* Review focus 1: keys with GLO never play or record; GLO let go with a key held leaves nothing stuck */
-static void test_mute_screen_keys(void)
+/* GLO: a tap opens GLOBAL; held alone or with a key: no page; the keys with GLO never play or record or edit a step;
+ * GLO let go with a key held leaves nothing stuck */
+static void test_glo_keys(void)
 {
     uint32_t a, sel, n, k;
     step_t s0;
     ui_host_init();
-    settings.mutebar = 0;
+    press(B_GLO);
+    ui_frame();
+    check("GLO pressed: nothing yet (GLOBAL waits for the release)", ui.home);
+    release_all();
+    ui_frame();
+    check("GLO tapped: GLOBAL 1/3 on the release", !ui.home && cur_fam() == FAM_GLO && ui.page == page_first(FAM_GLO));
+    tap(B_GLO);
+    tap(B_GLO);
+    check("GLO taps go on: SYSTEM 2/3, GLOBAL 3/3", !ui.home && ui.page == page_first(FAM_GLO) + 2u);
+    tap(B_HOME);
+    press(B_GLO);
+    glo_hold_frames(600);
+    release_all();
+    ui_frame();
+    check("GLO held 0.6 s alone: no GLOBAL page (not a tap)", ui.home);
     a = hit_age(&trk[4]);
     sel = song.sel;
     press(B_GLO);
     keys(1u << KEY_TRK_KEY[4]);                      /* GLO and a white key in the same frame */
     glo_hold_frames(2);
-    check("GLO + a key in the same frame: the MUTE screen, track 5 muted, no sound, no select",
-          ui.mute && trk[4].p[P_MUTE] == 1 && hit_age(&trk[4]) == a && song.sel == sel);
+    check("GLO + a key in the same frame: no sound, no select", hit_age(&trk[4]) == a && song.sel == sel);
     release_all();                                   /* GLO let go, the key still held */
     ui_frame();
     ui_frame();
-    check("GLO let go with the key held: the screen gone, no GLOBAL page, still no sound",
-          !ui.mute && ui.home && hit_age(&trk[4]) == a && (kb_mute >> KEY_TRK_KEY[4]) & 1u);
+    check("GLO let go with the key held: no GLOBAL page, still no sound",
+          ui.home && hit_age(&trk[4]) == a && (kb_mute >> KEY_TRK_KEY[4]) & 1u);
     keys(0);
     ui_frame();
     check("the key let go: nothing held, no sound", !kb_mute && hit_age(&trk[4]) == a);
-    trk[4].p[P_MUTE] = 0;
-    press(B_GLO);
-    glo_hold_frames(100);
-    release_all();
-    ui_frame();
-    check("GLO held 0.1 s alone: a tap, GLOBAL", !ui.home && cur_fam() == FAM_GLO && !ui.mute);
-    tap(B_HOME);
-    press(B_GLO);
-    glo_hold_frames(2);
-    glo_key(KEY_TRK_KEY[1]);
-    release_all();
-    ui_frame();
-    check("GLO with a key, let go quickly: no GLOBAL page (not a tap)", ui.home && trk[1].p[P_MUTE] == 1);
-    trk[1].p[P_MUTE] = 0;
     ui_frame();
     a = hit_age(&trk[0]);                            /* the ISR before the UI's pass sees GLO */
     fm1_in.buttons |= glo_bit();
     keys(1u << KEY_TRK_KEY[0]);
     render_mix(0, 0, CTL);
-    check("GLO + a key before the UI's pass: the key is the screen's, no note", (kb_mute & 1u) && hit_age(&trk[0]) == a);
-    glo_hold_frames(2);
-    check("then the UI: the MUTE screen, track 1 muted", ui.mute && trk[0].p[P_MUTE] == 1);
+    check("GLO + a key before the UI's pass: the key is GLO's, no note", (kb_mute & 1u) && hit_age(&trk[0]) == a);
     keys(0);
     release_all();
     ui_frame();
-    trk[0].p[P_MUTE] = 0;
+    ui_frame();
     tap(B_SCL);                                      /* KEYS on: the keys play the selected track */
     a = hit_age(&trk[0]);
     press(B_GLO);
@@ -1683,7 +1749,7 @@ static void test_mute_screen_keys(void)
     glo_hold_frames(2);
     keys(0);
     glo_hold_frames(1);
-    check("KEYS: GLO + a key plays no note", hit_age(&trk[0]) == a && !kz.key && ui.mute);
+    check("KEYS: GLO + a key plays no note", hit_age(&trk[0]) == a && !kz.key);
     release_all();
     ui_frame();
     tap(B_SCL);                                      /* KEYS off */
@@ -1697,24 +1763,31 @@ static void test_mute_screen_keys(void)
     glo_key(KEY_TRK_KEY[0]);
     for (k = 0, sel = 0; k < 16u; k++)
         sel += trk[0].step[k].on;
-    check("TRACKS armed: GLO + key 1 records nothing, plays nothing, mutes track 1",
-          sel == n && hit_age(&trk[0]) == a && trk[0].p[P_MUTE] == 1);
+    check("TRACKS armed: GLO + key 1 records nothing, plays nothing", sel == n && hit_age(&trk[0]) == a);
     release_all();
     ui_frame();
-    check("GLO let go: TRACKS again, still armed", mix_mode() && song.rec == 1u && !ui.mute);
+    check("GLO let go: TRACKS again, still armed", mix_mode() && song.rec == 1u);
     tap(B_REC);
     transport_req = 2;
     ui_frame();
-    trk[0].p[P_MUTE] = 0;
     seq_open("STEP");
     s0 = TSEL->step[0];
     press(B_GLO);
     glo_key(0);
     release_all();
     ui_frame();
-    check("STEP grid: GLO + key 1 toggles no step (track 1 muted instead)", TSEL->step[0].on == s0.on &&
-          trk[0].p[P_MUTE] == 1);
-    trk[0].p[P_MUTE] = 0;
+    check("STEP grid: GLO + key 1 toggles no step", TSEL->step[0].on == s0.on);
+    seq_open("STEP");
+    s0 = TSEL->step[1];
+    press(B_ARP);
+    btn_key(B_ARP, STEP_KEY[1]);
+    release_all();
+    ui_frame();
+    press(B_SCL);
+    btn_key(B_SCL, STEP_KEY[1]);
+    release_all();
+    ui_frame();
+    check("STEP grid: ARP / SEL + key 2 toggle no step", TSEL->step[1].on == s0.on && !ui.keys);
 }
 
 /* ---- step tools (spec 2026-10-31 §3): SEQ held 0.4 s (or SEQ + a key) = the TOOLS screen while held; a SEQ tap still
@@ -1870,7 +1943,7 @@ static void test_tools_seq_tap(void)
     transport_req = 2;
     ui_frame();
     song.rec = 0;
-    seq_open("STEP");                                /* the SEQ pages: black keys are the variations, white the steps */
+    seq_open("STEP");                                /* the SEQ pages: white keys the steps */
     k = cue.q_var;
     press(B_SEQ);
     keys(1u << TK_CPPAGE);
@@ -1879,10 +1952,11 @@ static void test_tools_seq_tap(void)
     seq_hold_frames(2);
     keys(0);
     seq_hold_frames(1);
-    check("TOOLS on STEP: SEQ + a black key queues no variation, a white key toggles no step", cue.q_var == k &&
-          !TSEL->step[3].on && ui.tools);
+    check("STEP: SEQ + a black key first: the mutes (track 3 muted; no TOOLS, no variation), a white key then toggles "
+          "no step", cue.q_var == k && !TSEL->step[3].on && !ui.tools && trk[2].p[P_MUTE] == 1);
     release_all();
     ui_frame();
+    trk[2].p[P_MUTE] = 0;
     check("TOOLS: let go on STEP: STEP still (no tap)", str_eq(cur_page()->title, "STEP") && !ui.tools);
     tap(B_REC);                                      /* (REC tapped: armed; REC held on STEP: its CLEAR TRACK) */
     tap(B_REC);
@@ -2284,48 +2358,47 @@ static void test_save_dead(void)
     ui.force = 1;
     ui_frame();
     settings.mutebar = 0;
-    press(B_GLO);
-    keys(1u << KEY_TRK_KEY[4]);
-    glo_hold_frames(2);
-    check("GLO held: the MUTE screen's keys still toggle mutes", ui.mute && trk[4].p[P_MUTE] == 1);
+    press(B_SEQ);
+    keys(1u << SOLO_BK[4]);
+    btn_hold_frames(B_SEQ, 2);
+    check("SEQ held: black key 5 still mutes track 5", trk[4].p[P_MUTE] == 1);
     keys(0);
     release_all();
     ui_frame();
     trk[4].p[P_MUTE] = 0;
 }
-static void test_mute_screen_refused(void)
+static void test_combo_refused(void)
 {
     uint32_t i;
     ui_host_init();
     ui.menu = 1;
     ui.force = 1;
-    press(B_GLO);
-    glo_hold_frames(450);
-    glo_key(KEY_TRK_KEY[0]);
-    check("menu: GLO held, no MUTE screen, no mute", !ui.mute && trk[0].p[P_MUTE] == 0);
+    press(B_ARP);
+    btn_key(B_ARP, SOLO_BK[0]);
+    check("menu: ARP + black key 1 dead, no solo", !song.solo);
     menu_close();
-    glo_hold_frames(450);
-    check("GLO held out of the menu: dead (no screen)", !ui.mute);
+    btn_key(B_ARP, SOLO_BK[0]);
+    check("ARP held out of the menu: dead until let go", !song.solo);
     release_all();
     ui_frame();
-    check("..and its release is no tap", ui.home);
+    check("..and its release does nothing", ui.home);
     ui.confirm = 1;
     ui.force = 1;
     press(B_GLO);
-    glo_hold_frames(450);
-    check("confirm: no MUTE screen", !ui.mute);
+    glo_hold_frames(5);
     release_all();
     ui_frame();
+    check("confirm: GLO no GLOBAL page", ui.home && ui.confirm);
     ui.confirm = 0;
     ui.force = 1;
     ui_frame();
     project_save(0);
     name_open(NK_RENAME, 0);
-    press(B_GLO);
-    glo_hold_frames(450);
-    check("NAME: no MUTE screen", !ui.mute && name_on());
+    press(B_SCL);
+    btn_key(B_SCL, SOLO_BK[2]);
     release_all();
     ui_frame();
+    check("NAME: SEL + black key 3 selects nothing", song.sel == 0u && name_on() && !ui.keys);
     name_close();
     ui_frame();
     press(B_FX);
@@ -2333,28 +2406,22 @@ static void test_mute_screen_refused(void)
         fm1_in.buttons |= 1u << panel.btn[B_FX];
         ui_frame();
     }
+    press(B_ARP);
+    keys(1u << SOLO_BK[1]);
+    for (i = 0; i < 5u; i++) {
+        fm1_in.buttons |= 1u << panel.btn[B_FX] | 1u << panel.btn[B_ARP];
+        ui_frame();
+    }
+    keys(0);
+    check("PERFORM layer: ARP + a black key is the layer's (no solo)", ui.layer && !song.solo);
     press(B_GLO);
     for (i = 0; i < 450u; i++) {
         fm1_in.buttons |= 1u << panel.btn[B_FX] | glo_bit();
         ui_frame();
     }
-    check("PERFORM layer: no MUTE screen", ui.layer && !ui.mute);
     release_all();
     ui_frame();
     check("PERFORM layer: GLO a plain button there (its release opens GLOBAL)", !ui.home && cur_fam() == FAM_GLO);
-    press(B_GLO);
-    glo_hold_frames(450);
-    press(B_FX);
-    for (i = 0; i < 500u; i++) {
-        fm1_in.buttons |= 1u << panel.btn[B_FX] | glo_bit();
-        ui_frame();
-    }
-    check("MUTE screen up: FX opens no layer", ui.mute && !ui.layer && !perf_mask);
-    release_all();
-    ui_frame();
-    ui_frame();
-    check("all let go: neither, no page change (not a tap)", !ui.mute && !ui.layer && cur_fam() == FAM_GLO &&
-          ui.page == page_first(FAM_GLO));
 }
 
 /* HOME's TRACKS mode while a track is armed: the white keys play (and record) their tracks instead of the steps; REC
@@ -3101,17 +3168,16 @@ static void test_backlight_leds(void)
           keys_dim_except(1u << 20 | 1u << KEY_TRK_KEY[0]));
     keys(0);
     ui_frame();
-    {                                                /* the MUTE screen: audible tracks' keys full, the rest 5 % */
+    {                                                /* SEQ held: audible tracks' black keys full, the rest 5 % */
         uint32_t m = 0;
         trk[5].p[P_MUTE] = 1;
-        press(B_GLO);
-        glo_hold_frames(500);
+        press(B_SEQ);
+        btn_hold_frames(B_SEQ, 2);
         for (k = 0; k < NTRK; k++)
             if (!trk[k].p[P_MUTE])
-                m |= 1u << KEY_TRK_KEY[k];
-        m |= 1u << 20;                               /* top C#: MUTE NOW */
-        check("BACKLIGHT ON, MUTE screen: audible tracks and the mode key full, every other key 5 %",
-              ui.mute && led_level(14u + KEY_TRK_KEY[5]) == 5u && led_level(14u + KEY_TRK_KEY[0]) == 100u &&
+                m |= 1u << SOLO_BK[k];
+        check("BACKLIGHT ON, SEQ held: audible tracks' black keys full, every other key 5 %",
+              !ui.tools && led_level(14u + SOLO_BK[5]) == 5u && led_level(14u + SOLO_BK[0]) == 100u &&
               keys_dim_except(m));
         release_all();
         ui_frame();
@@ -3230,9 +3296,9 @@ static void test_backlight_beats_everywhere(void)
     i &= (uint32_t)no_beat_layer();
     ui.menu = 0;
     ui_frame();
-    press(B_GLO);
-    glo_hold_frames(500);
-    i &= ui.mute && no_beat_layer();
+    press(B_ARP);
+    btn_hold_frames(B_ARP, 500);
+    i &= mod_live(ui.arp_t0) && no_beat_layer();
     release_all();
     ui_frame();
     press(B_FX);
@@ -3825,24 +3891,6 @@ static void test_tracks_peak_tick(void)
     check("TRACKS: a loud track's live peak marks its level box", d >= 4u);
 }
 
-static void test_mute_boxes(void)
-{
-    uint32_t k, ok = 1;
-    ui_host_init();
-    settings.mutebar = 0;
-    press(B_GLO);
-    glo_hold_frames(500);
-    for (k = 0; k < NTRK; k++)
-        ok &= mute_box_filled(k);
-    trk[2].p[P_MUTE] = 1;
-    glo_hold_frames(2);
-    check("MUTE: 8 boxes, an audible track's solid; muting track 3 makes its box an outline", ui.mute && ok &&
-          !mute_box_filled(2) && mute_box_filled(1) && fb[MU_BY(2u) * 240u + MU_BX(2u) + 10u] == C_INK);
-    trk[2].p[P_MUTE] = 0;
-    release_all();
-    ui_frame();
-}
-
 static void test_perform_buttons(void)
 {
     uint32_t x = 4u + 47u, y = Y_GRAPH + 3u, on, off;
@@ -4070,9 +4118,9 @@ static void test_theme_sheet(void)
         sheet_snap("11_name");
         nm.kind = NK_NONE;
         sheet_open();
-        press(B_GLO);
-        glo_hold_frames(500);
-        sheet_snap("12_mute");
+        press(B_SEQ);
+        btn_hold_frames(B_SEQ, 500);
+        sheet_snap("12_tools");
         release_all();
         sheet_open();
         safe_start = 1;
@@ -9109,39 +9157,39 @@ static void test_fk_perform_own_knobs(void)
 }
 
 /* review of fix-keys (item 7: PERFORM is its own page, never the page under it; item 1: OCT+ alone, the next bank on
- * its release): OCT+ let go under the MUTE screen or PERFORM, or held across either, moves no bank under it */
+ * its release): OCT+ let go under TOOLS or PERFORM, or held across either, moves no bank under it */
 static void test_fk_oct_under_mute_perform(void)
 {
-    uint32_t octb = 1u << panel.btn[B_OCTUP], glob = 1u << panel.btn[B_GLO];
+    uint32_t octb = 1u << panel.btn[B_OCTUP], glob = 1u << panel.btn[B_SEQ];
     int was;
     ui_host_init();
     trk[0].p[P_SLEN] = 32;                           /* two banks */
     open_step_page();
     press(B_OCTUP);
     ui_frame();
-    press(B_GLO);
+    press(B_SEQ);
     ui_frame();
     host_ticks += 500u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
-    was = ui.mute;
-    fm1_in.buttons &= ~octb;                         /* OCT+ let go under the MUTE screen */
+    was = ui.tools;
+    fm1_in.buttons &= ~octb;                         /* OCT+ let go under TOOLS */
     ui_frame();
-    check("OCT+ held, GLO held into MUTE, OCT+ let go under it: no bank change", was && ui.bank == 0u);
+    check("OCT+ held, SEQ held into TOOLS, OCT+ let go under it: no bank change", was && ui.bank == 0u);
     release_all();
     ui_frame();
-    check("..GLO let go: the STEP page, bank 1", !ui.mute && step_keys() && ui.bank == 0u);
+    check("..SEQ let go: the STEP page, bank 1", !ui.tools && step_keys() && ui.bank == 0u);
     press(B_OCTUP);
     ui_frame();
-    press(B_GLO);
+    press(B_SEQ);
     ui_frame();
     host_ticks += 500u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
-    was = ui.mute;
-    fm1_in.buttons &= ~glob;                         /* MUTE closed, OCT+ still held */
+    was = ui.tools;
+    fm1_in.buttons &= ~glob;                         /* TOOLS closed, OCT+ still held */
     ui_frame();
     release_all();                                   /* OCT+ let go on the steps */
     ui_frame();
-    check("OCT+ held across the MUTE screen, let go on the steps: no bank change", was && ui.bank == 0u);
+    check("OCT+ held across TOOLS, let go on the steps: no bank change", was && ui.bank == 0u);
     press(B_OCTUP);
     ui_frame();
     press(B_FX);
@@ -10150,10 +10198,11 @@ int main(void)
     test_home_modes();
     test_rec_everywhere();
     test_quick_mute();
-    test_mute_screen();
-    test_mute_screen_solo();
-    test_mute_screen_keys();
-    test_mute_screen_refused();
+    test_glo_keys();
+    test_arp_solo();
+    test_sel_select();
+    test_seq_mute();
+    test_combo_refused();
     test_tools_seq_tap();                            /* step tools (spec 2026-10-31 §3): SEQ held */
     test_tools_screen();
     test_tools_clear();
@@ -10299,7 +10348,6 @@ int main(void)
     test_graph_lfo_fill();
     test_tracks_row_items();
     test_tracks_peak_tick();
-    test_mute_boxes();
     test_perform_buttons();
     test_home_strip();
     test_home_knob_values_below();

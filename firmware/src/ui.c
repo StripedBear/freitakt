@@ -21,6 +21,7 @@ static void cue_map_refresh(void);         /* .. the cue map's per-slot state, o
 static void cue_poll(void);                /* .. a cue's switch finished (the ISR's: cue.c) */
 static int cue_slot(uint32_t s);           /* .. queue slot s / variation v (SAVE + a white key / a black key) */
 static int cue_var(uint32_t v);
+static int chain_set(const uint8_t *slots, uint32_t n);   /* .. the pattern chain (GLO + 2 or more white keys) */
 static int cue_led(uint32_t n);            /* .. the cue map's key n (1..4 slots, 5..12 variations): CM_* */
 static int32_t proj_loaded(void);          /* .. the slot loaded, -1 none */
 static void project_copy(uint32_t s);      /* .. COPY / PASTE of a slot (the COPY page) */
@@ -113,10 +114,10 @@ static struct {
     uint32_t fx_t0;              /* PERFORM: FX's press time | FX_DOWN / FX_OPEN / FX_DEAD (ui_input.c fx_layer) */
     uint8_t layer;               /* PERFORM: the layer's map shows (FX held open, or a layer key still held) */
     uint8_t pg_open, pg_page, pg_home;   /* PERFORM PAGE: the screen open; the page / HOME under it when it opened */
-    uint32_t glo_t0;             /* GLO's press time | GLO_DOWN OPEN DEAD PLAIN (ui_input.c glo_input) */
+    uint32_t glo_t0, sel_t0, arp_t0;   /* GLO's, SEL's, ARP's press time | MOD_DOWN KEY DEAD PLAIN (ui_input.c
+                                        * mod_input: the combos) */
     uint32_t cue_t0;             /* SAVE's press time | CUE_DOWN OPEN DEAD PLAIN (ui_input.c cue_input) */
     uint8_t cue_map;             /* SAVE held: the cue map (white keys the slots, black keys the variations, 2026-10-26) */
-    uint8_t mute;                /* the MUTE screen shows (GLO held, spec §5) */
     uint32_t seq_t0;             /* SEQ's press time | TL_DOWN OPEN DEAD PLAIN (ui_tools.c tools_input) */
     uint8_t tools;               /* the TOOLS screen shows (SEQ held, spec 2026-10-31 §3: the step copy tools) */
     uint8_t keys;                /* KEYS (spec §5): an SCL tap; off at power-on, never stored */
@@ -552,9 +553,9 @@ static void track_mute_toggle(uint32_t k)
         panic_req |= (uint8_t)(1u << k);
 }
 
-/* SOLO (the SMC-Mixer; the MUTE screen's black keys, ui_input.c): track k soloed (on 1) / not (0) / the other (2); the
+/* SOLO (the SMC-Mixer; ARP + the black keys, ui_input.c): track k soloed (on 1) / not (0) / the other (2); the
  * tracks this silences cut what they play, as a mute does */
-static uint8_t solo_mom;                               /* SOLO on the MUTE screen: 0 TOGGLE, 1 MOMENTARY (F#5; a device
+static uint8_t solo_mom;                               /* SOLO by ARP + a black key: 0 TOGGLE, 1 MOMENTARY (+ F#5; a device
                                                         * setting: project.c, the palette word's bit 15) */
 static void track_solo_set(uint32_t k, uint32_t on)
 {

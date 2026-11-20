@@ -152,9 +152,9 @@ static const param_desc_t GP[G_COUNT] = {
 static const char *const N_MUTEBAR[] = {"NOW", "BAR"};
 static const char *const N_METRO[] = {"OFF", "LOW", "MID", "HIGH"};
 static const char *const N_QUANT[] = {"1/16", "1/8", "1/32", "OFF"};   /* seq.c QUANT_16 .. QUANT_OFF */
-static const param_desc_t GP_ACT[8] = {PE("CLR*", N_GO, 0), PE("INIT*", N_GO, 0), PE("MUTE", N_MUTEBAR, 0),
+static const param_desc_t GP_ACT[9] = {PE("CLR*", N_GO, 0), PE("INIT*", N_GO, 0), PE("MUTE", N_MUTEBAR, 0),
                                        PE("METRO", N_METRO, 0), PE("COPY", N_GO, 0), PE("PASTE", N_GO, 0),
-                                       PE("THRU", N_ONOFF, 0), PE("QUANT", N_QUANT, 0)};
+                                       PE("THRU", N_ONOFF, 0), PE("QUANT", N_QUANT, 0), PE("LEARN", N_ONOFF, 0)};
 
 /* the INSERT's A B C as its TYPE names them (Skiff 1.3, from Felucca 1.5; insert.c): the drives, CRUSH, the swept
  * ones; OFF: TP's A B C */

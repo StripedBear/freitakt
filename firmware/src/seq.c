@@ -35,10 +35,11 @@ static int ed_restoring(void);
 #endif
 #define MIC_DUE 1u                               /* track_t.mic (MICRO, seq_tick): the playing step's late hit to come */
 #define MIC_EARLY 2u                             /* .. step mic_idx's early hit played (the step before it playing) */
-static volatile uint32_t mute_mask;   /* main: GLO's bit while the MUTE screen may take keys (ui_input.c glo_input), SAVE's
+static volatile uint32_t mute_mask;   /* main: GLO's, SEL's, ARP's bits while their combos may take keys (ui_input.c
+                                       * mod_input), SEQ's (ui_tools.c), SAVE's
                                        * while the cue map may (cue_input), 0 = none; armed before the button is pressed
                                        * (a key struck with it is the screen's) */
-static volatile uint32_t kb_mute;     /* ISR: the keys held that are the MUTE screen's (pressed with GLO) */
+static volatile uint32_t kb_mute;     /* ISR: the keys held that are a combo's (pressed with one of those buttons) */
 static volatile uint32_t kb_mute_hit; /* ISR -> main: those presses, until the UI takes them */
 static volatile uint32_t kb_mute_up;  /* ISR -> main: their releases (SOLO MOMENTARY: ui_input.c mute_ups) */
 static volatile uint8_t ml_keys;      /* main: MIDI LEARN is on (ui_learn.c): a PERFORM layer key picks its effect */
@@ -46,7 +47,6 @@ static volatile uint32_t ml_kb_hit;   /* ISR -> main: those presses (no effect p
 /* key index (0 = F3, the lowest key) of the white keys F3 G3 A3 B3 C4 D4 -> tracks 1..6 (E4 F4, Hortator's
  * tracks 7 and 8: nothing) */
 static const uint8_t KEY_TRK_KEY[NTRK] = {0, 2, 4, 6, 7, 9};
-#define KEY_LEARN 14u                    /* G4, the first white key above F4: MIDI LEARN on the MUTE screen (ui_learn.c) */
 /* the STEP grid: steps 1..16 of a bank on the 16 white keys F3 G3 A3 B3 C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5
  * (key index from F3); the black keys do nothing there */
 static const uint8_t STEP_KEY[16] = {0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26};
@@ -608,8 +608,8 @@ static void keyboard_block(void)
                 else
                     perf_key_down(key);                 /* (a rate key: REPEAT STEP's rate) */
                 ch &= ~bit;
-            } else if (fm1_in.buttons & mute_mask) {   /* GLO held: the MUTE screen's until let go (ui_input.c
-                                                         * glo_input takes kb_mute_hit): no note, no MIDI */
+            } else if (fm1_in.buttons & mute_mask) {   /* a combo button held: its own until let go (ui_input.c
+                                                         * mod_input takes kb_mute_hit): no note, no MIDI */
                 kb_mute |= bit;
                 kb_mute_hit |= bit;
                 ch &= ~bit;

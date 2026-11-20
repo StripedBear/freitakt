@@ -45,6 +45,7 @@ COPY 3/3 copies a whole slot.
 | **KNOB 1** | SLOT | A to D |
 | **KNOB 2** | COPY | remembers SLOT's slot (`COPIED A`; `EMPTY SLOT` if unused) |
 | **KNOB 3** | PASTE | turn twice: makes SLOT's slot a copy (kit, steps, locks, and variations), named `... COPY`, unsaved until SAVE |
+| **KNOB 4** | LEARN | MIDI LEARN `ON` / `OFF` (see *MIDI*; not part of COPY / PASTE, it just lives here) |
 
 PASTE again on the same slot before saving undoes it (`PASTE UNDONE`). Not while playing (`STOP TO PASTE`); `COPY A SLOT FIRST`, `SAME SLOT`. The tempo and other globals are kept when pasting onto the loaded slot.
 

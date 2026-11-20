@@ -23,13 +23,14 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | --- | --- |
 | **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the scope, the track's first four knobs, the keys play the tracks; SELECT goes on to the compressor's pages). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
 | **EDIT** | The selected track's sound: its model and knobs. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
-| **SEQ** | The steps on the white keys, then PATTERN and MOTION (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a key with it) for the step TOOLS screen. |
+| **SEQ** | The steps on the white keys, then PATTERN and MOTION (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a white key with it) for the step TOOLS screen. **SEQ + black key 1 to 6**: mute / unmute track 1 to 6 (see *Combos*). |
 | **FX** | The track's FILTER, FX (the sends), INSERT (with SRR): 5 pages. **Hold FX** for PERFORM. |
 | **LFO** | The track's two LFOs side by side, then DEST. |
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
-| **SCL** | KEYS: the keys play the selected track chromatically. Labelled SEL in the web simulator. |
-| **GLO** | A tap: GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **Hold GLO**: the MUTE screen (mutes, solo, MIDI LEARN on G4). |
-| **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages). **Hold SAVE**: the cue map. |
+| **SCL** | Labelled SEL. A tap (on the release, no key pressed while held): KEYS, the keys play the selected track chromatically. **SEL + black key 1 to 6**: select track 1 to 6. |
+| **GLO** | A tap (on the release, within 0.4 s, no key pressed): GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + C#5 / D#5**: variation 1 / 2 (see *Combos*). |
+| **ARP** | **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
+| **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s off the SEQ pages: a fill. Hold 0.7 s on a SEQ page: CLEAR TRACK. See *Playing and recording*. |
 | **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS; NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
@@ -44,9 +45,23 @@ On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to D4) is lit
 
 ## The keys
 
-- **16 white keys**: the steps 1 to 16 of the current bank (up to four banks, 64 steps); on HOME the white keys F3 to D4 play tracks 1 to 6; with [[GLO]] held they mute them.
-- **11 black keys**: with [[FX]] held, live effects on the whole mix. In KEYS, the sharps. On HOME and SEQ the first 8 black keys queue variations (see Sequencer).
-- **Held buttons** change what the keys do: [[GLO]] held: white keys mute, black keys solo; [[FX]] held: black keys are effects, white keys F3 to D4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held: step copy and paste tools; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
+- **16 white keys** (white 1 = F3 ... white 16 = G5): the steps 1 to 16 of the current bank (up to four banks, 64 steps); on HOME the white keys F3 to D4 play tracks 1 to 6.
+- **11 black keys** (black 1 to 11 = F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5): with [[FX]] held, live effects on the whole mix. In KEYS, the sharps. Alone they keep their page's job (a black key alone no longer queues a variation). Black keys 1 to 6 are tracks 1 to 6 for the combos below.
+- **Held buttons** change what the keys do: the combos below; [[FX]] held: black keys are effects, white keys F3 to D4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held 0.4 s (or with a white key): step copy and paste tools; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
+
+## Combos
+
+Hold the button, press the key (Elektron Model:Cycles style). They work on every page; a key pressed with the button plays no note, sends no MIDI and records nothing. Not in the menu, a dialog, NAME, the PRESETS list or TOOLS; with PERFORM up the buttons are plain buttons.
+
+| Combo | What it does | LEDs while the button is held |
+| --- | --- | --- |
+| **SEL + black 1 to 6** | Select track 1 to 6. A SEL tap with no key pressed still turns KEYS on / off, on its release. | The selected track's black key |
+| **SEQ + black 1 to 6** | Mute / unmute track 1 to 6, at once or on the next bar (GLOBAL's MUTE). No TOOLS screen and no page turn for that hold. Once the TOOLS screen is up (SEQ held 0.4 s, or a white key pressed first), the black keys are its tools again. | The audible tracks' black keys; a mute waiting for the bar blinks |
+| **ARP + black 1 to 6** | Solo track 1 to 6: TOGGLE (a press on / off) or MOMENTARY (while the key is held). | The soloed tracks' black keys |
+| **ARP + F#5** (black 11) | SOLO TOGGLE / MOMENTARY (saved). | F#5 lit while MOMENTARY |
+| **GLO + white n** | Queue pattern slot n (A to D: white 1 to 4; whites 5 to 16 do nothing), as the cue map does. | The playing slot's white key; a queued one blinks |
+| **GLO + 2 or more whites** | On GLO's release: the pattern chain of those slots, in the order pressed (repeats allowed, up to 16). One white alone is a plain cue and ends a chain. | as above |
+| **GLO + C#5 / D#5** (black 9 / 10) | Queue variation 1 / 2 of the playing slot (the engine has 8; the others are on the SAVE cue map). | The playing variation's key; a queued one blinks |
 
 ## Screens and the top bar
 

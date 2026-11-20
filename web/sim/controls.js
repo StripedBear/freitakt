@@ -4,12 +4,12 @@
 // the 27 keys, the computer keyboard map, and the held-state bookkeeping the page uses.
 // tip: what the control does (the page shows it on hover), as the firmware has it
 export const BTN = [
-  { c: 'B_FX', label: 'FX', tip: 'FX pages; hold for PERFORM' }, { c: 'B_SCL', label: 'SEL', tip: 'KEYS: the keys play the selected track' },
+  { c: 'B_FX', label: 'FX', tip: 'FX pages; hold for PERFORM' }, { c: 'B_SCL', label: 'SEL', tip: 'tap: KEYS (the keys play the selected track); hold + black keys 1-6: select a track' },
   { c: 'B_ENV', label: 'ENV', tip: 'STEPS / TRACKS: the keys as the track\'s steps; hold a step + turn = a lock' }, { c: 'B_LFO', label: 'LFO', tip: 'the track\'s two LFOs' },
-  { c: 'B_EDIT', label: 'EDIT', tip: 'the selected track\'s sound' }, { c: 'B_GLO', label: 'GLO', tip: 'tap: GLOBAL; hold: the MUTE screen' },
+  { c: 'B_EDIT', label: 'EDIT', tip: 'the selected track\'s sound' }, { c: 'B_GLO', label: 'GLO', tip: 'tap: GLOBAL; hold + white keys 1-4: queue a pattern (2 or more: a chain); + top C# / D#: variation 1 / 2' },
   { c: 'B_HOME', label: 'HOME', tip: 'TRACKS / HOME (a tap switches); hold for the menu' },
-  { c: 'B_SAVE', label: 'SAVE', tip: 'tap: projects and tools; hold: the cue map (white keys 1-4 slots, black keys variations)' }, { c: 'B_ARP', label: 'ARP', tip: 'unused' },
-  { c: 'B_SEQ', label: 'SEQ', tip: 'steps, PATTERN, MOTION' },
+  { c: 'B_SAVE', label: 'SAVE', tip: 'tap: projects and tools; hold: the cue map (white keys 1-4 slots, black keys variations)' }, { c: 'B_ARP', label: 'ARP', tip: 'hold + black keys 1-6: solo a track; + top F#: SOLO toggle / momentary' },
+  { c: 'B_SEQ', label: 'SEQ', tip: 'steps, PATTERN, MOTION; hold: the step tools; hold + black keys 1-6: mute a track' },
   { c: 'B_PLAY', label: 'PLAY', tip: 'play / stop' }, { c: 'B_REC', label: 'REC', tip: 'arm the selected track to record, on any page; hold off SEQ: FILL' },
   { c: 'B_OCTDN', label: 'OCT-' }, { c: 'B_OCTUP', label: 'OCT+' },
 ];

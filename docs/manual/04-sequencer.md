@@ -67,12 +67,12 @@ Up to **1024 events** per project are shared by all tracks and by parameter lock
 
 While a pattern plays you can queue the next project slot (A to D) or another variation, and it comes in exactly where the pattern ends (its longest track's), every track from its first step, in time.
 
-- On HOME and the SEQ pages the first 8 black keys (F#3 to A#4) queue variations 1 to 8 of the playing slot: the playing one's key lit, a queued one blinking (not with KEYS on).
+- **Hold GLO** and press white key 1 to 4 to queue slot A to D (whites 5 to 16: nothing), or C#5 / D#5 (black 9 / 10) to queue variation 1 / 2 of the playing slot, on any page. While GLO is held the playing slot's white key and the playing variation's key are lit, a queued one blinks. Released after a key, GLO opens no page. (A black key alone no longer queues a variation.)
 - **Hold SAVE** (0.4 s, or press a key with it) for the **cue map**: white keys 1 to 4 queue slots A to D; black keys queue variations 1 to 8 (lit: used, winking: playing, blinking: queued, breathing: unsaved edits). A slot key then a variation key queues both (`CUE>B3` on top). The same key again switches at the next step; the playing slot's key cancels; stopped, a cue switches at once; STOP drops a queued cue. Keys pressed with SAVE play no note, send no MIDI and record nothing.
 - A **slot** switch brings the slot's sounds, steps, timing and locks; the tempo, swing, clock, MIDI, master effects, mutes and selected track stay. The old sounds fade out over the last 5 ms. A **variation** switch changes the steps and timing only; the sounds ring on.
 - Each slot has **8 variations** (both versions): variation 1 is its own steps; 2 to 8 hold their own steps and timing and share the slot's sounds and locks. A variation never used before starts as a copy of the one playing. A slot comes back on the variation it played last. When a slot's variations are full: `VARIATIONS FULL`.
 - Following an external clock (USB or TRS) the switch comes on the pulse that ends the pattern.
-- **Chain:** up to 16 slots can play in turn, each switching at the pattern end (or MLEN's boundary), wrapping at the end; empty slots are skipped. HOME shows the chain under the strip when it has more than one entry (playing inverted, next underlined). STOP ends the chain (the slot playing stays). For now it is set from the console only: `chain 1 1 3 2` (slots A to D as 1 to 4); `chain` alone clears it.
+- **Chain:** up to 16 slots can play in turn, each switching at the pattern end (or MLEN's boundary), wrapping at the end; empty slots are skipped. HOME shows the chain under the strip when it has more than one entry (playing inverted, next underlined). STOP ends the chain (the slot playing stays). Set it with **GLO held + 2 or more white keys**: on GLO's release the chain is those slots in the order pressed (repeats allowed, up to 16; white keys past D are left out). GLO + a single white key is a plain cue and ends the chain. The console also sets it: `chain 1 1 3 2` (slots A to D as 1 to 4); `chain` alone clears it.
 
 ## NUDGE: a step early or late
 
@@ -95,7 +95,7 @@ GLOBAL 3/7 [[KNOB 4]] **QUANT** decides where a live-recorded hit goes (keys, MI
 
 ## Step tools: hold SEQ
 
-Hold [[SEQ]] (0.4 s, or press a key with it) for the **TOOLS** screen for the selected track. A quick SEQ tap still turns the SEQ pages, now on its release. The white keys are the bank's 16 steps, [[OCT-]] / [[OCT+]] the bank, and the black keys are the tools:
+Hold [[SEQ]] (0.4 s, or press a white key with it) for the **TOOLS** screen for the selected track. A quick SEQ tap still turns the SEQ pages, now on its release. A black key pressed with SEQ before the screen is up mutes a track instead (black 1 to 6: tracks 1 to 6; see *The panel*, Combos): that hold opens no TOOLS and turns no page. The white keys are the bank's 16 steps, [[OCT-]] / [[OCT+]] the bank, and the black keys are the tools:
 
 | Key | Tool |
 | --- | --- |

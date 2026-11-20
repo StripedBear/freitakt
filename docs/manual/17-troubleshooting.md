@@ -5,7 +5,7 @@
 
 | Symptom | Cause and fix |
 | --- | --- |
-| No sound from a track | The track is muted (MUTE screen: hold [[GLO]]), a solo is active (MUTE screen black keys, or the SMC-Mixer), LEVEL is `MUTE`/0, its pattern is empty, or its PRIO LOW voice was shed. A SAMPL track on an empty set (SLOT shows `--`), or on PLAY CHOP past the set's last sample, is silent. |
+| No sound from a track | The track is muted (hold [[SEQ]]: its black key dark; press it to unmute), a solo is active (hold [[ARP]]: the soloed tracks' black keys lit; or the SMC-Mixer), LEVEL is `MUTE`/0, its pattern is empty, or its PRIO LOW voice was shed. A SAMPL track on an empty set (SLOT shows `--`), or on PLAY CHOP past the set's last sample, is silent. |
 | A mute does not land | MUTE is NEXT BAR: it blinks and lands on the next downbeat. |
 | REC did not start playing | By design: [[REC]] arms only; [[PLAY]] starts the transport. |
 | `STOP TO EDIT` / `STOP TO LOAD` / `STOP TO SAVE` / `STOP TO PASTE` | The transport is running. Stop first. |

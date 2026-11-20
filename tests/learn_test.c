@@ -33,40 +33,28 @@ static int check(const char *what, int ok)
 static int same(const char *a, const char *b) { return !strcmp(a, b); }
 
 /* ---- the panel */
-static uint32_t glo_bit(void) { return 1u << panel.btn[B_GLO]; }
-static void glo_hold_frames(uint32_t n)
-{
-    uint32_t i;
-    for (i = 0; i < n; i++) {
-        fm1_in.buttons |= glo_bit();
-        ui_frame();
-    }
-}
-static void glo_key(uint32_t key)                    /* a key tapped while GLO is held */
-{
-    keys(1u << key);
-    glo_hold_frames(2);
-    keys(0);
-    glo_hold_frames(1);
-}
-static void glo_up(void)
-{
-    release_all();
-    ui_frame();
-}
-#define KEY_G4 14u
-static void learn_toggle(void)                       /* GLO held, G4, GLO let go */
-{
-    press(B_GLO);
-    glo_hold_frames(450);                            /* the MUTE screen (0.4 s) */
-    glo_key(KEY_G4);
-    glo_up();
-}
 static void tap(uint32_t b)
 {
     press(b);
     ui_frame();
     release_all();
+    ui_frame();
+}
+static void copy_page(void)                          /* SAVE tapped until its COPY page shows */
+{
+    uint32_t i;
+    for (i = 0; i < NPAGES && (ui.home || !same(cur_page()->title, "COPY")); i++)
+        tap(B_SAVE);
+}
+static void learn_toggle(void)                       /* SAVE > COPY, KNOB 4 (LEARN) turned, back to the page before */
+{
+    uint8_t pg = ui.page, home = ui.home;
+    copy_page();
+    turn(EN_K1 + 3u, ui.ml.on ? -1 : 1);
+    ui_frame();
+    ui.page = pg;
+    ui.home = home;
+    page_entered();
     ui_frame();
 }
 static void knob(uint32_t k, int32_t s)
@@ -138,19 +126,19 @@ static void test_flow(void)
     char ln[32], want[32];
     uint32_t a, v;
     fresh();
-    press(B_GLO);
-    glo_hold_frames(450);
-    check("GLO held: the MUTE screen", ui.mute);
-    snap("mute_learn_off");
+    copy_page();
+    check("SAVE > COPY: KNOB 4 is LEARN, OFF", cur_page()->id[3] == G_LEARN && song.act[6] == 0);
+    snap("copy_learn_off");
     a = hit_age(&trk[0]);
-    glo_key(KEY_G4);
-    check("MUTE screen + G4: LEARN on, the top bar says MIDI LEARN ON", ui.ml.on && same(ui.msg, "MIDI LEARN ON"));
-    check("G4 played nothing (the MUTE screen's key), its LED lit while LEARN is on", hit_age(&trk[0]) == a &&
-          led_lit(14u + KEY_G4));
+    knob(3, 1);
+    check("COPY + KNOB 4: LEARN on, the top bar says MIDI LEARN ON, the knob shows ON", ui.ml.on &&
+          same(ui.msg, "MIDI LEARN ON") && song.act[6] == 1);
     ui.msg_t = 0;
-    snap("mute_learn_on");
-    glo_up();
-    check("GLO let go: HOME again, LEARN still on", !ui.mute && ui.home && ui.ml.on);
+    snap("copy_learn_on");
+    knob(3, 1);
+    check("KNOB 4 on further: LEARN stays on, nothing picked", ui.ml.on && !ui.ml.pick);
+    tap(B_HOME);
+    check("HOME: LEARN still on", ui.home && ui.ml.on && hit_age(&trk[0]) == a);
     ml_line(ln);
     check("the line: LEARN: TURN OR PRESS", same(ln, "LEARN: TURN OR PRESS"));
     snap("line_turn_a_knob");
@@ -341,7 +329,7 @@ static void test_ends(void)
     oct(B_OCTDN);
     project_save(0);                                 /* (slot A used: NAME renames it) */
     learn_toggle();
-    for (k = 0; k < 4u && cur_page()->graph != GR_SLOTS; k++)
+    for (k = 0; k < 4u && !same(cur_page()->title, "PROJECT"); k++)   /* (SAVE: its last page, COPY, first) */
         tap(B_SAVE);
     knob(1, 1);                                      /* PROJECT NAME: renames */
     frames(1);
@@ -356,12 +344,10 @@ static void test_ends(void)
     check("the next SOUND knob picks", ui.ml.pick && ui.ml.id == page_id(cur_page(), 1));
     fresh();
     learn_toggle();
-    press(B_GLO);
-    glo_hold_frames(450);
-    turn(EN_K2, 3);
-    glo_hold_frames(1);
-    check("the MUTE screen's knobs pick nothing", !ui.ml.pick);
-    glo_up();
+    copy_page();
+    knob(3, -1);
+    check("COPY's LEARN knob turned back: LEARN off (LEARN DONE), nothing picked", !ui.ml.on && !ui.ml.pick &&
+          same(ui.msg, "LEARN DONE"));
 }
 
 /* a MODEL turn to a model without the picked knob: the pick goes (no "T1 -: SEND A CC") */
@@ -1228,7 +1214,7 @@ static void test_act_stuck(void)
     send_cc(22, 0);
     send_cc(22, 127);
     project_save(0);
-    for (perf_kill = 0; cur_page()->graph != GR_SLOTS;)
+    for (perf_kill = 0; ui.home || !same(cur_page()->title, "PROJECT");)   /* (SAVE: its last page, COPY, first) */
         tap(B_SAVE);
     knob(1, 1);
     frames(1);
