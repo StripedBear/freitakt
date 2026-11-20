@@ -9831,6 +9831,41 @@ static void test_lock_cells(void)
     check("locks: step held: a locked cell shows the lock inverted, the others their value; LOCK STEP 5; let go: the "
           "knobs' values", ok);
 }
+/* while playing (Model:Cycles: locks are entered with the pattern running): the held step + a knob locks it, the
+ * held step's cells show the lock, and the step plays it on the next pass (the knob's own value on the others) */
+static void test_lock_while_playing(void)
+{
+    char want[16], val[12];
+    const char *unit;
+    uint32_t ok, id, k;
+    int16_t lv = 0, own;
+    lock_fresh();
+    tap(B_EDIT);
+    for (k = 0; k < 16u; k++)
+        trk[0].step[k].on = 1;
+    trk[0].p[P_SLEN] = 16;
+    transport_req = 1;
+    seq_play_to(0, 1);
+    id = lock_id(1);
+    own = trk[0].p[id];
+    grid_down(WHITE[4]);
+    grid_wait(350);
+    turn(EN_K2, 5);
+    ui_frame();
+    ok = song.playing && id < P_COUNT && lock_get(0, 4, id, &lv) && lv != own;
+    param_format(track_desc(TSEL, id), lv, val, &unit);
+    snprintf(want, sizeof want, "|%sB", val);
+    ok &= strstr(ui.col[1], want) != 0;                /* the held step's cell: the lock, inverted */
+    grid_up(WHITE[4]);
+    seq_play_to(0, 4);
+    ok &= trk[0].seq_idx == 4u && trk[0].p[id] == lv;  /* step 5 plays its lock */
+    seq_play_to(0, 5);
+    ok &= trk[0].p[id] == own;                         /* the next step the knob's own value */
+    transport_req = 2;
+    ui_frame();
+    check("locks while playing: a held step + KNOB 2 locks it, the held cell shows the lock, step 5 plays it and "
+          "step 6 the knob's own value", ok);
+}
 static void test_lock_full(void)
 {
     uint32_t i;
@@ -10401,6 +10436,7 @@ int main(void)
     test_lock_entry_every_page();                    /* parameter locks: entry and clearing */
     test_lock_before_hold();
     test_lock_cells();
+    test_lock_while_playing();
     test_lock_full();
     test_lock_clear_page();
     test_lock_clear_all();
