@@ -39,6 +39,7 @@ static int pl_on(void);                    /* .. the PRESETS list shows */
 static void draw_popup(void);
 static void draw_plist(void);
 static void draw_tools(void);              /* ui_tools.c: the TOOLS screen (SEQ held) */
+static int splash_draw(void);             /* ui_menu.c: the FREITAKT boot splash (1: a frame of it drawn) */
 static int preset_user_save(uint32_t slot, const track_t *t);   /* project.c: the user presets' flash record */
 static void preset_user_delete(uint32_t slot);
 
@@ -78,6 +79,10 @@ static struct {
     uint8_t hot_col, hot_t;      /* column whose knob was just turned (drawn white; ZOOM): hot_t on */
     uint32_t hot_t0;             /* .. the last turn (fm1_ticks: HOT_MS after it, off) */
     uint8_t menu;                /* 0 off, 1 list, 2 about (HOME held), 3 Bluetooth (BLE build: bt_page.c) */
+    uint8_t splash;              /* the boot splash (ui_menu.c): 0 off, 1 to start, 2 running, 3 skipped (the keys
+                                  * let go first) */
+    uint8_t sp_sub, sp_bar;      /* .. the subtitle's glyphs and cursor shown, the bar's width shown */
+    uint32_t sp_t0;              /* .. its start (fm1_ms) */
     uint8_t menu_sel;
     uint8_t about_top;           /* ABOUT: the first credits row shown (ui_menu.c; 0 whenever ABOUT opens) */
     uint32_t menu_sig, home_t0;

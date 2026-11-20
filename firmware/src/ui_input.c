@@ -1173,6 +1173,10 @@ static void ui_input(void)
     int32_t s, dt;
     if (safe_start)                                     /* safe start: no pages, no edits */
         return;
+    if (ui.splash) {                                    /* the boot splash: a key skips it, and only that */
+        splash_input(pressed, notes);
+        return;
+    }
     acc_oct_poll();                                     /* OCT+ let go on the steps: the next bank (item 1) */
     env_poll(now, pressed);                             /* ENV: STEPS / TRACKS */
     pre_frame(now);                                     /* PRESETS: EDIT's hold, the popup's time (ui_preset.c) */

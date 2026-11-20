@@ -2577,6 +2577,8 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         return;
     }
     ui.frame++;
+    if ((ui.splash == 1u || ui.splash == 2u) && splash_draw())   /* the boot splash (ui_menu.c) */
+        return;
     if (ui.menu) {
         draw_menu();
         ui.force = 0;

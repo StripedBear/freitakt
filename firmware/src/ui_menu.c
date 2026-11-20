@@ -214,19 +214,144 @@ static void menu_close(void)
     go_home();                                         /* HOME in the mode last shown */
 }
 
-/* the start screen (main.c fm1_main, right after lcd_init; spec 2026-10-19-md-ui §9a): the VU mark still on its
- * downbeat frame, HORTATOR under it, in the stored theme; two bands of 120 rows (the canvas holds 124) */
+#define SPLASH_MS 1200u
+#define SP_Y 76u                                       /* the name's band: y 76..135 */
+#define SP_SUB "MASCHINE // TAKT"
+/* the start screen (main.c fm1_main, right after lcd_init, while the rest starts): the theme reversed (ORANGE: orange
+ * on black), the CRT's beam a line across the middle; the splash runs on from it in the first UI frames */
 static void draw_boot_title(void)
 {
-    uint32_t pass;
-    for (pass = 0; pass < 2u; pass++) {
-        cv_begin_at(240, 120, pass * 120u, C_BG);
-        cv_oy = -(int32_t)(pass * 120u);             /* (drawn in screen rows) */
-        cv_vu(48, 34, 0, 0, 0);
-        md_text(120 - md_text_w(&MD_F3, 2, "HORTATOR") / 2, 168, &MD_F3, 2, "HORTATOR", C_INK);
-        cv_frame(0, 0, 240, 240, C_INK);
-        cv_oy = 0;
-        cv_blit(0, pass * 120u);
+    lcd_fill(0, 0, 240, 240, C_INK);
+    lcd_fill(0, SP_Y + 29u, 240, 2, C_BG);
+    ui.splash = 1;
+}
+
+/* the FREITAKT boot splash (FREITAKT: Model:Cycles style, light): SPLASH_MS of UI frames after boot, no blocking, no
+ * bitmap: the beam sweeps down revealing FREITAKT through scanlines (the rows near it torn sideways), glitch slices
+ * that settle, then the clean name, "MASCHINE // TAKT" typed under it and a boot bar filling. Any key, button or knob
+ * skips it (and does nothing else: ui_input waits for everything let go). Drawn: the name's band (240 x 60) every
+ * frame, the subtitle when it grows, the bar's new part */
+static void sp_row_fill(int32_t y, uint16_t c)
+{
+    uint32_t x;
+    if (y >= 0 && y < (int32_t)cv_h)
+        for (x = 0; x < 240u; x++)
+            cv_px[(uint32_t)y * 240u + x] = swap16(c);
+}
+static void sp_row_shift(int32_t y, int32_t dx, uint16_t g)   /* row y dx px to the right (left: < 0), g in the gap */
+{
+    uint16_t *r = cv_px + (uint32_t)y * 240u;
+    int32_t x;
+    if (y < 0 || y >= (int32_t)cv_h || !dx)
+        return;
+    if (dx > 0)
+        for (x = 239; x >= 0; x--)
+            r[x] = x >= dx ? r[x - dx] : swap16(g);
+    else
+        for (x = 0; x < 240; x++)
+            r[x] = x - dx < 240 ? r[x - dx] : swap16(g);
+}
+static void sp_row_inv(int32_t y, uint16_t a, uint16_t b)
+{
+    uint32_t x;
+    uint16_t sa = swap16(a), sb = swap16(b);
+    if (y >= 0 && y < (int32_t)cv_h)
+        for (x = 0; x < 240u; x++)
+            cv_px[(uint32_t)y * 240u + x] = cv_px[(uint32_t)y * 240u + x] == sa ? sb : sa;
+}
+static uint32_t sp_rnd(uint32_t *r)
+{
+    *r ^= *r << 13;
+    *r ^= *r >> 17;
+    *r ^= *r << 5;
+    return *r;
+}
+static int splash_draw(void)                         /* 0: over (the page drawn whole this frame) */
+{
+    const uint16_t g = C_INK, k = C_BG;               /* the theme reversed */
+    uint32_t t, sc, n, cur, w, r;
+    int32_t lx, y;
+    if (ui.splash == 1) {
+        ui.splash = 2;
+        ui.sp_t0 = fm1_ms;
+        ui.sp_sub = ui.sp_bar = 0;
+        lcd_fill(0, 0, 240, 240, g);
+    }
+    t = fm1_ms - ui.sp_t0;
+    if (t >= SPLASH_MS) {
+        ui.splash = 0;
+        ui.force = 1;
+        return 0;
+    }
+    r = (t / 40u + 1u) * 2654435761u;                 /* (the tears change 25 times a second) */
+    sc = md_fit_sc("FREITAKT", 208, 7u);
+    lx = 120 - md_text_w(&MD_F3, sc, "FREITAKT") / 2;
+    cv_begin(240, 60, g);
+    md_text(lx, 30 - 5 * (int32_t)sc / 2, &MD_F3, sc, "FREITAKT", k);
+    cv_rect(lx - 10, 4, 12, 2, k);                    /* the corner marks */
+    cv_rect(lx - 10, 4, 2, 12, k);
+    cv_rect(240 - lx - 2, 54, 12, 2, k);
+    cv_rect(240 - lx + 8, 44, 2, 12, k);
+    if (t < 500u) {                                   /* the beam's sweep: rows above it through scanlines */
+        int32_t b = (int32_t)(t * 60u / 500u);
+        for (y = 0; y < 60; y++)
+            if (y > b + 1 || (y < b && (y & 1)))
+                sp_row_fill(y, g);
+        for (y = b - 10; y < b; y++)                  /* (the rows just under the beam torn) */
+            sp_row_shift(y, (int32_t)(sp_rnd(&r) % 9u) * 2 - 8, g);
+        sp_row_fill(b, k);
+        sp_row_fill(b + 1, k);
+    } else if (t < 900u) {                            /* glitch slices, settling */
+        int32_t amp = (int32_t)(900u - t) * 24 / 400, i;
+        for (i = 0; i < 3; i++) {
+            int32_t y0 = (int32_t)(sp_rnd(&r) % 54u), h = 2 + (int32_t)(sp_rnd(&r) % 6u);
+            int32_t dx = (int32_t)(sp_rnd(&r) % (uint32_t)(2 * amp + 1)) - amp;
+            int inv = amp > 8 && (sp_rnd(&r) & 1u);
+            for (y = y0; y < y0 + h; y++) {
+                sp_row_shift(y, dx, g);
+                if (inv)
+                    sp_row_inv(y, g, k);
+            }
+        }
+        if (t < 700u)
+            for (y = 1; y < 60; y += 2)
+                sp_row_fill(y, g);
+    }
+    cv_blit(0, SP_Y);
+    n = t < 600u ? 0u : (t - 600u) / 20u;             /* the subtitle typed, a block cursor after it */
+    if (n > sizeof SP_SUB - 1u)
+        n = sizeof SP_SUB - 1u;
+    cur = n < sizeof SP_SUB - 1u || ((t / 120u) & 1u);
+    if (t >= 600u && n * 2u + cur != ui.sp_sub) {
+        char b[sizeof SP_SUB];
+        int32_t x0 = 120 - md_text_w(&MD_F3, 2, SP_SUB) / 2, x;
+        ui.sp_sub = (uint8_t)(n * 2u + cur);
+        str_cpy(b, SP_SUB, n + 1u);
+        cv_begin(240, 12, g);
+        x = md_text(x0, 1, &MD_F3, 2, b, k);
+        if (cur)
+            cv_rect(n ? x + 2 : x0, 0, 8, 12, k);
+        cv_blit(0, SP_Y + 72u);
+    }
+    w = t * 200u / SPLASH_MS;                         /* the boot bar (x 20..219, y 214) */
+    if (w > ui.sp_bar) {
+        lcd_fill(20u + ui.sp_bar, 214, w - ui.sp_bar, 3, k);
+        ui.sp_bar = (uint8_t)w;
+    }
+    return 1;
+}
+/* the splash's input (ui_input): anything pressed or turned skips it; then nothing acts until all is let go */
+static void splash_input(uint32_t pressed, uint32_t notes)
+{
+    uint32_t k, any = pressed | notes;
+    for (k = 0; k < NE; k++)
+        any |= panel_enc(k) != 0;
+    if (ui.splash == 3u) {
+        if (!fm1_in.buttons && !fm1_in.notes)
+            ui.splash = 0;
+    } else if (any) {
+        ui.splash = 3;
+        ui.force = 1;
     }
 }
 

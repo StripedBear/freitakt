@@ -3,7 +3,7 @@
 
 ## Before you start
 
-Install Hortator (see Install, update and recovery) or open the web simulator. At power-on you see the start screen (the HortatoR logo collapsing into a scan line), then the **TRACKS** page. If a project was saved before, the last one saved loads (`LOADED` in the top bar, stopped).
+Install Hortator (see Install, update and recovery) or open the web simulator. At power-on you see the FREITAKT start screen (about 1.2 s; any key or knob skips it), then the **TRACKS** page. If a project was saved before, the last one saved loads (`LOADED` in the top bar, stopped).
 
 You do not need to remember button names yet: every section of the screen is reached by one button, and **HOME** always takes you back.
 

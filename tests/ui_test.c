@@ -3364,8 +3364,8 @@ static void test_backlight_menu(void)
     ui_frame();
 }
 
-/* the start screen (main.c fm1_main, spec 2026-10-19-md-ui §9a): the VU galley mark (the user's pick, C3-4) still on
- * its downbeat frame, HORTATOR under it, the frame; two tones only, in the stored theme */
+/* the start screen (main.c fm1_main, FREITAKT): the theme reversed, the CRT beam across the middle; it starts the
+ * splash (ui.splash 1) */
 static void test_boot_title(void)
 {
     uint32_t t, i, ok = 1;
@@ -3384,14 +3384,72 @@ static void test_boot_title(void)
     theme_set(THEME_TAG | THEME_DEFAULT);
     memset(fb, 0, sizeof fb);
     draw_boot_title();
-    check("boot: the downbeat bar full (52 px over the line, 52 under), solid", fb_count(48, 40, 12, 52, C_INK) == 624u &&
-          fb_count(48, 97, 12, 52, C_INK) == 624u);
-    check("boot: a dithered bar beside it (+ its peak dot), the dotted centre line between",
-          fb_count(66, 60, 12, 32, C_INK) > 30u && fb_count(66, 60, 12, 32, C_INK) <= 12u * 32u / 2u + 24u &&
-          fb[94u * 240u + 48u] == C_INK && fb[94u * 240u + 49u] == C_BG);
-    check("boot: HORTATOR under the mark, the 1 px frame", fb_count(80, 168, 80, 10, C_INK) > 100u &&
-          fb[0] == C_INK && fb[239u * 240u + 120u] == C_INK);
+    check("boot: the ground the theme's ink (ORANGE: black), the beam a 2 px orange line at y 105..106, the splash next",
+          fb_count(0, 0, 240, 105, C_INK) == 240u * 105u && fb_count(0, 105, 240, 2, C_BG) == 480u &&
+          fb_count(0, 107, 240, 133, C_INK) == 240u * 133u && ui.splash == 1u);
+    ui.splash = 0;
     theme_set(settings.palette);
+}
+
+/* the FREITAKT boot splash (ui_menu.c splash_draw): SPLASH_MS of UI frames, two tones, FREITAKT revealed, MASCHINE //
+ * TAKT typed, the boot bar; then the page drawn whole; any key skips it and does nothing else */
+static void test_boot_splash(void)
+{
+    uint32_t i, stray = 0, k, ms, play;
+    ui_host_init();
+    draw_boot_title();
+    fm1_ms = 10000;
+    for (ms = 0; ms < SPLASH_MS; ms += 40u) {
+        fm1_ms = 10000u + ms;
+        ui_frame();
+        for (i = 0; i < 240u * 240u; i++)
+            stray += fb[i] != C_BG && fb[i] != C_INK;
+        if (ms == 240u)
+            shot("build/ui_shots/fixes/splash_1_scan.ppm");
+        if (ms == 600u)
+            shot("build/ui_shots/fixes/splash_2_glitch.ppm");
+    }
+    shot("build/ui_shots/fixes/splash_3_name.ppm");
+    {
+        uint32_t sc = md_fit_sc("FREITAKT", 208, 7u);
+        int32_t lx = 120 - md_text_w(&MD_F3, sc, "FREITAKT") / 2;
+        uint16_t ink = C_INK, bg = C_BG;
+        C_INK = bg, C_BG = ink;                      /* (the theme reversed: region_is_text's ink) */
+        k = region_is_text(lx, (int32_t)SP_Y + 30 - 5 * (int32_t)sc / 2, sc, "FREITAKT") &&
+            region_is_text(120 - md_text_w(&MD_F3, 2, SP_SUB) / 2, (int32_t)SP_Y + 73, 2, SP_SUB);
+        C_INK = ink, C_BG = bg;
+    }
+    check("splash: two tones only; at its end FREITAKT clean, MASCHINE // TAKT under it, the bar (nearly) full",
+          stray == 0u && ui.splash == 2u && k && fb_count(20, 214, 190, 3, C_BG) == 190u * 3u);
+    fm1_ms = 10000u + SPLASH_MS;
+    ui_frame();
+    check("splash: over after SPLASH_MS, HOME drawn whole", ui.splash == 0u && home_line_is("P- V1 T1 L1"));
+    ui_host_init();                                  /* a key skips it, and only that */
+    draw_boot_title();
+    fm1_ms = 20000;
+    ui_frame();
+    fm1_ms += 200u;
+    ui_frame();
+    play = song.playing;
+    press(B_PLAY);
+    ui_frame();
+    check("splash: a button skips it (the page at once), the button does nothing", ui.splash == 3u && !play &&
+          !song.playing && home_line_is("P- V1 T1 L1"));
+    ui_frame();
+    check("splash: .. still held: nothing", ui.splash == 3u && !song.playing);
+    release_all();
+    ui_frame();
+    ui_frame();
+    check("splash: .. let go: the panel works again, no play", ui.splash == 0u && !song.playing);
+    ui_host_init();
+    draw_boot_title();
+    ui_frame();
+    turn(EN_K1, 3);
+    ui_frame();
+    check("splash: a knob skips it, and edits nothing", ui.splash == 3u && !ui.hot_t);
+    ui_frame();
+    check("splash: .. nothing held: over", ui.splash == 0u);
+    fm1_ms = 0;
 }
 
 /* owner 2026-10-23: every colour in both polarities, the COLOR row in the order RED, RED INV, BLUE, BLUE INV, GREEN,
@@ -4071,6 +4129,7 @@ static void test_theme_sheet(void)
         sheet_open();
         draw_boot_title();
         shot("build/ui_shots/themes/boot.ppm");
+        ui.splash = 0;
         sheet_snap("00_home");
         sheet_open();
         tap(B_EDIT);
@@ -10266,6 +10325,7 @@ int main(void)
     test_backlight_beats_everywhere();
     test_backlight_menu();
     test_boot_title();
+    test_boot_splash();
     test_theme_list();
     test_theme_stored();
     test_theme_menu();

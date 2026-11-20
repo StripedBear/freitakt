@@ -111,7 +111,7 @@ static void fm1_main(void)
 #endif
     settings_init();
     lcd_init();
-    draw_boot_title();                              /* ui_menu.c: the HortatoR logo */
+    draw_boot_title();                              /* ui_menu.c: the start screen (the splash runs on in the UI) */
     if (felucca_dbg.magic != DBG_MAGIC) {
         memset(&felucca_dbg, 0, sizeof felucca_dbg);
         felucca_dbg.magic = DBG_MAGIC;

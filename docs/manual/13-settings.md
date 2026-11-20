@@ -67,4 +67,4 @@ When an audio block takes more than 85 % of its time (95 % before 1.0.0, so a su
 
 ## Start screen
 
-The start screen is a **CRT collapse**: the HortatoR logo squashed through five dithered frames into one white scan line that bursts sideways, in the chosen COLOR. The boot guard: a restart inside the first 30 s counts as a failed start, and two in a row enter the built-in bootloader.
+The start screen is the **FREITAKT splash**, in the chosen COLOR reversed (ORANGE: orange on black): a CRT beam sweeps down revealing FREITAKT through scanlines, glitch slices settle, `MASCHINE // TAKT` types itself under the name and a boot bar fills, about 1.2 s in all. It runs after the audio and USB have started, so it delays nothing; any key, button or knob skips it (that press does nothing else). The boot guard: a restart inside the first 30 s counts as a failed start, and two in a row enter the built-in bootloader.
