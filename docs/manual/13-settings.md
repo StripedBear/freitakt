@@ -28,7 +28,7 @@ Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] 
 
 | Row | Values (default) | Notes |
 | --- | --- | --- |
-| **COLOR** | RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV (RED) | the screen's two colours; applies at once. RED is the default red ground and dark ink; RED INV red on black; BLUE white on blue; BLUE INV blue on white; GREEN dark on green; GREEN INV green on black |
+| **COLOR** | ORANGE, ORANGE INV, RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV (ORANGE) | the screen's two colours; applies at once. ORANGE, the default, is black text on an orange ground (the Model:Cycles look); ORANGE INV orange on black; RED a red ground and dark ink; RED INV red on black; BLUE white on blue; BLUE INV blue on white; GREEN dark on green; GREEN INV green on black |
 | **SPEAKER EQ** | FLAT, LOWCUT, BASS+ (FLAT) | LOWCUT is a high-pass at about 110 Hz; BASS+ lifts about 220 Hz and adds bass harmonics for the small speaker |
 | **USB LEVEL** | MASTER, FIXED (MASTER) | whether USB follows the MASTER knob |
 | **PERFORM** | HOLD, PAGE (HOLD) | PAGE keeps the PERFORM screen up after FX is released |
@@ -42,7 +42,7 @@ Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] 
 
 ### COLOR
 
-Six themes: each colour, then its inverse. [[KNOB 1]] steps back and on; [[OCT+]] steps on; both wrap. A device setting, saved when the menu closes. A colour chosen on an older Hortator stays the same.
+Eight themes: each colour, then its inverse, ORANGE first (the default on a new device). [[KNOB 1]] steps back and on; [[OCT+]] steps on; both wrap. A device setting, saved when the menu closes. A colour chosen on an older Hortator stays the same.
 
 ### Knob acceleration (ACCEL)
 

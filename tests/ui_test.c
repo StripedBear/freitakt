@@ -3379,7 +3379,7 @@ static void test_boot_title(void)
         ok &= stray == 0u;
     }
     check("boot: two tones only, in every theme", ok);
-    theme_set(THEME_TAG | 0u);
+    theme_set(THEME_TAG | THEME_DEFAULT);
     memset(fb, 0, sizeof fb);
     draw_boot_title();
     check("boot: the downbeat bar full (52 px over the line, 52 under), solid", fb_count(48, 40, 12, 52, C_INK) == 624u &&
@@ -3395,7 +3395,8 @@ static void test_boot_title(void)
 /* owner 2026-10-23: every colour in both polarities, the COLOR row in the order RED, RED INV, BLUE, BLUE INV, GREEN,
  * GREEN INV (each colour, then its inverse); the stored index is the one before (the old four keep 0..3, the new
  * inverses take 4, 5) */
-static const char *const THEME_SHOWN[6] = {"RED", "RED INV", "BLUE", "BLUE INV", "GREEN", "GREEN INV"};
+static const char *const THEME_SHOWN[8] = {"ORANGE", "ORANGE INV", "RED", "RED INV", "BLUE", "BLUE INV", "GREEN",
+                                           "GREEN INV"};
 
 static uint32_t c8(uint16_t c, uint32_t ch)          /* RGB565 channel ch (0 r, 1 g, 2 b) as 8 bits */
 {
@@ -3414,11 +3415,11 @@ static int near_c(uint16_t a, uint16_t b)             /* the same colour, retune
 
 static void test_theme_list(void)
 {
-    uint32_t i, j, pairs = 0, ok = NTHEMES == 6u;
+    uint32_t i, j, pairs = 0, ok = NTHEMES == 8u;
     char inv[24];
     for (i = 0; i < NTHEMES; i++) {
         size_t n = strlen(THEMES[i].name);
-        ok &= n <= 9u;                               /* "GREEN INV" the longest */
+        ok &= n <= 10u;                              /* "ORANGE INV" the longest */
         if (n > 4u && str_eq(THEMES[i].name + n - 4u, " INV"))
             continue;
         snprintf(inv, sizeof inv, "%s INV", THEMES[i].name);
@@ -3432,12 +3433,12 @@ static void test_theme_list(void)
                     printf("      %s / %s: ink and ground not swapped\n", a->name, b->name);
             }
     }
-    check("themes: 6, RED BLUE GREEN each with its INV (ink and ground swapped, the colours as the base's)",
-          ok && pairs == 3u);
+    check("themes: 8, ORANGE RED BLUE GREEN each with its INV (ink and ground swapped, the colours as the base's)",
+          ok && pairs == 4u);
     for (ok = 1, i = 0; i < NTHEMES; i++)
         ok &= THEMES[theme_index(THEME_TAG | THEME_ORDER[i])].bg == THEMES[THEME_ORDER[i]].bg &&
               str_eq(THEMES[THEME_ORDER[i]].name, THEME_SHOWN[i]);
-    check("themes: shown RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV", ok);
+    check("themes: shown ORANGE, ORANGE INV, RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV", ok);
 }
 
 /* a stored COLOR from any older Hortator loads as the theme it was: the palette ids 0..4 (GREEN AMBER CYAN RED MONO)
@@ -3455,9 +3456,10 @@ static void test_theme_stored(void)
         {2u, RGB(0x24, 0x45, 0xc8), RGB(0xea, 0xf1, 0xff)},              /* CYAN */
         {3u, RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},              /* RED */
         {4u, RGB(0x17, 0x06, 0x05), RGB(0xf0, 0x53, 0x2f)},              /* MONO */
-        {THEME_TAG | 6u, RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},
-        {THEME_TAG | 15u, RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},
-        {0x2Au, RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},
+        {THEME_TAG | 6u, RGB(0xff, 0x8c, 0x00), RGB(0x10, 0x08, 0x00)},  /* ORANGE (FREITAKT) */
+        {THEME_TAG | 7u, RGB(0x10, 0x08, 0x00), RGB(0xff, 0x8c, 0x00)},  /* ORANGE INV */
+        {THEME_TAG | 15u, RGB(0xff, 0x8c, 0x00), RGB(0x10, 0x08, 0x00)},
+        {0x2Au, RGB(0xff, 0x8c, 0x00), RGB(0x10, 0x08, 0x00)},
     };
     uint32_t i, ok = 1, keep = settings.palette;
     for (i = 0; i < sizeof C / sizeof C[0]; i++) {
@@ -3468,7 +3470,7 @@ static void test_theme_stored(void)
             printf("      stored 0x%02x: the wrong theme\n", (unsigned)C[i].stored);
         }
     }
-    check("COLOR: every stored value of an older Hortator loads as the theme it was (0..4, 0x10..0x13; else MD RED)",
+    check("COLOR: every stored value of an older Hortator loads as the theme it was (0..4, 0x10..0x17; else ORANGE)",
           ok);
     for (ok = 1, i = 4u; i < 6u; i++) {
         settings.palette = THEME_TAG | i;
@@ -3481,12 +3483,12 @@ static void test_theme_stored(void)
     settings_init();
 }
 
-/* MENU > COLOR steps the 6 themes in their shown order (KNOB 1 and OCT+) and wraps */
+/* MENU > COLOR steps the 8 themes in their shown order (KNOB 1 and OCT+) and wraps */
 static void test_theme_menu(void)
 {
     uint32_t k, ok, seen = 0;
     ui_host_init();
-    ok = settings.palette == (THEME_TAG | 0u);
+    ok = settings.palette == (THEME_TAG | THEME_DEFAULT);
     ui.menu = 1;
     ui.menu_sel = MI_COLOR;
     ui.force = 1;
@@ -3509,8 +3511,8 @@ static void test_theme_menu(void)
     ui_frame();
     turn(EN_K1, 1);
     ui_frame();
-    ok &= settings.palette == (THEME_TAG | 0u);
-    check("COLOR: a new device is RED; OCT+ steps RED > RED INV > BLUE > BLUE INV > GREEN > GREEN INV > RED (every "
+    ok &= settings.palette == (THEME_TAG | THEME_DEFAULT);
+    check("COLOR: a new device is ORANGE; OCT+ steps ORANGE > ORANGE INV > RED > .. > GREEN INV > ORANGE (every "
           "theme once); KNOB 1 left steps back, right on, both wrap", ok && seen == (1u << NTHEMES) - 1u);
     menu_close();
     ui_frame();
@@ -3557,7 +3559,7 @@ static void test_theme_row_name(void)
     check("MENU: COLOR shows the theme's name (RED .. GREEN INV) right-aligned as the other rows' values, cursor or not",
           ok);
     check("MENU: COLOR draws no boxes (nothing between the label and the name)", clear);
-    settings.palette = THEME_TAG | 0u;
+    settings.palette = THEME_TAG | THEME_DEFAULT;
     theme_set(settings.palette);
     menu_close();
     ui_frame();
@@ -3574,7 +3576,7 @@ static void test_theme_repaint(void)
     ui.menu = 1;
     ui.menu_sel = MI_COLOR;
     ui.force = 1;
-    turn(EN_K1, 1);                                  /* RED -> RED INV -> BLUE (a detent per frame) */
+    turn(EN_K1, 1);                                  /* ORANGE -> ORANGE INV -> RED (a detent per frame) */
     ui_frame();
     turn(EN_K1, 1);
     ui_frame();
@@ -3582,10 +3584,10 @@ static void test_theme_repaint(void)
     ui_frame();
     ui_frame();
     for (i = 0; i < 240u * 240u; i++)
-        stale += fb[i] == THEMES[0].bg || fb[i] == THEMES[0].ink;
-    check("theme change: the whole screen repaints in the new theme (no MD RED pixel left)",
-          settings.palette == (THEME_TAG | 2u) && stale == 0);
-    theme_set(THEME_TAG | 0u);
+        stale += fb[i] == THEMES[THEME_DEFAULT].bg || fb[i] == THEMES[THEME_DEFAULT].ink;
+    check("theme change: the whole screen repaints in the new theme (no ORANGE pixel left)",
+          settings.palette == (THEME_TAG | 0u) && stale == 0);
+    theme_set(THEME_TAG | THEME_DEFAULT);
 }
 
 /* spec 2026-10-19-md-ui §5: the pixels of colour c in a screen rectangle */
@@ -4034,8 +4036,8 @@ static void test_name_block_cursor(void)
 
 /* spec 2026-10-19-md-ui §10: the review sheet: the key pages in each theme into build/ui_shots/themes/<theme>/, every
  * one in two tones only (the theme's BG and INK) */
-static const char *const THEME_DIR[6] = {"md-red", "red-on-black", "white-on-blue", "black-on-green", "blue-on-white",
-                                         "green-on-black"};   /* by stored index */
+static const char *const THEME_DIR[8] = {"md-red", "red-on-black", "white-on-blue", "black-on-green", "blue-on-white",
+                                         "green-on-black", "black-on-orange", "orange-on-black"};   /* by stored index */
 static uint32_t sheet_t;
 static uint32_t sheet_stray;
 static void sheet_snap(const char *page)
@@ -4138,8 +4140,8 @@ static void test_theme_sheet(void)
         tap(B_EDIT);
     }
     sheet_t = 0;
-    theme_set(THEME_TAG | 0u);
-    check("theme sheet: 16 screens in each of the 6 themes, every pixel the theme's BG or INK", sheet_stray == 0u);
+    theme_set(THEME_TAG | THEME_DEFAULT);
+    check("theme sheet: 16 screens in each of the 8 themes, every pixel the theme's BG or INK", sheet_stray == 0u);
 }
 
 /* final review fixes (2026-10-19-md-ui): a 4-glyph value whole; ZOOM on HOME; a shorter message repaints; popups do

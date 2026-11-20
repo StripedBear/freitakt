@@ -9,7 +9,8 @@ import html
 import sys
 from pathlib import Path
 
-THEMES = [("md-red", "RED"), ("red-on-black", "RED INV"), ("white-on-blue", "BLUE"), ("blue-on-white", "BLUE INV"),
+THEMES = [("black-on-orange", "ORANGE"), ("orange-on-black", "ORANGE INV"), ("md-red", "RED"),
+          ("red-on-black", "RED INV"), ("white-on-blue", "BLUE"), ("blue-on-white", "BLUE INV"),
           ("black-on-green", "GREEN"), ("green-on-black", "GREEN INV")]   # MENU > COLOR's order and names
 
 

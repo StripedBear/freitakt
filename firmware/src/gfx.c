@@ -29,17 +29,21 @@ typedef struct {
     uint16_t bg, ink;
 } theme_t;
 static const theme_t THEMES[] = {
-    {"RED", RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},          /* 0 MD RED (default) */
+    {"RED", RGB(0xe0, 0x47, 0x2b), RGB(0x38, 0x10, 0x0a)},          /* 0 MD RED (Hortator's default) */
     {"RED INV", RGB(0x17, 0x06, 0x05), RGB(0xf0, 0x53, 0x2f)},      /* 1 RED ON BLACK */
     {"BLUE", RGB(0x24, 0x45, 0xc8), RGB(0xea, 0xf1, 0xff)},         /* 2 WHITE ON BLUE */
     {"GREEN", RGB(0xa3, 0xbf, 0x3c), RGB(0x1c, 0x2a, 0x08)},        /* 3 BLACK ON GREEN */
     {"BLUE INV", RGB(0xf4, 0xf8, 0xff), RGB(0x24, 0x45, 0xc8)},     /* 4 BLUE ON WHITE */
     {"GREEN INV", RGB(0x0c, 0x12, 0x04), RGB(0xb4, 0xd0, 0x44)},    /* 5 GREEN ON BLACK */
+    {"ORANGE", RGB(0xff, 0x8c, 0x00), RGB(0x10, 0x08, 0x00)},       /* 6 BLACK ON ORANGE (FREITAKT default) */
+    {"ORANGE INV", RGB(0x10, 0x08, 0x00), RGB(0xff, 0x8c, 0x00)},   /* 7 ORANGE ON BLACK */
 };
 #define NTHEMES (sizeof(THEMES) / sizeof(THEMES[0]))
 #define THEME_TAG 0x10u
 _Static_assert(NTHEMES <= 16u, "the theme index is 4 bits (THEME_TAG | index)");
-static const uint8_t THEME_ORDER[NTHEMES] = {0, 1, 2, 4, 3, 5};   /* RED RED INV BLUE BLUE INV GREEN GREEN INV */
+#define THEME_DEFAULT 6u      /* ORANGE: black on orange, the Model:Cycles look (FREITAKT) */
+/* ORANGE ORANGE INV RED RED INV BLUE BLUE INV GREEN GREEN INV */
+static const uint8_t THEME_ORDER[NTHEMES] = {6, 7, 0, 1, 2, 4, 3, 5};
 static uint16_t C_BG, C_INK;
 
 static uint32_t theme_index(uint32_t stored)
@@ -50,7 +54,7 @@ static uint32_t theme_index(uint32_t stored)
         return OLD[stored];
     if ((stored & ~0xFu) == THEME_TAG && (stored & 0xFu) < NTHEMES)
         return stored & 0xFu;
-    return 0;
+    return THEME_DEFAULT;
 }
 
 /* the stored COLOR id one theme on (dir > 0) or back in the shown order, wrapping */
@@ -473,7 +477,7 @@ static void draw_text_box(uint32_t x, uint32_t y, uint32_t w, const box_font_t *
 {
     int32_t tw, tx = 0;
     if (C_BG == C_INK)
-        theme_set(THEME_TAG | 0u);
+        theme_set(THEME_TAG | THEME_DEFAULT);
     tw = md_text_w(&MD_F3, f->sc, s);
     cv_begin(w, 5u * f->sc, c == C_INK ? C_BG : C_BLACK);
     if (align == 1)

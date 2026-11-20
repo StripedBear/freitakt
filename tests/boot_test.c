@@ -416,7 +416,7 @@ static int settings_oversize_refused(void)
     memset(&settings, 0, sizeof settings);           /* power off */
     persist_boot();
     settings_init();
-    return settings.palette == (THEME_TAG | 0u);   /* the default: MD RED */
+    return settings.palette == (THEME_TAG | THEME_DEFAULT);   /* the default: ORANGE */
 }
 
 /* spec 2026-10-10 §8: an older record (no Bluetooth bits) loads exactly as before: SPEAKER EQ BASS+ stays, no device,

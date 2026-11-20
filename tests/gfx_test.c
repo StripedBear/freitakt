@@ -145,12 +145,12 @@ static void test_primitives(void)
 /* spec 2026-10-19-md-ui §2: the stored COLOR id -> theme; old palettes GREEN AMBER CYAN RED MONO map */
 static void test_theme_index(void)
 {
-    static const uint32_t IN[10] = {0, 1, 2, 3, 4, 0x10, 0x11, 0x12, 0x13, 0xFF}, OUT[10] = {3, 0, 2, 0, 1, 0, 1, 2, 3, 0};
+    static const uint32_t IN[10] = {0, 1, 2, 3, 4, 0x10, 0x11, 0x12, 0x13, 0xFF}, OUT[10] = {3, 0, 2, 0, 1, 0, 1, 2, 3, THEME_DEFAULT};
     uint32_t i, ok = 1;
     for (i = 0; i < 10u; i++)
         ok &= theme_index(IN[i]) == OUT[i];
     check("theme_index: old GREEN AMBER CYAN RED MONO -> BLACK ON GREEN, MD RED, WHITE ON BLUE, MD RED, RED ON BLACK; "
-          "THEME_TAG | i -> i; anything else -> MD RED", ok);
+          "THEME_TAG | i -> i; anything else -> ORANGE (the default)", ok);
     theme_set(THEME_TAG | 2u);
     check("theme_set: C_BG / C_INK are the theme's (WHITE ON BLUE)", C_BG == THEMES[2].bg && C_INK == THEMES[2].ink &&
           C_BG == RGB(0x24, 0x45, 0xc8) && C_INK == RGB(0xea, 0xf1, 0xff));
