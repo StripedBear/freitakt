@@ -338,6 +338,7 @@ static void drum_tracks_init(void)
     uint32_t i, k;
     for (i = 0; i < G_COUNT; i++)
         song.g[i] = GP[i].def;
+    song.mlen = 0;                                  /* MASTER LENGTH: OFF */
     for (k = 0; k < NTRK; k++) {
         track_t *t = &trk[k];
         memset(t, 0, sizeof *t);

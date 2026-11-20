@@ -65,7 +65,8 @@ typedef struct {
                                                  * before them: the power-on values; an older firmware ignores them) */
     uint8_t xp3[NTRK][PROJ_XP3];                /* FDRG (1.0.0): PLAY CUT (as xp2; 0 before them: KEY, OFF) */
     uint8_t rsv_mo[504 - NTRK * (PROJ_XP + PROJ_XP2 + PROJ_XP3)];   /* FDRF: reserved, 0 */
-    uint8_t rsv_song[36];                       /* FDR9: the song (SONG, removed in FREITAKT): reserved, 0 */
+    uint8_t rsv_song[36];                       /* FDR9: the song (SONG, removed in FREITAKT): reserved, 0; but
+                                                 * [0..1] MASTER LENGTH (proj_mlen) */
     char name[NAME_LEN];                        /* FDR9: the name (NAME_SET, 0-padded; "" = none) */
     uint16_t pre[NTRK];                         /* FDRD: each track's preset: a factory one's uid, 0x8000 | a user
                                                  * slot, PRE_NONE none (presets.c preset_rec_enc: not the id) */
@@ -91,6 +92,19 @@ static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .
  * it: NORMAL) */
 static int16_t proj_g(const project_t *p, uint32_t i) { return i < G_NSTORED ? p->g[PR_G(i)] : (int16_t)p->rsv[0]; }
 typedef char proj_g_fit[G_COUNT - G_NSTORED == 1 ? 1 : -1];   /* (one reserved byte used: rsv[1..2] free) */
+/* MASTER LENGTH (cue.c, song.mlen) in a record: rsv_song[0..1], little-endian, 2..1024, 0 OFF (every record before
+ * it: OFF). Read as the knob's value: OFF 1 */
+static int16_t proj_mlen(const project_t *p)
+{
+    uint32_t v = p->rsv_song[0] | (uint32_t)p->rsv_song[1] << 8;
+    return (int16_t)(v >= 2u && v <= 1024u ? v : 1u);
+}
+static void proj_mlen_set(project_t *p, int32_t v)
+{
+    v = v >= 2 && v <= 1024 ? v : 0;
+    p->rsv_song[0] = (uint8_t)v;
+    p->rsv_song[1] = (uint8_t)(v >> 8);
+}
 project_t proj_slot[4] __attribute__((section(".noinit")));
 /* each slot's lock bank (lockbank.c): the one its record links (persist_boot, a LOAD's fetch, a SAVE); .bss (the
  * slots' records are .noinit: a reset finds them, the banks come from flash again). */
@@ -307,6 +321,7 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     lk_slot[slot & 3u] = mo.b;                          /* the bank: the motion and the locks (sealed: proj_seal) */
     memset(p->rsv_mo, 0, sizeof p->rsv_mo);
     memset(p->rsv_song, 0, sizeof p->rsv_song);
+    proj_mlen_set(p, song.mlen);                        /* (the pattern's: live, as its steps) */
     memcpy(p->name, pname.name, NAME_LEN);
 }
 static void proj_var_link(project_t *p, const var_bank_t *b)   /* the record links b (none used: no object) */
@@ -408,6 +423,8 @@ static uint32_t live_sum(void)
             h = (h ^ b[i]) * 16777619u;
     for (b = (const uint8_t *)&mo.b, i = 0; i < sizeof mo.b; i++)
         h = (h ^ b[i]) * 16777619u;
+    if (song.mlen >= 2)
+        h = (h ^ (uint32_t)song.mlen) * 16777619u;  /* (OFF: the sum as before it) */
     return (h ^ var_cur) * 16777619u;
 }
 /* slot s has unsaved edits: its record, lock bank or variations in RAM are not flash's, or (the loaded slot) the live
@@ -648,6 +665,7 @@ static int proj_load(uint32_t slot, int irq)
     for (i = 0; i < G_COUNT; i++)
         if (i != G_SLOT && i != G_LOAD && i != G_SAVE)
             song.g[i] = g_loaded(i, proj_g(p, i));
+    song.mlen = proj_mlen(p);
     proj_tracks_in(p, 0);
     if (lk_valid(&lk_slot[slot & 3u], slot & 3u))       /* the motion and the locks: a broken bank is dropped, the
                                                          * rest loads */
@@ -659,6 +677,8 @@ static int proj_load(uint32_t slot, int irq)
     pname.from = (uint8_t)((slot & 3u) + 1u);
     song.sel = (uint8_t)(p->sel < NTRK ? p->sel : 0u);
     cue.q_slot = cue.q_var = cue.now = 0;               /* (a cue queued: dropped) */
+    cue.chain = 0;                                      /* (a chain: ended) */
+    chain.n = 0;
     cue.last[slot & 3u] = 0;                            /* (LOAD plays variation 1) */
     if (irq)
         fm1_irq_on();
@@ -726,6 +746,8 @@ static void project_load(uint32_t slot)
 }
 
 /* ---- the live cue (cue.c: the ISR's part; spec 2026-10-26) */
+static void chain_clear(void);                      /* the chain (below) */
+static void chain_poll(void);
 /* A queued switch is staged by the main loop (cue_stage, when it is queued; checked every frame while it waits): the
  * incoming steps, timing and (a slot) sounds, clamped, in a staging area — storage.c's st_buf: no flash is read or
  * written through it while the transport runs —, the incoming slot's variations in the bank that is not playing. At
@@ -860,6 +882,7 @@ static int cue_stage(uint32_t s, uint32_t v)
         if (!lk_valid(&lk_slot[s], s))
             lk_empty(s);
         cue_stage_knobs(&proj_slot[s], g->p, cue.stg_pre, cue.stg_pre_ed);
+        cue.stg_mlen = proj_mlen(&proj_slot[s]);
         if (v && var_unused(nb, v)) {                 /* never used: a copy of its last-played one (or variation 1) */
             uint32_t need;
             w = cue.last[s] != v && cue.last[s] && !var_unused(nb, cue.last[s]) ? cue.last[s] : 0u;
@@ -965,6 +988,8 @@ static __attribute__((noinline)) int proj_cue_apply(void)
                 memcpy(mo.base[k], trk[k].p, sizeof mo.base[k]);
             mo.base_ok = (uint8_t)((1u << NTRK) - 1u);
         }
+        cue.out_mlen = song.mlen;                     /* its MASTER LENGTH */
+        song.mlen = cue.stg_mlen;
         var_play ^= 1u;                               /* its variations (staged there) play; the old ones: the park */
         cue.done |= CUE_SW_SLOT;
     } else {
@@ -1016,6 +1041,7 @@ static void cue_file_out(void)
         }
         lk_slot[a] = lk_slot[ld];                     /* (its bank, swapped out at the switch) */
         memcpy(p->name, pname.name, NAME_LEN);
+        proj_mlen_set(p, cue.out_mlen);
         proj_seal(a);
         proj_name_get(pname.name, proj_slot[ld].name);
         pname.from = (uint8_t)(ld + 1);
@@ -1091,6 +1117,7 @@ static void cue_poll(void)
         cue.err = 0;
         cue_say(e);
     }
+    chain_poll();                                   /* (after the filing: the next entry staged from the park) */
 }
 /* the variations of slot s used (bit v: variation v + 1; variation 1 always): its RAM bank, else flash's (that one
  * remembered by the record's link: flash changes only with a SAVE, which links anew) */
@@ -1273,7 +1300,7 @@ static int cue_at_once(void)
 {
     int r;
     fm1_irq_off();
-    r = cue_switch(0, 0);
+    r = cue_switch(0, cue.b24);
     fm1_irq_on();
     if (r == CUE_E_SAME)
         r = 0;
@@ -1310,11 +1337,12 @@ static int cue_queue(uint32_t qs, uint32_t qv)
     return r;
 }
 /* SAVE held + a slot key (ui_input.c): queue slot s (its last-played variation), the same key again: at the next
- * step, the playing slot's key: cancel. Stopped: at once */
+ * step, the playing slot's key: cancel. Stopped: at once. A chain ends */
 static int cue_slot(uint32_t s)
 {
     int32_t ld = proj_loaded();
     int r = 0;
+    chain_clear();
     s &= 3u;
     if (ld < 0)
         r = CUE_E_NOSLOT;
@@ -1348,6 +1376,7 @@ static int cue_slot(uint32_t s)
 static int cue_var(uint32_t v)
 {
     int r = proj_loaded() < 0 ? CUE_E_NOSLOT : 0;
+    chain_clear();
     v &= 7u;
     if (r) {
         cue_say(r);
@@ -1365,6 +1394,109 @@ static int cue_var(uint32_t v)
         return 0;
     }
     return cue_queue(cue.q_slot, v + 1u);
+}
+
+/* ---- the chain (FREITAKT, Elektron's; cue.c chain): the slots given played in turn, each for one pattern (its end:
+ * cue.c cue_tick, MASTER LENGTH's boundary if set; every one restarts the tracks, the same slot again too), then from
+ * the first again. The next entry is queued through the cue (staged, the 5 ms fade) as soon as the one before plays;
+ * an empty slot's entries are skipped. Stopped: the first entry at once, the next queued on PLAY. STOP, LOAD, a slot's
+ * or a variation's cue key end it; a refused cue (SAVE A FIRST ..) too. RAM only */
+static uint32_t chain_next(uint32_t from)          /* the entry after from (CH_NONE: the first) with a project; CH_NONE:
+                                                     * none has */
+{
+    uint32_t i, j;
+    for (i = 0; i < chain.n; i++) {
+        j = (from == CH_NONE ? i : from + 1u + i) % chain.n;
+        if (proj_ok(&proj_slot[chain.s[j] & 3u]))
+            return j;
+    }
+    return CH_NONE;
+}
+static void chain_clear(void)
+{
+    if (!chain.n && !cue.chain)
+        return;
+    fm1_irq_off();
+    cue.chain = 0;
+    fm1_irq_on();
+    chain.n = 0;
+    chain.pos = chain.nx = CH_NONE;
+    ui.force = 1;
+}
+/* main loop, after cue_poll filed a switch: the pattern ends the ISR took (the entry after them plays), the next
+ * entry queued */
+static void chain_poll(void)
+{
+    uint8_t e = cue.ends;
+    uint32_t s;
+    int r;
+    if (!chain.n)
+        return;
+    if (song.playing) {
+        chain.run = 1;
+    } else if (chain.run) {
+        chain_clear();                              /* STOP: the chain ends */
+        return;
+    }
+    while (chain.ends != e) {                       /* a pattern end: the next entry plays */
+        chain.ends++;
+        chain.pos = chain.nx;
+        chain.nx = (uint8_t)chain_next(chain.pos);
+        chain.qd = 0;
+    }
+    if (chain.nx == CH_NONE) {                      /* (no slot of it holds a project any more) */
+        chain_clear();
+        return;
+    }
+    if (chain.qd || (!song.playing && chain.pos != CH_NONE))
+        return;                                     /* (stopped: the next one queued on PLAY) */
+    chain.qd = 1;
+    s = chain.s[chain.nx] & 3u;
+    r = (int32_t)s == proj_loaded() ? 0 : cue_queue(s + 1u, 0);
+    if (r) {
+        chain_clear();                              /* (refused, said) */
+        return;
+    }
+    if (!song.playing) {                            /* stopped: it plays at once */
+        chain.pos = chain.nx;
+        chain.nx = (uint8_t)chain_next(chain.pos);
+        chain.qd = 0;
+    }
+}
+/* the chain: n (2..CHAIN_N) slots, in order (repeats allowed); fewer than 2: none (a chain ends). The first entry is
+ * queued (stopped: plays at once). 0, or a refusal (said) */
+static int chain_set(const uint8_t *slots, uint32_t n)
+{
+    uint32_t i;
+    chain_clear();
+    if (n < 2u)
+        return 0;
+    if (proj_loaded() < 0) {
+        cue_say(CUE_E_NOSLOT);
+        return CUE_E_NOSLOT;
+    }
+    if (n > CHAIN_N)
+        n = CHAIN_N;
+    for (i = 0; i < n; i++)
+        chain.s[i] = (uint8_t)(slots[i] & 3u);
+    chain.n = (uint8_t)n;
+    chain.pos = CH_NONE;
+    chain.nx = (uint8_t)chain_next(CH_NONE);
+    if (chain.nx == CH_NONE) {
+        chain.n = 0;
+        ui_message("CHAIN EMPTY");
+        return CUE_E_EMPTY;
+    }
+    fm1_irq_off();
+    cue.q_slot = cue.q_var = cue.now = 0;           /* (a cue queued before: the chain's first entry instead) */
+    chain.ends = cue.ends;
+    cue.chain = 1;
+    fm1_irq_on();
+    chain.qd = 0;
+    chain.run = song.playing;
+    ui.force = 1;
+    chain_poll();
+    return 0;
 }
 
 /* power-on (drum_boot_init, not in safe start): the last project saved to flash loads as a LOAD does, stopped, its

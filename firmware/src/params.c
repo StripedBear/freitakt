@@ -2,7 +2,11 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
 /* Parameter descriptions and value formatting. P_E0..P_E7 are described by the track's model. */
-static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR"};   /* ids fixed: slow rates appended */
+static const char *const N_DIV[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR",   /* ids
+                                    * fixed: slow rates appended; then FIT (DIV_FIT..: the track's LEN steps spread
+                                    * evenly over 2, 4, 8, 16 beats, seq.c trk_num_den; never the delay's) */
+                                    "F1/2", "FBAR", "F2BR", "F4BR"};
+typedef char n_div_fit[sizeof N_DIV / sizeof N_DIV[0] == DIV_MAX + 1 ? 1 : -1];
 static const char *const N_DTIME[] = {"1/4", "1/8", "1/16", "1/32", "8T", "16T", "1/2", "1/1", "2BAR", "4BAR",   /* the
                                       * delay's TIME: N_DIV's ids, then its own (appended: fx.c div_samples) */
                                       "4T", "1/4D", "1/8D", "1/16D", "32T"};
@@ -104,6 +108,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_SCUT] = PE("CUT", N_ONOFF, 0),              /* OFF as before (hits overlap); ON: a hit cuts the one sounding */
 };
 
+/* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */
+static const param_desc_t MLEN_DESC = PD("MLEN", F_MLEN, 1, 1024, 1);
+
 static const param_desc_t GP[G_COUNT] = {
     [G_BPM] = PD("BPM", F_BPM, 40, 240, 120),
     [G_SWING] = PD("SWG", F_PCT, 0, 100, 0),
@@ -177,7 +184,8 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
 /* (upstream 1.0.2, #48) the note divisions in the order of their length, longest first (triplets between their
  * neighbours), on the knobs and the gauges; the stored values (N_DIV ids: projects) stay.
  * -> the shown order of d's values (index: position, entry: value), 0 = the values' own order */
-static const uint8_t DIV_ORDER[10] = {9, 8, 7, 6, 0, 1, 4, 2, 5, 3};   /* 4BAR 2BAR 1/1 1/2 1/4 1/8 8T 1/16 16T 1/32 */
+static const uint8_t DIV_ORDER[DIV_MAX + 1] = {9, 8, 7, 6, 0, 1, 4, 2, 5, 3, 13, 12, 11, 10};   /* 4BAR 2BAR 1/1 1/2 1/4
+                                                                       * 1/8 8T 1/16 16T 1/32, then F4BR F2BR FBAR F1/2 */
 static const uint8_t DTIME_ORDER[15] = {9, 8, 7, 6, 11, 0, 12, 10, 1, 13, 4, 2, 5, 3, 14};   /* the delay's TIME: .. 1/2
                                                                        * 1/4D 1/4 1/8D 4T 1/8 1/16D 8T 1/16 16T 1/32 32T */
 static const uint8_t *enum_order(const param_desc_t *d)
@@ -383,6 +391,14 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
     case F_STEPS:
         fmt_int(val, v);
         *unit = "STEP";
+        break;
+    case F_MLEN:
+        if (v < 2) {
+            str_cpy(val, "OFF", 6);
+        } else {
+            fmt_int(val, v);
+            *unit = "STEP";
+        }
         break;
     default:
         if (d->names) {                               /* F_INT with a 0-terminated name list: the range */

@@ -122,6 +122,10 @@ cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-re
 "$OUT/cue_test" > "$OUT/cue_test.txt" 2>&1 || { grep -v "^ok" "$OUT/cue_test.txt" | tail -30; exit 1; }
 tail -1 "$OUT/cue_test.txt"
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/poly_test" tests/poly_test.c -lm   # (FIT, MASTER LENGTH, the chain: ASan + UBSan)
+"$OUT/poly_test" > "$OUT/poly_test.txt" 2>&1 || { grep -v "^ok" "$OUT/poly_test.txt" | tail -30; exit 1; }
+tail -1 "$OUT/poly_test.txt"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
     -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test" tests/editor_test.c -lm   # (the web editor's core: ASan + UBSan)
 "$OUT/editor_test" "$OUT/editor_frames.txt" > "$OUT/editor_test.txt" 2>&1 || { grep -v "^ok" "$OUT/editor_test.txt" | tail -30; exit 1; }
 tail -1 "$OUT/editor_test.txt"

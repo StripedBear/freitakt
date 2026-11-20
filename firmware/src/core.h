@@ -9,6 +9,8 @@
 #define NPART NTRK               /* fx.c: every track is mixed the same way */
 #define NDV 2                    /* voices per track; a model uses 1 or 2 */
 #define NSTEP 64
+#define DIV_FIT 10       /* N_DIV (params.c): the FIT ids F1/2 FBAR F2BR F4BR (seq.c trk_num_den) */
+#define DIV_MAX 13       /* .. the last N_DIV id */
 #define HALF_FRAMES 256          /* I2S half buffer: 5.8 ms at 44.1 kHz */
 #define UP_SLOTS 32u             /* user preset slots (storage layout; presets are off in M1) */
 
@@ -16,7 +18,8 @@
 enum {
     F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,
     F_ONOFF, F_OCT, F_STEPS, F_CTHR, F_CRAT, F_CATK, F_CREL, F_CMKUP, F_LRATE1, F_LRATE2, F_LDEST, F_LPHASE,
-    F_FDEC, F_SRR, F_SLOT, F_LSLOT   /* SLOT: the SAMPLE model's (its SET), the LAYER's (LAYER SET) */
+    F_FDEC, F_SRR, F_SLOT, F_LSLOT,  /* SLOT: the SAMPLE model's (its SET), the LAYER's (LAYER SET) */
+    F_MLEN                           /* MASTER LENGTH: 1/16 steps, below 2 OFF */
 };
 
 typedef struct {
@@ -220,6 +223,8 @@ typedef struct {
     uint8_t solo;                /* SOLO (the SMC-Mixer): bit per track, runtime only (trk_silent) */
     uint8_t lfo_in;              /* lfo.c: inside an audio block, between lfo_apply and lfo_restore */
     uint8_t lslot;               /* the LFO DEST page's slot 0..3 (KNOB 1): screen state, never stored */
+    int16_t mlen;                /* MASTER LENGTH (cue.c): 1/16s after which every track restarts; < 2 OFF (the
+                                  * loaded slot's: project.c, its record's rsv_song[0..1]) */
 } song_t;
 
 static track_t trk[NTRK];

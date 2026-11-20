@@ -76,12 +76,40 @@ static uint32_t div_rem_next(uint32_t div, uint32_t rem)
     uint32_t den, num = div_num_den(div, &den);
     return (beat_samples() * num + rem) % den;
 }
+/* track t's DIV as num / den beats: FIT (DIV_FIT..DIV_MAX: F1/2 FBAR F2BR F4BR) spreads its LEN steps over 2, 4, 8,
+ * 16 beats (den = LEN: LEN steps last exactly num beats, the remainder carried as for any division); the rest as
+ * div_num_den. A LEN change while it plays is the step's den from then on (the step under way too, as a DIV change);
+ * a remainder of the old LEN past the new one counts as den - 1 */
+static uint32_t trk_num_den(const track_t *t, uint32_t *den)
+{
+    uint32_t div = (uint32_t)t->p[P_SDIV];
+    if (div >= DIV_FIT) {
+        *den = (uint32_t)clamp(t->p[P_SLEN], 1, NSTEP);
+        return 2u << ((div - DIV_FIT) & 3u);
+    }
+    return div_num_den(div, den);
+}
+static uint32_t trk_period(const track_t *t, uint32_t rem)   /* the step's period (rem: the carried remainder) */
+{
+    uint32_t den, num = trk_num_den(t, &den);
+    return (beat_samples() * num + (rem < den ? rem : den - 1u)) / den;
+}
+static uint32_t trk_rem_next(const track_t *t, uint32_t rem)
+{
+    uint32_t den, num = trk_num_den(t, &den);
+    return (beat_samples() * num + (rem < den ? rem : den - 1u)) % den;
+}
+static uint32_t trk_div_samples(const track_t *t)   /* its step at the tempo (SWING's measure): fx.c div_samples */
+{
+    uint32_t div = (uint32_t)t->p[P_SDIV];
+    return div >= DIV_FIT ? trk_period(t, 0) : div_samples(div);
+}
 /* the length of the step played as number cnt since PLAY: SWING (the track's + the global) makes the
  * even steps longer and the odd ones shorter, so every odd step starts late. Counted from PLAY, not from
  * the step index, so a pattern of any length (1, 3, ...) keeps the long / short pairs on the bar. */
 static uint32_t step_samples(const track_t *t, uint32_t period, uint32_t cnt)
 {
-    int32_t sw = track_swing(t) * (int32_t)div_samples((uint32_t)t->p[P_SDIV]) / 250;
+    int32_t sw = track_swing(t) * (int32_t)trk_div_samples(t) / 250;
     return period + (uint32_t)(((cnt ^ t->seq_par) & 1u) ? -sw : sw);
 }
 
@@ -174,12 +202,12 @@ static uint32_t acid_gate_len(const track_t *t, uint32_t len)
  * the track's step at the tempo now, as a step's note does (ACID_LIFE stays the backstop) */
 static uint32_t hit_gate_len(const track_t *t)
 {
-    return acid_gate_len(t, div_period((uint32_t)t->p[P_SDIV], 0));
+    return acid_gate_len(t, trk_period(t, 0));
 }
 
 /* dm_sample.c: a SAMPLE hit's gate, one step of the track at the tempo now (a block more: a TIE step at the step's end
  * finds it open) */
-static uint32_t smpl_gate_len(const track_t *t) { return div_period((uint32_t)t->p[P_SDIV], 0) + CTL; }
+static uint32_t smpl_gate_len(const track_t *t) { return trk_period(t, 0) + CTL; }
 
 /* the gate of the voice the track's model started closes now (its release); gate_n 0 */
 static void acid_gate_off(track_t *t)
@@ -386,7 +414,7 @@ static int32_t step_micro(const step_t *s) { return clamp(s->micro, -MICRO_MAX, 
 static uint32_t rec_hit(track_t *t, uint32_t vel)
 {
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, idx = t->seq_idx % len, pos = t->seq_pos;
-    uint32_t period = div_period((uint32_t)t->p[P_SDIV], t->seq_rem), cur = step_samples(t, period, t->seq_cnt);
+    uint32_t period = trk_period(t, t->seq_rem), cur = step_samples(t, period, t->seq_cnt);
     uint32_t q = rec_quant, ahead;
     int32_t off, m = 0;
     if (pos >= 0x7FFFFFFFu) {                       /* PLAY's block: step 0, on it */
@@ -505,7 +533,7 @@ static __attribute__((noinline)) void keys_tie(void)
         return;
     }
     if (t->seq_idx % len != nx || t->seq_pos >= 0x7FFFFFFFu ||
-        t->seq_pos <= step_samples(t, div_period((uint32_t)t->p[P_SDIV], t->seq_rem), t->seq_cnt) / 2u)
+        t->seq_pos <= step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt) / 2u)
         return;
     s = &t->step[nx];
     s->on = 0;
@@ -797,23 +825,26 @@ static void seq_stop(void)
     mout_stop();                                    /* midi_out.c: SYNC's Stop */
 }
 
-/* MICRO (spec 2026-10-31 §1): a queued cue restarts every track within rem samples (no early hit
- * across it: the new step 0 plays at the restart) */
+/* MICRO (spec 2026-10-31 §1): a queued cue (a chain, MASTER LENGTH: cue.c cue_tick) restarts every track within
+ * rem samples (no early hit across it: the new step 0 plays at the restart) */
 static __attribute__((noinline)) int seq_cut_ahead(uint32_t rem)
 {
     const track_t *r;
-    uint32_t len, cur;
-    if (cue.q_slot || cue.q_var) {
-        if (cue.now)
-            return 1;                               /* (at the soonest next step) */
-        r = &trk[cue_longest()];
-    } else {
-        return 0;
+    uint32_t len, cur, mlen = cue_mlen(), q = cue.q_slot || cue.q_var;
+    if (q && cue.now)
+        return 1;                                   /* (at the soonest next step) */
+    if (mlen) {
+        if (ml.pos >= 0x7FFFFFFFu || ml.cnt + 1u < mlen)
+            return 0;
+        return div_period(2u, ml.rem) <= ml.pos + rem;
     }
+    if (!q && !cue.chain)
+        return 0;
+    r = &trk[cue_longest()];
     len = (uint32_t)clamp(r->p[P_SLEN], 1, NSTEP);
     if (r->seq_pos >= 0x7FFFFFFFu || r->seq_idx + 1u != len)
         return 0;
-    cur = step_samples(r, div_period((uint32_t)r->p[P_SDIV], r->seq_rem), r->seq_cnt);
+    cur = step_samples(r, trk_period(r, r->seq_rem), r->seq_cnt);
     return cur <= r->seq_pos + rem;
 }
 
@@ -836,7 +867,7 @@ static __attribute__((noinline)) void mic_due(track_t *t, uint32_t cur)
  * to its own end. Not a step live recording just put there (rskip: it sounded), nor across a restart */
 static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
 {
-    uint32_t div = (uint32_t)t->p[P_SDIV], len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
+    uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
     uint32_t cnt = t->seq_cnt + 1u, nx = cnt % len, idx = t->seq_idx, at, nl;
     int32_t m = step_micro(&t->step[nx]);
     if (m >= 0)
@@ -844,7 +875,7 @@ static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
     at = cur * (uint32_t)(100 + m) / 100u;
     if (t->seq_pos < at || (t->rskip && t->rskip_idx == nx) || seq_cut_ahead(cur - t->seq_pos))
         return;
-    nl = step_samples(t, div_period(div, div_rem_next(div, t->seq_rem)), cnt);
+    nl = step_samples(t, trk_period(t, trk_rem_next(t, t->seq_rem)), cnt);
     t->mic |= MIC_EARLY;
     t->mic_idx = (uint8_t)nx;
     t->seq_idx = (uint16_t)nx;
@@ -869,7 +900,7 @@ static __attribute__((noinline)) void mic_enter(track_t *t, uint32_t prev)
 
 static void seq_tick(track_t *t, uint32_t n)
 {
-    uint32_t div = (uint32_t)t->p[P_SDIV], len = (uint32_t)t->p[P_SLEN];
+    uint32_t len = (uint32_t)t->p[P_SLEN];
     if (t->gate_n && t->gate_n != GATE_HELD) {        /* ACID: the gate closes this block (stopped too: a hit's) */
         if (t->gate_n <= n)
             acid_gate_off(t);
@@ -880,7 +911,7 @@ static void seq_tick(track_t *t, uint32_t n)
         return;
     t->seq_pos += n;
     for (;;) {
-        uint32_t cur_len = step_samples(t, div_period(div, t->seq_rem), t->seq_cnt);
+        uint32_t cur_len = step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt);
         int late;
         if (t->mic & MIC_DUE)
             mic_due(t, cur_len);                    /* MICRO: the step's late hit */
@@ -897,7 +928,7 @@ static void seq_tick(track_t *t, uint32_t n)
                                                      * block's rest after it, as the clock's) */
         } else {
             t->seq_pos -= cur_len;
-            t->seq_rem = (uint8_t)div_rem_next(div, t->seq_rem);
+            t->seq_rem = (uint8_t)trk_rem_next(t, t->seq_rem);
         }
         t->seq_cnt++;                               /* the step: steps since PLAY mod LEN, so a LEN change keeps
                                                      * the track on the shared clock (and LEN back = in sync) */
@@ -917,7 +948,7 @@ static void seq_tick(track_t *t, uint32_t n)
             t->mic = MIC_DUE;                       /* MICRO: later in the step (mic_due) */
             t->rat_n = 0;
         } else {
-            step_fire(t, step_samples(t, div_period(div, t->seq_rem), t->seq_cnt));
+            step_fire(t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));
         }
     }
 }
@@ -968,8 +999,11 @@ static __attribute__((noinline)) uint32_t mute_bar(uint32_t adv, uint32_t lead)
 static __attribute__((noinline)) void cue_block(uint32_t n, uint32_t adv, uint32_t run)
 {
     cue_fade_tick(n);
-    if (run)
+    if (run) {
         cue_tick(n, adv, song.g[G_CLOCK] && midi_clock.pulse_samples > CUE_LEAD ? midi_clock.pulse_samples : CUE_LEAD);
+        if (song.playing)
+            ml_tick(adv);                            /* MASTER LENGTH's 1/16s (after a restart cue_tick made) */
+    }
 }
 
 /* everything that happens between two rendered blocks */

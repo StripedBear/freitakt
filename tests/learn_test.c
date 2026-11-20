@@ -496,9 +496,9 @@ static void test_ranges(void)
     send_cc(83, 0);
     check("DIV: 0 -> its first in the shown order (4BAR)", trk[0].p[div] == 9);
     send_cc(83, 127);
-    check("DIV: 127 -> its last (1/32)", trk[0].p[div] == 3);
+    check("DIV: 127 -> its last (F1/2, FIT's last)", trk[0].p[div] == 10);
     send_cc(83, 64);
-    check("DIV: 64 -> the middle of the shown order (1/8)", trk[0].p[div] == 1);
+    check("DIV: 64 -> the middle of the shown order (1/16, 8th of 14)", trk[0].p[div] == 2);
     send_cc(84, 127);
     check("LEN: 127 -> 64", trk[0].p[P_SLEN] == 64);
     send_cc(84, 0);

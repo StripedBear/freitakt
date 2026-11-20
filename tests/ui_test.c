@@ -4960,21 +4960,22 @@ static void test_delay_mode_page(void)
     check("GLO: REVERB after the two DLY pages", str_eq(cur_page()->title, "REVERB"));
 }
 
-/* sound pack: division knobs run by length (4BAR .. 1/32), the stored value stays the id; the gauge follows */
+/* sound pack: division knobs run by length (4BAR .. 1/32), then FIT (F4BR F2BR FBAR F1/2: LEN steps over 16 .. 2
+ * beats); the stored value stays the id; the gauge follows */
 static void test_div_order(void)
 {
-    static const int16_t WANT[10] = {9, 8, 7, 6, 0, 1, 4, 2, 5, 3};
+    static const int16_t WANT[DIV_MAX + 1] = {9, 8, 7, 6, 0, 1, 4, 2, 5, 3, 13, 12, 11, 10};
     const param_desc_t *d = &TP[P_SDIV];
     uint32_t i, ok = 1;
-    for (i = 0; i + 1u < 10u; i++)
+    for (i = 0; i < DIV_MAX; i++)
         ok &= param_turn(d, WANT[i], 1) == WANT[i + 1] && param_turn(d, WANT[i + 1], -1) == WANT[i];
-    ok &= param_turn(d, 3, 1) == 3 && param_turn(d, 9, -1) == 9 && param_turn(d, 9, 20) == 3;
-    check("DIV: the knob steps 4BAR 2BAR 1/1 1/2 1/4 1/8 8T 1/16 16T 1/32, stopping at the ends", ok);
+    ok &= param_turn(d, 10, 1) == 10 && param_turn(d, 9, -1) == 9 && param_turn(d, 9, 30) == 10;
+    check("DIV: the knob steps 4BAR 2BAR 1/1 1/2 1/4 1/8 8T 1/16 16T 1/32 F4BR F2BR FBAR F1/2, stopping at the ends", ok);
     check("DLY TIME: the same order, its dotted values between (1/2 1/4D 1/4 1/8D 4T 1/8 ..)",
           param_turn(&GP[G_DTIME], 6, 1) == 11 && param_turn(&GP[G_DTIME], 11, 1) == 0 &&
           param_turn(&GP[G_DTIME], 0, -1) == 11 && param_turn(&GP[G_DTIME], 0, 1) == 12);
-    check("DIV gauge: by length (4BAR empty, 1/32 full, 1/4 at 4/9)",
-          RATIO(d, 9) == 0 && RATIO(d, 3) == 1000 && RATIO(d, 0) == 444);
+    check("DIV gauge: in the knob's order (4BAR empty, F1/2 full, 1/4 at 4/13, 1/32 at 9/13)",
+          RATIO(d, 9) == 0 && RATIO(d, 10) == 1000 && RATIO(d, 0) == 4000 / 13 && RATIO(d, 3) == 9000 / 13);
     check("other knobs keep their order (INSERT TYPE, ids as shown)", param_turn(&TP[P_ITYPE], 1, 1) == 2);
     ui_host_init();
     settings.accel = 0;

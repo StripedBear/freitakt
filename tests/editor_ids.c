@@ -174,8 +174,10 @@ int main(void)
         const page_t *g = &PAGES[i];
         printf("%s\n {\"title\": ", i ? "," : "");
         str(g->title);
+#define ED_ID(c) (g->id[c] == PG_MLEN ? 0xFFu : g->id[c])   /* (PATTERN's MLEN: the device's own, as ed_page) */
         printf(", \"fam\": %u, \"scope\": %u, \"graph\": %u, \"id\": [%u, %u, %u, %u]}", g->fam, g->scope, g->graph,
-               g->id[0], g->id[1], g->id[2], g->id[3]);
+               ED_ID(0), ED_ID(1), ED_ID(2), ED_ID(3));
+#undef ED_ID
     }
     printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"LDEST\": %u, "
            "\"LFO\": %u},\n",

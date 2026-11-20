@@ -220,7 +220,7 @@ static void motion_capture(track_t *t, uint32_t id)
             s = 0;                                 /* PLAY: step 0 comes next */
         } else {
             s = t->seq_idx % len;
-            cur = step_samples(t, div_period((uint32_t)t->p[P_SDIV], t->seq_rem), t->seq_cnt);
+            cur = step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt);
             if (t->seq_pos > cur / 2u)
                 s = (s + 1u) % len;                /* past the half: the next step */
         }

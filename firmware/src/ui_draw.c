@@ -506,7 +506,7 @@ static void graph_acid(const track_t *t, uint16_t c)
     if (p[4] > 0)
         for (y = 2; y < 46; y += 4)
             cv_rect(100 + ex, y, 1, 2, C_INK);
-    gw = clamp((int32_t)(acid_gate_len(t, div_period((uint32_t)t->p[P_SDIV], 0)) / 324u), 1, 135);   /* 324 samples a px */
+    gw = clamp((int32_t)(acid_gate_len(t, trk_period(t, 0)) / 324u), 1, 135);   /* 324 samples a px */
     cv_hdot(100, 235, ACID_EY + 36, C_INK);
     cv_hdot(100, 100 + gw, ACID_EY, C_INK);                  /* the amp: open at once, GATE long, then closed */
     cv_vdot(100, ACID_EY, ACID_EY + 36, C_INK);
@@ -2468,9 +2468,9 @@ static uint32_t home_bar(void)
 
 static void draw_home_strip(void)
 {
-    char l[4][8], v[4][8], ab[8], m[16], nm[NAME_LEN + 1u], pj[8];
+    char l[4][8], v[4][8], ab[8], m[16], nm[NAME_LEN + 1u], pj[8], cs[8];
     int32_t r[4], md[4], lx1;
-    uint32_t c, i, sig, cur = home_bar();
+    uint32_t c, i, sig, cur = home_bar(), cn = 0, cf = 0, cpre = 0;
     uint32_t hot = ui.hot_t ? ui.hot_col : 9u, lev = 0, inv = 0;   /* inv: bit c, cell c's value inverted */
     for (c = 0; c < 4u; c++) {
         int16_t *vp, sv;
@@ -2508,11 +2508,23 @@ static void draw_home_strip(void)
         str_cpy(m, "LOCK ", sizeof m);
         fmt_int(m + 5, (int32_t)lock_view_step() + 1);
     }
+    if (chain.n > 1u && lock_view_step() >= NSTEP) {   /* a chain runs: its line instead of the mode line, the slots'
+                                                       * numbers, "CH" before up to 4; more: 6 from the one before the
+                                                       * one playing */
+        uint32_t p = chain.pos == CH_NONE ? 0u : chain.pos;
+        cpre = chain.n <= 4u;
+        cn = chain.n < 6u ? chain.n : 6u;
+        cf = chain.n <= 6u ? 0u : (p + chain.n - 1u) % chain.n;
+        for (i = 0; i < cn; i++)
+            cs[i] = (char)('1' + (chain.s[(cf + i) % chain.n] & 3u));
+        cs[cn] = 0;
+        m[0] = 0;
+    }
     pj[0] = 'P', pj[1] = 'R', pj[2] = 'O', pj[3] = 'J', pj[4] = ' ';
     pj[5] = (char)('A' + (uint32_t)(song.g[G_SLOT] > 0 ? song.g[G_SLOT] - 1 : 0) % 4u);
     pj[6] = 0;
     md_fit(nm, pname.name[0] ? pname.name : "NEW", sizeof nm, 54);
-    lx1 = m[0] ? 4 + md_text_w(&MD_F3, 2, m) : 0;
+    lx1 = m[0] ? 4 + md_text_w(&MD_F3, 2, m) : cn ? 4 + (int32_t)cpre * 18 + (int32_t)cn * 9 : 0;
     rg_region(0, Y_KNOB, 240, 52);
     if (ui.force) {                                   /* whole, but LEV's column (its own canvas, next) */
         rg_add(0, 0, 63, 52);
@@ -2521,6 +2533,8 @@ static void draw_home_strip(void)
         lev = 1;
     }
     sig = str_hash(str_hash(str_hash(0x811C9DC5u, m), nm), pj) + cur * 101u;
+    if (cn)
+        sig += str_hash(0x811C9DC5u, cs) + (chain.pos + 1u) * 7919u + (chain.nx + 1u) * 104729u + cf * 31u;
     if (!ui.force && sig != hs.left) {                /* the left block (the mode line may run on) */
         int32_t x1 = lx1 > hs.lx1 ? lx1 : hs.lx1;
         rg_add(0, 0, x1 > 62 ? x1 : 62, 51);
@@ -2555,6 +2569,22 @@ static void draw_home_strip(void)
         md_text(31 - md_text_w(&MD_F3, 2, pj) / 2, 15, &MD_F3, 2, pj, C_BG);
         md_text(31 - md_text_w(&MD_F3, 2, nm) / 2, 26, &MD_F3, 2, nm, C_BG);
         md_text(4, 40, &MD_F3, 2, m, C_INK);
+        if (cn) {                                     /* the chain: the entry playing inverted, the next underlined */
+            int32_t x = cpre ? md_text(4, 40, &MD_F3, 2, "CH", C_INK) + 3 : 4;
+            for (c = 0; c < cn; c++, x += 9) {
+                uint32_t e = (cf + c) % chain.n;
+                char d[2] = {cs[c], 0};
+                int32_t w = md_text_w(&MD_F3, 2, d);
+                if (e == chain.pos) {
+                    cv_rect(x - 1, 38, w + 2, 13, C_INK);
+                    md_text(x, 40, &MD_F3, 2, d, C_BG);
+                } else {
+                    md_text(x, 40, &MD_F3, 2, d, C_INK);
+                }
+                if (e == chain.nx && e != chain.pos)
+                    cv_rect(x, 50, w, 1, C_INK);
+            }
+        }
         cv_rect(62, 0, 1, 51, C_INK);
         cv_rect(87, 0, 1, 51, C_INK);
         cv_vdot(125, 0, 50, C_INK);
@@ -2700,7 +2730,7 @@ static void draw_columns(void)
         }
         {
             int32_t mv, mod = -1;
-            if (pg->scope == SC_TRACK && lfo_live(TSEL, page_id(pg, c), &mv))
+            if (pg->scope == SC_TRACK && page_id(pg, c) < P_COUNT && lfo_live(TSEL, page_id(pg, c), &mv))
                 mod = RATIO(d, mv);
             draw_column_m(c, d->label, val, unit, lk ? CV_HOT : HOT(c),
                           d->fmt == F_ENUM || d->fmt == F_LDEST ? -1 : RATIO(d, sv), mod);

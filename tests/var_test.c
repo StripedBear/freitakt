@@ -234,7 +234,7 @@ static void var_clamps(void)
         e[3] = 9;
         e[NTRK * VAR_TRK + 1u] = 250;
     }
-    ok &= var_get(&B, 1, RP, TR) == 1 && TR[0][0] == NSTEP && TR[0][1] == 9 && TR[0][2] == 100 && TR[0][3] == 0 &&
+    ok &= var_get(&B, 1, RP, TR) == 1 && TR[0][0] == NSTEP && TR[0][1] == DIV_MAX && TR[0][2] == 100 && TR[0][3] == 0 &&
           R[0][0].cond == COND_MAX && R[0][0].on == 1;
     check("variation: decoded values clamped (LEN, DIV, SWG, PROB; the once-SRC byte read as 0)", (int)ok);
 }

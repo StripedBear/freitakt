@@ -234,7 +234,7 @@ static int edp_steps_get(uint32_t cmd, const uint8_t *a)
         const var_bank_t *b = edp_bank((uint32_t)s);
         uint32_t sz = 0, p = 0, q = 0, end = 0, map[2] = {0, 0}, n;
         int32_t o = b ? var_find(b, v, &sz) : -1;
-        static const uint8_t TM_MIN[4] = {1, 0, 0, 0}, TM_MAX[4] = {NSTEP, 9, 100, 3};
+        static const uint8_t TM_MIN[4] = {1, 0, 0, 0}, TM_MAX[4] = {NSTEP, DIV_MAX, 100, 3};
         used = o >= 0 && sz > 2u;
         if (used) {
             p = (uint32_t)o + 2u;

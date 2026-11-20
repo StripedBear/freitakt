@@ -83,7 +83,7 @@ static int var_enc(uint8_t *d, int cmp, const step_t *const st[NTRK], const int1
     VAR_PUT((need - 2u) >> 8);
     for (k = 0; k < NTRK; k++) {
         x[0] = (uint8_t)clamp(tm[k][0], 1, NSTEP);
-        x[1] = (uint8_t)clamp(tm[k][1], 0, 9);
+        x[1] = (uint8_t)clamp(tm[k][1], 0, DIV_MAX);
         x[2] = (uint8_t)clamp(tm[k][2], 0, 100);
         x[3] = 0;                               /* (Grids' SRC, gone) */
         for (j = 0; j < 4u; j++)
@@ -156,7 +156,7 @@ static int var_get(const var_bank_t *b, uint32_t v, step_t *const st[NTRK], int1
     for (k = 0; k < NTRK; k++) {
         const uint8_t *t = &b->d[p + k * VAR_TRK];
         tm[k][0] = (int16_t)clamp(t[0], 1, NSTEP);
-        tm[k][1] = (int16_t)clamp(t[1], 0, 9);
+        tm[k][1] = (int16_t)clamp(t[1], 0, DIV_MAX);
         tm[k][2] = (int16_t)clamp(t[2], 0, 100);
         tm[k][3] = 0;
         for (i = 0; i < NSTEP; i++) {

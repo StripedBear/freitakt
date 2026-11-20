@@ -301,10 +301,52 @@ static void con_fml(void)                              /* FM-Link: what the engi
     con_kv("bt store writes failed", bt_st.fails);
 }
 #endif
+/* chain [1..4 ...]: the chain (project.c chain_set), its slots' numbers in order; none: no chain. mlen [N]: MASTER
+ * LENGTH (cue.c), N 1/16 steps (2..1024; 0 / none: OFF) */
+static uint32_t con_nums(const char *p, uint8_t *v, uint32_t max)   /* decimal numbers -> v; how many */
+{
+    uint32_t n = 0;
+    for (;;) {
+        uint32_t x = 0, d = 0;
+        while (*p == ' ')
+            p++;
+        while (*p >= '0' && *p <= '9' && d < 5u)
+            x = x * 10u + (uint32_t)(*p++ - '0'), d++;
+        if (!d || n >= max)
+            return n;
+        v[n++] = (uint8_t)(x > 255u ? 255u : x);
+    }
+}
+static void con_chain(const char *p)
+{
+    uint8_t v[CHAIN_N];
+    uint32_t n = con_nums(p, v, CHAIN_N), i;
+    for (i = 0; i < n; i++) {
+        if (v[i] < 1u || v[i] > 4u) {
+            con_puts("chain: slots 1..4\r\n");
+            return;
+        }
+        v[i]--;
+    }
+    if (chain_set(v, n) == 0)
+        con_puts(n >= 2u ? "chain set\r\n" : "chain cleared\r\n");
+}
+static void con_mlen(const char *p)
+{
+    uint32_t x = 0;
+    while (*p == ' ')
+        p++;
+    while (*p >= '0' && *p <= '9' && x < 100000u)
+        x = x * 10u + (uint32_t)(*p++ - '0');
+    song.mlen = (int16_t)(x >= 2u && x <= 1024u ? x : 1u);
+    con_kv("mlen (1: OFF)", song.mlen);
+    ui.force = 1;
+}
 static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?")) {
-        con_puts("status  dbg  crash  params  memr ADDR [LEN]  flr OFF [LEN]  bench yes  uboot yes\r\n");
+        con_puts("status  dbg  crash  params  memr ADDR [LEN]  flr OFF [LEN]  bench yes  uboot yes\r\n"
+                 "chain [1..4 ...]  mlen [STEPS]\r\n");
 #if FELUCCA_BLE && BLE_CONSOLE
         con_puts("ble [start | scan | list | stop]: Bluetooth status and tests (the page: MENU > BLUETOOTH)  "
                  "fml: FM-Link\r\n");
@@ -327,6 +369,10 @@ static void con_exec(const char *p)
             con_puts("bench yes: the performance cases (tools/fm1_bench.py), ~4 min, the speaker silent; the "
                      "pattern in memory is lost: power-on state after (bench stop: end now; not in safe start)\r\n");
     }
+    else if (con_word(&p, "chain"))
+        con_chain(p);
+    else if (con_word(&p, "mlen"))
+        con_mlen(p);
     else if (con_word(&p, "memr"))
         con_memr(p);
 #if FELUCCA_FLASH

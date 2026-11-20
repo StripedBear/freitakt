@@ -498,7 +498,7 @@ static void track_clear(track_t *t)               /* its steps, its motion and i
     lock_clear_track((uint32_t)(t - trk));
 }
 
-/* TOOLS CLR*: every track's pattern cleared and its pattern settings (LEN DIV SWG) at default; sounds, FX,
+/* TOOLS CLR*: every track's pattern cleared and its pattern settings (LEN DIV SWG, MLEN) at default; sounds, FX,
  * COMP and the globals untouched */
 static void seq_clear_all(void)
 {
@@ -510,6 +510,7 @@ static void seq_clear_all(void)
         t->p[P_SDIV] = TP[P_SDIV].def;
         t->p[P_SSWING] = TP[P_SSWING].def;
     }
+    song.mlen = 0;                                      /* (MASTER LENGTH: OFF) */
     ui.bank = 0;
     ui.force = 1;
 }

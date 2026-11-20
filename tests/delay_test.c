@@ -51,8 +51,8 @@ static void test_times(void)
         ok &= !strcmp(s, NAME[d]);
     }
     check("TIME: the new values' names (ids 10..14 appended)", ok);
-    check("TIME: 15 values on the delay, the steps' DIV keeps its 10",
-          GP[G_DTIME].max == 14 && GP[G_DTIME].min == 0 && TP[P_SDIV].max == 9);
+    check("TIME: 15 values on the delay; the steps' DIV its 10 and FIT's 4 (F1/2 FBAR F2BR F4BR, ids 10..13)",
+          GP[G_DTIME].max == 14 && GP[G_DTIME].min == 0 && TP[P_SDIV].max == DIV_MAX && DIV_FIT == 10 && DIV_MAX == 13);
     ok = 1;
     for (k = 0; k + 1u < 15u; k++)
         ok &= param_turn(&GP[G_DTIME], ORDER[k], 1) == ORDER[k + 1u] &&
