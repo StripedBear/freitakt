@@ -527,14 +527,14 @@ static void test_cue_switch(void)
 }
 
 /* the voice cap (DRUM_MAXV) steals the oldest voice; a TIE keeps the ACID voice and its age, so a held note would
- * be the oldest: it goes last. The heavy kit (BENCH heavy+2acid) with 8-step ties on 7 and 8 over 4 bars: every held
+ * be the oldest: it goes last. The heavy kit (BENCH heavy+2acid) with 8-step ties on 5 and 6 (FREITAKT: 6 tracks) over 4 bars: every held
  * note sounds through its tie (the voice active, the same age, until the next note) */
 static void test_steal_held(void)
 {
     uint32_t i, k, s, cuts = 0, notes = 0, open = 0, blocks = 0, age[2], po[2];
     host_init();
     bench_setup(BENCH_MORE + 5u);
-    for (k = 6; k < 8u; k++)
+    for (k = NTRK - 2u; k < NTRK; k++)
         for (s = 0; s < 16u; s++) {
             memset(&trk[k].step[s], 0, sizeof(step_t));
             trk[k].step[s].on = s % 8u == 0u;
@@ -544,13 +544,13 @@ static void test_steal_held(void)
     transport_req = 1;
     for (i = 0; i < 4u * 2u * FS; i += CTL) {         /* 4 bars at 120 BPM */
         for (k = 0; k < 2u; k++) {
-            dvoice_t *v = &trk[6 + k].v[0];
+            dvoice_t *v = &trk[NTRK - 2u + k].v[0];
             po[k] = v->active && (v->x[2] & 1);
             age[k] = v->age;
         }
         render_mix(0, 0, CTL);
         for (k = 0; k < 2u; k++) {
-            dvoice_t *v = &trk[6 + k].v[0];
+            dvoice_t *v = &trk[NTRK - 2u + k].v[0];
             if (po[k] && !v->active)
                 cuts++;
             if (v->active && v->age != age[k])

@@ -144,15 +144,15 @@ int main(int argc, char **argv)
             okn &= !strcmp(a, WANT[w]);
         }
         host_init_live();
-        bench_setup(BENCH_MORE + 3u);                /* heavy+sidechain: SRC T1, DUCK on 2..8 */
-        okn &= song.g[G_CSRC] == 1 && !trk[0].p[P_DUCK] && trk[7].p[P_DUCK] && trk[3].p[P_DIST];
+        bench_setup(BENCH_MORE + 3u);                /* heavy+sidechain: SRC T1, DUCK on 2..6 (FREITAKT: 6 tracks) */
+        okn &= song.g[G_CSRC] == 1 && !trk[0].p[P_DUCK] && trk[5].p[P_DUCK] && trk[3].p[P_DIST];
         host_init_live();
         bench_setup(BENCH_MORE + 2u);                /* heavy-fx+comp: no DIST / SLICER / sends, no ducking */
-        okn &= song.g[G_CSRC] == 1 && !trk[7].p[P_DUCK] && !trk[3].p[P_DIST] && !trk[3].p[P_REV];
+        okn &= song.g[G_CSRC] == 1 && !trk[5].p[P_DUCK] && !trk[3].p[P_DIST] && !trk[3].p[P_REV];
         host_init_live();
-        bench_setup(BENCH_MORE + 5u);                /* heavy+2acid: tracks 7 and 8 ACID, the rest the heavy kit */
-        okn &= trk[6].p[P_MODEL] == DM_ACID && trk[7].p[P_MODEL] == DM_ACID && trk[5].p[P_MODEL] != DM_ACID &&
-               trk[6].step[3].tie && !trk[6].step[3].on && trk[7].step[0].nt == -24 && trk[6].step[1].slide;
+        bench_setup(BENCH_MORE + 5u);                /* heavy+2acid: tracks 5 and 6 ACID, the rest the heavy kit */
+        okn &= trk[4].p[P_MODEL] == DM_ACID && trk[5].p[P_MODEL] == DM_ACID && trk[3].p[P_MODEL] != DM_ACID &&
+               trk[4].step[3].tie && !trk[4].step[3].on && trk[5].step[0].nt == -24 && trk[4].step[1].slide;
         host_init_live();
         bench_setup(BENCH_MORE);
         okn &= trk[5].p[P_FTYPE] == FT_LP && trk[5].p[P_FRESO] == 60;

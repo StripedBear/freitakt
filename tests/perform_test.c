@@ -187,22 +187,24 @@ static uint32_t rh_first(uint32_t k, uint32_t from)
             return rh_at[k][i];
     return 0xFFFFFFFFu;
 }
-/* the kit, and track 8 a reference: every every-th step on at division div (its hits: the grid of that rate) */
+/* the kit, and the last track (RT: track 6, FREITAKT's 6 tracks; track 8 before) a reference: every every-th step on
+ * at division div (its hits: the grid of that rate) */
+#define RT (NTRK - 1u)
 static void rep_kit_n(uint32_t div, uint32_t every)
 {
     uint32_t k;
     kit();
-    old_set_model(&trk[7], DM_HATC);
-    trk[7].p[P_LEVEL] = 0;
-    trk[7].p[P_SDIV] = (int16_t)div;
+    old_set_model(&trk[RT], DM_HATC);
+    trk[RT].p[P_LEVEL] = 0;
+    trk[RT].p[P_SDIV] = (int16_t)div;
     for (k = 0; k < NSTEP; k++)
-        trk[7].step[k].on = k % every == 0u;
+        trk[RT].step[k].on = k % every == 0u;
 }
 static void rep_kit(uint32_t div) { rep_kit_n(div, 1u); }
 static const uint8_t RATE_DIV[4] = {0, 1, 2, 3};     /* PR_4 .. PR_32 as a track's DIV: 1/4 1/8 1/16 1/32 */
 static const char *const RATE_NAME[4] = {"1/4", "1/8", "1/16", "1/32"};
 
-/* while playing: each rate's hits on its grid, the first on the next grid point after the press (as track 8 at that
+/* while playing: each rate's hits on its grid, the first on the next grid point after the press (as track RT at that
  * division plays); the track's own steps none; after the release the pattern as without the hold */
 static void rep_grid_case(uint32_t r, int32_t bpm, int32_t swing, uint32_t tol)
 {
@@ -225,7 +227,7 @@ static void rep_grid_case(uint32_t r, int32_t bpm, int32_t swing, uint32_t tol)
     rel = rh_blk;
     let_go(PF_T1 + 2u);
     rh_run(10);
-    ok = rh_same(2, 7, press, rel, tol, 3u) && rh_first(2, press) == rh_first(7, press);
+    ok = rh_same(2, RT, press, rel, tol, 3u) && rh_first(2, press) == rh_first(RT, press);
     snprintf(what, sizeof what, "REPEAT STEP %s at %d BPM%s: track 3's hits on the grid of the rate (as a %s track), "
              "the first on the next grid point", RATE_NAME[r], bpm, swing ? ", SWING" : "", RATE_NAME[r]);
     check(what, ok);
@@ -249,7 +251,7 @@ static void test_rep_swing32(void)
     uint32_t press, i, j, ok = 1, n = 0;
     pf_fresh(120);
     song.g[G_SWING] = 40;
-    rep_kit(2);                                       /* track 8: the 1/16s */
+    rep_kit(2);                                       /* track RT: the 1/16s */
     perf_rate = PR_32;
     rh_reset();
     transport_req = 1;
@@ -257,8 +259,8 @@ static void test_rep_swing32(void)
     press = rh_blk;
     hold(PF_T1 + 2u);
     rh_run(2500);
-    for (i = 0; i + 1u < rh_n[7]; i++) {             /* each 1/16 of track 8 after the press: a hit on it, one between */
-        uint32_t a = rh_at[7][i], b = rh_at[7][i + 1u], on = 0, mid = 0;
+    for (i = 0; i + 1u < rh_n[RT]; i++) {             /* each 1/16 of track RT after the press: a hit on it, one between */
+        uint32_t a = rh_at[RT][i], b = rh_at[RT][i + 1u], on = 0, mid = 0;
         if (a <= press)
             continue;
         for (j = 0; j < rh_n[2]; j++) {
@@ -307,7 +309,7 @@ static void test_rep_clock(void)
                 rh_at[k][rh_n[k]++] = rh_blk;
     }
     check("CLK USB: REPEAT STEP 1/16 on the clock's 1/16s (as a 1/16 track following it)",
-          rh_same(2, 7, press, rh_blk, 0, 10u));
+          rh_same(2, RT, press, rh_blk, 0, 10u));
     let_go(PF_T1 + 2u);
     song.g[G_CLOCK] = 0;
     render_mix(0, 0, CTL);
@@ -337,7 +339,7 @@ static void test_rep_sound(void)
         if (rh_at[2][i] > press)
             ok &= rh_vel[2][i] == 127u && rh_nt[2][i] == 5;
     check("REPEAT STEP: the held step's note and accent, every 1/16 (no PROB skip, no RATCH roll)",
-          ok && n == rh_count(7, press, rh_blk) && n > 8u);
+          ok && n == rh_count(RT, press, rh_blk) && n > 8u);
     let_go(PF_T1 + 2u);
     rh_run(1);
     while (trk[2].seq_idx != 7u || trk[2].seq_pos >= 0x7FFFFFFFu)
@@ -359,7 +361,7 @@ static void test_rep_paused(void)
     static uint32_t ref_at[NTRK][RH], ref_n[NTRK];
     uint32_t press, rel, i, k, ok = 1, beats;
     pf_fresh(120);
-    rep_kit(0);                                       /* track 8: the beats */
+    rep_kit(0);                                       /* track RT: the beats */
     rh_reset();
     transport_req = 1;
     rh_run(4300);
@@ -379,10 +381,10 @@ static void test_rep_paused(void)
     let_go(PF_T1 + 2u);
     let_go(PF_T1 + 0u);
     rh_run(1200);
-    beats = rh_count(7, press, rel);
+    beats = rh_count(RT, press, rel);
     check("REPEAT STEP 1/4 on the 1/8 hats: only the beats while held (its own steps paused)",
-          rh_same(2, 7, press, rel, 0, 3u) && rh_count(2, press, rel) == beats);
-    check("two tracks at once: the kick on the beats too", rh_same(0, 7, press, rel, 0, 3u));
+          rh_same(2, RT, press, rel, 0, 3u) && rh_count(2, press, rel) == beats);
+    check("two tracks at once: the kick on the beats too", rh_same(0, RT, press, rel, 0, 3u));
     for (k = 0; k < NTRK; k++) {                      /* after the release: as without the hold */
         uint32_t a = 0, b = 0;
         while (a < rh_n[k] && rh_at[k][a] < rel + 1u)
@@ -394,7 +396,7 @@ static void test_rep_paused(void)
         ok &= rh_n[k] - a == ref_n[k] - b;
     }
     check("let go: the pattern goes on, on time (every track's hits as without the hold)", ok);
-    for (ok = 1, k = 1; k < 7u; k++) {                /* the others while held */
+    for (ok = 1, k = 1; k < RT; k++) {                 /* the others while held */
         uint32_t a = 0, b = 0;
         if (k == 2u)
             continue;
@@ -438,7 +440,7 @@ static void test_rep_stopped(void)
     let_go(PF_T1 + 2u);
     i = rh_blk;
     rh_run(1400);
-    check("stopped: let go, no more", rh_count(2, i, rh_blk) == 0u && rh_count(7, 0, rh_blk) == 0u);
+    check("stopped: let go, no more", rh_count(2, i, rh_blk) == 0u && rh_count(RT, 0, rh_blk) == 0u);
 }
 
 /* a rate change while repeating: from the next grid point of the new rate */
@@ -446,7 +448,7 @@ static void test_rep_rate_change(void)
 {
     uint32_t press, ch, first;
     pf_fresh(120);
-    rep_kit(3);                                       /* track 8: the 1/32s */
+    rep_kit(3);                                       /* track RT: the 1/32s */
     perf_rate = PR_16;
     rh_reset();
     transport_req = 1;
@@ -461,7 +463,7 @@ static void test_rep_rate_change(void)
     rh_run(1000);
     first = rh_first(2, ch);
     check("rate 1/16 -> 1/32 while held: the next hit on the next 1/32 (halfway), then every 1/32",
-          first == rh_first(7, ch) && rh_same(2, 7, ch, rh_blk, 0, 10u) && rh_count(2, press, ch) > 3u);
+          first == rh_first(RT, ch) && rh_same(2, RT, ch, rh_blk, 0, 10u) && rh_count(2, press, ch) > 3u);
     let_go(PF_T1 + 2u);
 }
 
@@ -477,7 +479,7 @@ static void test_rate_keys(void)
     check("REPEAT STEP's rate at power-on: 1/16", perf_rate == PR_16);
     fx_down(1);
     mo = mo_count();
-    age = hit_age(&trk[7]);
+    age = hit_age(&trk[RT]);
     for (i = 0; i < 4u; i++) {
         fm1_in.notes = 1u << KEY[(i + 1u) & 3u];
         render_mix(0, 0, CTL);
@@ -487,7 +489,7 @@ static void test_rate_keys(void)
         ok &= perf_rate == ((i + 1u) & 3u) && !perf_held && !kb_layer;
     }
     check("FX + D5 E5 F5 G5: the rate 1/4 1/8 1/16 1/32 (kept after the key), nothing held", ok);
-    check("the rate keys: no note, no MIDI", mo_count() == mo && hit_age(&trk[7]) == age);
+    check("the rate keys: no note, no MIDI", mo_count() == mo && hit_age(&trk[RT]) == age);
     fx_down(0);
     perf_mask = 0;
     fm1_in.notes = 1u << 26;                          /* G5 without FX: not the layer's (no rate) */
@@ -792,9 +794,11 @@ static void test_key_map(void)
     for (i = 0; i < 10u; i++)
         ok &= perf_key(BLACK[i]) == WANT[i];
     check("keys: the black keys F#3 .. D#5 play REPEAT 1/8 1/16 1/32 REVERSE TAPE LPF HPF FREEZE OCT UP OCT DN", ok);
-    for (ok = 1, i = 0; i < 8u; i++)
+    for (ok = 1, i = 0; i < NTRK; i++)
         ok &= perf_key(WHITE[i]) == PF_T1 + i && WHITE[i] == KEY_TRK_KEY[i];
-    check("keys: the white track keys F3 .. F4 repeat tracks 1..8", ok);
+    for (; i < 8u; i++)                              /* FREITAKT: 6 tracks, E4 and F4 (tracks 7 and 8 before): none */
+        ok &= perf_key(WHITE[i]) == PF_N;
+    check("keys: the white track keys F3 .. D4 repeat tracks 1..6, E4 F4 nothing", ok);
     check("keys: F#5 and the white keys G4 .. C5 do nothing",
           perf_key(25) == PF_N && perf_key(14) == PF_N && perf_key(16) == PF_N && perf_key(18) == PF_N &&
           perf_key(19) == PF_N);

@@ -3,53 +3,22 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Projects: four slots in .noinit RAM, so they survive resets and UBOOT entry. With FELUCCA_FLASH
  * every save also goes to flash through storage.c, and an empty RAM slot is filled from flash.
- * Format "FDRG" (the 16th, 2026-10-31 MICRO): as "FDRF", but every step's spare byte is its MICRO (step_t.micro) and
- * the 7 parameters past the block (below) are in the reserved area (xp: 7 B a track, each as its offset from its
- * power-on value). An FDRF (or older) record converts on load: its steps' spare bytes are those parameters, every
- * micro 0. An older firmware reads an FDRG record as no record (LOAD FAILED). The SAMPLE model's ATK SUS REL LOOP
- * (2026-11-03) follow in xp2 (4 B a track, the same encoding) of the reserved area: 0 in every record before them, so
- * such a record loads with their power-on values; an FDRG firmware before them ignores them (the format unchanged).
- * "FDRF" (the 15th, 2026-10-24 parameter locks): as "FDRE", but its motion block is gone: the motion and the
- * parameter locks are the slot's lock bank (lockbank.c), its own flash object (storage.c OBJ_LOCKS0 + slot), saved
- * just before the record; the record links it (lk_link: a hash of the bank, lk_n: its count), so a save torn by a
- * power cut keeps the last whole pair (the record is the pair's commit). An FDRE or older record's motion converts
- * into the bank as motion events. "FDRE" (the 14th): the globals (with the COMP's GHOST and the reverb TYPE), the selected track, per track every
- * parameter and its 64 steps (with PROB / RATCH, each step's note offset, SLIDE and TIE (ACID), DUCK, the COMP settings,
- * the LFOs and their 4 DEST slots, RESON, the FILTER, PRIO), the motion
- * (motion.c, 128 events), 36 reserved bytes (the removed SONG's rows: 0), the project's name (seq.c pname), each track's preset id and edited mark (presets.c).
- * M1's "FDR1", M2's "FDR2", M3's "FDR3", the LFOs' "FDR4" RESON's "FDR5", GHOST's "FDR6", the sound pack's
- * "FDR7", motion's "FDR8", the song's "FDR9", the FILTER's "FDRA", ACID's "FDRB", PRIO's "FDRC" and the presets' "FDRD"
- * records (in flash) are converted on load (the FILTER OFF, the steps at NOTE C4 with no SLIDE / TIE, PRIO HIGH, no
- * preset, not edited (FDRD: as stored); CHOKE as stored; an LFO's DEST and DEPTH are DEST slots 1 / 2 with sources LFO 1
- * / LFO 2 (the same ids), slots 3 / 4 off). An older image in a RAM slot (FDRA, FDRB: 3672 B a slot, FDRC: 3688 B,
- * FDRD: 3712 B, FDRE's are 3840 B) is never read as one: the slots are filled from flash at boot. FDRE fills a flash
- * sector's payload (3840 B, ST_PAYLOAD_MAX): a larger record needs another layout. The parameters after its block
- * (P_NSTORED ..: RESON's KEYF, SRR, the INSERT's TYPE A B C MIX) ride in a track's steps' spare byte (step_t.rsv:
- * parameter P_NSTORED + j in step j's), each as its offset from its power-on value (TP def, mod 256: KEYF's def is 0,
- * so its byte is its value, as before); every earlier firmware wrote 0 there and ignores it on load, so a record from
- * before them loads with them at their power-on values (KEYF 0, SRR 0, the INSERT OFF at MIX 100 %).
- * The globals after its block (G_NSTORED .., the delay's MODE) ride in the record's reserved byte rsv[0] (proj_g; 0 in
- * every earlier record: NORMAL).
+ * Format "FRT6" (FREITAKT, 6 tracks; Hortator's "FDRG" with NTRK 6): the globals (with the COMP's GHOST and the reverb
+ * TYPE), the selected track, per track every parameter of the block (PR_NP places) and its 64 steps (each step's spare
+ * byte its MICRO), the lock bank's link (lk_n, lk_link: the motion and the parameter locks are the slot's lock bank,
+ * lockbank.c, its own flash object storage.c OBJ_LOCKS0 + slot, saved just before the record, so a save torn by a power
+ * cut keeps the last whole pair: the record is the pair's commit), the variations' link (var_link, var_len), the
+ * parameters past the block (xp / xp2 / xp3: each as its offset from its power-on value), reserved bytes (the removed
+ * SONG's rows: 0), the project's name (seq.c pname), each track's preset id and edited mark (presets.c). The globals
+ * after the block (G_NSTORED .., the delay's MODE) ride in the reserved byte rsv[0] (proj_g).
+ * Every older record (Hortator's FDR1..FDRG, 8 tracks) is no record: FREITAKT does not convert them (proj_fetch: an
+ * empty slot), and an old image in a RAM slot fails proj_ok (its marker), so the slots are filled from flash at boot.
  * Felucca's formats ("FUN1".."FUN3") are not read. Settings + the panel table: as in Felucca. */
 /* the FM-1's 1 MiB SPI NOR flash by its JEDEC id: the Puya P25Q80 (0x856014) and the UC25HQ80 (0xB36014) of newer
  * units (the same size and commands: 0x9F, 0x05 / 0x35, 0x06, 0x20, 0x02); any other answer: RAM-only saves */
 #define FL_JEDEC_OK(id) ((id) == 0x856014u || (id) == 0xB36014u)
-#define PROJ_MAGIC 0x47524446u                 /* "FDRG" (the 16th): MICRO (spec 2026-10-31) */
-#define PROJ_MAGIC_VF 0x46524446u              /* "FDRF": the lock bank (spec 2026-10-24 parameter locks); converted on load */
-#define PROJ_MAGIC_VE 0x45524446u              /* "FDRE": + the LFO DEST slots (fixes 2026-10-21 item 3); converted on load */
-#define PROJ_MAGIC_VD 0x44524446u              /* "FDRD": each track's preset and edited mark; converted on load */
-#define PROJ_MAGIC_VC 0x43524446u              /* "FDRC": PRIO per track, no presets; converted on load */
-#define PROJ_MAGIC_VB 0x42524446u              /* "FDRB": the step's note, SLIDE and TIE (ACID); converted on load */
-#define PROJ_MAGIC_VA 0x41524446u              /* "FDRA": the FILTER, the old steps; converted on load (same size) */
-#define PROJ_MAGIC_V9 0x39524446u              /* "FDR9": the song and the name, converted on load */
-#define PROJ_MAGIC_V8 0x38524446u              /* "FDR8": the motion, converted on load */
-#define PROJ_MAGIC_V7 0x37524446u              /* "FDR7": the reverb TYPE (sound pack), converted on load */
-#define PROJ_MAGIC_V6 0x36524446u              /* "FDR6": GHOST projects, converted on load */
-#define PROJ_MAGIC_V5 0x35524446u              /* "FDR5": RESON projects, converted on load */
-#define PROJ_MAGIC_V4 0x34524446u              /* "FDR4": LFO projects, converted on load */
-#define PROJ_MAGIC_V3 0x33524446u              /* "FDR3": M3 projects, converted on load */
-#define PROJ_MAGIC_V2 0x32524446u              /* "FDR2": M2 projects, converted on load */
-#define PROJ_MAGIC_V1 0x31524446u              /* "FDR1": M1 projects, converted on load */
+#define PROJ_MAGIC 0x36545246u                 /* "FRT6" (FREITAKT, 6 tracks): FDRG's layout with 6 tracks. Older
+                                                 * records (FDR1..FDRG: 8 tracks) are not read (an empty slot) */
 /* FREITAKT removed Grids; a record keeps their places (written 0, never read): the 10 globals after G_DRCH (MODE X
  * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). FREITAKT removed RESON the same way: its
  * 7 knobs' places before the FILTER's (MODEL TUNE DECAY MIX TONE STRCT POS) and KEYF's, xp's first byte; and the
@@ -103,7 +72,7 @@ typedef struct {
     uint8_t pre_ed[NTRK];                       /* FDRD: .. edited since (0 / 1) */
     uint32_t sum;
 } project_t;
-typedef char project_size[sizeof(project_t) == 3840u ? 1 : -1];
+typedef char project_size[sizeof(project_t) == 3044u ? 1 : -1];   /* (FDRG: 3840 B with 8 tracks) */
 static int16_t proj_xp_get(const project_t *p, uint32_t k, uint32_t id)   /* track k's parameter id past the block */
 {
     return (int16_t)(TP[id].def + (int8_t)(id < P_SATK ? p->xp[k][PR_XP(id)]
@@ -118,43 +87,16 @@ static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .
     else
         p->xp3[k][id - P_SPLAY] = proj_xp_enc(id, v);
 }
-/* an FDRF (or older) record's tracks as FDRG's: the parameters out of steps 0..6's spare bytes, every micro 0 */
-static void proj_xp_move(project_t *q)
-{
-    uint32_t k, i;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < NSTEP; i++) {
-            if (i < PROJ_XP)
-                q->xp[k][i] = q->t[k].step[i].rsv;
-            q->t[k].step[i].rsv = 0;
-        }
-}
 /* global i of a record: the block (G_NSTORED), past it G_DMODE in the reserved byte rsv[0] (0 in every record before
  * it: NORMAL) */
 static int16_t proj_g(const project_t *p, uint32_t i) { return i < G_NSTORED ? p->g[PR_G(i)] : (int16_t)p->rsv[0]; }
 typedef char proj_g_fit[G_COUNT - G_NSTORED == 1 ? 1 : -1];   /* (one reserved byte used: rsv[1..2] free) */
 project_t proj_slot[4] __attribute__((section(".noinit")));
-/* FDRE (0.23.x): FDRF's layout with the motion (128 events) where FDRF has its bank link */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint16_t pre[NTRK];
-    uint8_t pre_ed[NTRK];
-    uint32_t sum;
-} project_ve_t;
-typedef char project_ve_size[sizeof(project_ve_t) == 3840u &&
-                             __builtin_offsetof(project_ve_t, motion) == __builtin_offsetof(project_t, lk_n) &&
-                             __builtin_offsetof(project_ve_t, rsv_song) == __builtin_offsetof(project_t, rsv_song) ? 1 : -1];
 /* each slot's lock bank (lockbank.c): the one its record links (persist_boot, a LOAD's fetch, a SAVE); .bss (the
  * slots' records are .noinit: a reset finds them, the banks come from flash again). */
 static lk_bank_t lk_slot[4];
-static uint8_t lk_dirty;                            /* bit per slot: its RAM bank is not in flash (an older record converted
-                                                     * at boot, or its SAVE failed): a record written alone (RENAME) writes
+static uint8_t lk_dirty;                            /* bit per slot: its RAM bank is not in flash (its SAVE
+                                                     * failed): a record written alone (RENAME) writes
                                                      * it first, so the record never links a bank flash lacks */
 static uint8_t lk_blocked;                          /* this boot's USR3 clamp failed (USR3 still longer than 48 KiB in
                                                      * flash): no lock-bank write (an older Hortator would play them) */
@@ -210,316 +152,7 @@ static uint32_t proj_hash(const void *p, uint32_t n)   /* FNV-1a over n bytes */
 static uint32_t proj_sum(const project_t *p) { return proj_hash(p, sizeof *p - 4u); }
 static int proj_ok(const project_t *q) { return q->magic == PROJ_MAGIC && q->size == sizeof *q && q->sum == proj_sum(q); }
 
-typedef struct { uint8_t on, acc, cond, rat; } step_v9_t;   /* a step as FDR2..FDRA stored it */
-/* FDRA: everything, the steps as FDR2..FDR9 (same size as FDRB: told by the marker) */
-typedef struct {
-    int16_t p[PR_P(P_PRIO)];
-    step_v9_t step[NSTEP];
-} proj_trk_va_t;
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_va_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint32_t sum;
-} project_va_t;
-typedef char project_va_size[sizeof(project_va_t) == 3672u ? 1 : -1];
-/* FDRB (0.16.0): everything but PRIO, 3672 B (FDRA's size: told by the marker) */
-typedef struct {
-    int16_t p[PR_P(P_PRIO)];
-    step_t step[NSTEP];
-} proj_trk_vb_t;
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_vb_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint32_t sum;
-} project_vb_t;
-typedef char project_vb_size[sizeof(project_vb_t) == 3672u ? 1 : -1];
-/* a track as FDRC and FDRD stored it: the parameters up to PRIO (no DEST slots 3 / 4, no slot sources) */
-typedef struct {
-    int16_t p[PR_P(P_PRIO) + 1u];
-    step_t step[NSTEP];
-} proj_trk_vd_t;
-/* FDRC (0.17.0 .. 0.20.0): everything but the presets, 3688 B; FDRD's fields up to the name at the same offsets */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_vd_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint32_t sum;
-} project_vc_t;
-/* FDRD (0.21.0 .. 0.22.0): everything but the DEST slots' new parameters, 3712 B */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_vd_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint16_t pre[NTRK];
-    uint8_t pre_ed[NTRK];
-    uint32_t sum;
-} project_vd_t;
-typedef char project_vc_size[sizeof(project_vc_t) == 3688u && sizeof(project_vd_t) == 3712u &&
-                             __builtin_offsetof(project_vc_t, name) == __builtin_offsetof(project_vd_t, name) ? 1 : -1];
-
-static step_t step_up(const step_v9_t *o)          /* an FDR2..FDRA step: the flags, NOTE C4, no SLIDE / TIE */
-{
-    step_t s;
-    memset(&s, 0, sizeof s);
-    s.on = o->on ? 1u : 0u;
-    s.acc = o->acc ? 1u : 0u;
-    s.rat = (uint8_t)(o->rat < 3u ? o->rat : 3u);
-    s.cond = o->cond;
-    return s;
-}
-
-/* FDRA and FDRB: the steps at the same offsets (4 bytes each), everything else the same: told by the marker */
-typedef char project_va_steps[__builtin_offsetof(project_va_t, t[1].step[1]) ==
-                              __builtin_offsetof(project_vb_t, t[1].step[1]) ? 1 : -1];
-
 #if FELUCCA_FLASH
-/* M1's format: the globals before Grids' (PR_GR), the parameters before SRC (PR_SRCP), steps of {on, acc} */
-typedef struct { uint8_t on, acc; } step_v1_t;
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_GR];
-    uint8_t sel, rsv[3];
-    struct { int16_t p[PR_SRCP]; step_v1_t step[NSTEP]; } t[NTRK];
-    uint32_t sum;
-} project_v1_t;
-/* M2's format: the globals before G_CSRC, the parameters before P_DUCK */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_G(G_CSRC)];
-    uint8_t sel, rsv[3];
-    struct { int16_t p[PR_P(P_DUCK)]; step_v9_t step[NSTEP]; } t[NTRK];
-    uint32_t sum;
-} project_v2_t;
-/* M3's format: the globals before G_CGHOST, the parameters before P_LFO1 */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_G(G_CGHOST)];
-    uint8_t sel, rsv[3];
-    struct { int16_t p[PR_P(P_LFO1)]; step_v9_t step[NSTEP]; } t[NTRK];
-    uint32_t sum;
-} project_v3_t;
-/* the LFO format: the globals before G_CGHOST, the parameters before RESON's */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_G(G_CGHOST)];
-    uint8_t sel, rsv[3];
-    struct { int16_t p[PR_RS]; step_v9_t step[NSTEP]; } t[NTRK];
-    uint32_t sum;
-} project_v4_t;
-/* a track as FDR5..FDR9 stored it: the parameters before P_FTYPE (no FILTER) */
-typedef struct {
-    int16_t p[PR_P(P_FTYPE)];
-    step_v9_t step[NSTEP];
-} proj_trk_v9_t;
-/* RESON's format: the globals before G_CGHOST (the parameters before P_FTYPE) */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_G(G_CGHOST)];
-    uint8_t sel, rsv[3];
-    proj_trk_v9_t t[NTRK];
-    uint32_t sum;
-} project_v5_t;
-/* GHOST's format: the globals before G_RTYPE (the parameters as now). 3024 B, as an FDR5 record: the version is
- * told by the marker, not the size */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_G(G_RTYPE)];
-    uint8_t sel, rsv[3];
-    proj_trk_v9_t t[NTRK];
-    uint32_t sum;
-} project_v6_t;
-/* the sound pack's format: everything but the motion. 3028 B */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_v9_t t[NTRK];
-    uint32_t sum;
-} project_v7_t;
-/* motion's format: everything but the song (reserved now) and the name. 3544 B */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_v9_t t[NTRK];
-    motion_store_t motion;
-    uint32_t sum;
-} project_v8_t;
-/* FDR9: everything but the FILTER. 3592 B */
-typedef struct {
-    uint32_t magic, size;
-    int16_t g[PR_NG];
-    uint8_t sel, rsv[3];
-    proj_trk_v9_t t[NTRK];
-    motion_store_t motion;
-    uint8_t rsv_song[36];                       /* (the removed SONG's rows) */
-    char name[NAME_LEN];
-    uint32_t sum;
-} project_v9_t;
-static union {
-    project_v1_t v1; project_v2_t v2; project_v3_t v3; project_v4_t v4; project_v5_t v5; project_v6_t v6; project_v7_t v7;
-    project_v8_t v8; project_v9_t v9; project_va_t va; project_vb_t vb; project_vc_t vc; project_vd_t vd;
-    project_ve_t ve; project_t vf;                   /* (vf: FDRF, FDRG's layout) */
-} proj_old;
-
-/* a converted record's bank (b: its slot's): the old motion (none: m 0, or a broken one: dropped) as motion events,
- * the record linking it */
-static void proj_old_bank(project_t *q, lk_bank_t *b, const motion_store_t *m)
-{
-    uint32_t slot = (uint32_t)(b - lk_slot);
-    if (!m || !lk_from_motion(b, slot, m))
-        lk_empty(slot);
-    lk_dirty |= (uint8_t)(1u << (slot & 3u));       /* (converted in RAM: not in flash until a save) */
-    q->lk_link = proj_link(b);
-    q->lk_n = b->count;
-}
-static void proj_old_done(project_t *q)            /* a converted record: no presets, not edited; its sum */
-{
-    uint32_t k;
-    proj_xp_move(q);
-    for (k = 0; k < NTRK; k++) {
-        q->pre[k] = (uint16_t)PRE_NONE;
-        q->pre_ed[k] = 0;
-    }
-    q->sum = proj_sum(q);
-}
-
-/* an old record (proj_old, version ver) -> q: what it has; the rest at the defaults (v1: PROB 100 %, 1 hit,
- * v1 / v2: COMP off, DUCK off; v1..v3: the LFOs off; v1..v4: RESON off; v1..v5: GHOST KEEP;
- * v1..v6: reverb TYPE ROOM; v1..v7: no motion; v1..v8: no song, no name; v1..v9: the FILTER OFF; v1..v10: the steps
- * at NOTE C4, no SLIDE / TIE; v1..v11: PRIO HIGH; v1..v12: no preset, not edited; all: CHOKE as stored, an LFO's DEST
- * and DEPTH DEST slot 1 / 2 (sources LFO 1 / 2: their defaults), slots 3 / 4 off) */
-static void proj_from_old(project_t *q, lk_bank_t *b, uint32_t ver)
-{
-    uint32_t i, k;
-    uint32_t ng, np;
-    if (ver == 15u) {                                /* FDRF: everything as stored (its bank and variations linked) */
-        memcpy(q, &proj_old.vf, sizeof *q);
-        q->magic = PROJ_MAGIC;
-        proj_xp_move(q);
-        q->sum = proj_sum(q);
-        return;
-    }
-    if (ver == 14u) {                                /* FDRE: everything as stored, its motion into the bank */
-        memcpy(q, &proj_old.ve, sizeof *q);
-        q->magic = PROJ_MAGIC;
-        memset(&q->lk_n, 0, sizeof proj_old.ve.motion);
-        memset(q->rsv_song, 0, sizeof q->rsv_song);       /* (the removed SONG's rows) */
-        proj_old_bank(q, b, &proj_old.ve.motion);
-        proj_xp_move(q);
-        q->sum = proj_sum(q);
-        return;
-    }
-    if (ver >= 12u) {                                /* FDRC / FDRD (FDRC: FDRD's fields up to the name): the
-                                                      * parameters up to PRIO, the slots' new ones at their defaults */
-        const project_vd_t *o = &proj_old.vd;
-        memset(q, 0, sizeof *q);
-        q->magic = PROJ_MAGIC;
-        q->size = sizeof *q;
-        memcpy(q->g, o->g, sizeof q->g);
-        q->sel = o->sel;
-        for (k = 0; k < NTRK; k++) {
-            for (i = 0; i < P_NSTORED; i++)
-                q->t[k].p[PR_P(i)] = i <= P_PRIO ? o->t[k].p[PR_P(i)] : TP[i].def;
-            memcpy(q->t[k].step, o->t[k].step, sizeof q->t[k].step);
-        }
-        proj_old_bank(q, b, &o->motion);
-        memcpy(q->name, o->name, NAME_LEN);
-        if (ver == 12u) {
-            proj_old_done(q);
-            return;
-        }
-        memcpy(q->pre, o->pre, sizeof q->pre);      /* FDRD: its presets as stored */
-        memcpy(q->pre_ed, o->pre_ed, sizeof q->pre_ed);
-        proj_xp_move(q);
-        q->sum = proj_sum(q);
-        return;
-    }
-    if (ver >= 8u) {                                 /* FDR8 / FDR9: the tracks without the FILTER; FDRA / FDRB: without
-                                                      * PRIO; FDRB: the steps as now */
-        const int16_t *g = ver == 8u ? proj_old.v8.g : ver == 9u ? proj_old.v9.g : ver == 10u ? proj_old.va.g : proj_old.vb.g;
-        np = ver < 10u ? (uint32_t)P_FTYPE : (uint32_t)P_PRIO;
-        memset(q, 0, sizeof *q);
-        q->magic = PROJ_MAGIC;
-        q->size = sizeof *q;
-        for (i = 0; i < G_NSTORED; i++)
-            q->g[PR_G(i)] = g[PR_G(i)];
-        q->sel = ver == 8u ? proj_old.v8.sel : ver == 9u ? proj_old.v9.sel : ver == 10u ? proj_old.va.sel : proj_old.vb.sel;
-        for (k = 0; k < NTRK; k++) {
-            const int16_t *op = ver == 8u ? proj_old.v8.t[k].p : ver == 9u ? proj_old.v9.t[k].p
-                              : ver == 10u ? proj_old.va.t[k].p : proj_old.vb.t[k].p;
-            const step_v9_t *os = ver == 10u ? proj_old.va.t[k].step : ver == 9u ? proj_old.v9.t[k].step : proj_old.v8.t[k].step;
-            for (i = 0; i < P_NSTORED; i++)
-                q->t[k].p[PR_P(i)] = i < np ? op[PR_P(i)] : TP[i].def;
-            if (ver == 11u)
-                memcpy(q->t[k].step, proj_old.vb.t[k].step, sizeof q->t[k].step);
-            else
-                for (i = 0; i < NSTEP; i++)
-                    q->t[k].step[i] = step_up(&os[i]);
-        }
-        proj_old_bank(q, b, ver == 8u ? &proj_old.v8.motion : ver == 9u ? &proj_old.v9.motion
-                          : ver == 10u ? &proj_old.va.motion : &proj_old.vb.motion);
-        if (ver >= 9u) {
-            memcpy(q->name, ver == 9u ? proj_old.v9.name : ver == 10u ? proj_old.va.name : proj_old.vb.name, NAME_LEN);
-        }
-        proj_old_done(q);
-        return;
-    }
-    ng = ver <= 2u ? (uint32_t)G_CSRC : ver == 6u ? (uint32_t)G_RTYPE
-                : ver == 7u ? (uint32_t)G_NSTORED : (uint32_t)G_CGHOST;
-    np = ver <= 2u ? (uint32_t)P_DUCK : ver == 3u ? (uint32_t)P_LFO1
-                : (uint32_t)P_FTYPE;   /* (FDR4: the ones before RESON's) */
-    memset(q, 0, sizeof *q);
-    q->magic = PROJ_MAGIC;
-    q->size = sizeof *q;
-    for (i = 0; i < G_NSTORED; i++)
-        q->g[PR_G(i)] = i >= ng ? GP[i].def
-                : ver == 1u ? proj_old.v1.g[PR_G(i)] : ver == 2u ? proj_old.v2.g[PR_G(i)] : ver == 3u ? proj_old.v3.g[PR_G(i)]
-                : ver == 4u ? proj_old.v4.g[PR_G(i)] : ver == 5u ? proj_old.v5.g[PR_G(i)] : ver == 6u ? proj_old.v6.g[PR_G(i)]
-                : proj_old.v7.g[PR_G(i)];
-    q->sel = ver == 1u ? proj_old.v1.sel : ver == 2u ? proj_old.v2.sel : ver == 3u ? proj_old.v3.sel
-           : ver == 4u ? proj_old.v4.sel : ver == 5u ? proj_old.v5.sel : ver == 6u ? proj_old.v6.sel : proj_old.v7.sel;
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i < P_NSTORED; i++)
-            q->t[k].p[PR_P(i)] = i >= np ? TP[i].def
-                         : ver == 1u ? proj_old.v1.t[k].p[PR_P(i)] : ver == 2u ? proj_old.v2.t[k].p[PR_P(i)]
-                         : ver == 3u ? proj_old.v3.t[k].p[PR_P(i)] : ver == 4u ? proj_old.v4.t[k].p[PR_P(i)]
-                         : ver == 5u ? proj_old.v5.t[k].p[PR_P(i)] : ver == 6u ? proj_old.v6.t[k].p[PR_P(i)]
-                         : proj_old.v7.t[k].p[PR_P(i)];
-        for (i = 0; i < NSTEP; i++) {
-            if (ver == 1u) {
-                q->t[k].step[i].on = proj_old.v1.t[k].step[i].on ? 1u : 0u;   /* (1-bit fields: 2 is set) */
-                q->t[k].step[i].acc = proj_old.v1.t[k].step[i].acc ? 1u : 0u;
-            } else {
-                q->t[k].step[i] = step_up(ver == 2u ? &proj_old.v2.t[k].step[i]
-                                : ver == 3u ? &proj_old.v3.t[k].step[i] : ver == 4u ? &proj_old.v4.t[k].step[i]
-                                : ver == 5u ? &proj_old.v5.t[k].step[i] : ver == 6u ? &proj_old.v6.t[k].step[i]
-                                : &proj_old.v7.t[k].step[i]);
-            }
-        }
-    }
-    proj_old_bank(q, b, 0);                          /* (no motion before FDR8) */
-    proj_old_done(q);
-}
-
 /* slot's bank from flash, the one its record (proj_slot, valid) links: 1 found; 0 none needed (lk_n 0): empty; -1
  * lost (neither copy a valid bank of this slot with the record's link: an upload over it, a damaged sector, a torn
  * save's leftover): empty, its lk_lost bit set. Either copy may hold it (a save torn after its bank was written leaves
@@ -547,35 +180,13 @@ static int proj_bank_fetch(uint32_t slot)
     lk_lost |= (uint8_t)(1u << (slot & 3u));
     return -1;
 }
-/* slot's record (and its bank) from flash: as proj_bank_fetch, -2 no record (an empty slot); an old record converts
- * (its motion into the bank: 0 or 1) */
+/* slot's record (and its bank) from flash: as proj_bank_fetch, -2 no record (an empty slot). Only a whole "FRT6"
+ * record of this size is one: any older record (FDR1..FDRG, Hortator's 8 tracks) or other data is no record */
 static int proj_fetch(uint32_t slot)
 {
     project_t *q = &proj_slot[slot & 3u];
     int n = st_load(OBJ_PROJECT0 + (slot & 3u), q, sizeof *q);
     lk_dirty &= (uint8_t)~(1u << (slot & 3u));
-    if (n > 8 && n <= (int)sizeof proj_old && !proj_ok(q)) {   /* an old record: its marker names it */
-        static const uint32_t MAGIC[16] = {0, PROJ_MAGIC_V1, PROJ_MAGIC_V2, PROJ_MAGIC_V3, PROJ_MAGIC_V4, PROJ_MAGIC_V5,
-                                           PROJ_MAGIC_V6, PROJ_MAGIC_V7, PROJ_MAGIC_V8, PROJ_MAGIC_V9, PROJ_MAGIC_VA, PROJ_MAGIC_VB,
-                                           PROJ_MAGIC_VC, PROJ_MAGIC_VD, PROJ_MAGIC_VE, PROJ_MAGIC_VF};
-        static const uint32_t SIZE[16] = {0, sizeof proj_old.v1, sizeof proj_old.v2, sizeof proj_old.v3,
-                                          sizeof proj_old.v4, sizeof proj_old.v5, sizeof proj_old.v6, sizeof proj_old.v7,
-                                          sizeof proj_old.v8, sizeof proj_old.v9, sizeof proj_old.va, sizeof proj_old.vb,
-                                          sizeof proj_old.vc, sizeof proj_old.vd, sizeof proj_old.ve, sizeof proj_old.vf};
-        uint32_t ver, hdr[2], sum;
-        memcpy(&proj_old, q, (uint32_t)n);
-        memcpy(hdr, &proj_old, sizeof hdr);
-        memcpy(&sum, (const uint8_t *)&proj_old + n - 4, 4);
-        for (ver = 1; ver < 16u; ver++)
-            if (hdr[0] == MAGIC[ver] && hdr[1] == (uint32_t)n && SIZE[ver] == (uint32_t)n &&
-                sum == proj_hash(&proj_old, (uint32_t)n - 4u)) {
-                proj_from_old(q, &lk_slot[slot & 3u], ver);
-                proj_fsum[slot & 3u] = q->sum;          /* (converted: as flash's, until edited) */
-                if (ver == 15u)
-                    return proj_bank_fetch(slot);       /* (FDRF: its bank in flash, linked) */
-                return lk_slot[slot & 3u].count ? 1 : 0;
-            }
-    }
     if (n != (int)sizeof *q || !proj_ok(q)) {
         q->magic = 0;
         lk_empty(slot & 3u);
@@ -1808,7 +1419,7 @@ static void ml_rec_make(ml_rec_t *r)
 }
 #endif
 /* persist_boot (IRQs off, the map cleared): the map from flash (version 2, or 1), its broken entries dropped: a source
- * or a code this build does not know or cannot learn, a note on a parameter or a macro, a track past 8 (an action:
+ * or a code this build does not know or cannot learn, a note on a parameter or a macro, a track past NTRK (an action:
  * not 0), a source or a code already in an earlier entry */
 static void learn_load(void)
 {

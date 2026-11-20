@@ -6,7 +6,7 @@ later. The protocol's shape — framing, 14-bit values, 7-bit groups, one reques
 pushes, the backup LIST / GET shape and the result codes — follows **upstream Felucca's editor protocol**
 (hugelton/Felucca 5d9694d, `web/EDITOR_PROTOCOL.md`, `firmware/src/editor.c`; GPL-3.0-only, © Leo Kuroshita /
 Hügelton Instruments). Hortator protocol 1 is not compatible with upstream's: its own header, command table and data
-model (8 drum tracks, variations, lock banks). Design: `docs/superpowers/specs/2026-10-31-web-editor-design.md`.
+model (6 drum tracks, variations, lock banks). Design: `docs/superpowers/specs/2026-10-31-web-editor-design.md`.
 
 | Where | What |
 | --- | --- |
@@ -61,7 +61,7 @@ the command needs.
 
 | cmd | Name | Cap | Request | Reply (rc 0) |
 | --- | --- | --- | --- | --- |
-| 1 | INFO | — | — | magic str `"HORTATOR"`, firmware str (`"1.0.0"`), major u7 (1), minor u7 (2), caps u14, ntrk u7 (8), nstep u7 (64), pcount u7 (82), gcount u7 (42), nmodels u7 (45), nfact u14 (151), nuser u14 (96), nbanks u7 (3), nslot u7 (4), nvar u7 (8), maxreq u14 (640), ble u7 (1: the Bluetooth build), state |
+| 1 | INFO | — | — | magic str `"HORTATOR"`, firmware str (`"1.0.0"`), major u7 (1), minor u7 (2), caps u14, ntrk u7 (6), nstep u7 (64), pcount u7 (82), gcount u7 (42), nmodels u7 (45), nfact u14 (151), nuser u14 (96), nbanks u7 (3), nslot u7 (4), nvar u7 (8), maxreq u14 (640), ble u7 (1: the Bluetooth build), state |
 | 2 | PAGES | LIVE | first u7 | total u7, first u7, list of {title str, scope u7, graph u7, ids 4 × u14} |
 | 3 | DESC | LIVE | scope u7, track u7, id u14, first u7 | scope u7, track u7, id u14, fmt u7, flags u7, min v14, max v14, def v14, label str, unit str, nnames u7, first u7, list of names str (first = 7F: list of order u7) |
 | 4 | GET | LIVE | scope u7, track u7, id u14, count u7 (1..) | scope u7, track u7, id u14, list of {value v14, text str, unit str} for ids id, id + 1, … |
@@ -128,7 +128,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
 
 ### 2.2 Knobs: PAGES, DESC, GET, SET, TEXT, DUMP, SELECT
 
-- **scope** 0 = a track's parameter (`P_*`, id 0..pcount − 1; `track` 0..7, 7F = the selected one); 1 = a global
+- **scope** 0 = a track's parameter (`P_*`, id 0..pcount − 1; `track` 0..5, 7F = the selected one); 1 = a global
   (`G_*`, id 0..gcount − 1; `track` ignored, send 0); 2 = a model's SOUND knob (DESC only: `track` = the model
   0..nmodels − 1, `id` = its knob 0..7, independent of any track). Ids are the firmware's `core.h` enums (P_MODEL 0,
   P_E0..P_E7 1..8, P_LEVEL 9 … P_IMIX 75; G_BPM 0 … G_DMODE 41); `web/editor/device_data.json` names them.
@@ -246,20 +246,20 @@ Objects, read from flash — never RAM: a backup is what the device loads after 
 | obj | Object | Size | Format (little endian; §6) |
 | --- | --- | --- | --- |
 | 0 | user presets | 3,204 | "UPR2" (minor 1 and before: 1,284, "UPR1") |
-| 1–4 | project record A–D | 3,840 ("FDRG"; an "FDRF" one, saved before NUDGE, the same size); an older record its own size (§6) | `project_t` |
+| 1–4 | project record A–D | 3,044 ("FRT6"; Hortator's 8-track records, "FDR1".."FDRG", are not read: the slot is empty, §6) | `project_t` |
 | 5–8 | lock bank A–D | 3,208 | "LKB1" `lk_bank_t` |
-| 9–12 | variations A–D | 8 + used: 22..3,584 | "VAR1" `var_bank_t` |
+| 9–12 | variations A–D | 8 + used: 22..3,584 | "VAR6" `var_bank_t` (6 tracks; "VAR1" banks are ignored) |
 
 - **BACKUP_LIST** gives all 13: present (0: no record in that slot, a lock bank / variations not linked (the record's
   lk_n / var_len 0), no user bank saved), size, crc (zlib CRC-32 of the bytes: the storage header's), seq (the
   storage sequence of the copy read), flags 0x01 UNSAVED (the slot or the user bank has changes in RAM that flash
   lacks: the page says "A has unsaved changes — SAVE on the FM-1 to include them"), 0x02 LOST (the record links an
-  object no flash copy holds), 0x04 OLD (a record in an older format, FDRF included; the device converts it at load). A lock bank
+  object no flash copy holds), 0x04 OLD (not set now: older records, Hortator's 8 tracks, are not converted and read as empty). A lock bank
   and variations are the copies the record links (either A/B copy), as the device loads them.
 - **BACKUP_GET** reads 256 bytes (the last piece: what is left) at `offset` (a multiple of 256, below size) of an
   object whose seq came from BACKUP_LIST. rc 5 detail 33: it changed since (another seq: a SAVE in between): LIST
   again and read that object again from 0. rc 2 detail 30: not present. Check the CRC-32 of each complete object.
-- A full backup, worst case: 3,204 + 4 × (3,840 + 3,208 + 3,584) = 45,732 B = 181 pieces, about 2–4 s.
+- A full backup, worst case: 3,204 + 4 × (3,044 + 3,208 + 3,584) = 42,548 B = 169 pieces, about 2–4 s.
 
 ### 2.6 RESTORE
 
@@ -274,10 +274,8 @@ One restore at a time: **BEGIN → DATA … → COMMIT** (or ABORT). The transpo
 
 - **BEGIN**: playing: rc 3 detail 42, nothing changes. Presets: part 0 = 3,204 with magic "UPR2", parts 1 / 2 size 0
   (a "UPR1" record: rc 2 detail 24; the page moves an older bank into 96 slots itself, §5).
-  Project: part 0 = 3,840 with magic "FDRG" or "FDRF" (a file made before NUDGE: it has parts 1 / 2 too), or an
-  older record's magic with its size (§6; then parts 1 / 2 size 0); part 1 = 0 or 3,208; part 2 = 0 or 22..3,584. A
-  record magic "FDR?" newer than "FDRG": rc 2 detail 23 "UPDATE THE FM-1 FIRST" (so an FDRG file sent to a device
-  that predates NUDGE is refused by its magic, nothing staged); anything else wrong: rc 2 detail 24. A project with a variations part while the park buffer holds
+  Project: part 0 = 3,044 with magic "FRT6"; part 1 = 0 or 3,208; part 2 = 0 or 22..3,584 ("VAR6"). Anything else, an
+  8-track record ("FDR1".."FDRG", not a FREITAKT record) included: rc 2 detail 24 (BAD OBJECT). A project with a variations part while the park buffer holds
   another slot c's unsaved variations: rc 2 detail 8 + c "SAVE c FIRST" (as the cue keys). A BEGIN while a restore
   runs drops that one first.
 - From BEGIN to its end the device is **RESTORING** (state flag 0x01): it shows "RESTORING", refuses its own PLAY
@@ -294,8 +292,7 @@ One restore at a time: **BEGIN → DATA … → COMMIT** (or ABORT). The transpo
 - **COMMIT** (allow 2 s): every part complete (else rc 2 detail 27); each part's CRC-32 as BEGIN said (else rc 2
   detail 25, the restore dropped); the objects pass the device's boot checks (else rc 2 detail 26, dropped): presets
   "UPR2", used 0 / 1 / 3, model < nmodels, each move 0..96 (knobs clamped to the model's ranges, FX to theirs);
-  a project `proj_ok` (FDRG, size, sum) or
-  a known older magic + size + sum (FDRF as FDRG for its links), `lk_valid` with lk_n = its count and lk_link = its link, `var_valid` with
+  a project `proj_ok` (FRT6, size, sum), `lk_valid` with lk_n = its count and lk_link = its link, `var_valid` with
   var_len = its length and var_link = its link. Then the device **re-seals** the project for the target slot (the
   lock bank's and the variations' slot byte, the record's lk_link / var_link and sum), so a project file restores
   into any slot, and writes in the save order — variations, lock bank, then the record (the commit: with the A/B
@@ -306,11 +303,8 @@ One restore at a time: **BEGIN → DATA … → COMMIT** (or ABORT). The transpo
   bank reloaded.
 - **ABORT**, an idle restore (3 s without any editor request), update traffic (§4 rule 4): nothing is written, the
   RAM homes are reloaded from flash (`proj_fetch`, `preset_user_boot`), RESTORING ends.
-- An older-format record (FDR1..FDRE carry their motion inside) restores as part 0 alone, written as it is and
-  converted at load as the device always does. An FDRF record restores with its lock bank and variations, re-sealed
-  for the target slot with its magic kept, and is converted at load as flash's FDRF records are (SRR and the
-  INSERT out of steps 0..6's spare bytes, every NUDGE 0; BACKUP_LIST flags it OLD until the slot is saved again).
-- Staging bound: every record format is at most `sizeof(project_t)` (3,840; `editor_backup.c` asserts it), a lock
+- Older records (Hortator's, 8 tracks, FDR1..FDRG) are not converted: the device treats them as empty and RESTORE refuses them (BAD OBJECT, not a FREITAKT record).
+- Staging bound: every record format is at most `sizeof(project_t)` (3,044; `editor_backup.c` asserts it), a lock
   bank is `lk_bank_t`, variations at most `var_bank_t` (3,584): BEGIN accepts no other size and DATA writes below it.
 - "Copy to…" another slot = BACKUP_GET the source's three objects + RESTORE them into the target.
 
@@ -383,7 +377,7 @@ projects, the presets, the variations or the lock banks.
 | 2 | var | the playing variation 0..7 (shown 1..8) |
 | 3 | qslot | the queued slot 0..3; 7F none |
 | 4 | qvar | the queued variation 0..7; 7F none |
-| 5 | sel | the selected track 0..7 |
+| 5 | sel | the selected track 0..5 |
 | 6 | flags | 0x01 RESTORING, 0x02 reserved (0), 0x04 NOFLASH (backup / restore / SAVE refused) |
 | 7 | used | bit s: slot s holds a project |
 | 8 | dirty | bit s: slot s has unsaved changes (the device's "A*", its breathing slot key) |
@@ -519,8 +513,8 @@ File names: `hortator-presets-<date>.json`, `hortator-project-<A..D>-<date>.json
 
 ```json
 { …envelope, "slot": "A",
-  "summary": { "name": "TECHNO 1", "models": ["BDTRX", …], "variations": [1, 2, 3, 5], "locks": 11, "format": "FDRG", "unsaved": false },
-  "objects": { "record":     { "size": 3840, "crc32": "1a2b3c4d", "data": "<base64>" },
+  "summary": { "name": "TECHNO 1", "models": ["BDTRX", …], "variations": [1, 2, 3, 5], "locks": 11, "format": "FRT6", "unsaved": false },
+  "objects": { "record":     { "size": 3044, "crc32": "1a2b3c4d", "data": "<base64>" },
                "locks":      { "size": 3208, "crc32": "…", "data": "…" } | null,
                "variations": { "size": 310,  "crc32": "…", "data": "…" } | null } }
 ```
@@ -530,10 +524,7 @@ File names: `hortator-presets-<date>.json`, `hortator-project-<A..D>-<date>.json
   the file holds flash's version, not the device's unsaved edits.
 - Projects reference user presets by slot number only, so restoring presets together with projects keeps names
   matching.
-- Files kept `version` 1 across NUDGE (the record inside says its format); version 2 changed only the presets. A file made before NUDGE (its record
-  "FDRF") restores into a device with NUDGE (converted at load, every NUDGE 0) and its variations can be copied (the
-  page reads FDRF as the device converts it). A file made now (record "FDRG") sent to an FM-1 without NUDGE is refused
-  by that device at RESTORE BEGIN (rc 2 detail 23 "UPDATE THE FM-1 FIRST"), nothing written.
+- Files kept `version` 1 across NUDGE (the record inside says its format); version 2 changed only the presets. A file with an 8-track record (Hortator's, "FDR1".."FDRG") is not a FREITAKT record: the page refuses it, and a device would refuse it at RESTORE BEGIN (BAD OBJECT).
 
 **hortator-backup** — "Back up all":
 
@@ -617,28 +608,12 @@ firmware through `tests/editor_ids.c` → `device_data.json` → `test_editor.mj
   `fxByte`, `presets.c` `upr_env`).
 - **User presets "UPR1"** (1,284; minor 1 and before): u32 magic "UPR1" (0x31525055), then 128 slots × 10 bytes:
   used u8 (1 = used; an empty slot is 10 zero bytes), model u8, knobs 8 × i8 (P_E0..P_E7).
-- **Project record "FDRG"** (3,840): magic u32 0x47524446 @0; size u32 = 3840 @4; g 41 × i16 @8 (G_BPM..G_RTYPE; places 22..31,
-  once Grids', 0); sel u8 @90; rsv[3] @91 (rsv[0] = G_DMODE); 8 tracks × 394 B @94, each: p 69 × i16 (P_MODEL..P_LS4DEPTH;
-  places 18..21, once the SLICER's, place 30, once Grids' SRC, and 48..54, once RESON's: 0), then 64 steps
-  × 4 B {flags (bit 0 on, 1 acc, 2 slide, 3 tie, 4..5 ratch), cond u8, nt i8 (NOTE − C4), micro i8 (NUDGE, −50..+50)};
-  lk_n u16 @3246; lk_link u32 @3248 (FNV-1a of the 3,208-byte lock bank, | 1); var_link u32 @3252 (FNV-1a of the
-  variations' 8 + used bytes, | 1); var_len u16 @3256; xp 8 × 7 B @3258 (byte 0 reserved, 0 (RESON's KEYF);
-  bytes 1..6 track k's P_SRR + j − 1 as (value − its power-on value) mod 256 — SRR 0, ITYPE 0, IA 64, IB 96, IC 96, IMIX 127); xp2 8 × 4 B @3314 (track k's P_SATK + j, the SAMPLE model's ATK SUS REL LOOP, the same encoding — ATK 0,
-  SUS 0, REL 40, LOOP 0; 0 in every record before them); xp3 8 × 2 B @3346 (track k's P_SPLAY + j: PLAY KEY 0 / CHOP 1,
-  CUT OFF 0 / ON 1, the same encoding); rsv_mo 400 B @3362 (0); rsv_song 36 B @3762 (0); name 12 B @3798
-  (characters of `" ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+"`, 0-padded); pre 8 × u16 @3810 (a factory preset's uid,
-  0x8000 | a user slot, 0xFFFF none); pre_ed 8 × u8 @3826; sum u32 @3836 = FNV-1a (32 bit, offset basis 2166136261,
-  prime 16777619) of bytes 0..3835 (padding bytes 0). Variation 1 is the record's steps with its tracks' LEN DIV SWG.
-- **"FDRF"** (3,840, 0x46524446; saved by every firmware with the lock bank, up to NUDGE): FDRG's layout, but each step's last byte is
-  0 except in steps 0..6, which hold xp's 7 bytes of the track (byte 0 reserved, then P_SRR ..), and @3258.. is reserved (0); no NUDGE.
-  It links a lock bank and variations as FDRG does. Converted at load: those bytes into xp, every NUDGE 0.
-- **Older records** the firmware converts at load (magic → size): FDR1 1564, FDR2 2624, FDR3 2656, FDR4 2912, FDR5
-  3024, FDR6 3024, FDR7 3028, FDR8 3544, FDR9 3592, FDRA 3672, FDRB 3672, FDRC 3688, FDRD 3712, FDRE 3840, FDRF 3840;
-  each has its size at @4 and ends with the FNV-1a sum of the bytes before it.
+- **Project record "FRT6"** (3,044; 6 tracks): magic u32 0x36545246 @0; size u32 = 3044 @4; then the layout of Hortator's "FDRG" (8 tracks, 3,840) with 6 track blocks (and 6-entry xp, xp2, xp3, pre, pre_ed arrays) and the sum u32 last = FNV-1a (32 bit, offset basis 2166136261, prime 16777619) of the bytes before it. The offsets of FDRG are not listed here; read `project_t`. A track block: p 69 × i16 (P_MODEL..P_LS4DEPTH), then 64 steps × 4 B {flags (bit 0 on, 1 acc, 2 slide, 3 tie, 4..5 ratch), cond u8, nt i8 (NOTE − C4), micro i8 (NUDGE, −50..+50)}. lk_link is the FNV-1a of the 3,208-byte lock bank, | 1; var_link that of the variations' 8 + used bytes, | 1. Variation 1 is the record's steps with its tracks' LEN DIV SWG.
+- **Older records** ("FDR1".."FDRG", Hortator's, 8 tracks, 1,564..3,840 B) are not read: the slot shows as empty.
 - **Lock bank "LKB1"** (3,208): magic u32 0x31424B4C @0; slot u8 @4; on u8 @5 (MOTION PLAY bits per track); count u16
   @6; key 1024 × u16 @8 (track << 13 | step << 7 | param, ascending by (key, lock)); val 1024 × i8 @2056 (−64..127);
   lock bits 128 B @3080 (bit i: event i is a LOCK, else MOTION). Everything past `count` is 0.
-- **Variations "VAR1"** (8 + used): magic u32 0x31524156 @0; slot u8 @4; rsv u8 @5; used u16 @6; then variations 2..8
+- **Variations "VAR6"** (8 + used; "VAR1" banks are ignored): magic u32 0x36524156 @0; slot u8 @4; rsv u8 @5; used u16 @6; then variations 2..8
   in order, each n u16 then n bytes (n 0 = never used): per track LEN DIV SWG and 0 (once Grids' SRC; 4 B) and a 64-bit step map (8 B,
   bit i = step i set: any field not 0, NUDGE included), then per set step in track and step order: flags (bit 6: a
   NUDGE byte follows), cond, nt (i8), and micro (i8) when bit 6 is set (only for a NUDGE ≠ 0; banks from before

@@ -232,10 +232,16 @@ static void test_full(void)
     uint32_t k, i;
     fresh();
     learn_toggle();
-    for (k = 0; k < NTRK; k++) {                     /* 8 tracks x 4 HOME knobs = 32 */
+    for (k = 0; k < NTRK; k++) {                     /* 6 tracks x 4 HOME knobs = 24 (CC40..63) */
         track_select(k);
         for (i = 0; i < 4u; i++)
-            learn_home(i, 40u + k * 4u + i);   /* (CC40..71) */
+            learn_home(i, 40u + k * 4u + i);
+    }
+    for (k = 0; k < 4u; k++) {                       /* + T1..T4's LEVEL and PAN = 32 (CC64..71) */
+        ml_knob(k, P_LEVEL);
+        send_cc(64u + k * 2u, 64);
+        ml_knob(k, P_PAN);
+        send_cc(65u + k * 2u, 64);
     }
     if (!check("32 learned", count() == 32u))
         printf("    %u learned\n", (unsigned)count());
@@ -765,12 +771,12 @@ static void test_storage(void)
         r.e[7] = (ml_ent_t){20, 0, ML_A_PLAY, ML_CC};         /* PLAY twice */
         r.e[8] = (ml_ent_t){0, 0, ML_A_REC, ML_CC};           /* CC0 */
         r.e[9] = (ml_ent_t){36, 0, ML_A_MAC + 1u, ML_CC};     /* good: CC36 (not NOTE36) -> CRUSH */
-        r.e[31] = (ml_ent_t){37, 0, ML_A_FX + PF_T1 + 7u, ML_NOTE};   /* good: the last entry, T8 REPEAT STEP */
+        r.e[31] = (ml_ent_t){37, 0, ML_A_FX + PF_T1 + 5u, ML_NOTE};   /* good: the last entry, T6 REPEAT STEP */
         st_save(OBJ_UPRESET0, &r, sizeof r);
         power_cycle();
         check("version 2: broken entries dropped, the good ones kept (the 32nd too)", count() == 3u &&
               ml_src_of(0, ML_A_PLAY) == (ML_NOTE << 8 | 36u) + 1u && ml_src_of(0, ML_A_MAC + 1u) == 37u &&
-              ml_src_of(0, ML_A_FX + PF_T1 + 7u) == (ML_NOTE << 8 | 37u) + 1u);
+              ml_src_of(0, ML_A_FX + PF_T1 + 5u) == (ML_NOTE << 8 | 37u) + 1u);
     }
     memset(hflash, 0xFF, sizeof hflash);
     learn_toggle();
@@ -938,7 +944,7 @@ static void test_act_learn(void)
     frames(1);
     tap(B_REC);
     frames(1);
-    check(".. REC arms again (HOME: REC ALL)", song.rec == 0xFFu && ui.rec_all);
+    check(".. REC arms again (HOME: REC ALL)", song.rec == 0x3Fu && ui.rec_all);
     tap(B_REC);
     song.rec = 0;
     transport_req = 2;
@@ -999,7 +1005,7 @@ static void test_act_trigger(void)
     check("64 again: PLAY (stops)", !song.playing);
     send_cc(25, 0);
     send_cc(20, 127);
-    check("CC20 (REC) on HOME: REC ALL, as REC's tap there (every track armed, no play)", song.rec == 0xFFu &&
+    check("CC20 (REC) on HOME: REC ALL, as REC's tap there (every track armed, no play)", song.rec == 0x3Fu &&
           ui.rec_all && same(ui.msg, "REC ALL") && !song.playing);
     send_cc(20, 0);
     send_cc(20, 127);
@@ -1027,10 +1033,10 @@ static void test_act_trigger(void)
     send_note(40, 1);
     usb_noff(0, 40);
     check("NOTE40 (PREV TRACK): T2", song.sel == 1u);
-    track_select(7);
+    track_select(5);
     send_cc(21, 127);
     send_cc(21, 0);
-    check("NEXT at T8: stays (clamped)", song.sel == 7u);
+    check("NEXT at T6: stays (clamped)", song.sel == 5u);
     track_select(0);
     send_note(40, 100);
     usb_noff(0, 40);
@@ -1066,7 +1072,7 @@ static void test_act_trigger(void)
     usb_note(9, (uint32_t)trk[0].p[P_NOTE], 100);
     frames(2);
     check("a learned note on the drum channel: its action (HOME: REC ALL), its drum does not play",
-          hit_age(&trk[0]) == a && song.rec == 0xFFu);
+          hit_age(&trk[0]) == a && song.rec == 0x3Fu);
     usb_noff(9, (uint32_t)trk[0].p[P_NOTE]);
     song.rec = 0;
     ui.rec_all = 0;
@@ -1275,7 +1281,7 @@ static void test_screens(void)
     snap("sound_send_a_cc");
     send_cc(74, 30);
     snap("sound_learned_msg");
-    track_select(7);
+    track_select(5);
     tap(B_SEQ);
     tap(B_SEQ);                                      /* PATTERN */
     knob(1, 1);
@@ -1299,12 +1305,12 @@ static void test_screens(void)
     {
         char ln[32];
         ml_line(ln);
-        check("an LFO's knob is named with its LFO: T8 L1.PHASE: SEND A CC", same(ln, "T8 L1.PHASE: SEND A CC"));
+        check("an LFO's knob is named with its LFO: T6 L1.PHASE: SEND A CC", same(ln, "T6 L1.PHASE: SEND A CC"));
     }
     ui.msg_t = 0;
     snap("lfo_long_line");
     send_cc(76, 0);
-    check("(the top bar: CC76 -> T8 L1.PHASE)", same(ui.msg, "CC76 -> T8 L1.PHASE"));
+    check("(the top bar: CC76 -> T6 L1.PHASE)", same(ui.msg, "CC76 -> T6 L1.PHASE"));
     snap("lfo_learned_msg");
 }
 

@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
- * Drum machine fork: 2026 DEADACTIVE (8 tracks, the drum firmware's key map and 1/16, no GLO layer) */
+ * Drum machine fork: 2026 DEADACTIVE (FREITAKT: 6 tracks; the drum firmware's key map and 1/16, no GLO layer) */
 /* PERFORM: the effects of the FX hold layer, on the master. A key pressed while FX is held belongs to the
  * layer (seq.c keyboard_block): it plays no note, sends no MIDI, records nothing, and holds its effect until
  * it is let go (ui_input.c fx_layer opens the layer, ui_draw.c shows the map). The keys (user, 2026-10-07):
  *   the black keys from F#3: REPEAT 1/8 1/16 1/32, REVERSE, TAPE STOP, LPF, HPF, FREEZE, OCT UP, OCT DN (F#5: none);
- *   the white keys F3 .. F4 (the track keys): REPEAT STEP of tracks 1..8 while held (user, 2026-11-01: they muted
+ *   the white keys F3 .. D4 (the track keys): REPEAT STEP of tracks 1..6 while held (E4 F4: none) (user, 2026-11-01: they muted
  *   before; MIDI LEARN's ids kept, PF_T1 + k); the white keys D5 E5 F5 G5 (the last four): its rate 1/4 1/8 1/16 1/32,
  *   a tap selects (perf_rate, not saved: 1/16 at power-on); G4 .. C5: none.
  * REPEAT STEP (seq.c rep_*): sequencer retriggers, no audio buffer. While a track key is held its track plays the step
@@ -140,8 +140,8 @@ static void perf_press(uint32_t e, int down)
     perf_held = perf_kh | perf_mh;
 }
 
-/* the layer's keys (user, 2026-10-07): the black keys from F#3 the effects in this order, the white keys F3 .. F4
- * (seq.c KEY_TRK_KEY) REPEAT STEP of tracks 1..8 (2026-11-01), D5 .. G5 its rates; the rest none. Key 0 = F3 */
+/* the layer's keys (user, 2026-10-07): the black keys from F#3 the effects in this order, the white keys F3 .. D4
+ * (seq.c KEY_TRK_KEY) REPEAT STEP of tracks 1..6 (2026-11-01; E4 F4 none), D5 .. G5 its rates; the rest none. Key 0 = F3 */
 static const uint8_t PF_BLACK[10] = {PF_R8, PF_R16, PF_R32, PF_REV, PF_TAPE, PF_LPF, PF_HPF, PF_FRZ, PF_OUP, PF_ODN};
 static int key_black(uint32_t k) { return (int)((0x54Au >> ((k + 5u) % 12u)) & 1u); }
 static uint32_t key_place(uint32_t k)                 /* k's place among the keys of its colour, from F3 */

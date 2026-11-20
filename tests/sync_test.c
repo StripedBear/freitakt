@@ -587,16 +587,17 @@ static void test_routing(void)
     ok &= note_in(9, 48, 90) == 1u << 3 && trk[3].nt == -12;
     ok &= note_in(9, 36, 100) == 1u << 3;              /* (no NOTE match: the selected track) */
     ok &= note_in(0, 60, 100) == 0u;                   /* another channel: nothing */
-    song.sel = 6;
-    ok &= note_in(9, 60, 100) == 1u << 6 && trk[6].nt == 0;
+    song.sel = 5;                                      /* (FREITAKT: the last of 6 tracks) */
+    ok &= note_in(9, 60, 100) == 1u << 5 && trk[5].nt == 0;
     check("ROUT SEL: notes on the drum channel play the selected track, pitched from C4; other channels nothing", ok);
-    /* TRACK: channel 1..8 = track 1..8, pitched; the drum channel's own setting does not matter */
+    /* TRACK: channel 1..6 = track 1..6, pitched (FREITAKT: 6 tracks); the drum channel's own setting does not matter */
     song.g[G_ROUTE] = 2;
     ok = note_in(0, 60, 100) == 1u && trk[0].nt == 0;
     ok &= note_in(2, 55, 100) == 1u << 2 && trk[2].nt == -5;
-    ok &= note_in(7, 72, 100) == 1u << 7 && trk[7].nt == 12;
-    ok &= note_in(8, 60, 100) == 0u && note_in(9, 36, 100) == 0u && note_in(15, 60, 100) == 0u;
-    check("ROUT TRACK: channels 1..8 play tracks 1..8, pitched from C4; channels 9..16 nothing", ok);
+    ok &= note_in(5, 72, 100) == 1u << 5 && trk[5].nt == 12;
+    ok &= note_in(6, 60, 100) == 0u && note_in(7, 60, 100) == 0u && note_in(9, 36, 100) == 0u &&
+          note_in(15, 60, 100) == 0u;
+    check("ROUT TRACK: channels 1..6 play tracks 1..6, pitched from C4; channels 7..16 nothing", ok);
     /* the velocity, note-offs ignored */
     ages_take();
     midi_enqueue(0x08u | 0x82u << 8 | 55u << 16, 1u);

@@ -41,7 +41,8 @@ static uint8_t acc_oct;
  * variation lit, a queued one blinking, the rest dark (no dim level: the dim layers are MENU BACKLIGHT's). SAVE held
  * (the cue map, every page it opens on): the same keys, of the queued slot if one is (cue_keys) */
 static const uint8_t CUE_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
-/* the MUTE screen (GLO held): those black keys SOLO tracks 1..8 (glo_input mute_keys); F#5 the SOLO mode */
+/* the MUTE screen (GLO held): the first 6 of those black keys (F#3 .. F#4) SOLO tracks 1..6 (glo_input mute_keys; G#4
+ * A#4: nothing); F#5 the SOLO mode */
 #define KEY_SOLO_MODE 25u                              /* F#5, the top black key: SOLO TOGGLE / MOMENTARY */
 #define CUE_BK_MASK 0x2A52Au                        /* (their bits) */
 static int cue_bk_page(void)
@@ -255,7 +256,7 @@ static void ui_leds(void)
         led_put(nl, 14u + 20u, !settings.mutebar);
         led_put(nl, 14u + 22u, settings.mutebar);
         led_put(nl, 14u + KEY_LEARN, ui.ml.on);       /* G4: MIDI LEARN */
-        for (k = 0; k < NTRK; k++)                    /* black keys: SOLO 1..8 lit while soloed; F#5: MOMENTARY */
+        for (k = 0; k < NTRK; k++)                    /* black keys: SOLO 1..6 lit while soloed; F#5: MOMENTARY */
             led_put(nl, 14u + CUE_BK[k], (song.solo >> k) & 1u);
         led_put(nl, 14u + KEY_SOLO_MODE, solo_mom);
         led_put(nl, panel.btn[B_GLO], 1);
@@ -733,7 +734,7 @@ static void mute_keys(uint32_t hits)                   /* the keys the ISR gave 
     for (k = 0; k < NTRK; k++) {
         if ((hits >> KEY_TRK_KEY[k]) & 1u)
             track_mute_toggle(k);
-        if ((hits >> CUE_BK[k]) & 1u)                  /* black keys F#3 .. A#4: SOLO 1..8 */
+        if ((hits >> CUE_BK[k]) & 1u)                  /* black keys F#3 .. F#4: SOLO 1..6 */
             track_solo_set(k, solo_mom ? 1u : 2u);
     }
     if ((hits >> KEY_SOLO_MODE) & 1u) {                /* F#5: the SOLO mode flips */

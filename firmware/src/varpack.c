@@ -10,11 +10,12 @@
  * bytes: per track LEN DIV SWG and a 0 (once Grids' SRC; a byte each), its 64-bit step map (8 B, little endian, bit i = step i set: any
  * field not 0), then 3 B per set step in step order: flags (on | acc << 1 | slide << 2 | tie << 3 | rat << 4 | a micro
  * follows << 6), cond, nt, and the step's MICRO (int8) when bit 6 is set (micro != 0 only: spec 2026-10-31 §1; banks
- * from before never set it). n = 96 + 3 x the set steps + the nudged ones (a used variation keeps its timing even with
+ * from before never set it). n = 72 (NTRK x VAR_TRK) + 3 x the set steps + the nudged ones (a used variation keeps its timing even with
  * no step set). */
 #define VAR_N 8u                                /* variations a slot: 1 (the record's steps) + 7 in the bank */
 #define VAR_BYTES 3584u                         /* the object, +0xF00 of its sector stays erased */
-#define VAR_MAGIC 0x31524156u                   /* "VAR1" */
+#define VAR_MAGIC 0x36524156u                   /* "VAR6" (FREITAKT: 6 tracks an entry; Hortator's 8-track "VAR1"
+                                                 * banks are not read) */
 #define VAR_TRK 12u                             /* an entry's bytes a track: timing 4, the step map 8 */
 typedef struct {
     uint32_t magic;
@@ -23,7 +24,7 @@ typedef struct {
     uint8_t d[VAR_BYTES - 8u];
 } var_bank_t;                                   /* stored length: 8 + used */
 _Static_assert(sizeof(var_bank_t) == VAR_BYTES && VAR_BYTES <= 3584u, "variation bank: one sector, +0xF00 erased");
-_Static_assert(NSTEP == 64 && NTRK == 8, "variation entries: a 64-bit step map, 8 tracks");
+_Static_assert(NSTEP == 64 && NTRK == 6, "variation entries: a 64-bit step map, 6 tracks");
 #define VAR_CAP (VAR_BYTES - 8u)
 
 static int var_set(const step_t *s) { return (s->on | s->acc | s->slide | s->tie | s->rat | s->cond | s->nt | s->micro) != 0; }
@@ -196,7 +197,7 @@ static uint32_t var_pop8(uint32_t x)
 }
 
 /* a bank (from flash) is whole: magic, slot, len == 8 + used, used inside, exactly 7 entries ending at used, each
- * empty or 96 + 3 x its step maps' bits + its MICRO bytes (flags bit 6) long */
+ * empty or 72 + 3 x its step maps' bits + its MICRO bytes (flags bit 6) long */
 static int var_valid(const var_bank_t *b, uint32_t slot, uint32_t len)
 {
     uint32_t o = 0, v, n, k, j, bits, q;

@@ -5,7 +5,7 @@
  * optional sample layer, through Felucca's per-track DIST / INSERT / sends (fx.c). */
 #include <stdint.h>
 #include "dm_state.h"
-#define NTRK 8                   /* drum tracks */
+#define NTRK 6                   /* drum tracks */
 #define NPART NTRK               /* fx.c: every track is mixed the same way */
 #define NDV 2                    /* voices per track; a model uses 1 or 2 */
 #define NSTEP 64
@@ -93,7 +93,7 @@ enum { G_CLRALL = G_COUNT, G_INITALL, G_MUTEBAR, G_METRO, G_COPY, G_PASTE, G_THR
 #define SY_USB 1u                                   /* G_SYNC: the outputs the clock goes to (OFF 0, USB 1, BLE 2, BOTH 3) */
 #define SY_BLE 2u
 enum { RT_NOTE, RT_SEL, RT_TRACK };                 /* G_ROUTE: a note on CH plays the tracks with its NOTE; on CH, the
-                                                     * selected track pitched from C4; channel 1..8 track 1..8, pitched */
+                                                     * selected track pitched from C4; channel 1..6 track 1..6, pitched */
 
 /* ----------------------------------------------------------- voices --- */
 typedef struct {                 /* sample playback state (eng_sample.c sample_next, dm_sample.c) */

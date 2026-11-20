@@ -3,13 +3,13 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* FELUCCA_BLE (felucca.c includes it after the UI, ble/ble_core.h and bt_set.c, before bt_midi.c): the M-VAVE
  * SMC-Mixer in its DAW (Mackie Control) mode (spec 2026-10-10 §5; smc-seq's mapping, checked on a unit). In: faders =
- * pitch bend ch 1..8 -> track LEVEL with pickup; knobs 1..4 = CC 16..19 ch 1, sign-magnitude -> the selected track's
+ * pitch bend ch 1..6 -> track LEVEL (ch 7 8: nothing) with pickup; knobs 1..4 = CC 16..19 ch 1, sign-magnitude -> the selected track's
  * P_E0..P_E3; knobs 5..8 = CC 20..23: MIDI LEARN's (smc_learnable: learned to a parameter, a click steps it from
  * where it is; while MIDI LEARN waits for a CC, it hears this one; else nothing); buttons = notes ch 1, presses only.
  * While a dialog or NAME is on the screen, the buttons and knobs do nothing (the faders still move). Out (smc_frame,
  * ble_midi_send): the LEDs as notes 127 / 0, only changes, all of them on a new link; each fader's position as E0+n v
  * v, which the mixer blinks the fader's LED against. Main loop only. */
-typedef char smc_eight_strips[NTRK == 8u ? 1 : -1];
+typedef char smc_eight_strips[NTRK <= 8u ? 1 : -1];   /* (FREITAKT: 6 tracks; strips 7 and 8 do nothing) */
 static uint32_t bt_mode_now(void);                    /* bt_midi.c */
 static int bt_midi_put(uint32_t pkt);                 /* bt_midi.c: one packet into the MIDI input ring, source 3 */
 static struct {
@@ -172,6 +172,8 @@ static void smc_button(uint32_t n)
 {
     uint32_t k = n & 7u;
     if (n < 0x20u) {
+        if (k >= NTRK)                                /* (strips 7 and 8: no track) */
+            return;
         if (n < 0x08u) {
             rec_all_drop();                           /* as a REC tap; during REC ALL: it ends, track k toggled on
                                                        * what the mixer shows (all armed: k disarmed, the rest stay) */

@@ -1767,7 +1767,7 @@ static uint32_t graph_signature(void)
 }
 
 /* PERFORM (perform.c), while FX is held: the black keys' effects in two rows of five (as on the keys: 1/8 1/16 1/32
- * REV TAPE, LPF HPF FRZ OCT+ OCT-), the white track keys' REPEAT STEP (T1 .. T8), its rates (the keys D5 .. G5: 1/4
+ * REV TAPE, LPF HPF FRZ OCT+ OCT-), the white track keys' REPEAT STEP (T1 .. T6), its rates (the keys D5 .. G5: 1/4
  * 1/8 1/16 1/32) beside RPT; held: lit, running: inverted, unavailable at the tempo: dim, the rate selected: lit */
 static const char *const PF_NAME[PF_T1] = {"R1/8", "R1/16", "R1/32", "REV", "LPF", "HPF", "TAPE", "FRZ", "OCT+", "OCT-"};
 static const char *const PR_NAME[PR_N] = {"1/4", "1/8", "1/16", "1/32"};
@@ -1814,7 +1814,7 @@ static void graph_perf(void)
         cv_blit(0, Y_GRAPH);
     }
 }
-/* the MUTE screen (spec §5, GLO held): the 8 tracks as boxes, two rows of 4 (screen y MU_Y.., a 240 x 124 canvas) */
+/* the MUTE screen (spec §5, GLO held): the 6 tracks as boxes, a row of 4 and one of 2 (screen y MU_Y.., a 240 x 124 canvas) */
 #define MU_Y 22u
 #define MU_BW 55u
 #define MU_BH 40u
@@ -2624,7 +2624,7 @@ static void draw_columns(void)
         const track_t *t = TSEL;
         uint32_t lvl = (uint32_t)t->p[P_LEVEL];
         fmt_int(val, (int32_t)song.sel + 1);
-        draw_column(0, "TRACK", val, "/8", HOT(0u), (int32_t)song.sel * 1000 / (NTRK - 1));
+        draw_column(0, "TRACK", val, "/6", HOT(0u), (int32_t)song.sel * 1000 / (NTRK - 1));
         int lk;
         lvl = (uint32_t)lock_shown(P_LEVEL, (int16_t)lvl, &lk);   /* (a step held in STEPS: LEVEL's lock) */
         if (!lk && (!lvl || t->p[P_MUTE])) {

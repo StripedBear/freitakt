@@ -6,7 +6,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hortator: drum-machine firmware for the M-VAVE FM-1</title>
-<meta name="description" content="Hortator turns the M-VAVE FM-1 into an eight-track drum machine with 45 drum engines, 21 of them measured from the Machinedrum. Play it in your browser, then install it over USB.">
+<meta name="description" content="Hortator turns the M-VAVE FM-1 into a six-track drum machine with 45 drum engines, 21 of them measured from the Machinedrum. Play it in your browser, then install it over USB.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -38,7 +38,7 @@
     </div>
 
     <div class="hero-copy" id="hero-copy">
-      <h1>Eight tracks of drums, inside the M&#8209;VAVE&nbsp;FM&#8209;1.</h1>
+      <h1>Six tracks of drums, inside the M&#8209;VAVE&nbsp;FM&#8209;1.</h1>
       <p>Custom firmware by DEADACTIVE, named after the drummer who kept a Roman galley's rowers in time. Scroll on
         to play the real firmware in your browser.</p>
       <p class="hero-count"><b>45</b> drum engines in three banks: <b>21</b> measured from the Machinedrum (13 TRX,
@@ -136,7 +136,7 @@
       </ul>
       <h3>Keys</h3>
       <ul>
-        <li data-ctl="white">The 16 white keys: the steps, 1 to 16. On HOME, F3 to F4 play tracks 1 to 8; with GLO held
+        <li data-ctl="white">The 16 white keys: the steps, 1 to 16. On HOME, F3 to D4 play tracks 1 to 6; with GLO held
           they mute them.</li>
         <li data-ctl="black">The 11 black keys: with FX held, live effects on the whole mix. In KEYS, the sharps.</li>
       </ul>
@@ -147,7 +147,7 @@
     <li class="guide" id="m-around">
       <h3>Find your way</h3>
       <p>Each section has its button: press it again, or turn SELECT, for its next page. ALGORITHM picks the track
-        (T1 to T8 in the top bar), and the four knobs edit the four columns under it. HOME takes you back: TRACKS is
+        (T1 to T6 in the top bar), and the four knobs edit the four columns under it. HOME takes you back: TRACKS is
         the mixer, HOME the scope and the track's main knobs.</p>
       <p class="where"><b>SELECT</b> pages, <b>ALGORITHM</b> the track, <b>HOME</b> back; hold <b>HOME</b> for the menu.</p>
     </li>
@@ -187,16 +187,16 @@
     </li>
     <li class="guide" id="m-mute">
       <h3>Mute tracks</h3>
-      <p>Hold GLO: the MUTE screen. The white keys F3 to F4 mute and unmute tracks 1 to 8 (a filled box is heard, an
+      <p>Hold GLO: the MUTE screen. The white keys F3 to D4 mute and unmute tracks 1 to 6 (a filled box is heard, an
         outline muted). The top C# makes a mute land at once, the top D# on the next bar: made while playing, it blinks
-        until the downbeat. The black keys F#3 to A#4 solo tracks 1 to 8; the top F# switches solo between toggle and
+        until the downbeat. The black keys F#3 to F#4 solo tracks 1 to 6; the top F# switches solo between toggle and
         momentary (held). Let go of GLO to go back.</p>
       <p class="where">Hold <b>GLO</b>, press the white keys (mute) or the black keys (solo).</p>
     </li>
     <li class="guide" id="m-perform">
       <h3>Perform</h3>
       <p>Hold FX: the black keys play effects on the whole mix while held: repeat 1/8, 1/16 and 1/32, reverse, tape
-        stop, filter sweeps, freeze, an octave up or down. The white keys F3 to F4 are REPEAT STEP for tracks 1 to 8:
+        stop, filter sweeps, freeze, an octave up or down. The white keys F3 to D4 are REPEAT STEP for tracks 1 to 6:
         while held, the track plays the step it was on again and again on the beat grid, its own steps paused, and
         carries on in time when let go (stopped: at once, at the tempo). D5, E5, F5 and G5 pick its rate: 1/4, 1/8,
         1/16 (at first) or 1/32. The knobs become FILTER, CRUSH, THROW and DEPTH, which stay on when you let go, an FX
@@ -220,7 +220,7 @@
     <li class="guide" id="m-midi">
       <h3>MIDI, USB audio and LEARN</h3>
       <p>MIDI comes in over USB and the TRS jack: notes on the drum channel (CH, 10 at first) play the tracks whose
-        NOTE matches (ROUT NOTE; SEL plays the selected track and TRACK channels 1 to 8 the eight tracks, pitched), and
+        NOTE matches (ROUT NOTE; SEL plays the selected track and TRACK channels 1 to 6 the six tracks, pitched), and
         CLK follows a clock from either. SYNC sends a MIDI clock out over USB for a DAW or AUM to follow, and THRU passes
         the TRS jack's notes on to USB. MIDI LEARN ties up to 32 controls of a controller to knobs,
         PLAY, REC or PERFORM: hold GLO and press G4, turn a knob (or press PLAY), then move the controller's knob.</p>
@@ -391,7 +391,7 @@
 <footer class="foot">
   <div class="foot-brand">
     <p class="silk foot-mark">HORTATOR</p>
-    <p>The hortator kept a galley's rowers in time. This one keeps eight tracks.</p>
+    <p>The hortator kept a galley's rowers in time. This one keeps six tracks.</p>
   </div>
   <nav class="foot-nav" aria-label="On this page">
     <a href="#play">Play it in the browser</a>

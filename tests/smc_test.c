@@ -109,11 +109,13 @@ static void test_decode(void)
     check("pitch bend ch 3: (d2 << 7 | d1) >> 7 = 99, within 2 of LEVEL 100: picked, LEVEL 99", trk[2].p[P_LEVEL] == 99);
     for (i = 0; i < NTRK; i++)
         lv[i] = trk[i].p[P_LEVEL];
+    in(bend(6, 0));
+    in(bend(7, 0));
     in(bend(8, 0));
     in(bend(15, 0));
     for (i = 0; i < NTRK && trk[i].p[P_LEVEL] == lv[i]; i++)
         ;
-    check("pitch bend ch 9 (master), ch 16: nothing", i == NTRK);
+    check("pitch bend ch 7 8 (strips 7 8: no track), ch 9 (master), ch 16: nothing", i == NTRK);
     in(0x0Eu | 0xE2u << 8 | 0x7Fu << 16 | 0x7Fu << 24);
     check("pitch bend 0x3FFF: 127", trk[2].p[P_LEVEL] == 127);
 }
@@ -239,6 +241,7 @@ static void test_knobs(void)
 
 static void test_buttons(void)
 {
+    uint32_t i;
     fresh();
     in(note(0x13, 127));
     check("MUTE 4: track 4 muted", trk[3].p[P_MUTE] == 1);
@@ -258,12 +261,18 @@ static void test_buttons(void)
     transport_req = 0;
     in(note(0x04, 1));
     check("REC 5 again: disarmed, no request", !song.rec && !transport_req);
+    i = song.sel;
     in(note(0x1E, 127));
-    check("SELECT 7: track 7 selected", song.sel == 6u);
+    in(note(0x1F, 127));
+    in(note(0x06, 127));
+    in(note(0x0F, 127));
+    check("SELECT 7, SELECT 8, REC 7, SOLO 8 (strips 7 8: no track): nothing", song.sel == i && !song.rec && !song.solo);
+    in(note(0x1C, 127));
+    check("SELECT 5: track 5 selected", song.sel == 4u);
     in(note(0x2F, 127));
-    check("BANK >: track 8", song.sel == 7u);
+    check("BANK >: track 6", song.sel == 5u);
     in(note(0x31, 127));
-    check("CHANNEL > at track 8: stays", song.sel == 7u);
+    check("CHANNEL > at track 6: stays", song.sel == 5u);
     track_select(0);
     in(note(0x2E, 127));
     in(note(0x30, 127));
@@ -313,21 +322,21 @@ static void test_rec_all(void)
     fresh();                                         /* HOME */
     in(note(0x5F, 127));
     check("REC on HOME: REC ALL, every track armed, no play requested, REC ALL said",
-          song.rec == 0xFFu && ui.rec_all && !transport_req && str_eq(ui.msg, "REC ALL"));
+          song.rec == 0x3Fu && ui.rec_all && !transport_req && str_eq(ui.msg, "REC ALL"));
     clear_sent();
     smc_frame();
     for (ok = was_sent(0x90, 0x5F, 127), i = 0; i < NTRK; i++)
         ok &= was_sent(0x90, (uint8_t)i, 127);
-    check("REC ALL: REC 1-8 lit, REC lit", ok);
+    check("REC ALL: REC 1-6 lit, REC lit", ok);
     in(note(0x02, 127));
-    check("REC 3 during REC ALL: REC ALL left, track 3 disarmed, the others still armed", song.rec == 0xFBu &&
+    check("REC 3 during REC ALL: REC ALL left, track 3 disarmed, the others still armed", song.rec == 0x3Bu &&
           !ui.rec_all);
     in(note(0x5F, 127));
     in(note(0x5F, 127));
-    check("REC, REC on HOME: REC ALL on and off, the arm state from before back", song.rec == 0xFBu && !ui.rec_all);
+    check("REC, REC on HOME: REC ALL on and off, the arm state from before back", song.rec == 0x3Bu && !ui.rec_all);
     to_tracks();
     in(note(0x5F, 127));
-    check("REC on TRACKS: the selected track (1) toggled: T1 REC OFF", song.rec == 0xFAu && !ui.rec_all &&
+    check("REC on TRACKS: the selected track (1) toggled: T1 REC OFF", song.rec == 0x3Au && !ui.rec_all &&
           str_eq(ui.msg, "T1 REC OFF"));
     song.rec = 0;
     transport_req = 0;
@@ -345,12 +354,13 @@ static void test_leds(void)
     link_up();
     check("link up: BT CONNECTED", str_eq(ui.msg, "BT CONNECTED"));
     smc_frame();
-    check("the first frame after a link: 32 + 3 LEDs and 8 positions", count_sent(0x90u) == 35u && count_sent(0xE0u) == 8u &&
-          nsent == 43u);
-    for (i = 0; i < 8u; i++)
+    check("the first frame after a link: 32 + 3 LEDs (strips 7 8 too, dark) and 6 positions (none for faders 7 8)",
+          count_sent(0x90u) == 35u && count_sent(0xE0u) == 6u && nsent == 41u && was_sent(0x90, 0x06, 0) &&
+          was_sent(0x90, 0x1F, 0));
+    for (i = 0; i < NTRK; i++)
         if (!was_sent((uint8_t)(0xE0u + i), (uint8_t)trk[i].p[P_LEVEL], (uint8_t)trk[i].p[P_LEVEL]))
             break;
-    check(".. each position its track's LEVEL (E0+n v v)", i == 8u);
+    check(".. each position its track's LEVEL (E0+n v v)", i == NTRK);
     check(".. SELECT 1 lit, SELECT 2 dark, STOP lit, PLAY dark, REC dark, MUTE 1 dark",
           was_sent(0x90, 0x18, 127) && was_sent(0x90, 0x19, 0) && was_sent(0x90, 0x5D, 127) && was_sent(0x90, 0x5E, 0) &&
           was_sent(0x90, 0x5F, 0) && was_sent(0x90, 0x10, 0));
@@ -417,8 +427,8 @@ static void test_leds(void)
           nsent == 20u && tries == 20u);
     accept_left = -1;
     smc_frame();
-    check(".. the rest on the next frame: 35 LEDs and 8 positions in all", count_sent(0x90u) == 35u && count_sent(0xE0u) == 8u &&
-          nsent == 43u && was_sent(0xE1, 33, 33) && was_sent(0x90, 0x15, 127));
+    check(".. the rest on the next frame: 35 LEDs and 6 positions in all", count_sent(0x90u) == 35u && count_sent(0xE0u) == 6u &&
+          nsent == 41u && was_sent(0xE1, 33, 33) && was_sent(0x90, 0x15, 127));
     in(bend(1, 120));
     check("a new link: the faders unpicked (fader 2 at 120 leaves LEVEL 33)", trk[1].p[P_LEVEL] == 33);
 }
@@ -438,7 +448,7 @@ static void test_midi_mode(void)
     check("MIDI mode: no LEDs, no positions", !tries);
     btset.btmode = 1;
     smc_frame();
-    check("back to SMC: everything sent again", nsent == 43u && was_sent(0xE2, 11, 11));
+    check("back to SMC: everything sent again", nsent == 41u && was_sent(0xE2, 11, 11));
 }
 
 /* final review: solo clears when the SMC link drops or SMC mode ends (the FM-1 has no unsolo); unsolo cuts no voice */
@@ -518,7 +528,7 @@ static void test_mode_end(void)
     btset.btmode = 1;                                /* SMC again before the LEDs were all off */
     clear_sent();
     smc_frame();
-    check("SMC mode again: the full refresh (35 LEDs, 8 positions), no LEDs-off left", nsent == 43u);
+    check("SMC mode again: the full refresh (35 LEDs, 6 positions), no LEDs-off left", nsent == 41u);
     btset.btmode = 0;
     link_down();
     clear_sent();

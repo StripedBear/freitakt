@@ -1,10 +1,10 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
-/* Drum sequencer and input. 8 tracks x 64 steps (hit / accent / PROB / RATCH), per-track length, division and swing.
- * The 8 white keys F3..F4 hit tracks 1..8; MIDI notes play by GLO ROUT (midi_block): NOTE, those on the drum channel
- * hit every track whose NOTE matches; SEL, the selected track, pitched; TRACK, channel 1..8 track 1..8, pitched (upstream
- * Felucca's ROUT SEL / CH1-4, for 8 tracks); an armed track records hits into the nearest step while playing. Runs in the audio ISR
+/* Drum sequencer and input. 6 tracks (NTRK; FREITAKT, Hortator's 8) x 64 steps (hit / accent / PROB / RATCH),
+ * per-track length, division and swing. The white keys F3..D4 hit tracks 1..6 (E4 F4: nothing); MIDI notes play by GLO
+ * ROUT (midi_block): NOTE, those on the drum channel hit every track whose NOTE matches; SEL, the selected track,
+ * pitched; TRACK, channel 1..6 track 1..6, pitched (channels 7 8: nothing; upstream Felucca's ROUT SEL / CH1-4); an armed track records hits into the nearest step while playing. Runs in the audio ISR
  * before each block (events_block). KEYS (seq_mode 3): the keys play the selected track chromatically (keys_on). */
 static volatile uint8_t transport_req;   /* 1 start, 2 stop (from the UI) */
 static volatile uint8_t fill_on;         /* REC held off SEQ (ui_input.c rec_fill): FILL steps play, !FILL ones not */
@@ -43,8 +43,9 @@ static volatile uint32_t kb_mute_hit; /* ISR -> main: those presses, until the U
 static volatile uint32_t kb_mute_up;  /* ISR -> main: their releases (SOLO MOMENTARY: ui_input.c mute_ups) */
 static volatile uint8_t ml_keys;      /* main: MIDI LEARN is on (ui_learn.c): a PERFORM layer key picks its effect */
 static volatile uint32_t ml_kb_hit;   /* ISR -> main: those presses (no effect played), until the UI takes them */
-/* key index (0 = F3, the lowest key) of the white keys F3 G3 A3 B3 C4 D4 E4 F4 -> tracks 1..8 */
-static const uint8_t KEY_TRK_KEY[NTRK] = {0, 2, 4, 6, 7, 9, 11, 12};
+/* key index (0 = F3, the lowest key) of the white keys F3 G3 A3 B3 C4 D4 -> tracks 1..6 (E4 F4, Hortator's
+ * tracks 7 and 8: nothing) */
+static const uint8_t KEY_TRK_KEY[NTRK] = {0, 2, 4, 6, 7, 9};
 #define KEY_LEARN 14u                    /* G4, the first white key above F4: MIDI LEARN on the MUTE screen (ui_learn.c) */
 /* the STEP grid: steps 1..16 of a bank on the 16 white keys F3 G3 A3 B3 C4 D4 E4 F4 G4 A4 B4 C5 D5 E5 F5 G5
  * (key index from F3); the black keys do nothing there */
@@ -220,7 +221,7 @@ static __attribute__((noinline)) void rep_take(track_t *t, uint32_t k)
  * held over STOP: a period after it); playing, the grid's (rep_grid). n: the block */
 static __attribute__((noinline)) void rep_keys(uint32_t n)
 {
-    uint32_t want = perf_kill ? 0u : (perf_held >> PF_T1) & 0xFFu, nw = want & ~(uint32_t)rp.on, k, per;
+    uint32_t want = perf_kill ? 0u : (perf_held >> PF_T1) & ((1u << NTRK) - 1u), nw = want & ~(uint32_t)rp.on, k, per;
     rp.on = (uint8_t)want;
     for (k = 0; k < NTRK; k++)
         if ((nw >> k) & 1u)
@@ -698,7 +699,7 @@ static void midi_block(void)
                 smpl_release(SH_MIDI | ch << 8 | d1);
             continue;
         }
-        if (song.g[G_ROUTE] == RT_TRACK) {          /* channel 1..8: track 1..8, pitched */
+        if (song.g[G_ROUTE] == RT_TRACK) {          /* channel 1..6: track 1..6, pitched (7..16: nothing) */
             if (ch < NTRK) {
                 uint32_t a = dvage;
                 midi_play(&trk[ch], d2, (int32_t)d1 - 60);
@@ -1025,7 +1026,7 @@ static void events_block(uint32_t n)
         bt_fml_adv();                                /* (bt_fml.c: FM-Link's leader moves with the clock) */
 #endif
     }
-    if (rp.on | ((perf_held >> PF_T1) & 0xFFu))
+    if (rp.on | ((perf_held >> PF_T1) & ((1u << NTRK) - 1u)))
         rep_keys(n);                                 /* REPEAT STEP: the held tracks (their steps paused below) */
     run = !clock_mode || midi_clock.have_pulse || !song.playing;   /* following: step 0 / the resumed step on the first
                                                      * pulse; stopped, seq_tick counts ACID's gates in real time */

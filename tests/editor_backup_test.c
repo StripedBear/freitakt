@@ -460,8 +460,12 @@ static void t_restore_refusals(void)
     memcpy(bad, B[0], sizeof bad);
     x = o;
     x.d[0] = bad;
-    memcpy(bad, "FDRH", 4);
+    memcpy(bad, "FRT7", 4);                           /* a newer FREITAKT record */
     ok &= rs_begin(ED_RK_PROJECT, 1, &x) == ED_E_REFUSED && rc_detail == ED_D_NEWER;
+    memcpy(bad, "FDRH", 4);                           /* Hortator's (8 tracks), any: not ours */
+    ok &= rs_begin(ED_RK_PROJECT, 1, &x) == ED_E_REFUSED && rc_detail == ED_D_BAD_OBJECT;
+    memcpy(bad, "FDRG", 4);
+    ok &= rs_begin(ED_RK_PROJECT, 1, &x) == ED_E_REFUSED && rc_detail == ED_D_BAD_OBJECT;
     memcpy(bad, "FUN3", 4);
     ok &= rs_begin(ED_RK_PROJECT, 1, &x) == ED_E_REFUSED && rc_detail == ED_D_BAD_OBJECT;
     memcpy(bad, "FDRE", 4);                           /* an older record: alone */
@@ -878,72 +882,30 @@ static void t_presets(void)
     }
 }
 
+/* FREITAKT (6 tracks) reads no older record: a Hortator 8-track project (FDRE / FDRF / FDRG, its own size, a valid
+ * checksum and crc) is refused as not a Hortator object (rc 2 24): nothing written, the slot stays empty */
 static void t_old_record(void)
 {
-    static project_t ve;
+    static uint8_t old[3840];                         /* an FDRG record's size (8 tracks) */
+    static const char *const M[3] = {"FDRE", "FDRF", "FDRG"};
     robj_t o;
-    uint32_t ok, k;
-    fresh();
-    make_project(0, 5);
-    ve = proj_slot[0];                                /* as 0.23.x saved it: FDRE, no motion */
-    ve.magic = PROJ_MAGIC_VE;
-    memset((uint8_t *)&ve + __builtin_offsetof(project_t, lk_n), 0,
-           __builtin_offsetof(project_t, rsv_song) - __builtin_offsetof(project_t, lk_n));
-    ve.sum = proj_sum(&ve);
-    memset(&o, 0, sizeof o);
-    o.d[0] = (const uint8_t *)&ve;
-    o.n[0] = sizeof ve;
-    o.crc[0] = st_crc32(&ve, sizeof ve);
-    ok = restore(ED_RK_PROJECT, 3, &o, 999, 1) == ED_OK && list() == 0 && L[4].present && (L[4].flags & ED_BF_OLD) &&
-         !L[8].present && !L[12].present;
-    power_cycle();
-    project_load(3);
-    ok &= str_eq(ui.msg, "LOADED") && mo.b.count == 0u;
-    for (k = 0; k < NTRK; k++)
-        ok &= !memcmp(trk[k].step, ve.t[k].step, sizeof ve.t[k].step);
-    check("RESTORE an older record (FDRE): written as it is, listed OLD, converted at load as always", (int)ok);
-}
-
-/* an FDRF project (a file the editor made before NUDGE: the record links its lock bank and variations, steps 0..6's
- * spare bytes hold KEYF, SRR and the INSERT) restores into a FDRG device: written as it is, OLD, converted at load as
- * flash's FDRF records are (every NUDGE 0, the parameters kept, its locks and variations linked) */
-static void t_fdrf_record(void)
-{
-    static project_t vf;
-    static uint8_t F[3][4096];
-    robj_t o;
-    uint32_t ok, k, i;
-    fresh();
-    trk[1].p[P_SRR] = 40;
-    trk[2].p[P_IMIX] = 10;
-    trk[3].p[P_ITYPE] = 2;
-    make_project(0, 5);
-    o = backup_project(0, F);
-    vf = *(const project_t *)F[0];
-    ok = vf.magic == PROJ_MAGIC && vf.lk_n && vf.var_len;
-    vf.magic = PROJ_MAGIC_VF;                          /* as the editor before NUDGE read it from 0.27.x / 0.28 */
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < NSTEP; i++)
-            vf.t[k].step[i].rsv = i < PROJ_XP ? vf.xp[k][i] : 0u;
-    memset(vf.xp, 0, sizeof vf.xp);
-    vf.sum = proj_sum(&vf);
-    o.d[0] = (const uint8_t *)&vf;
-    o.crc[0] = st_crc32(&vf, sizeof vf);
-    ok &= restore(ED_RK_PROJECT, 3, &o, 999, 1) == ED_OK && list() == 0 && L[4].present && (L[4].flags & ED_BF_OLD) &&
-          L[8].present && L[12].present && !(L[4].flags & ED_BF_LOST);
-    power_cycle();
-    project_load(3);
-    ok &= str_eq(ui.msg, "LOADED") && mo.b.count == vf.lk_n && trk[1].p[P_SRR] == 40 && trk[2].p[P_IMIX] == 10 &&
-          trk[3].p[P_ITYPE] == 2;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < NSTEP; i++)
-            ok &= trk[k].step[i].micro == 0 && trk[k].step[i].on == vf.t[k].step[i].on;
-    ok &= cue_var(2) == 0 && var_cur == 2u;            /* its variation 3 */
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < NSTEP; i++)
-            ok &= trk[k].step[i].on == VS[k][i].on;
-    check("RESTORE an FDRF project (a file from the editor before NUDGE) with its lock bank and variations: written as "
-          "it is, listed OLD, converted at load (NUDGE 0, SRR / INSERT kept, locks and variations linked)", (int)ok);
+    uint32_t ok = 1, i, sum;
+    for (i = 0; i < 3u; i++) {
+        fresh();
+        memset(old, 0x5A, sizeof old);
+        memcpy(old, M[i], 4);
+        sum = proj_hash(old, sizeof old - 4u);
+        memcpy(old + sizeof old - 4u, &sum, 4);
+        memset(&o, 0, sizeof o);
+        o.d[0] = old;
+        o.n[0] = sizeof old;
+        o.crc[0] = st_crc32(old, sizeof old);
+        ok &= restore(ED_RK_PROJECT, 3, &o, 999, 1) == ED_E_REFUSED && rc_detail == ED_D_BAD_OBJECT &&
+              !ed_restoring() && list() == 0 && !L[4].present;
+        power_cycle();
+        ok &= !proj_ok(&proj_slot[3]);
+    }
+    check("RESTORE a Hortator 8-track project (FDRE / FDRF / FDRG): refused (rc 2 24), nothing written", (int)ok);
 }
 
 /* the main-loop cost of a full backup, worst case (4 projects, every variation used, full lock banks): host
@@ -1027,7 +989,6 @@ int main(int argc, char **argv)
     t_power_cut();
     t_presets();
     t_old_record();
-    t_fdrf_record();
     check("flash: no erase or program outside the map", host_fl_stray == 0);
     printf(fails ? "editor_backup_test: %d FAILED\n" : "editor_backup_test: all passed\n", fails);
     return fails ? 1 : 0;

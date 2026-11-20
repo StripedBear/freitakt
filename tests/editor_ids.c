@@ -192,19 +192,8 @@ int main(void)
     }
     printf("],\n\"magic\": {\"PROJ\": %u, \"LK\": %u, \"VAR\": %u, \"UPR\": %u, \"UPR1\": %u, \"ST\": %u},\n",
            PROJ_MAGIC, LK_MAGIC, VAR_MAGIC, UPR_MAGIC, UPR1_MAGIC, ST_MAGIC);
-    printf("\"oldProjects\": [");                   /* the older records the firmware converts at load: magic, size */
-    {
-        static const uint32_t MAGIC[15] = {PROJ_MAGIC_V1, PROJ_MAGIC_V2, PROJ_MAGIC_V3, PROJ_MAGIC_V4, PROJ_MAGIC_V5,
-                                           PROJ_MAGIC_V6, PROJ_MAGIC_V7, PROJ_MAGIC_V8, PROJ_MAGIC_V9, PROJ_MAGIC_VA,
-                                           PROJ_MAGIC_VB, PROJ_MAGIC_VC, PROJ_MAGIC_VD, PROJ_MAGIC_VE,
-                                           PROJ_MAGIC_VF};
-        const uint32_t SIZE[15] = {sizeof proj_old.v1, sizeof proj_old.v2, sizeof proj_old.v3, sizeof proj_old.v4,
-                                   sizeof proj_old.v5, sizeof proj_old.v6, sizeof proj_old.v7, sizeof proj_old.v8,
-                                   sizeof proj_old.v9, sizeof proj_old.va, sizeof proj_old.vb, sizeof proj_old.vc,
-                                   sizeof proj_old.vd, sizeof proj_old.ve, sizeof proj_old.vf};
-        for (i = 0; i < 15u; i++)
-            printf("%s[%u, %u]", i ? ", " : "", MAGIC[i], SIZE[i]);
-    }
+    printf("\"oldProjects\": [");                   /* the older records the firmware converts at load: none in
+                                                     * FREITAKT (Hortator's FDR1..FDRG, 8 tracks, are not read) */
     printf("],\n\"layout\": {\n");
 #define OFF(t, f) (unsigned)offsetof(t, f)
     printf(" \"project\": {\"size\": %u, \"magic\": %u, \"sizeField\": %u, \"g\": %u, \"sel\": %u, \"rsv\": %u, "

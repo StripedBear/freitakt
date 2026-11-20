@@ -492,9 +492,9 @@ static void load_other_writes_back(void)
 {
     uint32_t ok;
     four_slots();
-    trk[6].step[11].on = 1;
+    trk[4].step[11].on = 1;
     project_load(1);
-    ok = !ui.confirm && str_eq(ui.msg, "LOADED") && trk[0].p[P_LEVEL] == 20 && proj_slot[0].t[6].step[11].on &&
+    ok = !ui.confirm && str_eq(ui.msg, "LOADED") && trk[0].p[P_LEVEL] == 20 && proj_slot[0].t[4].step[11].on &&
          slot_dirty(0) && !slot_dirty(1) && host_nflog == 0u;
     project_load(0);
     ok &= ui.confirm == CONFIRM_DISCARD;
@@ -528,13 +528,13 @@ static void save_as_moves_edits(void)
     four_slots();
     trk[2].p[P_LEVEL] = 99;                           /* A: a knob, and variation 2 */
     var_cur = 1;
-    memset(trk[7].step, 0, sizeof trk[7].step);
-    trk[7].step[15].on = 1;
+    memset(trk[5].step, 0, sizeof trk[5].step);
+    trk[5].step[15].on = 1;
     project_save(1);                                  /* SAVE to B: "save as" */
     st_load(OBJ_PROJECT0 + 1u, &f, sizeof f);
     fb = flash_bank(1);
     ok = str_eq(ui.msg, "SAVED") && f.t[2].p[P_LEVEL] == 99 && f.t[0].p[P_LEVEL] == 10 && f.t[1].step[0].on &&
-         !f.t[7].step[15].on && fb && var_get(fb, 1, VRP, VTR) == 1 && VR[7][15].on == 1u && f.var_len;
+         !f.t[5].step[15].on && fb && var_get(fb, 1, VRP, VTR) == 1 && VR[5][15].on == 1u && f.var_len;
     ok &= image_is_flash(0) && !slot_dirty(0) && !slot_dirty(1) && pname.from == 2u && var_who[var_play] == 2u;
     var_cur = 0;
     check("RAM model: SAVE to another slot stores the live state and variations there; the old slot is its flash "
@@ -809,10 +809,10 @@ static void cue_round_trip_edits(void)
     uint32_t ok = 1;
     pattern_slot(16, 2);
     OK(cue_var(2) == 0 && var_cur == 2u);           /* stopped: at once; variation 3 (never used: a copy of 1) */
-    trk[6].step[13].on = 1;                           /* an edit of variation 3 */
+    trk[4].step[13].on = 1;                           /* an edit of variation 3 */
     trk[2].p[P_PAN] = 21;
-    OK(cue_slot(1) == 0 && proj_loaded() == 1 && !trk[6].step[13].on);
-    OK(cue_slot(0) == 0 && proj_loaded() == 0 && var_cur == 2u && trk[6].step[13].on && trk[2].p[P_PAN] == 21);
+    OK(cue_slot(1) == 0 && proj_loaded() == 1 && !trk[4].step[13].on);
+    OK(cue_slot(0) == 0 && proj_loaded() == 0 && var_cur == 2u && trk[4].step[13].on && trk[2].p[P_PAN] == 21);
     OK(slot_dirty(0) && !slot_dirty(1));
     check("cue: A on variation 3 with an edit, cue B, cue A: back on variation 3 with the edit (and the knob)", (int)ok);
 }
@@ -889,20 +889,20 @@ static void cue_var_edits_while_queued(void)      /* Review Focus 5 */
     for (f = 0; f < 100u; f++)
         run_blk();
     OK(cue_var(2) == 0 && cue.q_var == 3u);
-    trk[7].step[3].on = 1;                            /* an edit of variation 2 before the boundary */
+    trk[5].step[3].on = 1;                            /* an edit of variation 2 before the boundary */
     for (f = 0; f < 4u * 44100u / CTL && cue.q_var; f++) {
         run_blk();
         cue_poll();
     }
-    OK(var_cur == 2u && trk[7].step[3].on && var_get(live_bank(), 1, VRP, VTR) == 1 && VR[7][3].on == 1u &&
+    OK(var_cur == 2u && trk[5].step[3].on && var_get(live_bank(), 1, VRP, VTR) == 1 && VR[5][3].on == 1u &&
        ((var_mask(live_bank()) >> 2) & 1u));         /* (variation 3, never used: a copy of 2 with the edit) */
-    trk[7].step[3].on = 0;                            /* variation 3 edited apart */
+    trk[5].step[3].on = 0;                            /* variation 3 edited apart */
     cue_var(1);
     for (f = 0; f < 4u * 44100u / CTL && cue.q_var; f++) {
         run_blk();
         cue_poll();
     }
-    OK(var_cur == 1u && trk[7].step[3].on);
+    OK(var_cur == 1u && trk[5].step[3].on);
     stop();
     check("cue: variation 2 edited while variation 3 is queued: the edit packed at the switch (3, never used, starts "
           "as its copy), there when 2 comes back", (int)ok);
@@ -1678,10 +1678,10 @@ static void paste_from_live(void)
 {
     uint32_t ok = 1;
     beat_slot_a();
-    trk[6].step[22].on = 1;                           /* A's live edit, unsaved */
+    trk[4].step[22].on = 1;                           /* A's live edit, unsaved */
     project_copy(0);
     project_paste(3);
-    OK(proj_slot[3].t[6].step[22].on && proj_slot[0].t[6].step[22].on);
+    OK(proj_slot[3].t[4].step[22].on && proj_slot[0].t[4].step[22].on);
     check("PASTE from the loaded slot: its unsaved live edits go with it", (int)ok);
 }
 static void paste_then_load(void)                     /* Review Focus 4 */

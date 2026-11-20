@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
- * Drum machine fork: 2026 DEADACTIVE (8 tracks, 128 places, the LFOs' copy, FDR8) */
+ * Drum machine fork: 2026 DEADACTIVE (FREITAKT: 6 tracks; 128 places, the LFOs' copy, FDR8) */
 /* MOTION (upstream Felucca 1.0's motion.c, adapted): knob moves recorded per step and played with the pattern.
  * Recording (ui_input.c motion_capture): the selected track armed (song.rec) and playing, a turn of one of its sound
  * knobs (motion_param) stores the knob's value at the nearest step of that track (the one playing, or the next past
@@ -9,14 +9,14 @@
  * (clamped to the knob's range); a value holds until that knob's next event; step 0, STOP and PLAY off put the base
  * back (every knob as set, taken at PLAY). In a block an LFO on a knob holds its modulated copy in t->p and the
  * value it returns to in t->lsave (lfo.c): motion reads and writes the latter (motion_slot).
- * Store: the lock bank (lockbank.c): 1024 events (motion and parameter locks) shared by the 8 tracks (upstream: 64
+ * Store: the lock bank (lockbank.c): 1024 events (motion and parameter locks) shared by the 6 tracks (upstream: 64
  * for 4; FDR8..FDRE: 128), sorted, saved as the project's lock bank (FDRF, project.c). The main loop writes with the
  * audio IRQ off; the ISR reads.
  * Parameter locks (spec 2026-10-24): a lock event sets its knob for its own step only, on top of what the knob holds
  * there (the base, or motion's held value; an LFO modulates round it), when the step is on (an off step's locks stay,
  * dormant); entering the next step the knob snaps back to that value (under). Locks play whatever MOTION's PLAY says
  * and MOTION CLEAR leaves them. */
-/* (the store's types, MOTION_MAX and MO_W: lockbank.c) */
+/* (MO_W: lockbank.c) */
 
 static struct {
     lk_bank_t b;                     /* the events and PLAY bits (saved as the project's lock bank) */

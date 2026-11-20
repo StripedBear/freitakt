@@ -193,7 +193,7 @@ static void test_mix_health(void)
         drum_hit(t, 127);
     }
     render_mix(wl, wr, SECS(8));
-    check("mix: 8 tracks + FX stay within full scale", peak_of(wl, 0, SECS(8)) <= 32767 && peak_of(wr, 0, SECS(8)) <= 32767);
+    check("mix: every track + FX stay within full scale", peak_of(wl, 0, SECS(8)) <= 32767 && peak_of(wr, 0, SECS(8)) <= 32767);
     check("mix: back to (near) silence after the FX tails (last 1 s <= 2)",
           peak_of(wl, SECS(7), SECS(8)) <= 2 && peak_of(wr, SECS(7), SECS(8)) <= 2);
 }
@@ -403,15 +403,15 @@ static void test_midi_trs(void)
           hit_age(&trk[4]) != a[4] && hit_age(&trk[5]) != a[5] &&
           midi_in_source[a0 % MQ] == 1u && midi_in_source[(a0 + 1u) % MQ] == 2u);
 
-    a[6] = hit_age(&trk[6]);
+    a[2] = hit_age(&trk[2]);
     for (i = 0; i < 48u; i++) {                      /* 2 beats of Clock with a note in the middle */
         um_byte(0xF8u);
         if (i == 24u)
-            trs("\x99\x42\x5A", 3);                  /* note 66 */
+            trs("\x99\x3E\x5A", 3);                  /* note 62 (FREITAKT: 6 tracks, notes 60..65) */
     }
     render_mix(0, 0, CTL);
     check("TRS MIDI: a dense Clock stream around a note: the note plays, the ring empties",
-          hit_age(&trk[6]) != a[6] && mi_r == mi_w);
+          hit_age(&trk[2]) != a[2] && mi_r == mi_w);
 
     memset((void *)um_ring, 0x40, UM_RING);          /* data bytes only, and more than the ring: bytes lost */
     uart_midi_take(UM_RING + 10u);
@@ -420,10 +420,10 @@ static void test_midi_trs(void)
     render_mix(0, 0, CTL);
     check("TRS ring overflow: the stream marked broken, then the backlog dropped and the ring open again",
           ok && midi_in_overflow == 0 && mi_r == mi_w && dvage == a0);
-    a[7] = hit_age(&trk[7]);
-    trs("\x99\x43\x5A", 3);                          /* note 67 */
+    a[3] = hit_age(&trk[3]);
+    trs("\x99\x3F\x5A", 3);                          /* note 63 */
     render_mix(0, 0, CTL);
-    check("TRS after an overflow: a new note plays", hit_age(&trk[7]) != a[7]);
+    check("TRS after an overflow: a new note plays", hit_age(&trk[3]) != a[3]);
 
     safe_start = 1;
     for (i = 0; i < 48u; i++)
@@ -730,11 +730,11 @@ static void test_stress(void)
     render_mix(wl, wr, SECS(7));
     for (i = 0; i < NTRK; i++)
         ok &= track_idle(&trk[i]);
-    check("stress: double hits every block on 8 tracks: bounded, every voice ends", ok);
+    check("stress: double hits every block on every track: bounded, every voice ends", ok);
 }
 
-static int kit_filter;                               /* kit_cost: the FILTER on all 8 (test_cost) */
-/* the cost of 8 tracks of model mi kept busy (1/32 at 240 BPM, DECAY 127, every FX), with or without layers */
+static int kit_filter;                               /* kit_cost: the FILTER on all tracks (test_cost) */
+/* the cost of NTRK (6) tracks of model mi kept busy (1/32 at 240 BPM, DECAY 127, every FX), with or without layers */
 static double kit_cost(uint32_t mi, int layers)
 {
     uint64_t i0;
@@ -792,7 +792,7 @@ static void test_cost(void)
 {
     static const char *const PAT[NTRK] = {
         "x...x...x...x..x", "....x.......x...", "....x.......x..x", "x.x.x.x.x.x.x.x.",
-        "..x...x...x...x.", "......x....x....", ".x.....x..x.....", "x...............",
+        "..x...x...x...x.", "......x....x....",          /* (FREITAKT: 6 tracks, tracks 7 and 8 gone) */
     };
     double ref = cost_ref("ref"), emax = cost_ref("extreme_max"), worst = 0, real, c;
     uint32_t mi, wm = 0, lay, wl_ = 0, i, k;
@@ -816,7 +816,7 @@ static void test_cost(void)
     i0 = instr_now();
     render_mix(wl, wr, SECS(4));
     real = i0 ? (double)(instr_now() - i0) / SECS(4) : 0;
-    for (mi = 0; mi < NMODELS; mi++)                 /* the extreme: every model kept busy on 8 tracks */
+    for (mi = 0; mi < NMODELS; mi++)                 /* the extreme: every model kept busy on every track */
         for (lay = 0; lay < 2; lay++) {
             c = kit_cost(mi, (int)lay);
             if (c > worst) {
@@ -826,14 +826,14 @@ static void test_cost(void)
             }
         }
     kit_filter = 1;
-    c = kit_cost(wm, (int)wl_);                      /* the same worst kit, the FILTER on all 8 */
+    c = kit_cost(wm, (int)wl_);                      /* the same worst kit, the FILTER on every track */
     kit_filter = 0;
-    printf("     extreme kit with the FILTER on 8: %.0f (its own limit %.0f)\n", c, cost_ref("extreme_filter_max"));
-    check("cost: the extreme kit with the FILTER on 8 within its recorded limit",
+    printf("     extreme kit with the FILTER on all tracks: %.0f (its own limit %.0f)\n", c, cost_ref("extreme_filter_max"));
+    check("cost: the extreme kit with the FILTER on all tracks within its recorded limit",
           !i0 || cost_ref("extreme_filter_max") == 0 || c <= cost_ref("extreme_filter_max"));
     printf("     realistic heavy kit: %.0f host instructions / sample (reference %.0f)\n", real, ref);
-    printf("     extreme kit: %.0f (8 x %s%s; limit %.0f, above the reference by design: device shedding)\n", worst,
-           N_MODEL[wm], wl_ ? " + layers" : "", emax);
+    printf("     extreme kit: %.0f (%u x %s%s; limit %.0f, above the reference by design: device shedding)\n", worst,
+           (unsigned)NTRK, N_MODEL[wm], wl_ ? " + layers" : "", emax);
     check("cost: realistic heavy use within the stock Felucca reference", !i0 || ref == 0 || real <= ref);
     check("cost: the extreme case has not grown past its recorded limit", !i0 || emax == 0 || worst <= emax);
 }
@@ -1048,7 +1048,7 @@ static void test_silent_sample_keeps_voices(void)
           before == DRUM_MAXV && voices_sounding() == DRUM_MAXV && !trk[NTRK - 1].v[0].active && !trk[NTRK - 1].v[1].active);
 }
 
-/* every model on 8 tracks: the sequencer at 1/32, 240 BPM, MIDI flams (two note-ons per block), layers on
+/* every model on every track (6): the sequencer at 1/32, 240 BPM, MIDI flams (two note-ons per block), layers on
  * half the tracks, DECAY 127: the cap holds every block, the mix stays in range, every voice ends */
 static void test_stress_seq(void)
 {
@@ -1118,17 +1118,20 @@ static void test_prio(void)
               trk[0].p[P_PRIO] == 0 && trk[NTRK - 1].p[P_PRIO] == 0);
     for (i = 0; i < NTRK; i++)
         old_set_model(&trk[i], DM_CYMB);
-    trk[6].p[P_PRIO] = 1;                            /* track 7 LOW */
-    for (i = 0; i < 6u; i++) {                       /* tracks 1..6 HIGH, track 1 the oldest */
+    trk[4].p[P_PRIO] = 1;                            /* track 5 LOW (FREITAKT: 6 tracks; a cymbal's retrigger
+                                                      * keeps its first voice, so retriggers fill the cap) */
+    for (i = 0; i < 4u; i++) {                       /* tracks 1..4 HIGH, track 1 the oldest */
         drum_hit(&trk[i], 127);
         render_mix(0, 0, CTL);
     }
-    drum_hit(&trk[6], 127);                          /* the LOW voice, newer than six HIGH ones */
-    drum_hit(&trk[7], 127);                          /* the cap full */
+    drum_hit(&trk[4], 127);                          /* the LOW voice, newer than four HIGH ones */
+    drum_hit(&trk[5], 127);
+    drum_hit(&trk[1], 127);                          /* retriggers: second voices */
+    drum_hit(&trk[2], 127);                          /* the cap full (8) */
     render_mix(0, 0, CTL);
-    drum_hit(&trk[7], 127);                          /* one over: the LOW voice goes, not the oldest */
+    drum_hit(&trk[3], 127);                          /* one over: the LOW voice goes, not the oldest */
     check("PRIO: the voice cap takes a LOW track's voice before an older HIGH one",
-          voices_sounding() == DRUM_MAXV && !trk[6].v[0].active && trk[6].dtail != 0 && trk[0].v[0].active);
+          voices_sounding() == DRUM_MAXV && !trk[4].v[0].active && trk[4].dtail != 0 && trk[0].v[0].active);
     drum_hit(&trk[5], 127);                          /* no LOW voice left: the oldest (track 1) */
     check("PRIO: ... then the oldest HIGH voice", voices_sounding() == DRUM_MAXV && !trk[0].v[0].active);
     host_init();
@@ -1300,7 +1303,7 @@ static void test_q24(void)
     }
 }
 
-/* heavy models count 2 toward DRUM_MAXV (user decision, M1-C): 8 tracks of KBOOM held long ring as 4 */
+/* heavy models count 2 toward DRUM_MAXV (user decision, M1-C): 6 tracks (FREITAKT) of KBOOM held long ring as 4 */
 static void test_heavy_cap(void)
 {
     track_t *ot;
@@ -1313,7 +1316,7 @@ static void test_heavy_cap(void)
         drum_hit(&trk[i], 127);
         render_mix(0, 0, CTL);
     }
-    check("voice cap: a heavy model counts 2 (8 long KBOOM hits: 4 sound, weight 8)",
+    check("voice cap: a heavy model counts 2 (6 long KBOOM hits: 4 sound, weight 8)",
           voices_sounding() == DRUM_MAXV / 2 && dv_oldest(&ot, &ov) == DRUM_MAXV);
 }
 
@@ -2815,19 +2818,19 @@ static void test_exact_timing(void)
  * open hat 46, tom 45, rim 37, cymbal 49), no track in a choke group. (host_init keeps the old kit for the metrics.) */
 static void test_trx_kit_default(void)
 {
-    static const uint32_t M[NTRK] = {DM_KTRX, DM_SDTRX, DM_CPTRX, DM_CHTRX, DM_OHTRX, DM_XTTRX, DM_RSTRX, DM_CYTRX};
-    static const int16_t N[NTRK] = {36, 38, 39, 42, 46, 45, 37, 49};
+    static const uint32_t M[NTRK] = {DM_KTRX, DM_SDTRX, DM_CPTRX, DM_CHTRX, DM_OHTRX, DM_XTTRX};
+    static const int16_t N[NTRK] = {36, 38, 39, 42, 46, 45};
     uint32_t k, ok = 1;
     host_init_live();                                /* drum_tracks_init: power-on, TOOLS INIT ALL, a new project */
     for (k = 0; k < NTRK; k++)
         ok &= (uint32_t)trk[k].p[P_MODEL] == M[k] && trk[k].model == M[k] && trk[k].p[P_NOTE] == N[k] &&
               trk[k].p[P_CHOKE] == 0 && trk[k].pre == preset_first_of(M[k]) && trk[k].pre != PRE_NONE &&
               !trk[k].pre_ed;
-    check("power-on kit: the TRX classic kit (KTRX SDTRX CPTRX CHTRX OHTRX XTTRX RSTRX CYTRX), default presets, the old "
+    check("power-on kit: the TRX classic kit (KTRX SDTRX CPTRX CHTRX OHTRX XTTRX; FREITAKT: 6 tracks), default presets, the old "
           "notes, no choke", ok);
     host_init();
-    check("(host_init: the old kit K909 S808 C808 HATC HATO TOM RIM CYMB for the tests' metrics)",
-          trk[0].p[P_MODEL] == DM_K909 && trk[3].p[P_MODEL] == DM_HATC && trk[7].p[P_MODEL] == DM_CYMB &&
+    check("(host_init: the old kit K909 S808 C808 HATC HATO TOM, its first 6, for the tests' metrics)",
+          trk[0].p[P_MODEL] == DM_K909 && trk[3].p[P_MODEL] == DM_HATC && trk[5].p[P_MODEL] == DM_TOM &&
               trk[0].p[P_NOTE] == 36);
 }
 
@@ -2839,7 +2842,7 @@ static void lfo_slot_set(uint32_t ti, uint32_t s, int16_t src, int16_t dest, int
     trk[ti].p[LS_ID[s][LS_DEST]] = dest;
     trk[ti].p[LS_ID[s][LS_DEPTH]] = depth;
 }
-static double lfo_slots_cost(int mode)          /* host instructions a block (lfo_apply + lfo_restore), 8 tracks */
+static double lfo_slots_cost(int mode)          /* host instructions a block (lfo_apply + lfo_restore), every track */
 {
     uint32_t i, k;
     uint64_t i0;
@@ -2931,7 +2934,7 @@ static void test_lfo_dest_slots(void)
     lfo_restore();
     {
         double c0 = lfo_slots_cost(0), c2 = lfo_slots_cost(1), c4 = lfo_slots_cost(2);
-        printf("     LFO cost, host instructions a block (8 tracks): none %.0f, 2 slots (an older project's routes) %.0f, "
+        printf("     LFO cost, host instructions a block (6 tracks): none %.0f, 2 slots (an older project's routes) %.0f, "
                "4 slots %.0f (0e76751, 2 LFOs routed: none 663, 2 routes 3712)\n", c0, c2, c4);
         check("LFO slots: 4 slots on 2 LFOs cost less than twice the 2 routes (the LFOs are computed once)",
               !c0 || c4 < 2.0 * c2);

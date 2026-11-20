@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
- * Drum machine fork: 2026 DEADACTIVE (8 tracks, the LFOs' base, Hortator's parameter codes, the actions) */
+ * Drum machine fork: 2026 DEADACTIVE (NTRK tracks, the LFOs' base, Hortator's parameter codes, the actions) */
 /* MIDI LEARN, the audio interrupt's side (upstream Felucca 1.5's midi_control.c midi_learned / midi_cc_set, adapted;
  * spec docs/superpowers/specs/2026-10-13-midi-learn-design.md). Up to ML_N sources, each bound to one parameter of
  * one track or to one action, from any channel of the MIDI input ring (USB, TRS, Bluetooth in MIDI mode: seq.c
@@ -31,7 +31,7 @@ typedef char ml_ids_pinned[P_E0 == 1 && P_LEVEL == 9 && P_SLEN == 18 && P_LFO1 =
                            P_PRIO == 48 && P_LSRC1 == 49 && P_LS3SRC == 51 && P_LS4DEPTH == 56 &&
                            P_COUNT < 0x80 ? 1 : -1];
 typedef char ml_pf_pinned[PF_R8 == 0 && PF_REV == 3 && PF_LPF == 4 && PF_TAPE == 6 && PF_OUP == 8 && PF_ODN == 9 &&
-                          PF_T1 == 10 && PF_N == 18 && ML_A_FX + PF_N <= ML_A_MAC && ML_N <= 32u ? 1 : -1];
+                          PF_T1 == 10 && PF_N == 16 && ML_A_FX + PF_N <= ML_A_MAC && ML_N <= 32u ? 1 : -1];
 static ml_ent_t ml_map[ML_N];
 static volatile uint8_t ml_arm;                    /* the UI waits for a source: 1 a CC (a parameter or a macro
                                                     * picked), 2 a CC or a note (a button action picked) */

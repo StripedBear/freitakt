@@ -244,9 +244,9 @@ export async function runPageTests(log = console.log, mods = {}) {
   {
     const m = dev(), r = await connect(access(m), { timing: { ...FAST, timeout: 200 } }), s = r.session;
     m.faults.noReply = 2;
-    const n = m.received.length, got = await s.request(CMD.SELECT, { track: 6 });
+    const n = m.received.length, got = await s.request(CMD.SELECT, { track: 4 });
     const tries = m.received.slice(n);
-    ok(got.track === 6 && tries.length === 3 && new Set(tries.map((f) => f[5])).size === 1 && m.sel === 6 && !s.busy,
+    ok(got.track === 4 && tries.length === 3 && new Set(tries.map((f) => f[5])).size === 1 && m.sel === 4 && !s.busy,
       "two lost frames: the third try (same seq) is answered");
     s.close();
   }
@@ -314,22 +314,22 @@ export async function runPageTests(log = console.log, mods = {}) {
     m.g[m.G.CLOCK] = 0;
     ok(rb.rc === 0 && snd.value(SCOPE.GLOBAL, m.G.BPM).value === bpm && m.g[m.G.BPM] === bpm,
       "SET BPM while following a clock: rc 0, the page shows the value the device kept");
-    m.tracks[6].p[0] = acid;
-    await s.select(7);
-    await until(() => snd.track === 7 && !snd.loading);
+    m.tracks[4].p[0] = acid;
+    await s.select(3);
+    await until(() => snd.track === 3 && !snd.loading);
     const before = snd.value(SCOPE.TRACK, 0).value;
     const ra = await snd.set(SCOPE.TRACK, ID.MODEL, acid);
-    ok(ra === null && errors.includes("ACID ON 2 TRACKS") && snd.value(SCOPE.TRACK, 0).value === before && m.tracks[7].p[0] === before,
+    ok(ra === null && errors.includes("ACID ON 2 TRACKS") && snd.value(SCOPE.TRACK, 0).value === before && m.tracks[3].p[0] === before,
       "a refusal: the device's message, the value as the device kept it");
     const pid = snd.preset === 5 ? 6 : 5;
-    m.tracks[7].pre = pid; // what PRESET_LOAD changes and no push carries (the preset id)
-    m.tracks[6].pre = 0;
-    s.reloaded({ track: 6 });
+    m.tracks[3].pre = pid; // what PRESET_LOAD changes and no push carries (the preset id)
+    m.tracks[4].pre = 0;
+    s.reloaded({ track: 4 });
     await sleep(5);
-    const not6 = !snd.loading && snd.preset !== pid;
-    s.reloaded({ track: 7 });
+    const notOther = !snd.loading && snd.preset !== pid;
+    s.reloaded({ track: 3 });
     await until(() => !snd.loading && snd.preset === pid);
-    ok(not6 && snd.preset === pid && valuesMatch(), "reload { track }: the Sound tab reads its track again (another track: nothing)");
+    ok(notOther && snd.preset === pid && valuesMatch(), "reload { track }: the Sound tab reads its track again (another track: nothing)");
 
     /* the header */
     m.play();

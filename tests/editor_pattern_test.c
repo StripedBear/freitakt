@@ -316,10 +316,10 @@ static void preset_load_cmd(void)
         if (PRE_FACTORY[i].model == DM_ACID)
             acid = i;
     OK(acid != PRE_NONE);
-    OK(RQ(ED_PRESET_LOAD, 6, LO(acid), HI(acid)) == ED_OK && RQ(ED_PRESET_LOAD, 7, LO(acid), HI(acid)) == ED_OK);
+    OK(RQ(ED_PRESET_LOAD, 4, LO(acid), HI(acid)) == ED_OK && RQ(ED_PRESET_LOAD, 5, LO(acid), HI(acid)) == ED_OK);
     OK(refused(RQ(ED_PRESET_LOAD, 0, LO(acid), HI(acid)), ED_E_REFUSED, ED_D_ACID_CAP) && trk[0].p[P_MODEL] != DM_ACID);
     OK(refused(RQ(ED_PRESET_LOAD, 0, LO(PRE_NID), HI(PRE_NID)), ED_E_BAD, ED_D_RANGE));
-    OK(refused(RQ(ED_PRESET_LOAD, 8, 0, 0), ED_E_BAD, ED_D_RANGE));
+    OK(refused(RQ(ED_PRESET_LOAD, NTRK, 0, 0), ED_E_BAD, ED_D_RANGE));
     check("PRESET_LOAD: a factory / user preset onto a track as the PRESETS list loads it (7F: the selected one; a user "
           "preset's FX too, a voice-only one leaves them); an empty user slot, a third ACID, bad ids refused", (int)ok);
 }
@@ -637,15 +637,15 @@ static void locks(void)
     restoring = 1;
     OK(refused(RQ(ED_LOCK_EDIT, ED_LK_SET, 1, 0, P_LEVEL, V14(5)), ED_E_BUSY, ED_D_RESTORING) && lock_count(1) == 0u);
     restoring = 0;
-    /* a full bank: track 7 holds the rest as locks; a new one refused, an existing one replaced; read in pieces */
+    /* a full bank: track 6 holds the rest as locks; a new one refused, an existing one replaced; read in pieces */
     for (i = 0; mo.b.count < LK_MAX; i++)
-        lk_put(&mo.b, lk_key(7, i / 16u, P_E0 + i % 16u), (int32_t)(i % 100u), 1);
+        lk_put(&mo.b, lk_key(5, i / 16u, P_E0 + i % 16u), (int32_t)(i % 100u), 1);
     OK(refused(RQ(ED_LOCK_EDIT, ED_LK_SET, 1, 0, P_LEVEL, V14(5)), ED_E_REFUSED, ED_D_LOCKS_FULL) && !mo.lfull);
-    OK(RQ(ED_LOCK_EDIT, ED_LK_SET, 7, 0, P_E0 + 1u, V14(3)) == ED_OK && lock_get(7, 0, P_E0 + 1u, &v) && v == 3);
-    tot = lk_count(&mo.b, 7, LK_BOTH);
+    OK(RQ(ED_LOCK_EDIT, ED_LK_SET, 5, 0, P_E0 + 1u, V14(3)) == ED_OK && lock_get(5, 0, P_E0 + 1u, &v) && v == 3);
+    tot = lk_count(&mo.b, 5, LK_BOTH);
     for (first = 0, n = 0, prev = 0; first < tot && n < 1000u; n++) {
         uint32_t c, j;
-        OK(RQ(ED_LOCKS_GET, ED_NONE, 7, LO(first), HI(first)) == ED_OK && u14at(9) == tot && u14at(11) == first);
+        OK(RQ(ED_LOCKS_GET, ED_NONE, 5, LO(first), HI(first)) == ED_OK && u14at(9) == tot && u14at(11) == first);
         c = R[13];
         OK(c > 0u && RL == 15u + 5u * c);
         if (!c)
@@ -731,10 +731,10 @@ static void pushes(void)
     OK(ed_pattern_push(ED_PUSH_MAX) == 1u && pushed(n0 + 1u, ED_P_STEPS_CHANGED, 0, 0, ED_NONE));   /* several */
     lock_set(5, 1, P_LEVEL, 10);                      /* a lock set on the device */
     OK(ed_pattern_push(ED_PUSH_MAX) == 1u && pushed(n0 + 2u, ED_P_LOCKS_CHANGED, 0, 5, 0));
-    trk[6].step[0].on = 1;
+    trk[4].step[0].on = 1;
     lock_clear_track(5);
     OK(ed_pattern_push(0) == 0u && nf == n0 + 3u);    /* no room: kept for the next pass */
-    OK(ed_pattern_push(1) == 1u && pushed(n0 + 3u, ED_P_STEPS_CHANGED, 0, 0, 6));
+    OK(ed_pattern_push(1) == 1u && pushed(n0 + 3u, ED_P_STEPS_CHANGED, 0, 0, 4));
     OK(ed_pattern_push(1) == 1u && pushed(n0 + 4u, ED_P_LOCKS_CHANGED, 0, 5, 0));
     OK(ed_pattern_push(ED_PUSH_MAX) == 0u);
     OK(cue_var(1) == 0);                              /* a switch (stopped) on the device */

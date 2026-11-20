@@ -70,9 +70,9 @@ export async function runPatternTests(log = console.log) {
     await until(() => pm.tracks[5].steps[9].flags & STEP.ON);
     await settle(s, pm);
     ok(liveMatches(m, pm), "a step edited on the FM-1: STEPS_CHANGED, the grid follows");
-    m.lockOnDevice(6, 3, m.P.FCUT, 77);
-    await until(() => pm.locks[6].length === 1);
-    ok(pm.locks[6][0].param === m.P.FCUT && pm.locks[6][0].value === 77, "a lock set on the FM-1: LOCKS_CHANGED, the locks follow");
+    m.lockOnDevice(5, 3, m.P.FCUT, 77);
+    await until(() => pm.locks[5].length === 1);
+    ok(pm.locks[5][0].param === m.P.FCUT && pm.locks[5][0].value === 77, "a lock set on the FM-1: LOCKS_CHANGED, the locks follow");
 
     /* locks: set, edit, clear one, clear the step, clear the track */
     const E1 = m.P.E1, bank = () => m.img().locks.filter((e) => e.track === 2 && e.kind === LK.LOCK);
@@ -264,7 +264,7 @@ export async function runPatternTests(log = console.log) {
     await refused("a value no lock holds", [{ track: 2, step: 3, param: m.P.E0, kind: LK.LOCK, value: 500 }], /outside what a lock holds/);
     await refused("a step past 64", [{ track: 2, step: 70, param: m.P.E0, kind: LK.LOCK, value: 5 }], /cannot hold/);
     const motion = m.img().locks.filter((e) => e.kind === LK.MOTION).length, room = P.LAYOUT.lkMax - motion;
-    const many = Array.from({ length: room + 1 }, (_, i) => ({ track: i % 8, step: (i >> 3) % 64, param: m.P.E0 + (i >> 9), kind: LK.LOCK, value: 1 }));
+    const many = Array.from({ length: room + 1 }, (_, i) => ({ track: i % P.LAYOUT.ntrk, step: Math.floor(i / P.LAYOUT.ntrk) % 64, param: m.P.E0 + Math.floor(i / (64 * P.LAYOUT.ntrk)), kind: LK.LOCK, value: 1 }));
     await refused(`${room + 1} locks where ${room} fit beside A's MOTION`, many, /do not fit/, true);
     B.locks = keep.concat(many.slice(0, 40));
     m.faults.refuse[CMD.LOCK_EDIT] = { rc: RC.REFUSED, detail: DETAIL.LOCKS_FULL, msg: "LOCKS FULL", after: 12 };
@@ -281,7 +281,7 @@ export async function runPatternTests(log = console.log) {
     s.close();
     pm.destroy();
   }
-  /* NUDGE: per step, -50..+50 as the FM-1 shows it; copies (from the FM-1, from FDRG / FDRF files) carry it */
+  /* NUDGE: per step, -50..+50 as the FM-1 shows it; copies (from the FM-1, from FRT6 files) carry it */
   {
     ok(nudgeText(25) === "+25" && nudgeText(-10) === "-10" && nudgeText(0) === "0" && /NUDGE \+25/.test(stepTitle({ flags: 1, cond: 0, note: 60, micro: 25 }, 2))
       && !/NUDGE/.test(stepTitle({ flags: 1, cond: 0, note: 60, micro: 0 }, 2)), "NUDGE: the FM-1's text (+25, -10, 0), in the step's title when not 0");
@@ -302,11 +302,13 @@ export async function runPatternTests(log = console.log) {
     const fa = P.decodeProject(m.flashObjects(0).record), A = m.flashObjects(0);
     const g = fileProjects(JSON.parse(J(P.makeProjectFile(A, 0))))[0];
     ok(fileVariation(g.objs, 0).rows[2].steps[2].micro === 25 && fileVariation(g.objs, 4).rows[2].steps[6].micro === 25,
-      "a file's FDRG record and its variations (flags bit 6): NUDGE read");
-    const f = fileProjects(JSON.parse(J(P.makeProjectFile(P.sealProject({ ...A, record: P.encodeProject(fa, "FDRF") }, 0), 0))))[0];
-    ok(!f.old && f.vars.length > 1 && await pm.copy({ file: f.objs, name: "old.json", var: 0 }, 5) && m.varCur === 5
-      && m.tracks[2].steps.every((x) => x.micro === 0) && (m.tracks[2].steps[2].flags & STEP.ON),
-    "a file from the editor before NUDGE (FDRF): its variations copyable, NUDGE 0 (as the FM-1 loads it)");
+      "a file's FRT6 record and its variations (flags bit 6): NUDGE read");
+    const hrec = P.encodeProject(fa);
+    new DataView(hrec.buffer).setUint32(0, 0x47524446, true); // a Hortator 8-track record's magic ("FDRG")
+    let err = null;
+    try { fileProjects(JSON.parse(J(P.makeProjectFile({ ...A, record: hrec }, 0)))); } catch (e) { err = e; }
+    ok(err && /FDRG/.test(err.message) && !P.decodeProject(hrec).full && !P.decodeProject(hrec).ok,
+      `a file holding a Hortator 8-track record (FDRG): refused, nothing to copy (${err && err.message})`);
     s.close();
     pm.destroy();
     const o = await start({ minor: 0, caps: P.CAP.LIVE | P.CAP.PRESETS | P.CAP.PATTERNS | P.CAP.BACKUP | P.CAP.RESTORE });

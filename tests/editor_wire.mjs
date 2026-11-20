@@ -75,10 +75,10 @@ function xcheck(bin) {
   const set = (what, scope, track, id, value, s) => rq(what, CMD.SET, { scope, track, id, value }, s);
   const push = (line, what) => steps.push([what, null, null, line]);   // the pushes since the last such step
   const A = m.flashObjects(0), parts = [A.record, A.locks, A.vars];
-  /* A as the editor before NUDGE saved it: an FDRF record (SRR / INSERT in steps 0..6's spare bytes), its parts */
-  const fa = decodeProject(A.record);
-  fa.tracks[1].p[P.SRR] = 40;
-  const F = sealProject({ record: encodeProject(fa, "FDRF"), locks: A.locks, vars: A.vars }, 0), fparts = [F.record, F.locks, F.vars];
+  /* FREITAKT (6 tracks): a Hortator 8-track record (FDRG, 3840 B) with A's lock bank and variations: not ours */
+  const old = new Uint8Array(3840).fill(0x5a);
+  old.set([0x46, 0x44, 0x52, 0x47], 0);
+  const fparts = [old, A.locks, A.vars];
   const begin = (slot, ps = parts) => ({ op: RS.BEGIN, kind: RK.PROJECT, slot, magic: (ps[0][0] | ps[0][1] << 8 | ps[0][2] << 16 | ps[0][3] << 24) >>> 0,
     parts: ps.map((p) => ({ size: p ? p.length : 0, crc: p ? crc32(p) : 0 })) });
   const pieces = (what, ps = parts) => ps.forEach((p, part) => { for (let o = 0; p && o < p.length; o += 256)
@@ -143,7 +143,7 @@ function xcheck(bin) {
   push("pushes 100", "STEPS_SET's switch (stopped): a STATE push, STEPS_CHANGED for the other tracks, none for the write");
   rq("PRESET_LOAD onto the selected track", CMD.PRESET_LOAD, { track: NONE, id: 7 });
   push("pushes 100", "PRESET_LOAD onto the selected track: CHANGED for MODEL and the SOUND knobs that moved");
-  rq("PRESET_LOAD onto another track", CMD.PRESET_LOAD, { track: 6, id: 9 });
+  rq("PRESET_LOAD onto another track", CMD.PRESET_LOAD, { track: 4, id: 9 });
   push("pushes 100", "PRESET_LOAD onto another track: no push");
   { /* user presets (UPR2): one with its FX, one the voice only (moved from UPR1); the FX knobs' edited mark */
     const nf = data.presets.length, withFx = m.upr.findIndex((x) => x && !x.voiceOnly && x.fx.some((v, k) => v !== data.tp[data.uprFx[k]].def));
@@ -206,13 +206,9 @@ function xcheck(bin) {
   pieces("restore D");
   rq("COMMIT into D", CMD.RESTORE, { op: RS.COMMIT });
   rq("STEPS_GET D variation 2", CMD.STEPS_GET, { slot: 3, var: 1, track: 0 });
-  rq("RESTORE BEGIN into C: an FDRF project (a file from the editor before NUDGE) with its parts", CMD.RESTORE, begin(2, fparts));
-  pieces("restore C (FDRF)", fparts);
-  rq("COMMIT into C (FDRF): written as it is", CMD.RESTORE, { op: RS.COMMIT });
-  rq("BACKUP_LIST: C's record OLD, its lock bank and variations linked", CMD.BACKUP_LIST);
-  rq("BACKUP_GET C's record: the FDRF bytes (its storage seq 2: written twice)", CMD.BACKUP_GET, { obj: 3, offset: 0, seq: 2 });
-  rq("STEPS_GET C variation 1: converted at load, NUDGE 0", CMD.STEPS_GET, { slot: 2, var: 0, track: 2 });
-  rq("STEPS_GET C variation 5: its variations (NUDGE kept)", CMD.STEPS_GET, { slot: 2, var: 4, track: 2 });
+  rq("RESTORE BEGIN into C: a Hortator 8-track project (FDRG): rc 2 24, nothing written", CMD.RESTORE, begin(2, fparts));
+  rq("BACKUP_LIST: C still empty", CMD.BACKUP_LIST);
+  rq("STEPS_GET C variation 1: an empty slot", CMD.STEPS_GET, { slot: 2, var: 0, track: 2 });
   rq("INFO at the end", CMD.INFO);
   raw("the installer's update handshake (F0 00 32 45 ...): left for the updater, no reply from the editor", UPDATE_HANDSHAKE);
   rq("INFO during the update silence: unanswered", CMD.INFO);

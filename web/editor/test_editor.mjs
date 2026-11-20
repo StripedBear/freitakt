@@ -198,7 +198,7 @@ m.feed = (f) => { const out = feed0(f); seen.push(...out); return out; };
 const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
-  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 8 && info.pcount === 69
+  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 6 && info.pcount === 69
     && info.gcount === 32 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
@@ -286,8 +286,8 @@ const q = (cmd, args) => m.request(cmd, args);
   m.stop();
   ok(yes.count === 1 && m.state().var === 1 && same(q(CMD.STEPS_GET, { slot: 0, var: 1, track: 0 }).steps[3], st)
     && (m.state().dirty & 1), "STEPS_SET: resent after the switch (STATE push): the edit lands, A unsaved");
-  const now = q(CMD.STEPS_SET, { slot: 0, var: 2, track: 7, first: 0, steps: [st] });
-  ok(now.rc === RC.OK && m.state().var === 2 && same(q(CMD.STEPS_GET, { slot: NONE, var: 2, track: 7 }).steps[0], st),
+  const now = q(CMD.STEPS_SET, { slot: 0, var: 2, track: 5, first: 0, steps: [st] });
+  ok(now.rc === RC.OK && m.state().var === 2 && same(q(CMD.STEPS_GET, { slot: NONE, var: 2, track: 5 }).steps[0], st),
     "STEPS_SET stopped, another variation: switched at once (its key), the edit lands, rc 0");
   const lk = q(CMD.LOCKS_GET, { slot: NONE, track: 2, first: 0 });
   const set = q(CMD.LOCK_EDIT, { op: LK.SET, track: 2, step: 0, param: 2, value: 500 });
@@ -380,20 +380,20 @@ const q = (cmd, args) => m.request(cmd, args);
     && o.request(CMD.STEPS_SET, { slot: NONE, var: 0, track: 0, first: 0, steps: [P.emptyStep()] }).detail === DETAIL.LENGTH
     && o.request(CMD.STEPS_SET, { slot: NONE, var: 0, track: 0, first: 0, steps: [{ flags: 1, cond: 0, note: 60 }] }).rc === 0,
   "NUDGE: a firmware without it (minor 0): no micro in STEPS_GET; a STEPS_SET carrying it is refused (BAD LENGTH), without it works");
-  const rows = Array.from({ length: 8 }, () => Array.from({ length: 64 }, P.emptyStep));
+  const rows = Array.from({ length: P.LAYOUT.ntrk }, () => Array.from({ length: 64 }, P.emptyStep));
   rows[0][0] = { flags: 1, cond: 0, note: 60, micro: 0 };
   rows[0][4] = { flags: 1, cond: 0, note: 60, micro: -25 };
   rows[3][9] = { flags: 0, cond: 0, note: 60, micro: 12 }; // (a nudge alone makes a step set, as varpack.c)
-  const vb = P.encodeVars({ slot: 1, entries: [{ timing: Array(8).fill([16, 2, 0, 0]), steps: rows }, null, null, null, null, null, null] });
+  const vb = P.encodeVars({ slot: 1, entries: [{ timing: Array(P.LAYOUT.ntrk).fill([16, 2, 0, 0]), steps: rows }, null, null, null, null, null, null] });
   const dv = P.decodeVars(vb).entries[0].steps;
-  ok(vb.length === 8 + 2 + 96 + 3 * 3 + 2 + 12 && vb[8 + 2 + 96 + 3] === 0x41 && dv[0][4].micro === -25 && dv[3][9].micro === 12
+  ok(vb.length === 8 + 2 + 12 * P.LAYOUT.ntrk + 3 * 3 + 2 + 12 && vb[8 + 2 + 12 * P.LAYOUT.ntrk + 3] === 0x41 && dv[0][4].micro === -25 && dv[3][9].micro === 12
     && dv[0][0].micro === 0 && eqb(P.encodeVars(P.decodeVars(vb)), vb), "NUDGE: variations: flags bit 6 + a micro byte only for a nudged step; round trip");
   const pr = P.decodeProject(d.flashObjects(0).record);
   pr.tracks[2].steps[3].micro = -33;
   const rb = P.encodeProject(pr), back = P.decodeProject(rb);
-  ok(back.format === "FDRG" && !back.old && back.tracks[2].steps[3].micro === -33 && same(back.tracks.map((t) => t.p), pr.tracks.map((t) => t.p))
+  ok(back.format === "FRT6" && !back.old && back.tracks[2].steps[3].micro === -33 && same(back.tracks.map((t) => t.p), pr.tracks.map((t) => t.p))
     && rb[P.LAYOUT.project.t + 2 * P.LAYOUT.project.trk + P.LAYOUT.project.trkStep + 4 * 3 + 3] === 256 - 33,
-  "NUDGE: an FDRG record: every step's spare byte its micro, SRR / the INSERT in xp");
+  "NUDGE: an FRT6 record: every step's spare byte its micro, SRR / the INSERT in xp");
 }
 
 function backupAll(dev) {
@@ -563,30 +563,22 @@ function restore(dev, kind, slot, parts) {
   const pr = restore(m, RK.PROJECT, 3, [objs[2], objs[6], objs[10]]);
   m.stop();
   const newer = objs[1].slice();
-  newer[3] = 0x48; // "FDRH"
+  newer[3] = 0x37; // "FRT7"
   const nw = restore(m, RK.PROJECT, 3, [newer]);
-  const wrongCrc = m.request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 3, magic: P.MAGIC.PROJ, parts: [{ size: 3840, crc: 1 }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] });
-  for (let off = 0; off < 3840; off += 256) m.request(CMD.RESTORE, { op: RS.DATA, part: 0, offset: off, data: objs[2].slice(off, off + 256) });
+  const wrongCrc = m.request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 3, magic: P.MAGIC.PROJ, parts: [{ size: P.SZ.PROJECT, crc: 1 }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] });
+  for (let off = 0; off < P.SZ.PROJECT; off += 256) m.request(CMD.RESTORE, { op: RS.DATA, part: 0, offset: off, data: objs[2].slice(off, off + 256) });
   const crcBad = m.request(CMD.RESTORE, { op: RS.COMMIT });
   ok(pr.rc === RC.STOP && nw.rc === RC.REFUSED && nw.detail === DETAIL.NEWER && wrongCrc.rc === 0 && crcBad.detail === DETAIL.CRC,
     "RESTORE: refused while playing, a newer record, a CRC mismatch");
-  /* a project file made before NUDGE (an FDRF record with its lock bank and variations) restores: converted at load */
+  /* Hortator's 8-track records (FDR1..FDRG, any, "FDRH" too): never read; RESTORE refuses them as not ours */
   {
-    const d = fresh(), A = d.flashObjects(0), pa = P.decodeProject(A.record);
-    pa.tracks[1].p[data.P.indexOf("SRR")] = 40;
-    pa.tracks[2].p[data.P.indexOf("IMIX")] = 10;
-    const f = P.sealProject({ record: P.encodeProject({ ...pa, tracks: pa.tracks.map((t) => ({ ...t })) }, "FDRF"), locks: A.locks, vars: A.vars }, 0);
-    const pf = P.decodeProject(f.record), r = restore(d, RK.PROJECT, 3, [f.record, f.locks, f.vars]), l = d.request(CMD.BACKUP_LIST).objects;
-    const st = d.request(CMD.STEPS_GET, { slot: 3, var: 0, track: 2 });
-    ok(pf.format === "FDRF" && pf.old && pf.ok && r.rc === 0 && (l[4].flags & P.BF.OLD) && l[8].present && l[12].present
-      && d.slots[3].tracks[1].p[data.P.indexOf("SRR")] === 40 && d.slots[3].tracks[2].p[data.P.indexOf("IMIX")] === 10
-      && st.steps.every((s) => s.micro === 0) && same(st.steps.map((s) => s.flags), pa.tracks[2].steps.map((s) => s.flags)),
-    "RESTORE an FDRF project (an editor file before NUDGE) with its parts: written as it is (OLD), SRR / INSERT kept, NUDGE 0");
-    ok(P.decodeProject(P.encodeProject(pa)).format === "FDRG" && fresh().request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 0,
-      magic: 0x48524446, parts: [{ size: 3840, crc: 0 }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] }).detail === DETAIL.NEWER,
-    "RESTORE: a record newer than this firmware's (FDRH here, FDRG on an older device) refused by its magic");
+    const d = fresh(), begin = (magic, size) => d.request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 0, magic,
+      parts: [{ size, crc: 0 }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] }).detail;
+    ok([0x47524446, 0x46524446, 0x45524446, 0x31524446, 0x48524446].every((mg) => begin(mg, 3840) === DETAIL.BAD_OBJECT && begin(mg, P.SZ.PROJECT) === DETAIL.BAD_OBJECT)
+      && begin(0x37545246, P.SZ.PROJECT) === DETAIL.NEWER && P.decodeProject(P.encodeProject(P.decodeProject(d.flashObjects(0).record))).format === "FRT6",
+    "RESTORE: Hortator's 8-track records (FDR1..FDRH) refused as not ours (any size), FRT7 newer");
   }
-  m.request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 2, magic: P.MAGIC.PROJ, parts: [{ size: 3840, crc: P.crc32(objs[2]) }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] });
+  m.request(CMD.RESTORE, { op: RS.BEGIN, kind: RK.PROJECT, slot: 2, magic: P.MAGIC.PROJ, parts: [{ size: P.SZ.PROJECT, crc: P.crc32(objs[2]) }, { size: 0, crc: 0 }, { size: 0, crc: 0 }] });
   const order = m.request(CMD.RESTORE, { op: RS.DATA, part: 0, offset: 512, data: objs[2].slice(512, 768) });
   const busy = m.request(CMD.SET, { scope: 0, track: 0, id: 9, value: 10 }), rd = m.request(CMD.DUMP, { track: 0 });
   ok(order.rc === RC.STALE && order.detail === DETAIL.ORDER && busy.rc === RC.BUSY && busy.detail === DETAIL.RESTORING && rd.rc === 0
@@ -595,13 +587,16 @@ function restore(dev, kind, slot, parts) {
   ok(m.request(CMD.RESTORE, { op: RS.DATA, part: 0, offset: 0, data: objs[2].slice(0, 256) }).rc === 0, "RESTORE: a retried piece is accepted again");
   m.advance(3001);
   ok(!(m.state().flags & P.SF.RESTORING) && m.request(CMD.RESTORE, { op: RS.COMMIT }).detail === DETAIL.NOT_RESTORING, "RESTORE: 3 s idle -> dropped");
-  /* an older record (FDRE) restores as part 0 alone */
-  const fdre = objs[1].slice(), dvw = new DataView(fdre.buffer);
+  /* a Hortator record (FDRE) sent alone with a valid sum: refused, nothing written */
+  const fdre = new Uint8Array(3840);
+  fdre.set(objs[1].slice(0, Math.min(objs[1].length, 3840)));
+  const dvw = new DataView(fdre.buffer);
   dvw.setUint32(0, 0x45524446, true);
+  dvw.setUint32(4, 3840, true);
   dvw.setUint32(3836, P.fnv1a(fdre, 3836), true);
-  const ol = restore(m, RK.PROJECT, 3, [fdre]);
-  ok(ol.rc === 0 && m.request(CMD.BACKUP_LIST).objects[4].flags & P.BF.OLD && !m.request(CMD.BACKUP_LIST).objects[8].present,
-    "RESTORE: an older record (FDRE) accepted alone, listed OLD");
+  const listed4 = JSON.stringify(m.request(CMD.BACKUP_LIST).objects[4]), ol = restore(m, RK.PROJECT, 3, [fdre]);
+  ok(ol.rc === RC.REFUSED && ol.detail === DETAIL.BAD_OBJECT && JSON.stringify(m.request(CMD.BACKUP_LIST).objects[4]) === listed4,
+    "RESTORE: a Hortator record (FDRE) refused (NOT A HORTATOR OBJECT), the slot as it was");
 }
 
 /* the update path: silence, faults ----------------------------------------------------- */

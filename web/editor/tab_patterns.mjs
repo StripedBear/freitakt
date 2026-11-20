@@ -18,7 +18,7 @@ import { DeviceError } from "./link.mjs";
 import { clockGuard } from "./session.mjs";
 import { SLOTS, chooser, esc } from "./ui.mjs";
 
-const NTRK = 8, NSTEP = 64, RATCH_MASK = 3 << STEP.RAT_SHIFT;
+const NTRK = LAYOUT.ntrk, NSTEP = 64, RATCH_MASK = 3 << STEP.RAT_SHIFT;
 /** the PROB codes in the knob's order on the device (device_data.json `conds`: the tests compare) */
 export const CONDS = (() => {
   const out = [];
@@ -88,7 +88,7 @@ export function plain(e) {
 export function fileProjects(f) {
   const one = (label, p) => {
     const d = decodeProject(p.record);
-    if (!d.full) return { label, objs: p, vars: [], old: d.format }; // (FDRG, and FDRF: NUDGE 0, as the FM-1 loads it)
+    if (!d.full) return { label, objs: p, vars: [], old: d.format }; // (not FRT6: Hortator's 8-track FDR1..FDRG, unread)
     const used = [0];
     if (p.vars) decodeVars(p.vars).entries.forEach((e, i) => e && used.push(i + 1));
     return { label: label + (d.name ? ` (${d.name})` : ""), objs: p, vars: used };
@@ -119,7 +119,7 @@ export function fileVariation(objs, v) {
 
 const blank = () => ({ steps: Array.from({ length: NSTEP }, () => ({ flags: 0, cond: 0, note: STEP.NT_OFFSET })), timing: [0, 0, 0, 0], used: 0, live: 0 });
 const same = (a, b) => !!a && !!b && a.slot === b.slot && a.var === b.var;
-const ALL = [0, 1, 2, 3, 4, 5, 6, 7];
+const ALL = [...Array(NTRK).keys()];
 
 export class PatternsModel {
   constructor(session) {
@@ -671,7 +671,7 @@ export function mountPatterns(el, ctx) {
     const p = srcFile?.projects[Number(cg("fp").value)], sel = cg("ffv");
     sel.innerHTML = (p?.vars || []).map((v) => `<option value="${v}">${v + 1}</option>`).join("");
     sel.parentElement.hidden = !p?.vars.length;
-    copyEl.querySelector(".pt-cfn").textContent = srcFile ? `${srcFile.name}${p && p.old ? `: ${p.label} is in an older format (${p.old}): restore it into a slot, then copy from there` : ""}` : "";
+    copyEl.querySelector(".pt-cfn").textContent = srcFile ? `${srcFile.name}${p && p.old ? `: ${p.label} is in a format this FM-1 does not read (${p.old}; FREITAKT reads only its 6-track FRT6)` : ""}` : "";
   };
   const showFile = () => {
     cg("src").value = "file";

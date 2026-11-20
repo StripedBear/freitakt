@@ -240,7 +240,7 @@ static void t_info(void)
     check("INFO: HORTATOR, the firmware version without DRUM-, protocol 1.3, LIVE and UPR2 only (no backup / pattern files), the "
           "sizes, the state block",
           rc_is(f, 0, 0) && ends_ok(f, &r) && !strcmp(magic, "HORTATOR") && !strcmp(fw, "DEV") && v[0] == 1u &&
-              v[1] == ED_PROTO_MINOR && ED_PROTO_MINOR == 3u && v[2] == (ED_CAP_LIVE | ED_CAP_UPR2) && v[3] == 8u && v[4] == 64u && v[5] == P_COUNT && v[6] == G_COUNT &&
+              v[1] == ED_PROTO_MINOR && ED_PROTO_MINOR == 3u && v[2] == (ED_CAP_LIVE | ED_CAP_UPR2) && v[3] == NTRK && NTRK == 6u && v[4] == 64u && v[5] == P_COUNT && v[6] == G_COUNT &&
               v[7] == NMODELS && v[8] == 151u && v[9] == 96u && v[10] == 3u && v[11] == 4u && v[12] == 8u &&
               v[13] == 640u && v[14] == 0u && f->b[f->n - 1u - ED_STATE_N + 1u] == ED_NONE &&
               f->b[f->n - 1u - ED_STATE_N + 5u] == song.sel);
@@ -494,10 +494,10 @@ static void t_get_set(void)
     ok &= mo.base[4][P_FCUT] == 60;
     check("motion playing a knob: GET is the knob as set (its base), SET moves the base", ok);
     mo.base_ok = 0;
-    v = trk[6].p[P_DIST];
-    f = req_knob(ED_TEXT, ED_SC_TRACK, 6, P_DIST, 127);
+    v = trk[5].p[P_DIST];
+    f = req_knob(ED_TEXT, ED_SC_TRACK, 5, P_DIST, 127);
     r = rd_of(f, 7 + 4);
-    check("TEXT: a value's text, nothing set", rc_is(f, 0, 0) && rd_v14(&r) == 127 && trk[6].p[P_DIST] == v);
+    check("TEXT: a value's text, nothing set", rc_is(f, 0, 0) && rd_v14(&r) == 127 && trk[5].p[P_DIST] == v);
 }
 static void t_dump_select(void)
 {
@@ -709,10 +709,10 @@ static void t_watch(void)
     pass();
     ok &= pushes(ED_P_STATE) == 1u && out[0].b[6] == 0u;
     check("STATE: pushed when PLAY / STOP changes it", ok);
-    f = req1(ED_SELECT, 6);
+    f = req1(ED_SELECT, 5);
     fm1_ms += 20u;
     pass();
-    ok = pushes(ED_P_STATE) == 1u && out[0].b[6 + 5] == 6u && !pushes(ED_P_CHANGED);
+    ok = pushes(ED_P_STATE) == 1u && out[0].b[6 + 5] == 5u && !pushes(ED_P_CHANGED);
     check("SELECT: a STATE push follows (the editor's writes included), no CHANGED for the new track's knobs", ok);
     track_select(1);                                   /* the track keys */
     fm1_ms += 20u;

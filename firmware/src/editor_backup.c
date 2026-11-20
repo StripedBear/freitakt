@@ -41,25 +41,17 @@ static struct {
     uint32_t crc[ED_PART_N], magic, t, g_fp;        /* t: the last request (ED_RESTORE_IDLE_MS) */
 } edb;
 
-/* a project record format's size (1..15 FDR1..FDRF, converted at load; 16 FDRG). Each fits its RAM home, proj_slot[s]
- * (a project_t): the staging bound (edb_data writes below a part's size, BEGIN takes no other size) */
-#define EDB_FDRF 15u                                /* FDRF: the oldest with a lock bank and variations (FDRG's layout) */
-#define EDB_FDRG 16u                                /* FDRG: project.c's PROJ_MAGIC */
-static const uint16_t EDB_RSZ[17] = {0, sizeof proj_old.v1, sizeof proj_old.v2, sizeof proj_old.v3, sizeof proj_old.v4,
-                                     sizeof proj_old.v5, sizeof proj_old.v6, sizeof proj_old.v7, sizeof proj_old.v8,
-                                     sizeof proj_old.v9, sizeof proj_old.va, sizeof proj_old.vb, sizeof proj_old.vc,
-                                     sizeof proj_old.vd, sizeof proj_old.ve, sizeof proj_old.vf, sizeof(project_t)};
-_Static_assert(sizeof proj_old <= sizeof(project_t) && sizeof proj_old.vf == sizeof(project_t),
-               "every record format fits proj_slot[s]");
-_Static_assert(PROJ_MAGIC == 0x47524446u, "FDRG is the current record (EDB_FDRG)");
+/* a project record format's size: FREITAKT reads only its own record ("FRT6", format 16, project.c's PROJ_MAGIC; the
+ * numbering kept from Hortator, whose FDR1..FDRG records (1..16, 8 tracks) are not one: format 0). It fits its RAM
+ * home, proj_slot[s] (a project_t): the staging bound (edb_data writes below a part's size, BEGIN takes no other size) */
+#define EDB_FDRF 15u                                /* (Hortator's FDRF: the oldest with a lock bank; none is read) */
+#define EDB_FDRG 16u                                /* the current record: project.c's PROJ_MAGIC ("FRT6") */
+static const uint16_t EDB_RSZ[17] = {[EDB_FDRG] = sizeof(project_t)};
+_Static_assert(PROJ_MAGIC == 0x36545246u, "FRT6 is the current record (EDB_FDRG)");
+_Static_assert(ED_SZ_PROJECT == sizeof(project_t) && ED_SZ_LOCKS == sizeof(lk_bank_t) && ED_SZ_VARS_MAX == VAR_BYTES,
+               "the editor protocol's object sizes (editor_proto.h) = the flash objects'");
 _Static_assert(sizeof upr == ED_SZ_PRESETS && UPR_MAGIC == 0x32525055u, "the user presets are \"UPR2\" (ED_SZ_PRESETS)");
-static uint32_t edb_fmt(uint32_t m)                 /* a record magic's format: 1..16, 0 not "FDR1".."FDRG" */
-{
-    uint32_t v = m >> 24;
-    if ((m & 0xFFFFFFu) != 0x524446u)
-        return 0;
-    return v >= '1' && v <= '9' ? v - '0' : v >= 'A' && v <= 'G' ? v - 'A' + 10u : 0u;
-}
+static uint32_t edb_fmt(uint32_t m) { return m == PROJ_MAGIC ? EDB_FDRG : 0u; }   /* a record magic's format: 16, 0 none */
 /* a whole record's format: its magic, its size field = n = the format's size, its FNV-1a sum (proj_fetch's checks);
  * 0 not one */
 static uint32_t edb_rec_ver(const uint8_t *p, uint32_t n)
@@ -324,7 +316,7 @@ static void edb_begin(const uint8_t *a, uint32_t n)
         edb.crc[i] = ed_get_u35(a + 10u + 7u * i);
         edb.got[i] = edb.last[i] = 0;
     }
-    if (kind == ED_RK_PROJECT && !v && (m & 0xFFFFFFu) == 0x524446u && (m >> 24) > 'G')
+    if (kind == ED_RK_PROJECT && !v && (m & 0xFFFFFFu) == 0x545246u && (m >> 24) > '6')   /* "FRT7".. (Hortator's FDR*: not ours) */
         EDB_NO(ED_RESTORE, ED_E_REFUSED, ED_D_NEWER, "UPDATE THE FM-1 FIRST");
     if (kind == ED_RK_PRESETS ? m != UPR_MAGIC || edb.size[0] != sizeof upr || edb.size[1] || edb.size[2]
                               : !v || edb.size[0] != EDB_RSZ[v] || (v < EDB_FDRF && (edb.size[1] || edb.size[2])) ||

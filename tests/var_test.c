@@ -141,12 +141,12 @@ static void var_sizes(void)
     var_empty(&B, 0);
     ok = B.used == 14u && B.magic == VAR_MAGIC && B.slot == 0u && var_mask(&B) == 0u;
     per_track_on(16);
-    ok &= var_need(SP) == 2u + 8u * 12u + 3u * 128u && var_need(SP) == 482u;
+    ok &= var_need(SP) == 2u + NTRK * VAR_TRK + 3u * 96u && var_need(SP) == 362u;   /* (FREITAKT: 6 tracks) */
     dense_steps();
-    ok &= var_need(SP) == 1634u;
+    ok &= var_need(SP) == 1226u;
     clear_steps();
-    ok &= var_need(SP) == 98u;                     /* (a used variation with no step set: its timing kept) */
-    check("variation: empty bank 14 B; 16 steps a track 482 B, all 512 1634 B, none 98 B (a used one)", (int)ok);
+    ok &= var_need(SP) == 74u;                     /* (a used variation with no step set: its timing kept) */
+    check("variation: empty bank 14 B; 16 steps a track 362 B, all 384 1226 B, none 74 B (a used one)", (int)ok);
 }
 static void var_full(void)
 {
@@ -155,7 +155,7 @@ static void var_full(void)
     dense_steps();
     timing(1);
     ok = var_put(&B, 1, SP, TM) == 0 && var_put(&B, 2, SP, TM) == 0;
-    ok &= B.used == 14u - 4u + 2u * 1634u;
+    ok &= B.used == 14u - 4u + 2u * 1226u;
     C = B;
     ok &= var_put(&B, 3, SP, TM) == -1 && !memcmp(&B, &C, sizeof B);
     check("variation: two dense variations fit, a third is VARIATIONS FULL (-1), the bank untouched", (int)ok);
@@ -181,7 +181,7 @@ static void var_replace_shrink(void)
     rs = 10;
     rnd_steps(50);
     timing(20);
-    ok &= var_put(&B, 2, SP, TM) == 0 && B.used == before - 1634u + var_need(SP);
+    ok &= var_put(&B, 2, SP, TM) == 0 && B.used == before - 1226u + var_need(SP);
     memcpy(keep[2], S, sizeof S);
     memcpy(ktm[2], TM, sizeof TM);
     for (v = 1; v < VAR_N; v++) {
@@ -232,7 +232,7 @@ static void var_clamps(void)
         e[1] = 30;
         e[2] = 250;
         e[3] = 9;
-        e[8u * 12u + 1u] = 250;
+        e[NTRK * VAR_TRK + 1u] = 250;
     }
     ok &= var_get(&B, 1, RP, TR) == 1 && TR[0][0] == NSTEP && TR[0][1] == 9 && TR[0][2] == 100 && TR[0][3] == 0 &&
           R[0][0].cond == COND_MAX && R[0][0].on == 1;
@@ -302,7 +302,7 @@ static void var_micro_round_trip(void)
             nm += S[k][i].micro != 0;
         }
     timing(2);
-    ok &= var_need(SP) == 2u + 96u + 3u * ns + nm && nm > 50u;
+    ok &= var_need(SP) == 2u + NTRK * VAR_TRK + 3u * ns + nm && nm > 50u;
     ok &= var_put(&B, 6, SP, TM) == 0 && var_valid(&B, 1, 8u + B.used);
     memset(R, 0x55, sizeof R);
     ok &= var_get(&B, 6, RP, TR) == 1 && steps_equal() && R[2][7].micro == -50 && !R[2][7].on && R[5][63].micro == 50;
@@ -320,8 +320,8 @@ static void var_micro_old_bytes(void)
             S[k][i].rat = (uint8_t)(i & 3u);
             S[k][i].acc = (uint8_t)(i == 4u);
         }
-    ok = var_put(&B, 1, SP, TM) == 0 && B.used == 12u + var_need(SP) && var_need(SP) == 2u + 96u + 3u * var_count();
-    for (o = 2u + 96u; o + 3u <= 2u + var_need(SP) - 2u; o += 3u)
+    ok = var_put(&B, 1, SP, TM) == 0 && B.used == 12u + var_need(SP) && var_need(SP) == 2u + NTRK * VAR_TRK + 3u * var_count();
+    for (o = 2u + NTRK * VAR_TRK; o + 3u <= 2u + var_need(SP) - 2u; o += 3u)
         ok &= !(B.d[o] & 0xC0u);                      /* (every step's flags: bits 6, 7 clear, as 0.25 / 0.26 wrote) */
     check("variation MICRO: all micro 0 = the bytes as before (3 B a set step, bit 6 clear)", (int)ok);
 }
@@ -330,7 +330,7 @@ static void var_micro_old_bank(void)
 {
     uint32_t ok, o = 0, k, j;
     var_empty(&B, 3);
-    B.d[o++] = (uint8_t)(96u + 6u);                   /* entry 1: 2 set steps, n = 96 + 6 */
+    B.d[o++] = (uint8_t)(NTRK * VAR_TRK + 6u);         /* entry 1: 2 set steps, n = 72 + 6 */
     B.d[o++] = 0;
     for (k = 0; k < NTRK; k++) {
         B.d[o++] = 16;
@@ -367,10 +367,10 @@ static void var_micro_valid(void)
     S[0][1].on = 1;
     ok = var_put(&B, 1, SP, TM) == 0;
     len = 8u + B.used;
-    ok &= var_valid(&B, 2, len) && B.d[2u + 96u] == 0x41u && B.d[2u + 96u + 3u] == 20u && B.d[2u + 96u + 4u] == 0x01u;
-    C = B; C.d[2u + 96u] &= 0x3Fu;   ok &= !var_valid(&C, 2, len);   /* bit 6 lost: the entry one byte too long */
-    C = B; C.d[2u + 96u + 4u] |= 0x40u; ok &= !var_valid(&C, 2, len);   /* a bit 6 the entry has no byte for */
-    C = B; C.d[2u + 96u + 3u] = 0x80u; ok &= var_get(&C, 1, RP, TR) == 1 && R[0][0].micro == -50;   /* clamped */
+    ok &= var_valid(&B, 2, len) && B.d[2u + NTRK * VAR_TRK] == 0x41u && B.d[2u + NTRK * VAR_TRK + 3u] == 20u && B.d[2u + NTRK * VAR_TRK + 4u] == 0x01u;
+    C = B; C.d[2u + NTRK * VAR_TRK] &= 0x3Fu;   ok &= !var_valid(&C, 2, len);   /* bit 6 lost: the entry one byte too long */
+    C = B; C.d[2u + NTRK * VAR_TRK + 4u] |= 0x40u; ok &= !var_valid(&C, 2, len);   /* a bit 6 the entry has no byte for */
+    C = B; C.d[2u + NTRK * VAR_TRK + 3u] = 0x80u; ok &= var_get(&C, 1, RP, TR) == 1 && R[0][0].micro == -50;   /* clamped */
     check("variation MICRO: a bit 6 without its byte, or a byte without its bit: rejected; a micro out of range clamped",
           (int)ok);
 }
@@ -401,24 +401,24 @@ static void groove(uint32_t steps, uint32_t hits, int nudge)
 static void var_micro_capacity(void)
 {
     uint32_t ok, a, b;
-    groove(16, 40, 0);
+    groove(16, 36, 0);                               /* (FREITAKT: 6 tracks; the groove's pattern has 36 / 144 hits) */
     a = var_need(SP);
-    ok = a == 218u && var_fit() == 7u;
-    groove(16, 40, 1);
+    ok = a == 182u && var_fit() == 7u;
+    groove(16, 36, 1);
     b = var_need(SP);
-    ok &= b == 258u && var_fit() == 7u;
-    groove(64, 150, 0);
+    ok &= b == 218u && var_fit() == 7u;
+    groove(64, 144, 0);
     a = var_need(SP);
-    ok &= a == 548u && var_fit() == 6u;
-    groove(64, 150, 1);
+    ok &= a == 506u && var_fit() == 7u;
+    groove(64, 144, 1);
     b = var_need(SP);
-    ok &= b == 698u && var_fit() == 5u;
-    groove(64, 512, 0);
-    ok &= var_need(SP) == 1634u && var_fit() == 2u;
-    groove(64, 512, 1);
-    ok &= var_need(SP) == 2146u && var_fit() == 1u;
-    check("variation MICRO capacity: 16 steps 40 hits 218 -> 258 B (7 fit), 64 steps 150 hits 548 -> 698 B (6 -> 5), "
-          "all 1634 -> 2146 B (2 -> 1)", (int)ok);
+    ok &= b == 650u && var_fit() == 5u;
+    groove(64, 384, 0);
+    ok &= var_need(SP) == 1226u && var_fit() == 2u;
+    groove(64, 384, 1);
+    ok &= var_need(SP) == 1610u && var_fit() == 2u;
+    check("variation MICRO capacity: 16 steps 36 hits 182 -> 218 B (7 fit), 64 steps 144 hits 506 -> 650 B (7 -> 5), "
+          "all 1226 -> 1610 B (2 -> 2)", (int)ok);
 }
 
 int main(void)

@@ -151,7 +151,7 @@ static void test_track_select(void)
         turn(EN_ALGO, 1);
         ui_frame();
     }
-    check("ALGORITHM stops at track 8", song.sel == NTRK - 1);
+    check("ALGORITHM stops at track 6 (FREITAKT: the last)", song.sel == NTRK - 1);
 }
 
 static void test_model_swap(void)
@@ -1311,7 +1311,7 @@ static void test_rec_everywhere(void)
                         !transport_req && ui.page == pg && ui.home == home && led_lit(panel.btn[B_REC]));
         } else {                                     /* elsewhere: REC ALL */
             snprintf(what, sizeof what, "%s: a REC tap: REC ALL, no play, the screen stays, REC lit", S[i].what);
-            check(what, song.rec == 0xFFu && ui.rec_all && !song.playing && !transport_req && ui.page == pg &&
+            check(what, song.rec == REC_ALL_MASK && ui.rec_all && !song.playing && !transport_req && ui.page == pg &&
                         ui.home == home && led_lit(panel.btn[B_REC]));
         }
         tap(B_REC);
@@ -1507,7 +1507,7 @@ static int mute_box_filled(uint32_t k)               /* track k's box: lit insid
 }
 /* SOLO on the MUTE screen: the black keys F#3 .. A#4 solo tracks 1..8 (TOGGLE: a tap on / off; MOMENTARY: while
  * held), F#5 flips the mode (a device setting, its key lit while MOMENTARY); the soloed keys lit; no sound */
-static const uint8_t SOLO_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
+static const uint8_t SOLO_BK[NTRK] = {1, 3, 5, 8, 10, 13};
 static void test_mute_screen_solo(void)
 {
     uint32_t a, k, ok;
@@ -1540,13 +1540,13 @@ static void test_mute_screen_solo(void)
     keys(0);
     glo_hold_frames(2);
     check("SOLO MOMENTARY: let go = unsoloed", song.solo == 0u);
-    keys(1u << SOLO_BK[7]);
+    keys(1u << SOLO_BK[5]);
     glo_hold_frames(3);
     release_all();                                   /* GLO let go first, the key still held */
     ui_frame();
     ui_frame();
     check("SOLO MOMENTARY: GLO let go with the key held: still soloed, the screen gone",
-          song.solo == 1u << 7 && !ui.mute);
+          song.solo == 1u << 5 && !ui.mute);
     keys(0);
     ui_frame();
     ui_frame();
@@ -1563,7 +1563,7 @@ static void test_mute_screen(void)
     uint32_t a, k, ok, l1, l2;
     ui_host_init();
     settings.mutebar = 0;
-    kit_session();                                   /* track 7 muted */
+    kit_session();                                   /* track 6 muted */
     song.rec = 0;
     press(B_GLO);
     ui_frame();
@@ -1586,14 +1586,14 @@ static void test_mute_screen(void)
     ok = 1;
     for (k = 0; k < NTRK; k++)
         ok &= led_lit(14u + KEY_TRK_KEY[k]) == !trk[k].p[P_MUTE] && mute_box_filled(k) == !trk[k].p[P_MUTE];
-    check("MUTE screen: boxes filled and keys lit for the audible tracks (track 7 muted: outline, dark)", ok);
+    check("MUTE screen: boxes filled and keys lit for the audible tracks (track 6 muted: outline, dark)", ok);
     check("MUTE screen: top C# lit (NOW), top D# dark", led_lit(14u + 20u) && !led_lit(14u + 22u));
     a = hit_age(&trk[2]);
     glo_key(KEY_TRK_KEY[2]);
     check("MUTE screen: key 3 mutes track 3; no sound, no track select", trk[2].p[P_MUTE] == 1 &&
           hit_age(&trk[2]) == a && song.sel == 0 && !mute_box_filled(2) && !led_lit(14u + KEY_TRK_KEY[2]));
-    glo_key(KEY_TRK_KEY[6]);
-    check("MUTE screen: key 7 unmutes track 7", trk[6].p[P_MUTE] == 0 && mute_box_filled(6));
+    glo_key(KEY_TRK_KEY[5]);
+    check("MUTE screen: key 6 unmutes track 6", trk[5].p[P_MUTE] == 0 && mute_box_filled(5));
     glo_key(22u);                                    /* top D# */
     check("MUTE screen: top D# = NEXT BAR (the setting), its key lit", settings.mutebar == 1u && led_lit(14u + 22u) &&
           !led_lit(14u + 20u));
@@ -1837,7 +1837,7 @@ static void test_tools_seq_tap(void)
     ui_frame();
     check("TOOLS: SEQ held 0.1 s alone: a tap (MOTION)", !ui.tools && str_eq(cur_page()->title, "MOTION"));
     tap(B_HOME);
-    song.rec = 0xFFu;                                /* REC ALL, playing: the keys would play and record */
+    song.rec = REC_ALL_MASK;                                /* REC ALL, playing: the keys would play and record */
     transport_req = 1;
     ui_frame();
     a = hit_age(&trk[0]);
@@ -2225,7 +2225,7 @@ static void test_cue_keys_no_notes(void)
 {
     uint32_t a, k, mw, on = 0;
     ui_host_init();
-    song.rec = 0xFFu;                                /* REC ALL: every track armed */
+    song.rec = REC_ALL_MASK;                                /* REC ALL: every track armed */
     transport_req = 1;
     ui_frame();
     a = hit_age(&trk[0]);
@@ -2492,12 +2492,12 @@ static void test_rec_hold_vs_rec_all(void)       /* Review Focus 3 */
     OK0(!ui.rec_all);
     release_all();
     ui_frame();
-    OK0(ui.rec_all && song.rec == 0xFFu && !fill_on);  /* a 0.3 s press: REC ALL on the release */
+    OK0(ui.rec_all && song.rec == REC_ALL_MASK && !fill_on);  /* a 0.3 s press: REC ALL on the release */
     rec_hold_ms(500);
     OK0(fill_on && ui.rec_all);
     release_all();
     ui_frame();
-    OK0(!fill_on && ui.rec_all && song.rec == 0xFFu);  /* a 0.5 s hold: the fill, REC ALL still on */
+    OK0(!fill_on && ui.rec_all && song.rec == REC_ALL_MASK);  /* a 0.5 s hold: the fill, REC ALL still on */
     tap(B_REC);                                      /* (REC ALL off) */
     open_tracks();
     track_select(2);
@@ -2592,7 +2592,7 @@ static void test_rec_all(void)
     tap(B_REC);                                      /* track 3 armed */
     tap(B_FX);                                       /* FX: the keys play their drums */
     tap(B_REC);
-    check("FX: a REC tap: REC ALL, every track armed, REC ALL said, REC lit, no play", song.rec == 0xFFu &&
+    check("FX: a REC tap: REC ALL, every track armed, REC ALL said, REC lit, no play", song.rec == REC_ALL_MASK &&
           ui.rec_all && str_eq(ui.msg, "REC ALL") && led_lit(panel.btn[B_REC]) && !transport_req && !song.playing);
     snap_page("fixes/rec_all");
     tap(B_PLAY);
@@ -2600,20 +2600,20 @@ static void test_rec_all(void)
     seq_play_to(0, 3);
     key_hit(0);
     key_hit(3);
-    key_hit(7);
-    check("REC ALL on FX: keys 1, 4, 8 each record into their own track", only_steps(1u | 8u | 128u));
-    trk[5].p[P_MUTE] = 1;
     key_hit(5);
-    check("REC ALL: a muted track's key records too (as an armed muted track)", only_steps(1u | 8u | 32u | 128u));
-    trk[5].p[P_MUTE] = 0;
-    check("REC ALL on FX: a key selects its track, as before (track 6 last)", song.sel == 5u);
+    check("REC ALL on FX: keys 1, 4, 6 each record into their own track", only_steps(1u | 8u | 32u));
+    trk[4].p[P_MUTE] = 1;
+    key_hit(4);
+    check("REC ALL: a muted track's key records too (as an armed muted track)", only_steps(1u | 8u | 16u | 32u));
+    trk[4].p[P_MUTE] = 0;
+    check("REC ALL on FX: a key selects its track, as before (track 5 last)", song.sel == 4u);
     track_select(2);
     open_tracks();
     steps_clear();
     key_hit(1);
-    key_hit(6);
-    check("REC ALL on TRACKS: keys 2 and 7 record into their tracks, the selection stays",
-          only_steps(2u | 64u) && song.sel == 2u && song.seq_mode == 2u && ui.rec_all);
+    key_hit(5);
+    check("REC ALL on TRACKS: keys 2 and 6 record into their tracks, the selection stays",
+          only_steps(2u | 32u) && song.sel == 2u && song.seq_mode == 2u && ui.rec_all);
     snap_page("fixes/rec_all_tracks");
     tap(B_HOME);                                     /* the HOME screen */
     steps_clear();
@@ -2638,7 +2638,7 @@ static void test_rec_all(void)
     check("HOME: a REC tap leaves REC ALL: track 3 armed again, as before it (T3 REC ARMED), still playing",
           song.rec == 4u && !ui.rec_all && str_eq(ui.msg, "T3 REC ARMED") && led_lit(panel.btn[B_REC]) && song.playing);
     tap(B_REC);
-    check("HOME: a REC tap again: REC ALL", song.rec == 0xFFu && ui.rec_all);
+    check("HOME: a REC tap again: REC ALL", song.rec == REC_ALL_MASK && ui.rec_all);
     track_select(1);
     open_tracks();
     tap(B_REC);
@@ -2663,7 +2663,7 @@ static void test_rec_all(void)
     ui_frame();
     ui_frame();
     tap(B_REC);
-    check("HOME, stopped: a REC tap: REC ALL, play not started", ui.rec_all && song.rec == 0xFFu && !transport_req &&
+    check("HOME, stopped: a REC tap: REC ALL, play not started", ui.rec_all && song.rec == REC_ALL_MASK && !transport_req &&
           !song.playing);
     ui_frame();
     init_all();
@@ -2679,9 +2679,9 @@ static void test_rec_all(void)
     trk[0].step[0].on = 1;
     seq_open("STEP");
     tap(B_REC);
-    check("STEP, KEYS off: a REC tap: REC ALL (no play)", ui.rec_all && song.rec == 0xFFu && !song.playing);
+    check("STEP, KEYS off: a REC tap: REC ALL (no play)", ui.rec_all && song.rec == REC_ALL_MASK && !song.playing);
     hold(B_REC);
-    check("STEP: REC held: CLEAR TRACK? (REC ALL as it was)", ui.confirm == 1u && song.rec == 0xFFu && ui.rec_all);
+    check("STEP: REC held: CLEAR TRACK? (REC ALL as it was)", ui.confirm == 1u && song.rec == REC_ALL_MASK && ui.rec_all);
     tap(B_OCTDN);
     tap(B_REC);
     check(".. a tap after: REC ALL off", song.rec == 0u && !ui.rec_all);
@@ -4208,8 +4208,8 @@ static void snap_page(const char *name)
     shot(path);
 }
 
-/* a drum session for the screens: four on the floor, snare and clap on 2 / 4, hats, a tom fill,
- * a muted rim, a crash; track 3 armed */
+/* a drum session for the screens: four on the floor, snare and clap on 2 / 4, hats, a tom fill (muted);
+ * track 3 armed (FREITAKT: 6 tracks, Hortator's rim and crash gone) */
 static void kit_session(void)
 {
     static const char *const PAT[NTRK] = {
@@ -4218,9 +4218,7 @@ static void kit_session(void)
         "............x...",   /* C808 */
         "x.x.x...x.x.x...",   /* HATC */
         "......x.......x.",   /* HATO */
-        ".............xxX",   /* TOM: fill */
-        "...x.......x....",   /* RIM (muted) */
-        "X...............",   /* CYMB */
+        ".............xxX",   /* TOM: fill (muted) */
     };
     uint32_t i, k;
     for (i = 0; i < NTRK; i++)
@@ -4228,7 +4226,7 @@ static void kit_session(void)
             trk[i].step[k].on = PAT[i][k] != '.';
             trk[i].step[k].acc = PAT[i][k] == 'X';
         }
-    trk[6].p[P_MUTE] = 1;
+    trk[5].p[P_MUTE] = 1;
     song.rec = 1u << 2;
 }
 
@@ -4241,8 +4239,10 @@ static void test_tracks_rows(void)
     open_tracks();
     for (r = 0; r < NTRK; r++)
         for (k = 0; k < 16; k++)
-            ok &= (fb[(MX_ROW_Y(r) + 7u) * 240u + MX_CELL_X(k) + 2u] == C_INK) == trk[r].step[k].on;
-    check("TRACKS: 8 rows, each shows its track's 16 steps", ok);
+            ok &= (fb[(MX_ROW_Y(r) + 7u) * 240u + MX_CELL_X(k) + 2u] == C_INK ||
+                   fb[(MX_ROW_Y(r) + 7u) * 240u + MX_CELL_X(k) + 3u] == C_INK) == trk[r].step[k].on;   /* (a muted
+                                                      * track's steps dithered: one of two neighbours inked) */
+    check("TRACKS: NTRK (6) rows, each shows its track's 16 steps", ok);
 }
 
 static void hold(uint32_t label)                    /* a button held 0.8 s (1 ms per tick), then let go */
@@ -4591,7 +4591,7 @@ static void test_project_rejects(void)
           trk[3].p[P_MODEL] < NMODELS && trk[3].p[P_E1] <= DMODELS[trk[3].p[P_MODEL]].edit[1].max &&
               trk[3].step[0].on == 1 && trk[3].step[1].cond == COND_MAX && trk[3].step[1].rat == 3 &&
               trk[3].p[P_SLEN] == NSTEP && song.g[G_DRCH] == 1 &&
-              song.g[G_CSRC] == 8 && trk[3].p[P_DUCK] == 1 &&
+              song.g[G_CSRC] == NTRK && trk[3].p[P_DUCK] == 1 &&
               trk[3].p[P_LFO1 + LF_DEST] == TP[P_LFO1 + LF_DEST].max && trk[3].p[P_LFO1 + LF_WAVE] == 0 &&
               trk[3].p[P_FTYPE] == FT_N - 1 && trk[3].p[P_FCUT] == 127 && trk[3].p[P_FDEC] == 0);
     proj_slot[1].magic = 0x46554E33u;                /* an old Felucca project ("FUN3") */
@@ -6898,7 +6898,7 @@ static void test_srec_exits(void)
     seq_open("STEP");
     tap(B_REC);
     ui_frame();
-    check("KEYS off: a REC tap on STEP: REC ALL, no play (STEP stays)", !ui.srec && song.rec == 0xFFu && ui.rec_all &&
+    check("KEYS off: a REC tap on STEP: REC ALL, no play (STEP stays)", !ui.srec && song.rec == REC_ALL_MASK && ui.rec_all &&
           !song.playing && cur_page()->scope == SC_GRID);
     transport_req = 2;
     ui_frame();
@@ -6908,7 +6908,7 @@ static void test_srec_exits(void)
     transport_req = 1;
     ui_frame();
     tap(B_REC);
-    check("KEYS on, playing: a REC tap on STEP: REC ALL, no step record (STEP stays)", !ui.srec && song.rec == 0xFFu &&
+    check("KEYS on, playing: a REC tap on STEP: REC ALL, no step record (STEP stays)", !ui.srec && song.rec == REC_ALL_MASK &&
           ui.rec_all && cur_page()->scope == SC_GRID);
     transport_req = 2;
     ui_frame();
@@ -7867,7 +7867,7 @@ static void test_popup_fast_while_playing(void)
     ui_host_init();
     users_clear();
     kit_session();
-    trk[6].p[P_MUTE] = 0;
+    trk[5].p[P_MUTE] = 0;
     song.rec = 0;
     for (k = 0; k < NTRK; k++)
         for (i = 0; i < 16u; i++)
@@ -8926,34 +8926,34 @@ static void test_vg_state_untouched(void)
     check("rendered hit: no live state touched (tracks, voices, song, ages, blocks, metal bank, SKIN bodies, RNG)", ok);
 }
 
-/* the audio is bit for bit the same with the renders as without: a pattern on 7 tracks (hats, cymbal, SKIN, SAMPL,
- * the TRX and EFM metals; sparse: the metal bank idle between) while the selected track (muted, no steps) runs through
+/* the audio is bit for bit the same with the renders as without: a pattern on 5 tracks (hats, cymbal, SKIN, SAMPL;
+ * FREITAKT: 6 tracks, the TRX and EFM metals dropped; sparse: the metal bank idle between) while the selected track (muted, no steps) runs through
  * every model, its engine view rendering each (the renders interleaved with the audio blocks, as the ISR preempts the
  * UI) */
 static uint32_t vg_audio_run(int draw, uint32_t *rendered)
 {
-    static const uint8_t M[7] = {DM_HATC, DM_HATO, DM_CYMB, DM_MEMB, DM_SMPL, DM_CHTRX, DM_CYEFM};
-    static const uint16_t STEPS[7] = {0x0101, 0x0010, 0x0001, 0x0404, 0x4040, 0x1000, 0x0002};   /* (bit = step) */
+    static const uint8_t M[NTRK - 1] = {DM_HATC, DM_HATO, DM_CYMB, DM_MEMB, DM_SMPL};
+    static const uint16_t STEPS[NTRK - 1] = {0x0101, 0x0010, 0x0001, 0x0404, 0x4040};   /* (bit = step) */
     static int32_t l[256], r[256];
     uint32_t h = 2166136261u, f, k, i, w0;
     ui_host_init();
-    for (k = 0; k < 7u; k++) {
+    for (k = 0; k < NTRK - 1u; k++) {
         old_set_model(&trk[k], M[k]);
         memset(trk[k].step, 0, sizeof trk[k].step);
         for (i = 0; i < 16u; i++)
             trk[k].step[i].on = (STEPS[k] >> i) & 1u;
         trk[k].p[P_MUTE] = 0;
     }
-    memset(trk[7].step, 0, sizeof trk[7].step);
-    trk[7].p[P_MUTE] = 1;
-    song.sel = 7;
+    memset(trk[NTRK - 1].step, 0, sizeof trk[NTRK - 1].step);
+    trk[NTRK - 1].p[P_MUTE] = 1;
+    song.sel = NTRK - 1;
     tap(B_EDIT);
     vg.sig = 0;
     w0 = vg.work;
     transport_req = 1;
     for (f = 0; f < 700u; f++) {
         if (f % 15u == 0u)
-            old_set_model(&trk[7], MODEL_LIST[(f / 15u) % NMODELS]);
+            old_set_model(&trk[NTRK - 1], MODEL_LIST[(f / 15u) % NMODELS]);
         ui_input();
         ui_leds();
         render_mix(l, r, 256);

@@ -9,10 +9,10 @@ static uint8_t safe_start;                            /* SEQ held at power-on: n
 
 /* power-on kit (a new project, TOOLS INIT ALL too): the TRX classic kit (owner, 2026-10-21; up to 0.22.0 K909 S808 C808
  * HATC HATO TOM RIM CYMB), each voice on its first preset (drum_set_model), the same roles and notes: kick, snare, clap,
- * closed hat, open hat, tom, rim, cymbal; no track in a choke group (CHOKE's default OFF). Model and MIDI note */
+ * closed hat, open hat, tom (FREITAKT's 6 tracks: Hortator's rim and cymbal gone); no track in a choke group (CHOKE's default OFF). Model and MIDI note */
 static const uint8_t KIT_DEF[NTRK][2] = {
     {DM_KTRX, 36}, {DM_SDTRX, 38}, {DM_CPTRX, 39}, {DM_CHTRX, 42},
-    {DM_OHTRX, 46}, {DM_XTTRX, 45}, {DM_RSTRX, 37}, {DM_CYTRX, 49},
+    {DM_OHTRX, 46}, {DM_XTTRX, 45},
 };
 
 static const dmodel_t *trk_model(const track_t *t) { return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS]; }

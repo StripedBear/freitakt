@@ -51,7 +51,7 @@ static __attribute__((noinline)) void bench_time(uint32_t us, uint32_t late)   /
     bench.rest = us * 100u > (HALF_FRAMES * 1000000u / FS) * BENCH_REST;
 }
 
-/* the cases: idle; 8 tracks of each model without and with every FX; the realistic heavy kit, then without one
+/* the cases: idle; 6 tracks of each model without and with every FX; the realistic heavy kit, then without one
  * feature each; the PHYS-heavy kit */
 enum { BH_LAYER = 1, BH_DIST = 2, BH_CHOR = 8, BH_DLY = 16, BH_REV = 32 };
 enum { BH_FILTER = 128, BH_COMP = 256, BH_SIDE = 512, BH_ACID = 1024 };   /* the cases after the PHYS kits: added, not taken out */
@@ -166,7 +166,7 @@ static void bench_reset(void)
     drum_tracks_init();
 }
 
-/* 8 tracks of model mi, 1/32 at 240 BPM, DECAY 127 (drum_test's kit_cost); fx: every FX (DIST, the three
+/* 6 tracks of model mi, 1/32 at 240 BPM, DECAY 127 (drum_test's kit_cost); fx: every FX (DIST, the three
  * sends), no layer */
 static void bench_kit(uint32_t mi, int fx_on)
 {
@@ -192,30 +192,30 @@ static void bench_kit(uint32_t mi, int fx_on)
 }
 
 /* the ACID line of heavy+2acid (BH_ACID), 16 steps: nt (C4 = 0), flags 1 ACC, 2 SLIDE, 4 TIE (a tie step is not on),
- * 8 rest; tracks 7 and 8 play it an octave apart */
+ * 8 rest; the last two tracks (5 and 6) play it an octave apart */
 static const int8_t BENCH_ACID_NT[16] = {-36, -24, -22, -24, 0, -29, -27, -24, -36, -34, 0, -24, -19, -24, -22, -31};
 static const uint8_t BENCH_ACID_FL[16] = {1, 2, 0, 4, 8, 0, 3, 0, 0, 1, 8, 2, 0, 1, 4, 2};
 
 /* the heavy cases' kit: the power-on kit up to drum 0.22.0 (the power-on kit is the TRX classic kit since; the cases keep
- * theirs, so a run stays comparable with the earlier ones, docs/PERFORMANCE.md) */
-static const uint8_t BENCH_KIT[NTRK] = {DM_K909, DM_S808, DM_C808, DM_HATC, DM_HATO, DM_TOM, DM_RIM, DM_CYMB};
+ * theirs, so a run stays comparable with the earlier ones, docs/PERFORMANCE.md; FREITAKT: its first 6, RIM CYMB gone) */
+static const uint8_t BENCH_KIT[NTRK] = {DM_K909, DM_S808, DM_C808, DM_HATC, DM_HATO, DM_TOM};
 
 /* the realistic heavy kit (drum_test's test_cost: the demo with a layer, DIST and sends on every track) at
- * 120 BPM; phys: MEMB on 5 and 7;
- * off: the features taken out (BH_), or added (BH_FILTER on all 8, BH_COMP keyed by T1, BH_SIDE: DUCK on 2..8, BH_ACID: tracks 7 and 8 ACID) */
+ * 120 BPM; phys: MEMB on 5 and 6;
+ * off: the features taken out (BH_), or added (BH_FILTER on all 6, BH_COMP keyed by T1, BH_SIDE: DUCK on 2..6, BH_ACID: tracks 5 and 6 ACID) */
 static void bench_heavy(int phys, uint32_t off)
 {
     static const char *const PAT[NTRK] = {
         "x...x...x...x..x", "....x.......x...", "....x.......x..x", "x.x.x.x.x.x.x.x.",
-        "..x...x...x...x.", "......x....x....", ".x.....x..x.....", "x...............",
+        "..x...x...x...x.", "......x....x....",
     };
     uint32_t i, k;
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
-        drum_set_model(t, phys && (i == 4u || i == 6u) ? DM_MEMB : BENCH_KIT[i]);
+        drum_set_model(t, phys && i >= 4u ? DM_MEMB : BENCH_KIT[i]);
         for (k = 0; k < 16; k++)
             t->step[k].on = PAT[i][k] == 'x';
-        if ((off & BH_ACID) && i >= 6u) {
+        if ((off & BH_ACID) && i >= NTRK - 2u) {
             drum_set_model(t, DM_ACID);
             for (k = 0; k < 16; k++) {
                 uint8_t f = BENCH_ACID_FL[k];
@@ -223,7 +223,7 @@ static void bench_heavy(int phys, uint32_t off)
                 t->step[k].acc = f & 1u;
                 t->step[k].slide = (f >> 1) & 1u;
                 t->step[k].tie = (f >> 2) & 1u;
-                t->step[k].nt = (int8_t)(BENCH_ACID_NT[k] + (i == 7u ? 12 : 0));
+                t->step[k].nt = (int8_t)(BENCH_ACID_NT[k] + (i == NTRK - 1u ? 12 : 0));
             }
         }
         t->p[P_LLEVEL] = (int16_t)(off & BH_LAYER ? 0 : 100);

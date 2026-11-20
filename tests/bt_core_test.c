@@ -187,7 +187,7 @@ static void test_solo_toggle(void)
     panic_req = 0;
     track_solo_toggle(1);
     check("SOLO 2: song.solo bit 1; the tracks it silences (not the muted one) are cut",
-          song.solo == 2u && panic_req == (0xFFu & ~(1u << 1) & ~(1u << 3)));
+          song.solo == 2u && panic_req == (((1u << NTRK) - 1u) & ~(1u << 1) & ~(1u << 3)));
     panic_req = 0;
     track_solo_toggle(5);
     check("SOLO 6 too: nothing newly silent, nothing cut", song.solo == (2u | 32u) && !panic_req);

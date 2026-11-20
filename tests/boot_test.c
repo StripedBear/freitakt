@@ -27,19 +27,6 @@ static void rfill(void *p, uint32_t n)
         *b++ = (uint8_t)(rnd() >> 24);
 }
 
-/* the live motion events as an old project's store (FDR8..FDRE records built from the live state) */
-static motion_store_t mo_legacy(void)
-{
-    motion_store_t m;
-    uint32_t i;
-    memset(&m, 0, sizeof m);
-    for (i = 0; i < mo.b.count && m.count < MOTION_MAX; i++)
-        if (!lk_is_lock(&mo.b, i))
-            m.ev[m.count++] = (motion_event_t){(uint8_t)(mo.b.key[i] >> 13), (uint8_t)((mo.b.key[i] >> 7) & 63u),
-                                               (uint8_t)(mo.b.key[i] & 127u), mo.b.val[i]};
-    m.on = mo.b.on;
-    return m;
-}
 static int bank_events_eq(const lk_bank_t *a, const lk_bank_t *b)   /* the same events, kinds and PLAY bits */
 {
     uint32_t i;
@@ -75,6 +62,19 @@ static void slot_header(uint32_t k, int plausible)
     memcpy(hflash + 0xA0000u + k * 0x14000u, &h, sizeof h);
 }
 
+/* an old record (another magic, size n): random fields, a valid size field and sum, saved as object obj */
+static void old_record(uint32_t obj, uint32_t magic, uint32_t n)
+{
+    static uint8_t buf[4096];
+    uint32_t h;
+    rfill(buf, n);
+    memcpy(buf, &magic, 4);
+    memcpy(buf + 4, &n, 4);
+    h = proj_hash(buf, n - 4u);
+    memcpy(buf + n - 4u, &h, 4);
+    st_save(obj, buf, n);
+}
+
 enum { F_ERASED, F_ZERO, F_RANDOM, F_HEADERS, F_FELUCCA, F_KINDS };
 static const char *const KIND[F_KINDS] = {"erased", "zeros", "random", "valid headers, garbage fields", "felucca records"};
 
@@ -98,31 +98,19 @@ static void flash_image(int kind, uint32_t seed)
             p.panel.magic = PANEL_MAGIC;              /* a valid panel magic over random ids */
         st_save(OBJ_SETTINGS, &p, sizeof p);
         for (k = 0; k < 4; k++) {
-            if (kind == F_HEADERS && k == 1u) {      /* an M1 project ("FDR1"): valid sum over random fields */
-                project_v1_t v;
-                rfill(&v, sizeof v);
-                v.magic = PROJ_MAGIC_V1;
-                v.size = sizeof v;
-                v.sum = proj_hash(&v, sizeof v - 4u);
-                st_save(OBJ_PROJECT0 + k, &v, sizeof v);
+            if (kind == F_HEADERS && k == 1u) {      /* Hortator's 8-track "FDRG": valid sum over random fields */
+                old_record(OBJ_PROJECT0 + k, 0x47524446u, 3840u);
                 continue;
             }
-            if (kind == F_HEADERS && k == 2u) {      /* an M3 project ("FDR3") */
-                project_v3_t v;
-                rfill(&v, sizeof v);
-                v.magic = PROJ_MAGIC_V3;
-                v.size = sizeof v;
-                v.sum = proj_hash(&v, sizeof v - 4u);
-                st_save(OBJ_PROJECT0 + k, &v, sizeof v);
+            if (kind == F_HEADERS && k == 2u) {      /* an M1 project ("FDR1"), an old size */
+                old_record(OBJ_PROJECT0 + k, 0x31524446u, 3208u);
                 continue;
             }
-            if (kind == F_HEADERS && k == 3u) {      /* an M2 project ("FDR2"): valid sum over random fields */
-                project_v2_t v;
-                rfill(&v, sizeof v);
-                v.magic = PROJ_MAGIC_V2;
-                v.size = sizeof v;
-                v.sum = proj_hash(&v, sizeof v - 4u);
-                st_save(OBJ_PROJECT0 + k, &v, sizeof v);
+            if (kind == F_HEADERS && k == 3u) {      /* "FRT6" magic over a wrong size, random rest */
+                rfill(&pr, sizeof pr);
+                pr.magic = PROJ_MAGIC;
+                pr.size = sizeof pr - 4u;
+                st_save(OBJ_PROJECT0 + k, &pr, sizeof pr);
                 continue;
             }
             rfill(&pr, sizeof pr);
@@ -783,205 +771,6 @@ static int clock_beyond_range_is_int(void)
     return (int)(ok & (song.g[G_CLOCK] == 0));
 }
 
-/* an M1 project in flash ("FDR1") loads: its steps and settings; PROB 100 %, 1 hit */
-static int fdr1_converts(void)
-{
-    project_v1_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V1;
-    v.size = sizeof v;
-    for (i = 0; i < PR_GR; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_BPM)] = 133;
-    v.sel = 2;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < PR_SRC; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[3].p[PR_P(P_SLEN)] = 23;
-    v.t[3].step[5].on = v.t[3].step[5].acc = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    song.g[G_BPM] = 90;                              /* the live state differs: the load replaces it */
-    trk[3].step[5].cond = 9;
-    project_load(1);
-    return trk[3].p[P_SLEN] == 23 && trk[3].step[5].on && trk[3].step[5].acc && trk[3].step[5].cond == 0 &&
-           trk[3].step[5].rat == 0 && !trk[3].step[6].on && song.g[G_BPM] == 133 && song.sel == 2;
-}
-
-/* an FDR1 step byte of 2 (any non-zero is set) loads as on / acc, not as its low bit */
-static int fdr1_flags_nonzero(void)
-{
-    project_v1_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V1;
-    v.size = sizeof v;
-    for (i = 0; i < PR_GR; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < PR_SRC; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].step[4].on = 2;
-    v.t[2].step[4].acc = 2;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    project_load(1);
-    return trk[2].step[4].on && trk[2].step[4].acc;
-}
-
-/* an M2 project in flash ("FDR2") loads: everything it has, COMP off, DUCK off */
-static int fdr2_converts(void)
-{
-    project_v2_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V2;
-    v.size = sizeof v;
-    for (i = 0; i < G_CSRC; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_DRCH)] = 5;
-    v.sel = 3;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_DUCK; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].p[PR_SRCP] = 3;                           /* (Grids' SRC: not read) */
-    v.t[2].step[9].on = 1;
-    v.t[2].step[9].cond = 33;
-    v.t[2].step[9].rat = 2;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 2u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    song.g[G_CSRC] = 4;                              /* the live state differs: the load replaces it */
-    trk[2].p[P_DUCK] = 1;
-    project_load(2);
-    return song.g[G_DRCH] == 5 && song.sel == 3 && trk[2].p[P_DUCK] == 0 && trk[2].step[9].on &&
-           trk[2].step[9].cond == 33 && trk[2].step[9].rat == 2 && song.g[G_CSRC] == 0 && trk[2].p[P_DUCK] == 0 &&
-           song.g[G_CRAT] == GP[G_CRAT].def && song.g[G_CMKUP] == 0;
-}
-
-/* an M3 project ("FDR3") loads: everything it has, the LFOs off */
-static int fdr3_converts(void)
-{
-    project_v3_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V3;
-    v.size = sizeof v;
-    for (i = 0; i < G_CGHOST; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_CSRC)] = 2;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_LFO1; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[1].p[PR_P(P_DUCK)] = 1;
-    v.t[1].step[3].on = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    trk[1].p[P_LFO1 + LF_DEST] = 4;                  /* the live state differs: the load replaces it */
-    project_load(3);
-    return song.g[G_CSRC] == 2 && trk[1].p[P_DUCK] == 1 && trk[1].step[3].on && trk[1].p[P_LFO1 + LF_DEST] == 0 &&
-           trk[1].p[P_LFO1 + LF_WAVE] == TP[P_LFO1 + LF_WAVE].def && trk[1].p[P_LFO2 + LF_RATE] == 23;
-}
-
-/* an FDR4 record (LFOs, no RESON) loads: its parameters; the FILTER OFF at the defaults */
-static int fdr4_converts(void)
-{
-    project_v4_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V4;
-    v.size = sizeof v;
-    for (i = 0; i < G_CGHOST; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].p[PR_P(P_LFO1 + LF_DEST)] = 9;
-    v.t[2].step[5].on = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    trk[2].p[P_FTYPE] = FT_HP;                       /* the live state differs: the load replaces it */
-    project_load(3);
-    return trk[2].p[P_LFO1 + LF_DEST] == 9 && trk[2].step[5].on && trk[2].p[P_FTYPE] == FT_OFF &&
-           trk[2].p[P_FCUT] == TP[P_FCUT].def;
-}
-/* an FDR5 record (RESON, no GHOST) loads: its parameters (RESON's ignored: FREITAKT removed it); GHOST KEEP (as it
- * sounded) */
-static int fdr5_converts(void)
-{
-    project_v5_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V5;
-    v.size = sizeof v;
-    for (i = 0; i < G_CGHOST; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_CSRC)] = 1;
-    v.g[PR_G(G_CMKUP)] = 77;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    for (i = 0; i < 7u; i++)
-        v.t[2].p[PR_RS + i] = 2;                     /* (RESON PIPE ..: its places, ignored) */
-    v.t[2].p[PR_P(P_LFO2 + LF_RATE)] = 77;
-    v.t[2].step[5].on = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    song.g[G_CGHOST] = CG_HIDE;                      /* the live state differs: the load replaces it */
-    project_load(3);
-    return song.g[G_CSRC] == 1 && song.g[G_CMKUP] == 77 && song.g[G_CGHOST] == CG_KEEP &&
-           trk[2].p[P_LFO2 + LF_RATE] == 77 && trk[2].p[P_FTYPE] == FT_OFF && trk[2].step[5].on;
-}
-/* an FDR6 record (GHOST, no reverb TYPE; 3024 B like an FDR5 one) loads: its values; TYPE ROOM */
-static int fdr6_converts(void)
-{
-    project_v6_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V6;
-    v.size = sizeof v;
-    for (i = 0; i < G_RTYPE; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_CGHOST)] = CG_HIDE;
-    v.g[PR_G(G_RSIZE)] = 33;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[4].step[7].on = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 3u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    song.g[G_RTYPE] = 1;                             /* SPRING running: the load sets ROOM */
-    project_load(3);
-    return song.g[G_CGHOST] == CG_HIDE && song.g[G_RSIZE] == 33 && song.g[G_RTYPE] == 0 && trk[4].step[7].on;
-}
 /* (Skiff) HALL (TYPE 2) through a save and a load; ROOM / SPRING keep their ids (0 / 1, fdr7_round_trip) */
 static int hall_round_trip(void)
 {
@@ -1017,7 +806,7 @@ static int dmode_round_trip(void)
     persist_boot();
     song.g[G_DMODE] = 1;
     project_save(2);
-    if (proj_slot[2].rsv[0] != 1u || sizeof(project_t) != 3840u)
+    if (proj_slot[2].rsv[0] != 1u || sizeof(project_t) != 3044u)
         return 0;
     song.g[G_DMODE] = 0;
     memset(proj_slot, 0, sizeof proj_slot);
@@ -1051,40 +840,14 @@ static int fdr8_motion_round_trip(void)
     persist_boot();
     motion_add(0, 4, P_E1, 100);
     motion_add(5, 63, P_PAN, -64);
-    motion_add(7, 0, P_LFO2 + LF_DEPTH, 127);
-    mo.b.on = 0xA1u;
+    motion_add(4, 0, P_LFO2 + LF_DEPTH, 127);
+    mo.b.on = 0x21u;
     want = mo.b;
     project_save(2);
     memset(&mo, 0, sizeof mo);
     memset(proj_slot, 0, sizeof proj_slot);
     project_load(2);
     return bank_events_eq(&mo.b, &want);
-}
-/* an FDR7 record (3028 B, no motion) loads: its values, no motion */
-static int fdr7_converts(void)
-{
-    project_v7_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V7;
-    v.size = sizeof v;
-    for (i = 0; i < G_NSTORED; i++)
-        v.g[PR_G(i)] = song.g[i];
-    v.g[PR_G(G_RTYPE)] = 1;
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].step[9].on = 1;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    motion_add(0, 1, P_E1, 5);                       /* motion in RAM before: the load replaces it */
-    song.g[G_DMODE] = 1;                             /* PING-PONG running: an old record loads NORMAL */
-    project_load(1);
-    return song.g[G_RTYPE] == 1 && trk[2].step[9].on && mo.b.count == 0u && sizeof v == 3028u && song.g[G_DMODE] == 0;
 }
 /* a broken motion block: the project loads, the motion dropped */
 static int fdr8_bad_motion_dropped(void)
@@ -1137,39 +900,7 @@ static int fdr9_round_trip(void)
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
     project_load(2);
-    return !z && str_eq(pname.name, "BREAK 2") && pname.from == 3u && sizeof(project_t) == 3840u;   /* (FDRE) */
-}
-/* an FDR9 record (3592 B): its values, steps, motion and name; its song dropped (reserved, 0); the filter OFF */
-static int fdr9_converts(void)
-{
-    project_v9_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V9;
-    v.size = sizeof v;
-    for (i = 0; i < G_NSTORED; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[1].p[PR_P(P_E1)] = 99;
-    v.t[2].step[9].on = 1;
-    v.motion.count = 1;
-    v.motion.on = 1;
-    v.motion.ev[0] = (motion_event_t){0, 4, P_E1, 77};
-    memset(v.rsv_song, 0x5A, sizeof v.rsv_song);     /* an old song: dropped */
-    memcpy(v.name, "OLD ONE", 7);
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    trk[0].p[P_FTYPE] = FT_LP;                       /* before: the load sets the filter OFF */
-    project_load(1);
-    return sizeof v == 3592u && trk[1].p[P_E1] == 99 && trk[2].step[9].on && mo.b.count == 1u &&
-           !proj_slot[1].rsv_song[0] && !proj_slot[1].rsv_song[35] && str_eq(pname.name, "OLD ONE") &&
-           trk[0].p[P_FTYPE] == FT_OFF && trk[0].p[P_FCUT] == 127 && trk[0].p[P_FDEC] == 40;
+    return !z && str_eq(pname.name, "BREAK 2") && pname.from == 3u && sizeof(project_t) == 3044u;   /* (FRT6) */
 }
 /* FDRA: the five filter knobs through a save and a load (flash) */
 static int fdra_round_trip(void)
@@ -1205,82 +936,6 @@ static int fdra_clamps(void)
     (void)proj_load(0, 1);                          /* (the edited slot: as DISCARD EDITS? YES) */
     return trk[4].p[P_FTYPE] == FT_N - 1 && trk[4].p[P_FCUT] == 127 && trk[4].p[P_FENV] == -64;
 }
-/* FDRB (ACID): the step's bytes: byte 0 = on | acc << 1 | slide << 2 | tie << 3 | rat << 4, byte 1 cond, byte 2 nt */
-static int fdrb_step_layout(void)
-{
-    step_t s;
-    const uint8_t *b = (const uint8_t *)&s;
-    memset(&s, 0, sizeof s);
-    s.on = 1;
-    s.tie = 1;
-    s.rat = 2;
-    s.cond = 5;
-    s.nt = -3;
-    return sizeof(step_t) == 4u && b[0] == (1u | 8u | 0x20u) && b[1] == 5u && (int8_t)b[2] == -3 && b[3] == 0u &&
-           sizeof(project_vb_t) == 3672u;
-}
-/* an FDRA record in flash (same size as FDRB: told by its marker): steps into the flags, NOTE C4, no SLIDE / TIE */
-static int fdra_flash_converts(void)
-{
-    static project_va_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_VA;
-    v.size = sizeof v;
-    for (i = 0; i < G_NSTORED; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_PRIO; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[3].p[PR_P(P_FCUT)] = 33;
-    v.t[3].step[7] = (step_v9_t){1, 1, 5, 2};
-    v.t[3].step[8] = (step_v9_t){0, 1, 0, 0};
-    memcpy(v.name, "FDRA ONE", 8);
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 2u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    project_load(2);
-    return sizeof v == 3672u && trk[3].p[P_FCUT] == 33 && trk[3].step[7].on && trk[3].step[7].acc &&
-           trk[3].step[7].cond == 5u && trk[3].step[7].rat == 2u && trk[3].step[7].nt == 0 && !trk[3].step[7].slide &&
-           !trk[3].step[7].tie && !trk[3].step[8].on && trk[3].step[8].acc && str_eq(pname.name, "FDRA ONE");
-}
-/* an FDRA image left in a RAM slot by 0.15.0 (.noinit, 3672 B a slot): FDRC's slots are larger, so the image is not
- * read; the slot is fetched from flash (its FDRA record converted) */
-static int fdra_ram_refetched(void)
-{
-    static project_va_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(proj_slot, 0, sizeof proj_slot);
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_VA;
-    v.size = sizeof v;
-    for (i = 0; i < G_NSTORED; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_PRIO; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.g[PR_G(G_BPM)] = 133;
-    v.t[6].p[PR_P(P_FCUT)] = 33;
-    v.t[6].step[3] = (step_v9_t){1, 0, 0, 3};
-    v.t[7].step[NSTEP - 1u] = (step_v9_t){2, 1, 4, 1};   /* the last step; on 2: set */
-    memcpy(v.name, "RAM FDRA", 8);
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);        /* (0.15.0 saved it to flash too) */
-    v.g[PR_G(G_BPM)] = 99;                                 /* the RAM image differs: it must not be what loads */
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    memcpy((uint8_t *)proj_slot + sizeof v, &v, sizeof v);   /* slot 2 of the old layout */
-    persist_boot();
-    project_load(1);
-    return trk[6].step[3].on && trk[6].step[3].rat == 3u && trk[6].step[3].nt == 0 && song.g[G_BPM] == 133 &&
-           trk[6].p[P_FCUT] == 33 && trk[7].step[NSTEP - 1u].on && trk[7].step[NSTEP - 1u].acc &&
-           trk[7].step[NSTEP - 1u].cond == 4u && trk[7].step[NSTEP - 1u].rat == 1u && !trk[7].step[NSTEP - 1u].tie &&
-           !trk[6].step[4].on && str_eq(pname.name, "RAM FDRA") && trk[6].p[P_PRIO] == 0;
-}
 /* FDRB: SLIDE, TIE and the note through a save and a load (flash) */
 static int fdrb_round_trip(void)
 {
@@ -1299,7 +954,7 @@ static int fdrb_round_trip(void)
     return trk[2].step[4].on && trk[2].step[4].slide && trk[2].step[4].nt == -12 && trk[2].step[5].tie &&
            !trk[2].step[5].on;
 }
-/* Review Focus 5: a stored step's reserved bits and an out-of-range note and MICRO (its byte, FDRG): cleared and
+/* Review Focus 5: a stored step's reserved bits and an out-of-range note and MICRO (its byte, FRT6): cleared and
  * clamped on load */
 static int fdrb_clamps(void)
 {
@@ -1317,35 +972,6 @@ static int fdrb_clamps(void)
     return trk[4].step[2].on && trk[4].step[2].acc && trk[4].step[2].slide && trk[4].step[2].tie &&
            trk[4].step[2].rat == 3u && ((const uint8_t *)&trk[4].step[2])[0] == 0x3Fu &&
            trk[4].step[2].micro == MICRO_MAX && trk[4].step[3].nt == NT_MAX && trk[4].step[5].nt == NT_MIN;
-}
-/* an FDR8 record (3544 B): its motion, no name */
-static int fdr8_converts(void)
-{
-    project_v8_t v;
-    uint32_t i, k;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&v, 0, sizeof v);
-    v.magic = PROJ_MAGIC_V8;
-    v.size = sizeof v;
-    for (i = 0; i < G_NSTORED; i++)
-        v.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++)
-        for (i = 0; i < P_FTYPE; i++)
-            v.t[k].p[PR_P(i)] = trk[k].p[i];
-    v.t[2].step[9].on = 1;
-    v.motion.count = 1;
-    v.motion.on = 1;
-    v.motion.ev[0] = (motion_event_t){0, 4, P_E1, 77};
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-                                                     /* a name in RAM before: the load replaces it */
-    name_set(pname.name, "OLD");
-    project_load(1);
-    return trk[2].step[9].on && mo.b.count == 1u && mo.b.val[0] == 77 &&
-           !pname.name[0] && sizeof v == 3544u;
 }
 /* a broken name: the project loads, the name is dropped */
 static int fdr9_bad_name_dropped(void)
@@ -1382,26 +1008,6 @@ static int rename_slot(void)
 }
 /* ---- FDRC (spec 2026-10-11 §10): PRIO per track; the older formats load with PRIO HIGH */
 
-/* the live state as an FDRB record (0.16.0: every parameter before P_PRIO) */
-static void fdrb_of_live(project_vb_t *v)
-{
-    uint32_t i, k;
-    memset(v, 0, sizeof *v);
-    v->magic = PROJ_MAGIC_VB;
-    v->size = sizeof *v;
-    for (i = 0; i < G_NSTORED; i++)
-        v->g[PR_G(i)] = song.g[i];
-    v->sel = song.sel;
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i < P_PRIO; i++)
-            v->t[k].p[PR_P(i)] = trk[k].p[i];
-        memcpy(v->t[k].step, trk[k].step, sizeof v->t[k].step);
-    }
-    v->motion = mo_legacy();
-    memcpy(v->name, pname.name, NAME_LEN);
-    v->sum = proj_hash(v, sizeof *v - 4u);
-}
-
 static void all_prio(int16_t p)
 {
     uint32_t k;
@@ -1416,39 +1022,6 @@ static int all_prio_is(int16_t p)
     return (int)ok;
 }
 
-/* an FDRB record (0.16.0) loads: its steps (note, SLIDE, TIE), parameters, motion and name; PRIO HIGH */
-static int fdrb_converts(void)
-{
-    static project_vb_t v;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    memset(&mo, 0, sizeof mo);
-    memset(&pname, 0, sizeof pname);
-    trk[2].step[4].on = 1;
-    trk[2].step[4].slide = 1;
-    trk[2].step[4].nt = -12;
-    trk[2].step[5].tie = 1;
-    trk[5].p[P_FCUT] = 21;
-    trk[5].p[P_FDEC] = 99;                           /* the last parameter FDRB has */
-    song.g[G_BPM] = 91;
-    song.sel = 5;
-    motion_add(1, 3, P_E1, 50);
-    name_set(pname.name, "FDRB ONE");
-    fdrb_of_live(&v);
-    st_save(OBJ_PROJECT0 + 2u, &v, sizeof v);
-    host_init();
-    memset(&mo, 0, sizeof mo);
-    memset(&pname, 0, sizeof pname);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    all_prio(1);                                     /* LOW before: the load sets HIGH */
-    project_load(2);
-    return sizeof v == 3672u && trk[2].step[4].on && trk[2].step[4].slide && trk[2].step[4].nt == -12 &&
-           trk[2].step[5].tie && trk[5].p[P_FCUT] == 21 && trk[5].p[P_FDEC] == 99 && song.g[G_BPM] == 91 &&
-           song.sel == 5 && mo.b.count == 1u && mo.b.val[0] == 50 &&
-           str_eq(pname.name, "FDRB ONE") && all_prio_is(0) && str_eq(ui.msg, "LOADED");
-}
-
 /* PRIO through a save and a load (flash; FDRC's, now FDRD's) */
 static int fdrc_round_trip(void)
 {
@@ -1456,14 +1029,14 @@ static int fdrc_round_trip(void)
     host_init();
     persist_boot();
     trk[1].p[P_PRIO] = 1;
-    trk[6].p[P_PRIO] = 1;
+    trk[5].p[P_PRIO] = 1;
     project_save(0);
     host_init();
     memset(proj_slot, 0, sizeof proj_slot);
     persist_boot();
     project_load(0);
-    return trk[1].p[P_PRIO] == 1 && trk[6].p[P_PRIO] == 1 && trk[0].p[P_PRIO] == 0 && sizeof(project_t) == 3840u &&
-           proj_slot[0].magic == 0x47524446u;       /* "FDRG" (2026-10-31: MICRO) */
+    return trk[1].p[P_PRIO] == 1 && trk[5].p[P_PRIO] == 1 && trk[0].p[P_PRIO] == 0 && sizeof(project_t) == 3044u &&
+           proj_slot[0].magic == PROJ_MAGIC;        /* "FRT6" */
 }
 
 /* one pattern played 2 s from a loaded slot: a hash of the mix */
@@ -1496,137 +1069,7 @@ static void pattern_kit(void)                        /* the power-on kit, a groo
     }
 }
 
-/* FDR1, FDRA and FDRB records of one pattern load with PRIO HIGH everywhere and play as its FDRC save does */
-static int old_formats_play_same(void)
-{
-    static project_v1_t v1;
-    static project_va_t va;
-    static project_vb_t vb;
-    uint32_t i, k, s, ref, ref2, h1, ha, hb, ok = 1;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    pattern_kit();
-    project_save(0);                                 /* FDRC */
-    memset(&v1, 0, sizeof v1);                       /* FDR1: globals before Grids' (PR_GR), parameters before SRC (PR_SRC) */
-    v1.magic = PROJ_MAGIC_V1;
-    v1.size = sizeof v1;
-    for (i = 0; i < PR_GR; i++)
-        v1.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i < PR_SRC; i++)
-            v1.t[k].p[PR_P(i)] = trk[k].p[i];
-        for (s = 0; s < NSTEP; s++) {
-            v1.t[k].step[s].on = trk[k].step[s].on;
-            v1.t[k].step[s].acc = trk[k].step[s].acc;
-        }
-    }
-    v1.sum = proj_hash(&v1, sizeof v1 - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v1, sizeof v1);
-    memset(&va, 0, sizeof va);                       /* FDRA: everything before P_PRIO, the old steps */
-    va.magic = PROJ_MAGIC_VA;
-    va.size = sizeof va;
-    for (i = 0; i < G_NSTORED; i++)
-        va.g[PR_G(i)] = song.g[i];
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i < P_PRIO; i++)
-            va.t[k].p[PR_P(i)] = trk[k].p[i];
-        for (s = 0; s < NSTEP; s++)
-            va.t[k].step[s] = (step_v9_t){trk[k].step[s].on, trk[k].step[s].acc, 0, 0};
-    }
-    va.sum = proj_hash(&va, sizeof va - 4u);
-    st_save(OBJ_PROJECT0 + 2u, &va, sizeof va);
-    fdrb_of_live(&vb);
-    st_save(OBJ_PROJECT0 + 3u, &vb, sizeof vb);
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    host_init();
-    ref = play_hash(0);
-    host_init();
-    ref2 = play_hash(0);
-    host_init();
-    all_prio(1);
-    h1 = play_hash(1);
-    ok &= all_prio_is(0);
-    host_init();
-    all_prio(1);
-    ha = play_hash(2);
-    ok &= all_prio_is(0);
-    host_init();
-    all_prio(1);
-    hb = play_hash(3);
-    ok &= all_prio_is(0);
-    if (ref != ref2 || h1 != ref || ha != ref || hb != ref)
-        printf("     play hashes: FDRC %08x (again %08x), FDR1 %08x, FDRA %08x, FDRB %08x\n", ref, ref2, h1, ha, hb);
-    return (int)ok && ref == ref2 && h1 == ref && ha == ref && hb == ref;
-}
 
-
-/* ---- FDRE (fixes 2026-10-21 item 3): the LFO DEST slots. An FDRD record's per-LFO DEST and DEPTH are slots 1 and 2
- * (sources LFO 1 and LFO 2), slots 3 and 4 off: it plays as its FDRE save, its motion and presets kept */
-static void fdrd_of_live(project_vd_t *v)
-{
-    uint32_t i, k;
-    memset(v, 0, sizeof *v);
-    v->magic = PROJ_MAGIC_VD;
-    v->size = sizeof *v;
-    for (i = 0; i < G_NSTORED; i++)
-        v->g[PR_G(i)] = song.g[i];
-    v->sel = song.sel;
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i <= P_PRIO; i++)
-            v->t[k].p[PR_P(i)] = trk[k].p[i];
-        memcpy(v->t[k].step, trk[k].step, sizeof v->t[k].step);
-        v->pre[k] = (uint16_t)preset_rec_enc(trk[k].pre);
-        v->pre_ed[k] = trk[k].pre_ed;
-    }
-    v->motion = mo_legacy();
-    memcpy(v->name, pname.name, NAME_LEN);
-    v->sum = proj_hash(v, sizeof *v - 4u);
-}
-static int fdrd_lfo_converts(void)
-{
-    static project_vd_t v;
-    uint32_t k, ok = 1, ref, h, pre;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    pattern_kit();
-    trk[0].p[P_LFO1 + LF_DEST] = 3;                  /* T1: LFO 1 on TONE, LFO 2 on LVL */
-    trk[0].p[P_LFO1 + LF_DEPTH] = 40;
-    trk[0].p[P_LFO1 + LF_WAVE] = LW_SQUARE;
-    trk[0].p[P_LFO1 + LF_MODE] = LM_HZ;
-    trk[0].p[P_LFO1 + LF_RATE] = 80;
-    trk[0].p[P_LFO2 + LF_DEST] = 9;
-    trk[0].p[P_LFO2 + LF_DEPTH] = -30;
-    trk[0].p[P_LFO2 + LF_WAVE] = LW_SAW;
-    trk[3].p[P_LFO2 + LF_DEST] = 10;                 /* T4: LFO 2 alone, on PAN */
-    trk[3].p[P_LFO2 + LF_DEPTH] = 64;
-    pre = preset_first_of((uint32_t)trk[2].p[P_MODEL]);   /* a factory preset reference, edited */
-    trk[2].pre = (uint16_t)pre;
-    trk[2].pre_ed = 1;
-    motion_add(0, 2, P_LFO1 + LF_DEPTH, 12);         /* motion on LFO 1's DEPTH: slot 1's now */
-    name_set(pname.name, "LFO OLD");
-    fdrd_of_live(&v);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    project_save(0);                                 /* the same state as FDRE */
-    memset(proj_slot, 0, sizeof proj_slot);
-    persist_boot();
-    host_init();
-    ref = play_hash(0);
-    host_init();
-    h = play_hash(1);
-    for (k = 0; k < NTRK; k++)
-        ok &= trk[k].p[P_LSRC1] == 0 && trk[k].p[P_LSRC2] == 1 && trk[k].p[P_LS3DEST] == 0 && trk[k].p[P_LS3DEPTH] == 0 &&
-              trk[k].p[P_LS4DEST] == 0 && trk[k].p[P_LS4DEPTH] == 0;
-    ok &= trk[0].p[P_LFO1 + LF_DEST] == 3 && trk[0].p[P_LFO1 + LF_DEPTH] == 40 && trk[0].p[P_LFO2 + LF_DEST] == 9 &&
-          trk[0].p[P_LFO2 + LF_DEPTH] == -30 && trk[3].p[P_LFO2 + LF_DEST] == 10 && trk[3].p[P_LFO2 + LF_DEPTH] == 64;
-    ok &= pre != PRE_NONE && trk[2].pre == pre && trk[2].pre_ed == 1u && mo.b.count == 1u && (mo.b.key[0] & 127u) == P_LFO1 + LF_DEPTH &&
-          str_eq(pname.name, "LFO OLD");
-    if (h != ref || !ok)
-        printf("     FDRD -> FDRE: play %08x (FDRE save %08x), fields %u\n", h, ref, ok);
-    return (int)ok && h == ref && sizeof v == 3712u && proj_slot[1].magic == PROJ_MAGIC && proj_ok(&proj_slot[1]);
-}
 /* FDRE round trip: slots 3 and 4 (sources, DEST, DEPTH) and changed sources of 1 and 2 */
 static int fdre_slots_round_trip(void)
 {
@@ -1641,8 +1084,8 @@ static int fdre_slots_round_trip(void)
     trk[5].p[P_LS4SRC] = 0;
     trk[5].p[P_LS4DEST] = 2;
     trk[5].p[P_LS4DEPTH] = 33;
-    trk[6].p[P_LS3DEST] = LD_MAX;                    /* the INSERT's C: the last DEST */
-    trk[6].p[P_LFO2 + LF_DEST] = 13;                 /* SRR */
+    trk[3].p[P_LS3DEST] = LD_MAX;                    /* the INSERT's C: the last DEST */
+    trk[3].p[P_LFO2 + LF_DEST] = 13;                 /* SRR */
     project_save(3);
     host_init();
     memset(proj_slot, 0, sizeof proj_slot);
@@ -1650,15 +1093,15 @@ static int fdre_slots_round_trip(void)
     project_load(3);
     return trk[5].p[P_LSRC1] == 1 && trk[5].p[P_LSRC2] == 0 && trk[5].p[P_LS3SRC] == 1 && trk[5].p[P_LS3DEST] == 11 &&
            trk[5].p[P_LS3DEPTH] == -64 && trk[5].p[P_LS4SRC] == 0 && trk[5].p[P_LS4DEST] == 2 &&
-           trk[5].p[P_LS4DEPTH] == 33 && trk[6].p[P_LS3DEST] == LD_MAX && trk[6].p[P_LFO2 + LF_DEST] == 13 &&
-           sizeof(project_t) == 3840u && sizeof(project_t) <= ST_PAYLOAD_MAX &&
-           proj_slot[3].magic == 0x47524446u;       /* "FDRG" (2026-10-31: MICRO) */
+           trk[5].p[P_LS4DEPTH] == 33 && trk[3].p[P_LS3DEST] == LD_MAX && trk[3].p[P_LFO2 + LF_DEST] == 13 &&
+           sizeof(project_t) == 3044u && sizeof(project_t) <= ST_PAYLOAD_MAX &&
+           proj_slot[3].magic == PROJ_MAGIC;        /* "FRT6" */
 }
 
 /* SRR and the INSERT (P_SRR, P_ITYPE .. P_IMIX): past FDRE's block, so in the steps' spare bytes after KEYF's (one a
  * step: step 1 SRR, 2 TYPE, 3..5 A B C, 6 MIX), each stored as its offset from its power-on value (a byte 0 = the
  * power-on value: SRR 0, TYPE OFF, MIX 100 %, A B C 64 96 96). Kept through a save and a load (any value 0..127),
- * the record still 3840 B, the live steps' spare bytes 0; a track at its power-on values stores 0 there */
+ * the record 3044 B, the live steps' spare bytes 0; a track at its power-on values stores 0 there */
 static int fdre_inserts_round_trip(void)
 {
     static const uint32_t ID[6] = {P_SRR, P_ITYPE, P_IA, P_IB, P_IC, P_IMIX};
@@ -1671,10 +1114,10 @@ static int fdre_inserts_round_trip(void)
         trk[1].p[ID[j]] = (int16_t)(j == 1u ? IT_CRUSH : 127 - 3 * (int32_t)j);
         trk[4].p[ID[j]] = (int16_t)(j == 1u ? IT_CHORUS : (int32_t)j);   /* (0: below every A B C MIX default) */
     }
-    trk[6].p[P_IMIX] = 0;
+    trk[3].p[P_IMIX] = 0;
     project_save(2);
     for (k = 0; k < NTRK; k++)                         /* the tracks left at their power-on values: 0 stored */
-        if (k != 1u && k != 4u && k != 6u)
+        if (k != 1u && k != 4u && k != 3u)
             for (j = 0; j < 6u; j++)
                 ok &= proj_slot[2].xp[k][PR_XP(ID[j])] == 0;
     host_init();
@@ -1685,7 +1128,7 @@ static int fdre_inserts_round_trip(void)
         for (j = 0; j < 6u; j++) {
             int32_t want = k == 1u ? (j == 1u ? IT_CRUSH : 127 - 3 * (int32_t)j)
                          : k == 4u ? (j == 1u ? IT_CHORUS : (int32_t)j)
-                         : k == 6u && j == 5u ? 0 : TP[ID[j]].def;
+                         : k == 3u && j == 5u ? 0 : TP[ID[j]].def;
             if (trk[k].p[ID[j]] != want) {
                 printf("     T%u %s: %d, want %d\n", k + 1u, TP[ID[j]].label, trk[k].p[ID[j]], want);
                 ok = 0;
@@ -1694,7 +1137,7 @@ static int fdre_inserts_round_trip(void)
         for (i = 0; i < NSTEP; i++)
             ok &= trk[k].step[i].rsv == 0;
     }
-    return (int)ok && sizeof(project_t) == 3840u && proj_slot[2].magic == 0x47524446u && proj_ok(&proj_slot[2]);
+    return (int)ok && sizeof(project_t) == 3044u && proj_slot[2].magic == PROJ_MAGIC && proj_ok(&proj_slot[2]);
 }
 /* a record from before SRR and the INSERT (its steps' spare bytes 0, as 0.26.0 and every earlier firmware wrote
  * them) loads with SRR 0 and the INSERT OFF on every track (A B C MIX at their power-on values), and plays as it did */
@@ -1724,39 +1167,6 @@ static int fdre_old_inserts_off(void)
         ok &= trk[k].p[P_SRR] == 0 && trk[k].p[P_ITYPE] == IT_OFF && trk[k].p[P_IA] == 64 && trk[k].p[P_IB] == 96 &&
               trk[k].p[P_IC] == 96 && trk[k].p[P_IMIX] == 127;
     return (int)ok && h == ref;
-}
-
-/* RAM slots left by 0.16.0 (.noinit, FDRB at 3672 B a slot; FDRC's are 3688 B): never read as projects; every slot
- * comes from flash (FDRB converted, PRIO HIGH), a slot with no flash record is empty */
-static int fdrb_ram_refetched(void)
-{
-    static project_vb_t v;
-    uint32_t k, ok = 1;
-    char b[NAME_LEN + 1u];
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    persist_boot();
-    memset(&pname, 0, sizeof pname);
-    for (k = 0; k < 4u; k++) {
-        song.g[G_BPM] = (int16_t)(101 + k);
-        name_set(pname.name, k == 0u ? "FLASH A" : k == 1u ? "FLASH B" : k == 2u ? "FLASH C" : "FLASH D");
-        fdrb_of_live(&v);
-        if (k < 3u)
-            st_save(OBJ_PROJECT0 + k, &v, sizeof v);   /* slot D: in RAM only */
-        v.g[PR_G(G_BPM)] = (int16_t)(150 + k);               /* the RAM images differ from flash */
-        v.sum = proj_hash(&v, sizeof v - 4u);
-        memcpy((uint8_t *)proj_slot + k * sizeof v, &v, sizeof v);
-    }
-    persist_boot();                                  /* the new firmware's boot */
-    for (k = 0; k < 3u; k++) {
-        host_init();
-        all_prio(1);
-        project_load(k);
-        ok &= song.g[G_BPM] == (int16_t)(101 + k) && all_prio_is(0) && project_name(k, b) && b[6] == (char)('A' + k);
-    }
-    host_init();
-    project_load(3);
-    return (int)ok && !project_used(3) && song.g[G_BPM] == 120 && str_eq(ui.msg, "EMPTY SLOT");
 }
 
 /* ---- the last project at power-on (spec 2026-10-11 §6, §9: lowcut's bits 2..4) */
@@ -1932,6 +1342,31 @@ static int last_project_old_record_no_flash(void)
     fresh_flash();
     ok &= power_on(0) == 0u && !flash_ok;
     host_jedec = host_jedec_keep;
+    return (int)ok;
+}
+
+/* Hortator's 8-track records (FDRG, 3840 B; a "VAR1" variation bank) in flash: no record (empty slots); the
+ * remembered slot asks as an empty one over the power-on kit, nothing loaded; a SAVE there then loads */
+static int old_8track_record_boots_empty(void)
+{
+    uint32_t ok;
+    fresh_flash();
+    project_save(0);                                 /* remembered: A */
+    rs = 99;
+    old_record(OBJ_PROJECT0 + 0u, 0x47524446u, 3840u);   /* "FDRG" over A, and in C: valid sums, 8 tracks */
+    old_record(OBJ_PROJECT0 + 2u, 0x47524446u, 3840u);
+    old_record(OBJ_VAR0 + 0u, 0x31524156u, 600u);   /* "VAR1": an old variation bank */
+    ok = power_on(0) == 0u && ui.confirm == 5u && ui.confirm_trk == 0u && power_on_kit() && !song.playing;
+    ok &= !project_used(0) && !project_used(2) && proj_loaded() < 0 && !str_eq(ui.msg, "LOADED");
+    press(B_OCTUP);                                  /* YES: forgotten */
+    ui_frame();
+    release_all();
+    ok &= !ui.confirm && lastp.set == 0u && power_on_kit();
+    trk[3].p[P_E1] = 11;
+    project_save(0);
+    ok &= str_eq(ui.msg, "SAVED") && proj_ok(&proj_slot[0]);
+    ok &= power_on(0) == 0u && str_eq(ui.msg, "LOADED") && trk[3].p[P_E1] == 11 && proj_loaded() == 0 &&
+          proj_ok(&proj_slot[0]) && !project_used(2);
     return (int)ok;
 }
 
@@ -2214,10 +1649,10 @@ static int fdrf_round_trip(void)
     persist_boot();
     motion_add(0, 4, P_E1, 100);
     motion_add(3, 10, P_PAN, -64);
-    motion_add(7, 63, P_LFO2 + LF_DEPTH, 127);
+    motion_add(4, 63, P_LFO2 + LF_DEPTH, 127);
     lk_put(&mo.b, lk_key(0, 4, P_E1), 30, 1);         /* a lock on motion's knob and step */
     lk_put(&mo.b, lk_key(5, 2, P_FCUT), -10, 1);
-    mo.b.on = 0xA1u;
+    mo.b.on = 0x21u;
     want = mo.b;
     project_save(2);
     wipe_ram();
@@ -2226,65 +1661,12 @@ static int fdrf_round_trip(void)
     for (i = 0; i < sizeof proj_slot[2].rsv_mo; i++)
         ok &= proj_slot[2].rsv_mo[i] == 0;
     return (int)ok && bank_events_eq(&mo.b, &want) && proj_slot[2].magic == PROJ_MAGIC && proj_slot[2].lk_n == 5u &&
-           sizeof(project_t) == 3840u && sizeof proj_slot[2].rsv_mo + sizeof proj_slot[2].xp + sizeof proj_slot[2].xp2 +
+           sizeof(project_t) == 3044u && sizeof proj_slot[2].rsv_mo + sizeof proj_slot[2].xp + sizeof proj_slot[2].xp2 +
                    sizeof proj_slot[2].xp3 == 504u &&
-           sizeof proj_slot[2].xp == 56u && sizeof proj_slot[2].xp2 == 32u && sizeof proj_slot[2].xp3 == 16u && !proj_slot[2].var_len &&
+           sizeof proj_slot[2].xp == 42u && sizeof proj_slot[2].xp2 == 24u && sizeof proj_slot[2].xp3 == 12u && !proj_slot[2].var_len &&
            !proj_slot[2].var_link && str_eq(ui.msg, "LOADED");
 }
-static void fdre_of_live(project_ve_t *v)            /* the live state as 0.23.3 saved it ("FDRE") */
-{
-    uint32_t i, j;
-    memset(v, 0, sizeof *v);
-    v->magic = PROJ_MAGIC_VE;
-    v->size = sizeof *v;
-    for (i = 0; i < G_NSTORED; i++)
-        v->g[PR_G(i)] = song.g[i];
-    v->sel = song.sel;
-    for (i = 0; i < NTRK; i++) {
-        for (j = 0; j < P_NSTORED; j++)
-            v->t[i].p[PR_P(j)] = trk[i].p[j];
-        memcpy(v->t[i].step, trk[i].step, sizeof trk[i].step);
-        for (j = P_NSTORED; j < P_COUNT; j++)        /* (FDRE / FDRF: the parameters past the block in steps 0..6) */
-            v->t[i].step[PR_XP(j)].rsv = proj_xp_enc(j, trk[i].p[j]);
-        v->pre[i] = (uint16_t)preset_rec_enc(trk[i].pre);
-        v->pre_ed[i] = trk[i].pre_ed;
-    }
-    v->motion = mo_legacy();
-    memcpy(v->name, pname.name, NAME_LEN);
-    v->sum = proj_hash(v, sizeof *v - 4u);
-}
-static int fdre_migrates(void)
-{
-    static project_ve_t v;
-    static track_t want[NTRK];
-    uint32_t k, ok = 1;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    wipe_ram();
-    persist_boot();
-    pattern_kit();
-    trk[2].p[P_E1] = 17;
-    trk[6].p[P_SRR] = 99;
-    motion_add(0, 4, P_E1, 100);
-    motion_add(2, 9, P_LEVEL, 3);
-    motion_add(6, 63, P_SRR, 120);
-    mo.b.on = 0x05;
-    name_set(pname.name, "OLD FDRE");
-    fdre_of_live(&v);
-    memcpy(want, trk, sizeof trk);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    wipe_ram();
-    host_init();
-    persist_boot();
-    project_load(1);
-    for (k = 0; k < NTRK; k++)
-        ok &= !memcmp(trk[k].p, want[k].p, sizeof want[k].p) && !memcmp(trk[k].step, want[k].step, sizeof want[k].step);
-    ok &= mo.b.count == 3u && lk_count(&mo.b, 0, LK_LOCK) + lk_count(&mo.b, 2, LK_LOCK) + lk_count(&mo.b, 6, LK_LOCK) == 0u;
-    ok &= lk_find(&mo.b, lk_key(6, 63, P_SRR), 0) >= 0 && mo.b.on == 5u && !lk_lost && !(persist_note & PN_LOCKS);
-    return (int)ok && sizeof v == 3840u && proj_slot[1].magic == PROJ_MAGIC && str_eq(ui.msg, "LOADED") &&
-           str_eq(pname.name, "OLD FDRE");
-}
-/* MICRO (spec 2026-10-31 §1): "FDRG" keeps every step's micro in its spare byte, and the 7 parameters past the block
+/* MICRO (spec 2026-10-31 §1): "FRT6" keeps every step's micro in its spare byte, and the 7 parameters past the block
  * (KEYF, SRR, the INSERT's TYPE A B C MIX) in the reserved area (7 B a track; FREITAKT removed RESON: KEYF's 0) */
 static int fdrg_micro_round_trip(void)
 {
@@ -2298,15 +1680,15 @@ static int fdrg_micro_round_trip(void)
     trk[0].step[0].micro = -50;
     trk[0].step[4].micro = 50;
     trk[3].step[6].micro = 17;
-    trk[7].step[63].micro = -1;                      /* (an off step's micro: kept) */
+    trk[4].step[63].micro = -1;                      /* (an off step's micro: kept) */
     trk[2].p[P_SRR] = 40;
     trk[5].p[P_ITYPE] = IT_CRUSH;
     trk[5].p[P_IMIX] = 0;
-    trk[6].p[P_IA] = 3;
+    trk[1].p[P_IA] = 3;
     for (k = 0; k < NTRK; k++)
         memcpy(want[k], trk[k].step, sizeof want[k]);
     project_save(2);
-    ok &= proj_slot[2].magic == 0x47524446u && proj_slot[2].t[0].step[4].micro == 50 &&
+    ok &= proj_slot[2].magic == PROJ_MAGIC && proj_slot[2].t[0].step[4].micro == 50 &&
           proj_slot[2].t[0].step[0].micro == -50 && proj_slot[2].xp[2][0] == 0u && proj_slot[2].xp[2][PR_XP(P_SRR)] == 40u &&
           proj_slot[2].xp[5][PR_XP(P_IMIX)] == (uint8_t)(0 - TP[P_IMIX].def);
     host_init();
@@ -2316,66 +1698,14 @@ static int fdrg_micro_round_trip(void)
     for (k = 0; k < NTRK; k++)
         ok &= !memcmp(trk[k].step, want[k], sizeof want[k]);
     ok &= trk[2].p[P_SRR] == 40 && trk[5].p[P_ITYPE] == IT_CRUSH && trk[5].p[P_IMIX] == 0 &&
-          trk[6].p[P_IA] == 3 && trk[0].p[P_SRR] == 0 && trk[0].p[P_IMIX] == TP[P_IMIX].def;
-    return (int)ok && proj_ok(&proj_slot[2]) && sizeof(project_t) == 3840u && str_eq(ui.msg, "LOADED");
-}
-/* a 0.26.0 record ("FDRF": the 7 parameters in steps 0..6's spare bytes, no micro) converts on load: the parameters
- * kept, every micro 0, its lock bank and variations still linked (no LOCKS LOST) */
-static int fdrf_converts(void)
-{
-    static project_t v;
-    static step_t want[NTRK][NSTEP];
-    uint32_t k, j, ok = 1;
-    memset(hflash, 0xFF, sizeof hflash);
-    host_init();
-    wipe_ram();
-    persist_boot();
-    pattern_kit();
-    trk[1].p[P_SRR] = 1;
-    trk[4].p[P_ITYPE] = IT_CHORUS;
-    trk[4].p[P_IB] = 0;
-    trk[7].p[P_IMIX] = 5;
-    lock_set(3, 2, P_E1, 33);
-    for (k = 0; k < NTRK; k++)
-        memcpy(want[k], trk[k].step, sizeof want[k]);
-    project_save(1);
-    v = proj_slot[1];                                /* as 0.26.0 wrote it */
-    for (k = 0; k < NTRK; k++)
-        for (j = 0; j < PROJ_XP; j++)               /* (FDRF: the 7 in the steps; ATK .. LOOP after them: none) */
-            v.t[k].step[j].rsv = v.xp[k][j];
-    memset(v.xp, 0, sizeof v.xp);
-    memset(v.xp2, 0, sizeof v.xp2);
-    memset(v.xp3, 0, sizeof v.xp3);
-    v.magic = 0x46524446u;
-    v.sum = proj_hash(&v, sizeof v - 4u);
-    st_save(OBJ_PROJECT0 + 1u, &v, sizeof v);
-    host_init();
-    wipe_ram();
-    persist_boot();
-    project_load(1);
-    for (k = 0; k < NTRK; k++)
-        ok &= !memcmp(trk[k].step, want[k], sizeof want[k]);   /* (micro 0 everywhere: the bytes were parameters) */
-    ok &= trk[1].p[P_SRR] == 1 && trk[4].p[P_ITYPE] == IT_CHORUS && trk[4].p[P_IB] == 0 &&
-          trk[7].p[P_IMIX] == 5 && trk[0].p[P_SRR] == 0 && trk[0].p[P_ITYPE] == IT_OFF;
-    ok &= lock_count(3) == 1u && !lk_lost && !(persist_note & PN_LOCKS);
-    return (int)ok && proj_slot[1].magic == 0x47524446u && proj_ok(&proj_slot[1]) && str_eq(ui.msg, "LOADED");
-}
-static int fdre_ram_refetched(void)                  /* after fdre_migrates: unsaved, a reset (RAM slot kept) */
-{
-    memset(lk_slot, 0, sizeof lk_slot);
-    memset(&mo, 0, sizeof mo);
-    persist_note = 0;
-    host_init();
-    persist_boot();
-    project_load(1);
-    return mo.b.count == 3u && mo.b.on == 5u && lk_find(&mo.b, lk_key(2, 9, P_LEVEL), 0) >= 0 && !lk_lost &&
-           !(persist_note & PN_LOCKS) && str_eq(ui.msg, "LOADED");
+          trk[1].p[P_IA] == 3 && trk[0].p[P_SRR] == 0 && trk[0].p[P_IMIX] == TP[P_IMIX].def;
+    return (int)ok && proj_ok(&proj_slot[2]) && sizeof(project_t) == 3044u && str_eq(ui.msg, "LOADED");
 }
 static void fill_bank(int lock)                      /* mo.b: 1024 events */
 {
     uint32_t i;
     for (i = 0; mo.b.count < LK_MAX; i++)
-        lk_put(&mo.b, lk_key(i / 128u, i % 64u, P_E0 + (i / 64u) % 2u), (int32_t)(i % 100u), lock && (i & 1u));
+        lk_put(&mo.b, lk_key(i / 192u, i % 64u, P_E0 + (i / 64u) % 3u), (int32_t)(i % 100u), lock && (i & 1u));
 }
 static int bank_scan_offset_erased(void)
 {
@@ -2541,22 +1871,6 @@ static int writes_stay_in_map(void)
     return host_nflog > 60u && all_writes_in_map() && str_eq(ui.msg, "RENAMED");
 }
 
-/* review fix 1: a record written alone (RENAME is the only path) after its bank changed in RAM only (an FDRE converted
- * at boot, a SAVE ERROR) writes the bank first: the pair stays whole */
-static int fdre_rename_keeps_motion(void)
-{
-    char b[NAME_LEN + 1u];
-    if (!fdre_migrates())                            /* FDRE in flash, converted in RAM (its bank never in flash) */
-        return 0;
-    project_rename(1, "RENAMED");
-    wipe_ram();
-    host_init();
-    persist_boot();
-    project_load(1);
-    return mo.b.count == 3u && mo.b.on == 5u && lk_find(&mo.b, lk_key(6, 63, P_SRR), 0) >= 0 &&
-           str_eq(ui.msg, "LOADED") && proj_slot[1].magic == PROJ_MAGIC && project_name(1, b) && str_eq(b, "RENAMED") &&
-           !lk_lost && !(persist_note & PN_LOCKS);
-}
 static int save_error_rename_writes_bank(void)
 {
     int i;
@@ -2621,31 +1935,18 @@ int main(void)
     char what[96];
     host_jedec_keep = host_jedec;
     int k, s, seq;
-    check("project: an M1 record (FDR1) loads with PROB 100 %, 1 hit", fdr1_converts());
-    check("project: an FDR1 step's on / acc of 2 load set (not their low bit)", fdr1_flags_nonzero());
-    check("project: an M2 record (FDR2) loads with COMP off and DUCK off", fdr2_converts());
-    check("project: an M3 record (FDR3) loads with the LFOs off", fdr3_converts());
-    check("project: an FDR4 record loads with the FILTER off", fdr4_converts());
-    check("project: an FDR5 record loads with GHOST KEEP", fdr5_converts());
-    check("project: an FDR6 record (same size as FDR5) loads with reverb TYPE ROOM", fdr6_converts());
     check("project: the reverb TYPE survives a save and a load", fdr7_round_trip());
     check("project: TYPE HALL (2) survives a save and a load", hall_round_trip());
     check("project: the delay MODE (PING-PONG) survives a save and a load, in the reserved byte", dmode_round_trip());
     check("project: a record from before the delay MODE loads NORMAL", dmode_old_normal());
     check("project: FDR8 keeps the motion through a save and a load", fdr8_motion_round_trip());
-    check("project: an FDR7 record (3028 B) loads with no motion", fdr7_converts());
     check("project: a broken motion block is dropped, the project loads", fdr8_bad_motion_dropped());
     check("project: a load while motion plays: the old base is not put back", fdr8_load_while_playing());
     check("project: FDRA keeps the name through a save and a load, the song bytes 0", fdr9_round_trip());
-    check("project: an FDR9 record loads (its song dropped), the filter OFF", fdr9_converts());
     check("project: FDRA keeps the five filter knobs through a save and a load", fdra_round_trip());
     check("project: out-of-range filter values are clamped on load", fdra_clamps());
-    check("project: FDRB's step layout (flags, cond, note offset) in 4 bytes", fdrb_step_layout());
-    check("project: an FDRA record in flash converts (NOTE C4, no SLIDE / TIE)", fdra_flash_converts());
-    check("project: an FDRA image in a RAM slot (0.15.0's layout) is not read; the flash copy loads", fdra_ram_refetched());
     check("project: FDRB keeps SLIDE, TIE and the note through a save and a load", fdrb_round_trip());
     check("project: a stored step's reserved bits are cleared, its note and MICRO clamped", fdrb_clamps());
-    check("project: an FDR8 record (3544 B) loads with its motion, no name", fdr8_converts());
     check("project: a broken name is dropped, the project loads", fdr9_bad_name_dropped());
     check("project: a rename writes the name only, the current project's too", rename_slot());
     check("MEMB at every extreme: bounded (ASan)", memb_extremes());
@@ -2675,14 +1976,9 @@ int main(void)
           quant_persists());
     check("project: SYNC / ROUT load OFF / NOTE from older projects; ROUT in range; SYNC BLE / BOTH without Bluetooth: "
           "OFF / USB", sync_rout_load());
-    check("project: an FDRB record (0.16.0) loads with PRIO HIGH, its steps, motion and name", fdrb_converts());
     check("project: PRIO kept through a save and a load (FDRE)", fdrc_round_trip());
-    check("project: FDR1, FDRA and FDRB records load with PRIO HIGH and play as the FDRC save", old_formats_play_same());
-    check("project: 0.16.0's RAM slots (FDRB) are not read; the flash records load (converted)", fdrb_ram_refetched());
-    check("project: an FDRD record's LFO DEST / DEPTH load as DEST slots 1 / 2 (LFO 1 / 2), 3 / 4 off; it plays as its "
-          "FDRE save, motion and presets kept", fdrd_lfo_converts());
-    check("project: the DEST slots kept through a save and a load (FDRE, 3840 B: one flash sector)", fdre_slots_round_trip());
-    check("project: SRR and the INSERT kept through a save and a load (still 3840 B: the steps' spare bytes), 0 stored "
+    check("project: the DEST slots kept through a save and a load (FRT6, 3044 B: one flash sector)", fdre_slots_round_trip());
+    check("project: SRR and the INSERT kept through a save and a load (3044 B: the steps' spare bytes), 0 stored "
           "at their power-on values", fdre_inserts_round_trip());
     check("project: a record from before SRR and the INSERT loads with both off, playing as before",
           fdre_old_inserts_off());
@@ -2694,17 +1990,14 @@ int main(void)
     check("last project: safe start loads nothing and asks nothing", last_project_safe_start());
     check("last project: an older record boots the power-on kit; a RAM-only save remembers nothing",
           last_project_old_record_no_flash());
+    check("project: an old 8-track record (Hortator's FDRG, 3840 B) in flash boots as an empty slot, nothing loaded",
+          old_8track_record_boots_empty());
     check("last project: lowcut's bits keep SPEAKER EQ, the slot and the Bluetooth bytes", last_project_bits());
-    check("FDRF: motion, locks and PLAY bits through a save and a load (the project record 3840 B, 504 B reserved: xp, "
+    check("FDRF: motion, locks and PLAY bits through a save and a load (the project record 3044 B, 504 B reserved: xp, "
           "xp2, the rest 0)",
           fdrf_round_trip());
-    check("FDRF: an FDRE record (0.23.3) migrates: its motion as motion events, PLAY bits, every knob and step",
-          fdre_migrates());
-    check("FDRF: an FDRE converted in RAM, unsaved, converts again after a reset (no LOCKS LOST)", fdre_ram_refetched());
-    check("FDRG: every step's MICRO and the 7 parameters past the block through a save and a load (3840 B)",
+    check("FRT6: every step's MICRO and the 7 parameters past the block through a save and a load (3044 B)",
           fdrg_micro_round_trip());
-    check("FDRG: a 0.26.0 record (FDRF) converts: SRR, the INSERT kept, micro 0, its locks still linked",
-          fdrf_converts());
     check("FDRF: 1024 events: every bank sector's +0xF00..+0xF4F stays erased (the loader's scan)", bank_scan_offset_erased());
     check("FDRF: a save torn in the project record, the bank's commit or its payload: the old pair loads together",
           bank_torn_keeps_pair());
@@ -2713,8 +2006,6 @@ int main(void)
     check("FDRF: a bank wrong inside (magic, slot, order, count, not the linked one) loads empty, LOCKS LOST",
           bad_bank_never_misread());
     check("FDRF: boot, four saves of 1024 events and a rename write only inside the flash map", writes_stay_in_map());
-    check("FDRF: a migrated FDRE renamed before any save keeps its motion (the bank written before the record)",
-          fdre_rename_keeps_motion());
     check("FDRF: a RENAME after a SAVE ERROR is RAM's only (unsaved edits); flash's pair loads whole after a reset",
           save_error_rename_writes_bank());
     check("USR3: a failed clamp: no lock-bank write that boot (SAVE / RENAME refuse), USR3 CLAMP FAILED said",

@@ -19,13 +19,8 @@ typedef struct {
     uint8_t lock[LK_MAX / 8u];                  /* bit i: event i is a lock (snap back); else motion (hold) */
 } lk_bank_t;
 _Static_assert(sizeof(lk_bank_t) == 3208u && sizeof(lk_bank_t) <= 3584u, "lock bank: 3208 B, +0xF00 erased");
-_Static_assert(NTRK == 8 && NSTEP == 64 && P_COUNT <= 128, "lock key: track 3 bits, step 6, knob 7");
+_Static_assert(NTRK <= 8 && NSTEP == 64 && P_COUNT <= 128, "lock key: track 3 bits, step 6, knob 7");
 
-/* the motion store as FDR8..FDRE projects saved it (128 events shared by the 8 tracks): read by the converter */
-#define MOTION_MAX 128u
-typedef struct { uint8_t trk, step, param; int8_t value; } motion_event_t;   /* every recordable range: -64..127 */
-typedef struct { uint8_t count, on, rsv[2]; motion_event_t ev[MOTION_MAX]; } motion_store_t;   /* on: PLAY bits */
-typedef char motion_store_size[sizeof(motion_store_t) == 516u ? 1 : -1];
 #define MO_W ((P_COUNT + 31u) / 32u)            /* words of a track's knob-id bits */
 typedef char motion_ids_fit[P_COUNT <= 96 && MO_W == 3u ? 1 : -1];
 
@@ -151,7 +146,7 @@ static uint32_t lk_step_mask(const lk_bank_t *b, uint32_t trk, uint32_t first)
             m |= 1u << (((uint32_t)(b->key[i] >> 7) & 63u) - first);
     return m;
 }
-/* a bank as stored for slot: its magic and slot, the count in range, every event a recordable knob with a value in
+/* a bank as stored for slot: its magic and slot, the count in range, every event on a track 1..NTRK, a recordable knob with a value in
  * range, strictly ascending by (key, kind) (so no place twice). One pass */
 static int lk_valid(const lk_bank_t *b, uint32_t slot)
 {
@@ -160,7 +155,7 @@ static int lk_valid(const lk_bank_t *b, uint32_t slot)
         return 0;
     for (i = 0; i < b->count; i++) {
         uint32_t id = b->key[i] & 127u;
-        if (id >= P_COUNT || !motion_param(id) || b->val[i] < -64 || (i && lk_ord(b, i - 1u) >= lk_ord(b, i)))
+        if ((uint32_t)(b->key[i] >> 13) >= NTRK || id >= P_COUNT || !motion_param(id) || b->val[i] < -64 || (i && lk_ord(b, i - 1u) >= lk_ord(b, i)))
             return 0;
     }
     return 1;
@@ -178,25 +173,4 @@ static void lk_seal(lk_bank_t *b, uint32_t slot)
         b->val[i] = 0;
         lk_set_lock(b, i, 0);
     }
-}
-/* an old project's motion (FDR8..FDRE: 128 events) -> b as motion events, its PLAY bits kept: 1; a broken block (a
- * count past 128, a place out of range or twice, a knob not recordable, a value below -64): 0, b empty */
-static int lk_from_motion(lk_bank_t *b, uint32_t slot, const motion_store_t *m)
-{
-    uint32_t i;
-    memset(b, 0, sizeof *b);
-    lk_seal(b, slot);
-    if (m->count > MOTION_MAX)
-        return 0;
-    for (i = 0; i < m->count; i++) {
-        const motion_event_t *e = &m->ev[i];
-        if (e->trk >= NTRK || e->step >= NSTEP || e->param >= P_COUNT || !motion_param(e->param) || e->value < -64 ||
-            lk_put(b, lk_key(e->trk, e->step, e->param), e->value, 0) != 0) {
-            memset(b, 0, sizeof *b);
-            lk_seal(b, slot);
-            return 0;
-        }
-    }
-    b->on = m->on;
-    return 1;
 }

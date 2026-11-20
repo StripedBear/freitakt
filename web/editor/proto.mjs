@@ -70,24 +70,23 @@ export const RK = { PRESETS: 0, PROJECT: 1 };
 export const PART = { RECORD: 0, LOCKS: 1, VARS: 2 };
 export const OBJ = { PRESETS: 0, PROJECT: 1, LOCKS: 5, VARS: 9, N: 13 }; // + slot
 export const BF = { UNSAVED: 0x01, LOST: 0x02, OLD: 0x04 };
-export const SZ = { PRESETS: 3204, PRESETS_V1: 1284, PROJECT: 3840, LOCKS: 3208, VARS_MIN: 22, VARS_MAX: 3584 };
-// FDRG FDRF LKB1 VAR1 UPR2; UPR1: the user presets before minor 2 (128 voices)
-export const MAGIC = { PROJ: 0x47524446, PROJ_F: 0x46524446, LK: 0x31424b4c, VAR: 0x31524156, UPR: 0x32525055, UPR1: 0x31525055 };
-/** a record in the current layout: FDRG, or FDRF (the same bytes, but steps 0..6's spare bytes hold the parameters
- * past the block, no NUDGE; it links a lock bank and variations as FDRG does) */
-export const isFullRecord = (m) => m === MAGIC.PROJ || m === MAGIC.PROJ_F;
-/** the older project records the firmware converts at load: magic -> size ("FDR1" .. "FDRF") */
-export const OLD_PROJECTS = new Map([[0x31524446, 1564], [0x32524446, 2624], [0x33524446, 2656], [0x34524446, 2912],
-  [0x35524446, 3024], [0x36524446, 3024], [0x37524446, 3028], [0x38524446, 3544], [0x39524446, 3592],
-  [0x41524446, 3672], [0x42524446, 3672], [0x43524446, 3688], [0x44524446, 3712], [0x45524446, 3840], [0x46524446, 3840]]);
+export const SZ = { PRESETS: 3204, PRESETS_V1: 1284, PROJECT: 3044, LOCKS: 3208, VARS_MIN: 22, VARS_MAX: 3584 };
+// FRT6 (FREITAKT, 6 tracks: Hortator's FDRG layout with 6 tracks) LKB1 VAR6 UPR2; UPR1: the user presets before
+// minor 2 (128 voices)
+export const MAGIC = { PROJ: 0x36545246, LK: 0x31424b4c, VAR: 0x36524156, UPR: 0x32525055, UPR1: 0x31525055 };
+/** a record in the current layout (FRT6), linking a lock bank and variations */
+export const isFullRecord = (m) => m === MAGIC.PROJ;
+/** the older project records the firmware converts at load: none (FREITAKT does not read Hortator's 8-track
+ * "FDR1".."FDRG": the device refuses them, NOT A HORTATOR OBJECT) */
+export const OLD_PROJECTS = new Map();
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 8, nstep: 64, pcount: 69, gcount: 32, pStored: 57, gStored: 31,
+  ntrk: 6, nstep: 64, pcount: 69, gcount: 32, pStored: 57, gStored: 31,
   // a record keeps the places of the removed Grids, RESON and SLICER (FREITAKT; project.c PR_G / PR_P): [first id
   // after the gap, its count], written 0
   gGap: [22, 10], sGap: [18, 4], pGap: [26, 1], rGap: [43, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
-  xpN: 7, xpAt: 1, // xp: 7 B a track (FDRF: steps 0..6's spare bytes), the parameters from byte 1 (byte 0: RESON KEYF's, 0)
-  xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp; FDRF: step rsv)
+  xpN: 7, xpAt: 1, // xp: 7 B a track, the parameters from byte 1 (byte 0: RESON KEYF's, 0)
+  xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp)
   xp2Def: [0, 0, 40, 0], // P_SATK P_SSUS P_SREL P_SLOOP (the SAMPLE model's ATK SUS REL LOOP): xp2; 0 in every record before them
   xp3Def: [0, 0], // P_SPLAY P_SCUT (the SAMPLE model's PLAY: KEY 0, CHOP 1; CUT OFF 0, ON 1): xp3; 0 before them
   envDef: [0, 0, 40, 0, 0, 0], // a SAMPLE user preset's ATK SUS REL LOOP PLAY CUT: their power-on values
@@ -96,8 +95,8 @@ export const LAYOUT = {
   smpl: 14, // DM_SMPL: the SAMPLE model, the only one whose user presets hold ATK SUS REL LOOP
   uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
   timing: [18, 19, 20], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
-  project: { size: 3840, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 3246, lk_link: 3248, var_link: 3252,
-    var_len: 3256, xp: 3258, xp2: 3314, xp3: 3346, rsv_song: 3762, name: 3798, pre: 3810, pre_ed: 3826, sum: 3836 },
+  project: { size: 3044, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 2458, lk_link: 2460, var_link: 2464,
+    var_len: 2468, xp: 2470, xp2: 2512, xp3: 2536, rsv_song: 2974, name: 3010, pre: 3022, pre_ed: 3034, sum: 3040 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
   vars: { slot: 4, used: 6, d: 8 },
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
@@ -567,13 +566,12 @@ export function encodePresets(slots, moved = noMoves()) {
   return b;
 }
 
-/** a project record ("FDRG", 3840 B; "FDRF" too: the same layout, its parameters past the block in steps 0..6's spare
- * bytes and every NUDGE 0, as the firmware converts it at load (old: true); an older one: only magic, size and sum are
- * read). full: decoded (FDRG / FDRF) */
+/** a project record ("FRT6", 3044 B); any other magic (Hortator's 8-track FDR1..FDRG too): only magic, size and sum
+ * are read, never a valid record (full: false, ok: false). full: decoded */
 const recG = (i) => (i < LAYOUT.gGap[0] ? i : i + LAYOUT.gGap[1]); // a global's place in a record
 const recP = (i) => (i < LAYOUT.sGap[0] ? i : i < LAYOUT.pGap[0] ? i + LAYOUT.sGap[1] : i < LAYOUT.rGap[0] ? i + LAYOUT.sGap[1] + LAYOUT.pGap[1]
   : i + LAYOUT.sGap[1] + LAYOUT.pGap[1] + LAYOUT.rGap[1]); // .. a track parameter's
-const recX = (f, o, k, j) => (f ? o + LAYOUT.project.trkStep + 4 * (LAYOUT.xpAt + j) + 3 : LAYOUT.project.xp + LAYOUT.xpN * k + LAYOUT.xpAt + j); // xp's j
+const recX = (k, j) => LAYOUT.project.xp + LAYOUT.xpN * k + LAYOUT.xpAt + j; // xp's j
 export function decodeProject(b) {
   const v = dv(b), L = LAYOUT.project, magic = v.getUint32(0, true), size = v.getUint32(4, true);
   const sumOk = b.length >= 8 && fnv1a(b, b.length - 4) === v.getUint32(b.length - 4, true);
@@ -581,7 +579,6 @@ export function decodeProject(b) {
     const old = OLD_PROJECTS.get(magic);
     return { magic, format: magicText(magic), old: !!old, full: false, ok: !!old && size === b.length && old === b.length && sumOk };
   }
-  const f = magic === MAGIC.PROJ_F;
   const ok = b.length === L.size && size === L.size && sumOk;
   const g = [];
   for (let i = 0; i < LAYOUT.gStored; i++) g.push(v.getInt16(L.g + 2 * recG(i), true));
@@ -591,30 +588,29 @@ export function decodeProject(b) {
     const o = L.t + k * L.trk, p = [], steps = [];
     for (let i = 0; i < LAYOUT.pStored; i++) p.push(v.getInt16(o + 2 * recP(i), true));
     const nx = LAYOUT.xpDef.length, n2 = LAYOUT.xp2Def.length;
-    for (let j = 0; j < nx; j++) // proj_xp_get (FDRF: proj_xp_move's source, steps 0..6's spare bytes)
-      p.push(LAYOUT.xpDef[j] + v.getInt8(recX(f, o, k, j)));
-    for (let j = 0; j < n2; j++) p.push(LAYOUT.xp2Def[j] + v.getInt8(L.xp2 + n2 * k + j)); // .. xp2 (FDRF: 0)
+    for (let j = 0; j < nx; j++) p.push(LAYOUT.xpDef[j] + v.getInt8(recX(k, j))); // proj_xp_get
+    for (let j = 0; j < n2; j++) p.push(LAYOUT.xp2Def[j] + v.getInt8(L.xp2 + n2 * k + j)); // .. xp2
     LAYOUT.xp3Def.forEach((d, j) => p.push(d + v.getInt8(L.xp3 + LAYOUT.xp3Def.length * k + j))); // .. xp3
     for (let i = 0; i < LAYOUT.nstep; i++) {
       const s = o + L.trkStep + 4 * i;
       steps.push({ flags: b[s] & 0x3f, cond: b[s + 1], note: v.getInt8(s + 2) + STEP.NT_OFFSET,
-        micro: f ? 0 : Math.max(-STEP.MICRO_MAX, Math.min(STEP.MICRO_MAX, v.getInt8(s + 3))) });
+        micro: Math.max(-STEP.MICRO_MAX, Math.min(STEP.MICRO_MAX, v.getInt8(s + 3))) });
     }
     tracks.push({ p, steps, pre: v.getUint16(L.pre + 2 * k, true), preEd: b[L.pre_ed + k] });
   }
   let name = "";
   for (let i = 0; i < LAYOUT.nameLen && b[L.name + i]; i++) name += String.fromCharCode(b[L.name + i]);
   if ([...name].some((c) => !NAME_SET.includes(c))) name = "";
-  return { magic, format: magicText(magic), old: f, full: true, ok, g, sel: b[L.sel], tracks, name,
+  return { magic, format: magicText(magic), old: false, full: true, ok, g, sel: b[L.sel], tracks, name,
     lk_n: v.getUint16(L.lk_n, true), lk_link: v.getUint32(L.lk_link, true), var_link: v.getUint32(L.var_link, true),
     var_len: v.getUint16(L.var_len, true), sum: v.getUint32(L.sum, true) };
 }
-/** p: { g[32], sel, tracks[8] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, lk_n,
- * lk_link, var_link, var_len } -> 3840 B with its sum; format "FDRF": the record an editor before NUDGE wrote (tests) */
-export function encodeProject(p, format = "FDRG") {
-  const b = new Uint8Array(SZ.PROJECT), v = dv(b), L = LAYOUT.project, f = format === "FDRF", nx = LAYOUT.xpDef.length;
+/** p: { g[32], sel, tracks[6] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, lk_n,
+ * lk_link, var_link, var_len } -> an "FRT6" record (3044 B) with its sum */
+export function encodeProject(p) {
+  const b = new Uint8Array(SZ.PROJECT), v = dv(b), L = LAYOUT.project, nx = LAYOUT.xpDef.length;
   const n2 = LAYOUT.xp2Def.length;
-  v.setUint32(0, f ? MAGIC.PROJ_F : MAGIC.PROJ, true);
+  v.setUint32(0, MAGIC.PROJ, true);
   v.setUint32(4, SZ.PROJECT, true);
   for (let i = 0; i < LAYOUT.gStored; i++) v.setInt16(L.g + 2 * recG(i), p.g[i], true);
   b[L.rsv] = p.g[LAYOUT.gStored] & 255;
@@ -627,13 +623,13 @@ export function encodeProject(p, format = "FDRG") {
       b[q] = s.flags & 0x3f;
       b[q + 1] = s.cond;
       v.setInt8(q + 2, s.note - STEP.NT_OFFSET);
-      if (!f) v.setInt8(q + 3, microOf(s));
+      v.setInt8(q + 3, microOf(s));
     });
     for (let j = 0; j < nx; j++) // proj_xp_enc
-      b[recX(f, o, k, j)] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + j])) - LAYOUT.xpDef[j]) & 255;
-    for (let j = 0; j < n2 && !f; j++) // .. xp2 (an FDRF record: 0 there)
+      b[recX(k, j)] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + j])) - LAYOUT.xpDef[j]) & 255;
+    for (let j = 0; j < n2; j++) // .. xp2
       b[L.xp2 + n2 * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + j] ?? LAYOUT.xp2Def[j])) - LAYOUT.xp2Def[j]) & 255;
-    LAYOUT.xp3Def.forEach((d, j) => { if (!f) b[L.xp3 + LAYOUT.xp3Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + j] ?? d)) - d) & 255; });
+    LAYOUT.xp3Def.forEach((d, j) => { b[L.xp3 + LAYOUT.xp3Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + j] ?? d)) - d) & 255; });
     v.setUint16(L.pre + 2 * k, t.pre, true);
     b[L.pre_ed + k] = t.preEd ? 1 : 0;
   });
@@ -674,7 +670,7 @@ export function encodeLocks({ slot, on = 0, events }) {
   return b;
 }
 
-/** variations 2..8 ("VAR1", 8 + used B) <-> { slot, entries[7]: null (unused) or { timing[8][4], steps[8][64] } } */
+/** variations 2..8 ("VAR6", 8 + used B) <-> { slot, entries[7]: null (unused) or { timing[6][4], steps[6][64] } } */
 export function decodeVars(b) {
   const v = dv(b), L = LAYOUT.vars, used = v.getUint16(L.used, true), entries = [];
   if (b.length !== 8 + used) throw new Error("variations: length != 8 + used");
@@ -684,9 +680,9 @@ export function decodeVars(b) {
     const n = v.getUint16(o, true);
     o += 2;
     if (!n) { entries.push(null); continue; }
-    if (o + n > b.length || n < 96) throw new Error("variations: malformed");
+    if (o + n > b.length || n < 12 * LAYOUT.ntrk) throw new Error("variations: malformed"); // 12 B a track, then its steps
     const timing = [], steps = [];
-    let q = o + 96;
+    let q = o + 12 * LAYOUT.ntrk;
     for (let k = 0; k < LAYOUT.ntrk; k++) {
       const t = o + 12 * k;
       timing.push([b[t], b[t + 1], b[t + 2], b[t + 3]]);
@@ -740,7 +736,7 @@ export function encodeVars({ slot, entries }) {
 export const lockLink = (lk) => (fnv1a(lk) | 1) >>> 0; // project.c proj_link
 export const varLink = (vb) => (fnv1a(vb) | 1) >>> 0; // project.c var_link_of (8 + used bytes)
 /** a project's three objects sealed for slot (the device does this at RESTORE COMMIT): the lock bank's and the
- * variations' slot bytes, the record's links and sum (FDRG, FDRF: its magic kept). Older records are returned as they are */
+ * variations' slot bytes, the record's links and sum (FRT6: its magic kept). Older records are returned as they are */
 export function sealProject({ record, locks, vars }, slot) {
   const r = Uint8Array.from(record), v = dv(r);
   if (!isFullRecord(v.getUint32(0, true))) return { record: r, locks, vars };

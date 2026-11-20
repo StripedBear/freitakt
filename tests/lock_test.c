@@ -131,8 +131,11 @@ static void lk_valid_rejects(void)
     BAD("param", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, P_MODEL); });
     BAD("param past P_COUNT", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, 127); });
     BAD("value", C.val[5] = -65);
+    BAD("track 7 (Hortator's 8-track bank)", { C.count = 1; C.key[0] = (uint16_t)lk_key(6, 3, P_E1); C.val[0] = 0; });
+    BAD("track 8", { C.count = 1; C.key[0] = (uint16_t)lk_key(7, 63, P_E1); C.val[0] = 0; });
 #undef BAD
-    check("bank: lk_valid rejects magic, slot, count, order, duplicates, a knob not recordable, value -65", ok);
+    check("bank: lk_valid rejects magic, slot, count, order, duplicates, a knob not recordable, value -65, a track "
+          "past NTRK", ok);
 }
 static void lk_clear_kinds(void)
 {
@@ -178,46 +181,6 @@ static void lk_step_mask_bank(void)
     check("bank: a track's locked steps of a bank of 16 as a mask (motion events not)",
           lk_step_mask(&B, 3, 0) == 1u << 3 && lk_step_mask(&B, 3, 16) == 1u << 2 && lk_step_mask(&B, 3, 32) == 0u);
 }
-static void lk_from_motion_ok(void)
-{
-    static motion_store_t m;
-    uint32_t i, ok = 1;
-    memset(&m, 0, sizeof m);
-    for (i = 0; i < MOTION_MAX; i++) {
-        m.ev[i].trk = (uint8_t)(i & 7u);
-        m.ev[i].step = (uint8_t)(63u - (i >> 3));
-        m.ev[i].param = (uint8_t)P_E0 + (uint8_t)(i % 3u);
-        m.ev[i].value = (int8_t)(i - 64);
-    }
-    m.count = MOTION_MAX;
-    m.on = 0x5A;
-    memset(&B, 0xEE, sizeof B);
-    ok = lk_from_motion(&B, 3, &m) == 1 && B.count == MOTION_MAX && B.on == 0x5A && lk_valid(&B, 3);
-    for (i = 0; ok && i < MOTION_MAX; i++) {
-        int j = lk_find(&B, lk_key(m.ev[i].trk, m.ev[i].step, m.ev[i].param), 0);
-        ok &= j >= 0 && B.val[j] == m.ev[i].value;
-    }
-    ok &= lk_count(&B, 0, LK_LOCK) == 0u;
-    check("bank: an old project's 128 motion events convert (motion kind, PLAY bits kept)", ok);
-}
-static void lk_from_motion_broken(void)
-{
-    static motion_store_t m;
-    int ok;
-    memset(&m, 0, sizeof m);
-    m.count = 2;
-    m.on = 1;
-    m.ev[0].trk = 9;
-    m.ev[0].param = P_E1;
-    m.ev[1].param = P_E1;
-    ok = lk_from_motion(&B, 0, &m) == 0 && B.count == 0u && B.on == 0u && lk_valid(&B, 0);
-    m.ev[0].trk = 1;
-    m.ev[1].trk = 1;                                   /* the same place twice */
-    ok &= lk_from_motion(&B, 0, &m) == 0 && B.count == 0u && lk_valid(&B, 0);
-    m.count = 129;
-    ok &= lk_from_motion(&B, 0, &m) == 0 && B.count == 0u;
-    check("bank: a broken old motion block (track 9, a place twice, count 129) converts to an empty bank", ok);
-}
 static void lk_seal_deterministic(void)
 {
     uint32_t i;
@@ -225,7 +188,7 @@ static void lk_seal_deterministic(void)
     memset(&C, 0x77, sizeof C);
     B.count = C.count = 0;
     for (i = 0; i < 40u; i++) {
-        uint32_t k = lk_key(i & 7u, i, P_E3);
+        uint32_t k = lk_key(i % NTRK, i, P_E3);
         lk_put(&B, k, (int32_t)i, (int)(i & 1u));
         lk_put(&C, k, (int32_t)i, (int)(i & 1u));
     }
@@ -470,8 +433,6 @@ int main(void)
     lk_clear_kinds();
     lk_clear_step_ids();
     lk_step_mask_bank();
-    lk_from_motion_ok();
-    lk_from_motion_broken();
     lk_seal_deterministic();
     lock_snaps_back();
     lock_plays_motion_off();

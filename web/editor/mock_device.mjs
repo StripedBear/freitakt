@@ -135,7 +135,7 @@ export class MockDevice {
     const s = id >= this.d.presets.length && id !== LAYOUT.preNone && !this.uprOld ? this.upr[id - this.d.presets.length] : null;
     return s && !s.voiceOnly ? s.fx : null;
   }
-  emptySteps() { return Array.from({ length: 8 }, () => Array.from({ length: 64 }, emptyStep)); }
+  emptySteps() { return Array.from({ length: LAYOUT.ntrk }, () => Array.from({ length: 64 }, emptyStep)); }
   emptyImage(name, models, bpm) {
     const g = this.d.gp.map((x) => x.def);
     g[this.G.BPM] = bpm;
@@ -158,7 +158,7 @@ export class MockDevice {
       return { model: f.model, knobs, fx, voiceOnly: r() < 0.2 };
     });
     /* A: TECHNO 1, four variations, locks and motion */
-    const a = this.emptyImage("TECHNO 1", [M.BDTRX, M.SDTRX, M.CHTRX, M.OHTRX, M.CPTRX, M.RSTRX, M.TMTRX, M.CYTRX], 128);
+    const a = this.emptyImage("TECHNO 1", [M.BDTRX, M.SDTRX, M.CHTRX, M.OHTRX, M.CPTRX, M.TMTRX], 128);
     const s = a.steps1;
     on(s[0], [0, 4, 8, 12], STEP.ACC);
     on(s[1], [4, 12]);
@@ -167,17 +167,16 @@ export class MockDevice {
     on(s[3], [2, 6, 10, 14]);
     on(s[4], [12], 0, 57); // FILL
     on(s[5], [3, 11], 1 << STEP.RAT_SHIFT); // 2 hits
-    on(s[6], [14, 15], 0, 0, 67);
-    on(s[7], [0], 0, 22); // 1/2
+    on(s[5], [14, 15], 0, 0, 67); // (FREITAKT: track 6, the tom, since 6 tracks)
     for (const i of [2, 6, 10, 14]) s[2][i].micro = 25; // NUDGE: the off-beat hats late
     s[1][12].micro = -10; // .. the second snare early
-    const v2 = { timing: Array.from({ length: 8 }, () => [16, 2, 0, 0]), steps: clone(s) };
+    const v2 = { timing: Array.from({ length: LAYOUT.ntrk }, () => [16, 2, 0, 0]), steps: clone(s) };
     on(v2.steps[0], [0, 4, 8, 10, 12], STEP.ACC);
     on(v2.steps[1], [4, 12, 15], 0, 0, 62);
-    const v3 = { timing: Array.from({ length: 8 }, () => [16, 2, 20, 0]), steps: this.emptySteps() };
+    const v3 = { timing: Array.from({ length: LAYOUT.ntrk }, () => [16, 2, 20, 0]), steps: this.emptySteps() };
     on(v3.steps[2], range(0, 16, 1));
     on(v3.steps[3], [8]);
-    const v5 = { timing: Array.from({ length: 8 }, (_, k) => [k === 2 ? 12 : 32, 2, 0, 0]), steps: clone(s) };
+    const v5 = { timing: Array.from({ length: LAYOUT.ntrk }, (_, k) => [k === 2 ? 12 : 32, 2, 0, 0]), steps: clone(s) };
     on(v5.steps[0], [16, 20, 24, 28, 30]);
     a.vars = [v2, v3, null, v5, null, null, null];
     for (const st of [1, 3, 5, 7, 9, 11, 13, 15]) a.locks.push({ track: 2, step: st, param: this.P.E1, kind: LK.LOCK, value: 20 + st * 4 });
@@ -186,18 +185,18 @@ export class MockDevice {
     for (const st of [0, 4, 8, 12]) a.locks.push({ track: 3, step: st, param: this.P.FCUT, kind: LK.MOTION, value: 40 + st * 5 });
     a.lockOn = 1 << 3;
     /* B: BREAKS 909, two variations */
-    const b = this.emptyImage("BREAKS 909", [M.K909, M.S909, M.HATC, M.HATO, M.C909, M.RIM, M.TOM, M.CYMB], 96);
+    const b = this.emptyImage("BREAKS 909", [M.K909, M.S909, M.HATC, M.HATO, M.C909, M.TOM], 96);
     b.tracks.forEach((t) => { t.p[this.P.SLEN] = 32; });
     on(b.steps1[0], [0, 10, 16, 26]);
     on(b.steps1[1], [4, 12, 20, 28], STEP.ACC);
     on(b.steps1[2], range(0, 32, 2));
     on(b.steps1[3], [14, 30]);
-    b.vars[0] = { timing: Array.from({ length: 8 }, () => [32, 2, 30, 0]), steps: clone(b.steps1) };
+    b.vars[0] = { timing: Array.from({ length: LAYOUT.ntrk }, () => [32, 2, 30, 0]), steps: clone(b.steps1) };
     on(b.vars[0].steps[0], [6, 22]);
     for (const st of [2, 6, 18, 22]) b.locks.push({ track: 2, step: st, param: this.P.PAN, kind: LK.LOCK, value: st < 10 ? -30 : 30 });
     for (const st of [12, 28]) b.locks.push({ track: 1, step: st, param: this.P.E2, kind: LK.LOCK, value: 100 });
     /* C: ACID LINE, the 303 on track 1 */
-    const c = this.emptyImage("ACID LINE", [M.ACID, M.K808, M.HATC, M.S808, M.HATO, M.CLAVE, M.TOM, M.CYMB], 132);
+    const c = this.emptyImage("ACID LINE", [M.ACID, M.K808, M.HATC, M.S808, M.HATO, M.CLAVE], 132);
     const notes = [0, 0, 12, 0, 3, 0, 7, 10, 0, 0, 12, 15, 0, 3, -2, 0];
     notes.forEach((n, i) => { if (i % 4 !== 1) c.steps1[0][i] = { flags: STEP.ON | (i % 3 ? 0 : STEP.ACC) | (i === 6 ? STEP.SLIDE : 0), cond: 0, note: 60 + n - 24, micro: 0 }; });
     c.steps1[0][7].flags |= STEP.TIE;
@@ -207,7 +206,7 @@ export class MockDevice {
     this.slots.forEach((img, i) => { if (img) this.writeSlot(i, img); });
     this.writeUpr();
     /* power-on: A loaded (LOAD: its globals), variation 1, stopped */
-    this.kit = this.emptyImage("", [M.K808, M.S808, M.HATC, M.HATO, M.C808, M.RIM, M.TOM, M.CYMB], 120);
+    this.kit = this.emptyImage("", [M.K808, M.S808, M.HATC, M.HATO, M.C808, M.TOM], 120);
     if (this.o.powerOnKit) this.loadLive(-1);
     else this.loadLive(0);
   }
@@ -239,8 +238,7 @@ export class MockDevice {
   }
   imageOf({ record, locks, vars }) {
     const p = decodeProject(record);
-    if (!p.full) { // an older record: kept as is in flash; the device converts it at load (not emulated). FDRF: decoded
-      // as the firmware converts it (proj_xp_move: NUDGE 0), its own bytes kept in flash
+    if (!p.full) { // not an FRT6 record (the device never takes one: RESTORE refuses it): kept as is
       const img = this.emptyImage("", this.kit.tracks.map((t) => t.p[this.P.MODEL]), 120);
       img.old = Uint8Array.from(record);
       return img;
@@ -347,8 +345,7 @@ export class MockDevice {
     const f = this.flashObjects(s);
     if (!f) return true;
     const o = this.objectsOf(s === this.loaded ? this.liveImage() : this.slots[s], s), eq = (a, b) => (!a && !b) || (a && b && a.length === b.length && a.every((x, i) => x === b[i]));
-    const fp = decodeProject(f.record), fr = fp.old && fp.full ? encodeProject(fp) : f.record; // (FDRF: as converted at load)
-    return !eq(o.record, fr) || !eq(o.locks, f.locks) || !eq(o.vars, f.vars);
+    return !eq(o.record, f.record) || !eq(o.locks, f.locks) || !eq(o.vars, f.vars);
   }
   vmask(s) {
     const img = s === this.loaded ? this.img() : this.slots[s];
@@ -378,7 +375,7 @@ export class MockDevice {
   }
   knob(scope, track, id) { // -> { desc, names, flags, t } or a refusal
     if (scope === SCOPE.TRACK) {
-      if (track !== NONE && track > 7) refuse(RC.BAD, DETAIL.RANGE);
+      if (track !== NONE && track >= LAYOUT.ntrk) refuse(RC.BAD, DETAIL.RANGE);
       if (id >= this.d.tp.length) refuse(RC.BAD, DETAIL.RANGE);
       const t = this.tracks[track === NONE ? this.sel : track], desc = this.trackDesc(t, id), P = this.P;
       let names = desc.names || [];
@@ -545,7 +542,7 @@ export class MockDevice {
     switch (cmd) {
       case CMD.INFO:
         return { magic: this.o.magic, firmware: this.o.firmware, major: this.o.major, minor: this.o.minor, caps: this.o.caps,
-          ntrk: 8, nstep: 64, pcount: this.d.tp.length, gcount: this.d.gp.length, nmodels: this.d.models.length,
+          ntrk: LAYOUT.ntrk, nstep: 64, pcount: this.d.tp.length, gcount: this.d.gp.length, nmodels: this.d.models.length,
           nfact: this.d.presets.length, nuser: this.nuser, nbanks: this.d.banks.length, nslot: 4, nvar: 8,
           maxreq: LIMITS.req, ble: 0, state: this.state() };
       case CMD.PAGES: {
@@ -581,14 +578,14 @@ export class MockDevice {
         return { scope: a.scope, track: a.track, id: a.id, value: v, text, unit };
       }
       case CMD.DUMP: {
-        if (a.track !== NONE && a.track > 7) refuse(RC.BAD, DETAIL.RANGE);
+        if (a.track !== NONE && a.track >= LAYOUT.ntrk) refuse(RC.BAD, DETAIL.RANGE);
         const ti = a.track === NONE ? this.sel : a.track, t = this.tracks[ti];
         return { track: ti, model: t.p[P.MODEL], preset: t.pre === LAYOUT.preNone ? U14_NONE : t.pre, edited: t.preEd,
           p: [...t.p], g: [...this.g] };
       }
       case CMD.SELECT:
         if (a.track !== NONE) {
-          if (a.track > 7) refuse(RC.BAD, DETAIL.RANGE);
+          if (a.track >= LAYOUT.ntrk) refuse(RC.BAD, DETAIL.RANGE);
           this.sel = a.track;
           this.shadowAll(true);
         }
@@ -606,7 +603,7 @@ export class MockDevice {
       case CMD.PRESET_LOAD: {
         this.busy();
         const ti = a.track === NONE ? this.sel : a.track, nf = this.d.presets.length;
-        if (ti > 7 || a.id >= nf + this.nuser) refuse(RC.BAD, DETAIL.RANGE);
+        if (ti >= LAYOUT.ntrk || a.id >= nf + this.nuser) refuse(RC.BAD, DETAIL.RANGE);
         const p = a.id < nf ? { model: this.d.presets[a.id].model, knobs: this.d.presets[a.id].k } : this.upr[a.id - nf];
         if (!p) refuse(RC.REFUSED, DETAIL.PRESET_EMPTY);
         const t = this.tracks[ti];
@@ -621,7 +618,7 @@ export class MockDevice {
         return { track: ti, id: a.id, model: p.model };
       }
       case CMD.STEPS_GET: {
-        if (a.var > 7 || a.track > 7) refuse(RC.BAD, DETAIL.RANGE);
+        if (a.var > 7 || a.track >= LAYOUT.ntrk) refuse(RC.BAD, DETAIL.RANGE);
         const s = this.slotArg(a.slot), live = s === this.loaded && a.var === this.varCur;
         if (s >= 0 && !this.slots[s]) refuse(RC.REFUSED, DETAIL.EMPTY_SLOT, `SLOT ${"ABCD"[s]} EMPTY`);
         if (s < 0 && a.var !== this.varCur) refuse(RC.REFUSED, DETAIL.NO_SLOT);
@@ -641,7 +638,7 @@ export class MockDevice {
         const sent = a.steps.length && a.steps[0].micro !== undefined; // NUDGE sent (minor 1)
         if (sent && !(this.o.caps & CAP.NUDGE)) refuse(RC.BAD, DETAIL.LENGTH); // (an older firmware: 5 + 3 x count only)
         this.busy();
-        if (a.track > 7 || a.var > 7 || a.first > 63 || !a.steps.length || a.first + a.steps.length > 64) refuse(RC.BAD, DETAIL.RANGE);
+        if (a.track >= LAYOUT.ntrk || a.var > 7 || a.first > 63 || !a.steps.length || a.first + a.steps.length > 64) refuse(RC.BAD, DETAIL.RANGE);
         const s = this.slotArg(a.slot);
         if (this.loaded < 0 && a.var !== this.varCur) refuse(RC.REFUSED, DETAIL.NO_SLOT);
         if (s !== this.loaded) refuse(RC.STALE, DETAIL.CUE_FIRST);
@@ -662,7 +659,7 @@ export class MockDevice {
         return { slot: a.slot, var: a.var, track: a.track, first: a.first, count: a.steps.length };
       }
       case CMD.LOCKS_GET: {
-        if (a.track > 7) refuse(RC.BAD, DETAIL.RANGE);
+        if (a.track >= LAYOUT.ntrk) refuse(RC.BAD, DETAIL.RANGE);
         const s = this.slotArg(a.slot);
         if (s >= 0 && !this.slots[s]) refuse(RC.REFUSED, DETAIL.EMPTY_SLOT, `SLOT ${"ABCD"[s]} EMPTY`);
         const ev = (s < 0 ? this.kit : this.slots[s]).locks.filter((e) => e.track === a.track).sort((x, y) => lockOrd(x) - lockOrd(y));
@@ -736,7 +733,7 @@ export class MockDevice {
 
   lockEdit(a) {
     this.busy();
-    if (a.op > LK.CLEAR_TRACK || a.track > 7 || a.step > 63 || a.param >= this.d.tp.length) refuse(RC.BAD, DETAIL.RANGE);
+    if (a.op > LK.CLEAR_TRACK || a.track >= LAYOUT.ntrk || a.step > 63 || a.param >= this.d.tp.length) refuse(RC.BAD, DETAIL.RANGE);
     const bank = this.img().locks, t = this.tracks[a.track];
     const isLock = (e) => e.kind === LK.LOCK && e.track === a.track;
     let value = a.value;
@@ -808,7 +805,7 @@ export class MockDevice {
       const src = obj === 0 ? this.flash.upr : obj < 5 ? this.flash.rec[s] : obj < 9 ? this.flash.lk[s] : this.flash.vr[s];
       let flags = 0;
       if (obj === 0 ? this.uprBytes().some((x, i) => x !== b[i]) : this.slotDirty(s)) flags |= BF.UNSAVED;
-      if (obj > 0 && obj < 5 && b && decodeProject(b).old) flags |= BF.OLD; // (FDRF and older: converted at load)
+      if (obj > 0 && obj < 5 && b && decodeProject(b).old) flags |= BF.OLD; // (none: FREITAKT reads only FRT6)
       out.push(b ? { obj, present: 1, size: b.length, crc: crc32(b), seq: src.seq, flags } : { obj, present: 0, size: 0, crc: 0, seq: 0, flags });
     }
     return out;
@@ -834,7 +831,7 @@ export class MockDevice {
           refuse(RC.REFUSED, DETAIL.BAD_OBJECT);
       } else {
         const m = a.magic, txt = String.fromCharCode(m & 255, m >> 8 & 255, m >> 16 & 255);
-        if (txt === "FDR" && !OLD_PROJECTS.has(m) && m !== MAGIC.PROJ && (m >>> 24) > 0x47) refuse(RC.REFUSED, DETAIL.NEWER);
+        if (txt === "FRT" && m !== MAGIC.PROJ && (m >>> 24) > 0x36) refuse(RC.REFUSED, DETAIL.NEWER); // FRT7..; FDR*: not ours
         const size = m === MAGIC.PROJ ? SZ.PROJECT : OLD_PROJECTS.get(m);
         if (!size || p0.size !== size || (p1.size && p1.size !== SZ.LOCKS) || (p2.size && (p2.size < SZ.VARS_MIN || p2.size > SZ.VARS_MAX))
           || (!isFullRecord(m) && (p1.size || p2.size))) refuse(RC.REFUSED, DETAIL.BAD_OBJECT);
@@ -879,7 +876,7 @@ export class MockDevice {
     }
     const [rec, lk, vr] = r.parts.map((p) => (p.size ? p.buf : null)), p = decodeProject(rec);
     if (!p.ok) bad();
-    if (p.full) { // FDRG, FDRF: linked
+    if (p.full) { // FRT6: linked
       if (!!p.lk_n !== !!lk || !!p.var_len !== !!vr || (vr && vr.length !== p.var_len)) bad();
       if (lk) {
         const b = decodeLocks(lk);
@@ -1068,12 +1065,12 @@ export class MockDevice {
       out.push(encodePush(PUSH.CHANGED, { scope: SCOPE.GLOBAL, track: 0, id, value: this.g[id], text, unit }));
     }
     // editor_pattern.c ed_pattern_push: one STEPS_CHANGED and one LOCKS_CHANGED at most (track 7F: several)
-    const ks = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => this.hashSteps(k) !== sh.steps[k]);
+    const ks = [...Array(LAYOUT.ntrk).keys()].filter((k) => this.hashSteps(k) !== sh.steps[k]);
     if (ks.length && room()) {
       ks.forEach((k) => { sh.steps[k] = this.hashSteps(k); });
       out.push(encodePush(PUSH.STEPS_CHANGED, { slot: this.loaded < 0 ? NONE : this.loaded, var: this.varCur, track: ks.length > 1 ? NONE : ks[0] }));
     }
-    const kl = [0, 1, 2, 3, 4, 5, 6, 7].filter((k) => this.hashLocks(k) !== sh.locks[k]);
+    const kl = [...Array(LAYOUT.ntrk).keys()].filter((k) => this.hashLocks(k) !== sh.locks[k]);
     if (kl.length && room()) {
       kl.forEach((k) => { sh.locks[k] = this.hashLocks(k); });
       out.push(encodePush(PUSH.LOCKS_CHANGED, { slot: this.loaded < 0 ? NONE : this.loaded, track: kl.length > 1 ? NONE : kl[0] }));

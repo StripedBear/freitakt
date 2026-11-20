@@ -74,7 +74,7 @@ static void old_set_model(track_t *t, uint32_t mi)    /* drum_set_model at the o
  * model and MIDI note of each track. The tests' "power-on kit" stays this one, so no metric moves */
 static const uint8_t OLD_KIT[NTRK][2] = {
     {DM_K909, 36}, {DM_S808, 38}, {DM_C808, 39}, {DM_HATC, 42},
-    {DM_HATO, 46}, {DM_TOM, 45}, {DM_RIM, 37}, {DM_CYMB, 49},
+    {DM_HATO, 46}, {DM_TOM, 45},                     /* (FREITAKT: 6 tracks, RIM and CYMB gone) */
 };
 
 static void old_kit(void)                             /* the old power-on kit (OLD_KIT) at the old defaults */

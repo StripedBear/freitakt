@@ -321,11 +321,11 @@ static void test_user_save_load_delete(void)
     {
         uint32_t i;
         for (i = 0; i < PRE_NUSER; i++)
-            preset_user_save(i, &trk[i & 7u]);
+            preset_user_save(i, &trk[i % NTRK]);
         check("all 96 slots used: no free slot", preset_user_free() == -1);
         power_cycle();
         check("96 slots: all back after a power cycle", preset_user_free() == -1 && preset_get(user_id(95), &p) &&
-              p.model == (uint32_t)trk[7].p[P_MODEL]);
+              p.model == (uint32_t)trk[(PRE_NUSER - 1u) % NTRK].p[P_MODEL]);
     }
 }
 
@@ -405,51 +405,32 @@ static void test_user_save_deferred_and_cut(void)
     }
 }
 
-/* an FDRC record (the 12th format): the hats with CHOKE 1, an edited knob */
+/* an FDRC record (Hortator's 12th format, 8 tracks) in flash: FREITAKT does not read it, the slot loads as empty */
 static void test_fdrc_converts(void)
 {
-    static project_vc_t old;
-    uint32_t k, i, ok = 1;
+    static uint8_t old[3688];                        /* the FDRC record's size */
+    uint32_t sum;
     fresh();
-    trk[3].p[P_CHOKE] = trk[4].p[P_CHOKE] = 1;
-    trk[3].p[P_E1] = 33;
-    trk[4].p[P_E2] = 101;
-    memset(&old, 0, sizeof old);
-    old.magic = PROJ_MAGIC_VC;
-    old.size = sizeof old;
-    for (k = 0; k < G_NSTORED; k++)
-        old.g[PR_G(k)] = song.g[k];
-    for (k = 0; k < NTRK; k++) {
-        for (i = 0; i <= P_PRIO; i++)
-            old.t[k].p[PR_P(i)] = trk[k].p[i];
-        memcpy(old.t[k].step, trk[k].step, sizeof old.t[k].step);
-    }
-    old.sum = proj_hash(&old, sizeof old - 4u);
-    check("(the FDRC record: 3688 B)", sizeof old == 3688u);
-    st_save(OBJ_PROJECT0 + 1u, &old, sizeof old);
+    memset(old, 0x33, sizeof old);
+    memcpy(old, "FDRC", 4);
+    sum = proj_hash(old, sizeof old - 4u);
+    memcpy(old + sizeof old - 4u, &sum, 4);
+    st_save(OBJ_PROJECT0 + 1u, old, sizeof old);
     proj_slot[1].magic = 0;
-    host_init();                                     /* a fresh kit: no choke, every track on a preset */
-    check("loads", proj_load(1, 1) == 1);
-    check("the hats keep CHOKE 1", trk[3].p[P_CHOKE] == 1 && trk[4].p[P_CHOKE] == 1);
-    for (k = 0; k < NTRK; k++) {
-        ok &= trk[k].pre == PRE_NONE && !trk[k].pre_ed;
-        for (i = 0; i <= P_PRIO; i++)
-            ok &= trk[k].p[i] == old.t[k].p[PR_P(i)];
-    }
-    check("every track: no preset, not edited, every parameter as stored (sound unchanged)", ok);
-    check("the converted slot is an FDRE one now", proj_slot[1].magic == PROJ_MAGIC && proj_ok(&proj_slot[1]));
+    host_init();
+    check("an FDRC record (Hortator, 8 tracks) does not load", proj_load(1, 1) != 1 && !proj_ok(&proj_slot[1]));
 }
 
 static void test_fdrd_round_trip(void)
 {
     uint32_t k, ok = 1;
     fresh();
-    check("(FDRE: 3840 B, one flash sector)", sizeof(project_t) == 3840u && sizeof(project_t) <= ST_PAYLOAD_MAX);
+    check("(FRT6: 3044 B, one flash sector)", sizeof(project_t) == 3044u && sizeof(project_t) <= ST_PAYLOAD_MAX);
     preset_load(&trk[2], preset_first_of(DM_SDEFM));
     preset_load(&trk[5], preset_first_of(DM_MEMB));
     trk[5].pre_ed = 1;
-    preset_user_save(3, &trk[6]);
-    preset_load(&trk[6], user_id(3));
+    preset_user_save(3, &trk[4]);
+    preset_load(&trk[4], user_id(3));
     trk[1].pre = PRE_NONE;
     project_save(2);
     for (k = 0; k < NTRK; k++) {
@@ -459,7 +440,7 @@ static void test_fdrd_round_trip(void)
     proj_slot[2].magic = 0;                          /* from flash */
     check("loads", proj_load(2, 1) == 1);
     ok = trk[2].pre == preset_first_of(DM_SDEFM) && !trk[2].pre_ed && trk[5].pre == preset_first_of(DM_MEMB) &&
-         trk[5].pre_ed && trk[6].pre == user_id(3) && !trk[6].pre_ed && trk[1].pre == PRE_NONE && !trk[1].pre_ed;
+         trk[5].pre_ed && trk[4].pre == user_id(3) && !trk[4].pre_ed && trk[1].pre == PRE_NONE && !trk[1].pre_ed;
     check("each track's preset and edited mark saved and loaded (factory, edited, user, none)", ok);
     proj_slot[2].t[0].p[P_MODEL] = DM_K808;          /* a stored factory reference that is not the track's voice */
     proj_slot[2].pre[0] = (uint16_t)preset_rec_enc(preset_first_of(DM_KTRX));
@@ -481,12 +462,12 @@ static void test_preset_ref_stable(void)
     uint32_t fa = preset_first_of(DM_SDEFM), na = PRE_NFACT + 2u, i, a, u, ok = 1;
     fresh();
     preset_load(&trk[2], fa);
-    preset_user_save(3, &trk[6]);
-    preset_load(&trk[6], user_id(3));
+    preset_user_save(3, &trk[4]);
+    preset_load(&trk[4], user_id(3));
     trk[1].pre = PRE_NONE;
     project_save(2);
     check("the record: a factory preset by its uid, a user slot as 0x8000 | slot, none as none",
-          proj_slot[2].pre[2] == PRE_UID[fa] && proj_slot[2].pre[6] == (0x8000u | 3u) &&
+          proj_slot[2].pre[2] == PRE_UID[fa] && proj_slot[2].pre[4] == (0x8000u | 3u) &&
               proj_slot[2].pre[1] == (uint16_t)PRE_NONE);
     auid[0] = 900;                                   /* the later firmware: two new presets first .. */
     auid[1] = 901;
@@ -496,7 +477,7 @@ static void test_preset_ref_stable(void)
         apre[2u + i] = PRE_FACTORY[PRE_NFACT - 1u - i];
     }
     a = preset_rec_dec_in(proj_slot[2].pre[2], auid, na);
-    u = preset_rec_dec_in(proj_slot[2].pre[6], auid, na);
+    u = preset_rec_dec_in(proj_slot[2].pre[4], auid, na);
     check("(the simulated banks move it: its old id names another preset there)",
           strcmp(apre[fa].name, PRE_FACTORY[fa].name) != 0);
     check("other banks: the factory reference finds the same preset", a < na &&
@@ -514,7 +495,7 @@ static void test_preset_ref_stable(void)
     for (i = 0; i < NTRK; i++)
         trk[i].pre = 7;
     check("loads (from flash)", proj_load(2, 1) == 1);
-    check("loaded: the same factory preset, user slot and none", trk[2].pre == fa && trk[6].pre == user_id(3) &&
+    check("loaded: the same factory preset, user slot and none", trk[2].pre == fa && trk[4].pre == user_id(3) &&
           trk[1].pre == PRE_NONE);
 }
 
@@ -669,8 +650,8 @@ static void test_bank_order_old_refs(void)
     fresh();
     for (k = 0; k < NTRK; k++)                       /* a 0.22.0 project: the presets of every bank, one edited */
         preset_load(&trk[k], preset_rec_dec(PRE022[PICK[k]].uid));
-    trk[6].p[P_E1] = 3;
-    trk[6].pre_ed = 1;
+    trk[4].p[P_E1] = 3;
+    trk[4].pre_ed = 1;
     project_save(1);
     for (k = 0; k < NTRK; k++)                       /* the record holds the 0.22.0 uids (what 0.22.0 wrote) */
         ok &= proj_slot[1].pre[k] == PRE022[PICK[k]].uid;
@@ -681,10 +662,10 @@ static void test_bank_order_old_refs(void)
     for (k = 0, ok = 1; k < NTRK; k++) {
         preset_name_of(trk[k].pre, (char *)&p.name);
         ok &= !strcmp(p.name, PRE022[PICK[k]].name) && (uint32_t)trk[k].p[P_MODEL] == PRE022[PICK[k]].model &&
-              trk[k].pre_ed == (k == 6u);
+              trk[k].pre_ed == (k == 4u);
     }
     check("loaded: every track on its 0.22.0 preset (name, voice), the edited mark and knob kept",
-          ok && trk[6].p[P_E1] == 3);
+          ok && trk[4].p[P_E1] == 3);
 }
 
 

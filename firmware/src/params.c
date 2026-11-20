@@ -28,7 +28,8 @@ static const char *const N_RTYPE[] = {"ROOM", "SPRNG", "HALL"};      /* G_RTYPE:
                                                                       * (Skiff) HALL 2 */
 static const char *const N_CHOKE[] = {"OFF", "1", "2", "3", "4"};
 static const char *const N_GHOST[] = {"MUTE", "KEEP", "HIDE"};
-static const char *const N_CSRC[] = {"OFF", "T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8"};
+static const char *const N_CSRC[] = {"OFF", "T1", "T2", "T3", "T4", "T5", "T6"};   /* OFF, T1..T(NTRK) */
+typedef char n_csrc_fit[sizeof N_CSRC / sizeof N_CSRC[0] == NTRK + 1u ? 1 : -1];
 static const char *const N_KNEE[] = {"HARD", "SOFT"};
 static const char *const N_LWAVE[] = {"SQUAR", "SAW", "RSAW", "SINE", "TRI", "S&H", "WANDR", "EXP+", "EXP-", "RWALK"};
 static const char *const N_LMODE[] = {"SYNC", "HZ", "TIME"};

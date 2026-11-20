@@ -146,9 +146,9 @@ enum { ED_OBJ_PRESETS = 0, ED_OBJ_PROJECT = 1, ED_OBJ_LOCKS = 5, ED_OBJ_VARS = 9
 #define ED_BF_LOST 0x02u            /*   the record links an object no flash copy matches */
 #define ED_BF_OLD 0x04u             /*   a record in an older format (converted at load) */
 #define ED_SZ_PRESETS 3204u         /* upr_rec_t ("UPR2"; "UPR1", 1284 B, before minor 2) */
-#define ED_SZ_PROJECT 3840u         /* project_t ("FDRG", "FDRF"); older records: their own sizes (project.c proj_fetch) */
+#define ED_SZ_PROJECT 3044u         /* project_t ("FRT6", FREITAKT's 6 tracks; Hortator's 8-track records: none) */
 #define ED_SZ_LOCKS 3208u           /* lk_bank_t ("LKB1") */
-#define ED_SZ_VARS_MIN 22u          /* var_bank_t ("VAR1"): 8 + used, 22 (7 empty entries) .. 3584 */
+#define ED_SZ_VARS_MIN 22u          /* var_bank_t ("VAR6"): 8 + used, 22 (7 empty entries) .. 3584 */
 #define ED_SZ_VARS_MAX 3584u
 
 /* ------------------------------------- framing API (editor.c defines these) --- */
