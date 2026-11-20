@@ -93,7 +93,7 @@ DRIVE on K808, K909, BOOM, PUNCH and SAMPL is shown as a percentage.
 
 ## The power-on kit
 
-At power-on, on TOOLS **INIT ALL** and in a new project the eight tracks load the TRX classic kit, each on its default preset: **BDTRX, SDTRX, CPTRX, CHTRX, OHTRX, TMTRX, RSTRX, CYTRX**, with MIDI notes kick 36, snare 38, clap 39, closed hat 42, open hat 46, tom 45, rim 37, cymbal 49, and no choke.
+At power-on, on TOOLS **INIT ALL** and in a new project the six tracks load the TRX classic kit, each on its default preset: **BDTRX, SDTRX, CPTRX, CHTRX, OHTRX, TMTRX** (Hortator's RSTRX and CYTRX tracks are gone), with MIDI notes kick 36, snare 38, clap 39, closed hat 42, open hat 46, tom 45, and no choke.
 
 ## Presets
 

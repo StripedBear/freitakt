@@ -3,7 +3,7 @@
 
 ## Projects
 
-A project holds the eight tracks' sounds, patterns (with each step's NUDGE), timing, locks, motion, variations, effects settings (INSERT, SRR, delay MODE, REVERB TYPE), SAMPLE settings, Grids and compressor. SYNC and ROUT are saved with it. There are **four slots, A to D**, saved in the FM-1's flash. Tap [[SAVE]] (on the release) for **PROJECT 1/3**; **TOOLS 2/3** and **COPY 3/3** follow.
+A project holds the six tracks' sounds, patterns (with each step's NUDGE), timing, locks, motion, variations, effects settings (INSERT, SRR, delay MODE, REVERB TYPE), SAMPLE settings, Grids and compressor. SYNC and ROUT are saved with it. There are **four slots, A to D**, saved in the FM-1's flash. Tap [[SAVE]] (on the release) for **PROJECT 1/3**; **TOOLS 2/3** and **COPY 3/3** follow.
 
 | Knob | Label | Behaviour |
 | --- | --- | --- |
@@ -50,6 +50,7 @@ PASTE again on the same slot before saving undoes it (`PASTE UNDONE`). Not while
 
 ## Compatibility
 
+- **FREITAKT (6 tracks) saves projects in a new format (FRT6) and variation banks as VAR6.** Projects and variation banks saved by Hortator (8 tracks) are not read: the slot shows as empty. Lock banks and user presets are unchanged.
 - Projects saved by 1.0.0 or later (they carry NUDGE) show an empty slot (`LOAD FAILED` at power-on) on 0.26.0 and older; going back is safe but not supported. Every older project loads, its steps at NUDGE 0. Projects saved before INSERT and SRR load them OFF; before the delay's MODE, NORM; before HALL they keep ROOM or SPRNG.
 - If a project's lock bank cannot be read, it loads without its locks and says `LOCKS LOST` once; unreadable variations say `VARIATIONS LOST`.
 - **1.0.1:** FM-1s sold recently with a different flash chip of the same size (a UC25HQ80) now save projects, presets and settings; before, they stayed in RAM (`SAVED (RAM)`).

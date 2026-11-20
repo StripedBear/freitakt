@@ -46,7 +46,7 @@ The Streams compressor, keyed by any track, for ducking and pumping. Reach it fr
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 2/3 | **KNOB 1** | SRC | OFF (default), T1 to T8 |
+| 2/3 | **KNOB 1** | SRC | OFF (default), T1 to T6 |
 | 2/3 | **KNOB 2** | THRSH | about -30 to 0 dB (26, about -24 dB) |
 | 2/3 | **KNOB 3** | RATIO | 1.0:1 to 25.6:1 (45, about 4:1) |
 | 2/3 | **KNOB 4** | REL | 59 ms to 5.8 s (26, about 131 ms) |

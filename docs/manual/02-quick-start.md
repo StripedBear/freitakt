@@ -9,7 +9,7 @@ You do not need to remember button names yet: every section of the screen is rea
 
 ## Make a beat in eight steps
 
-1. Press [[SEQ]]. The 16 white keys are now the **steps** of the selected track (the track number is in the top bar, T1 to T8).
+1. Press [[SEQ]]. The 16 white keys are now the **steps** of the selected track (the track number is in the top bar, T1 to T6).
 2. Tap white keys to turn steps on and off. A lit key is an active step.
 3. Press [[PLAY]]. The sequencer runs; the playhead moves along the keys.
 4. Turn [[ALGORITHM]] to pick another track (T2, T3, ...) and tap in its steps.

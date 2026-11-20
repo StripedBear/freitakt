@@ -3,7 +3,7 @@
 
 ## What Hortator is
 
-Hortator is drum-machine firmware for the **M-VAVE FM-1**. It turns the FM-1 into a self-contained groovebox: eight drum tracks, a step sequencer, a ducking compressor, two LFOs per track, per-track effects, live performance effects, USB audio and MIDI, all on the FM-1's own keys, knobs and screen, and, from 1.0.0, a browser editor over USB for sound, presets, projects, patterns and your own samples. This manual is for version **1.0.1**.
+Hortator is drum-machine firmware for the **M-VAVE FM-1**. It turns the FM-1 into a self-contained groovebox: six drum tracks, a step sequencer, a ducking compressor, two LFOs per track, per-track effects, live performance effects, USB audio and MIDI, all on the FM-1's own keys, knobs and screen, and, from 1.0.0, a browser editor over USB for sound, presets, projects, patterns and your own samples. This manual is for version **1.0.1**.
 
 It is built by DEADACTIVE on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita. On a Roman galley the *hortator* beat the drum that kept the rowers in time; Felucca is a Nile sailing boat; this is its drummer.
 
@@ -33,5 +33,5 @@ The sections run from first steps to full reference. Use the sidebar, the Previo
 - *Hold* means press and keep down (about 0.3 to 0.6 s, as stated); *tap* means press and release.
 - Text in `monospace` is something the screen shows, such as `T3 REC ARMED`.
 - The *top bar* is the inverted line at the top of the screen; the *footer* is the strip at the bottom with the step indicators.
-- A *track* is one of the eight drum voices, T1 to T8. The *selected track* is the one the pages edit.
+- A *track* is one of the six drum voices, T1 to T6. The *selected track* is the one the pages edit.
 - Settings marked **device setting** are saved in the FM-1 and are not part of a project; **project** settings are saved with the project.

@@ -2,7 +2,7 @@
 
 [![License: GPL-3.0-only](https://img.shields.io/badge/license-GPL--3.0--only-blue.svg)](LICENSE)
 
-**Drum-machine firmware for the M-VAVE FM-1.** Eight tracks of drums, a step sequencer, a pumping
+**Drum-machine firmware for the M-VAVE FM-1.** Six tracks of drums, a step sequencer, a pumping
 compressor, LFOs and live effects, all on the FM-1's own keys, knobs and screen. By DEADACTIVE, built
 on [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita.
 
@@ -25,7 +25,7 @@ firmware ([below](#back-to-the-official-firmware)).
 
 ## What it does
 
-- **Eight drum tracks.** Each plays a drum model: 808 and 909 kicks, snares and claps, hats, toms, cowbell, cymbal,
+- **Six drum tracks.** Each plays a drum model: 808 and 909 kicks, snares and claps, hats, toms, cowbell, cymbal,
   rim, clave, conga, ports of Plaits' drum algorithms, and samples. Every model has TUNE, DECAY, TONE and a fourth
   knob of its own.
 - **Step sequencer.** Up to 64 steps per track on the 16 white keys, each track with its own length, division and
@@ -48,7 +48,7 @@ firmware ([below](#back-to-the-official-firmware)).
   is cut (a safety limit). A loaded project keeps ACID on its first two ACID tracks; the others come back as their
   power-on kit drum.
 - **MOTION.** Knob turns recorded per step while a track plays, and played back with the pattern: up to 1024 events
-  per project (shared by the 8 tracks).
+  per project (shared by the 6 tracks).
 - **Names.** Name projects on the device.
 - **Compressor.** The Streams compressor keyed by any track, for ducking and pumping; GHOST keeps the pump with the
   key track muted.
@@ -79,7 +79,7 @@ firmware ([below](#back-to-the-official-firmware)).
 - **Chorus.** One chorus for every track's CHOR send: GLO > CHORUS (7/7, after REVERB): RATE and DEPTH. Its graph
   draws the chorus' sweep over 4 s: how fast (RATE) and how far (DEPTH, its delay's range in ms) it moves.
 - **PERFORM.** Hold FX: the black keys play live master effects (repeat, reverse, tape stop, filters, freeze,
-  octave), the white keys F3..F4 repeat their track's step on the beat grid while held (REPEAT STEP; D5..G5 pick its
+  octave), the white keys F3..D4 repeat their track's step on the beat grid while held (REPEAT STEP; D5..G5 pick its
   rate), the knobs become FILTER / CRUSH / THROW / DEPTH, which stay on until you turn them back.
 - **Metronome.** GLOBAL 3/7 METRO: a click on every quarter note while playing, the bar's first higher.
 - **Key backlight.** MENU BACKLIGHT DIM LO / DIM HI: the keys and buttons glow dimly while unlit, the steps 1, 5, 9
@@ -91,7 +91,7 @@ firmware ([below](#back-to-the-official-firmware)).
   its stereo master into a DAW over its USB cable ([below](#usb-audio)). On a computer or an iPad it shows up as **Hortator** (USB MIDI and audio, in a DAW
   or AUM; earlier versions: Felucca); while an update is being written it shows up as **Felucca Update**
   (the update loader, upstream Felucca's). The Bluetooth version adds Bluetooth MIDI ([below](#bluetooth-midi)): a BLE-MIDI
-  keyboard or clock, or the M-VAVE SMC-Mixer as a mixer for the eight tracks.
+  keyboard or clock, or the M-VAVE SMC-Mixer as a mixer for the six tracks.
 - **Projects.** Four slots, A to D, saved in the FM-1's flash; the last one saved loads at power-on.
 
 ### On the panel
@@ -99,7 +99,7 @@ firmware ([below](#back-to-the-official-firmware)).
 | Button | Opens |
 | --- | --- |
 | **HOME** | two modes: **TRACKS** (levels, lengths, pans; the selected track's steps on the keys) and **HOME** (the scope, the selected track's first four knobs, the keys play the tracks; SELECT on to the compressor's pages). A HOME tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. Hold HOME for the menu |
-| **EDIT** | the selected track's sound: its model and knobs (on HOME, EDIT, FX and LFO the selected track's key is lit; a white key F3..F4 selects its track) |
+| **EDIT** | the selected track's sound: its model and knobs (on HOME, EDIT, FX and LFO the selected track's key is lit; a white key F3..D4 selects its track) |
 | **SEQ** | the steps on the white keys (a short tap: on / off, on the release; hold a step 0.3 s: an off step turns on at once, an on step stays as it is; while held KNOB 1 / 2 / 3 / 4: PROB / RATCH / ACCENT (right on, left off) / NUDGE, on STEP, PATTERN, MOTION and TRACKS alike (the page's own knobs rest while a step is held); hold OCT+ and tap a step: its accent; OCT+ alone / OCT-: the bank), then PATTERN and MOTION (each tap on its release); held: the TOOLS screen ([step tools](#step-tools): copy and paste steps, pages, selections, DUPLICATE, CLEAR) |
 | **FX** | FILTER, FX (the sends), INSERT (and SRR); hold it for PERFORM |
 | **LFO** | the track's two LFOs, side by side on every page (LFO 1 on KNOB 1-2, LFO 2 on KNOB 3-4), then DEST: 4 slots, each a source (LFO 1 / LFO 2), a destination knob (the engine's knobs, LVL, PAN, the FILTER knobs, SRR, DST, the CHO / DLY / REV sends, the INSERT's MIX and its A B C) and its own depth |
@@ -132,14 +132,14 @@ says how many) and keep loading as the voice only.
 ### Mutes
 
 Hold GLO: the **MUTE screen**, up while GLO is held (a quick GLO tap opens GLOBAL instead; a key pressed while GLO
-is down opens the screen at once). The eight tracks are boxes, **filled = heard, outline = muted**, each with its
-number and model, and under it the key that toggles it (F3 to F4, the white keys; their LEDs lit for the heard
+is down opens the screen at once). The six tracks are boxes, **filled = heard, outline = muted**, each with its
+number and model, and under it the key that toggles it (F3 to D4, the white keys; their LEDs lit for the heard
 tracks). The top C# sets `MUTE: NOW`, the top D# `MUTE: NEXT BAR` (the same setting as GLOBAL 3/7 MUTE): with NEXT
 BAR, a mute made while playing blinks, then lands on the next downbeat. G4 (the next white key up) turns
 [MIDI LEARN](#midi-learn) on and off. While the screen is up the keys play nothing and the knobs and the other
 buttons rest, PLAY aside. Let go of GLO: back to the page you were on.
 
-**Solo** on the same screen: the black keys F#3 to A#4 solo tracks 1 to 8, their LEDs lit while soloed. While any
+**Solo** on the same screen: the black keys F#3 to F#4 solo tracks 1 to 6, their LEDs lit while soloed. While any
 track is soloed only the soloed ones are heard; the others' boxes are half filled, a soloed box has an S in its corner,
 and the mutes stay as they are. The top black key **F#5** flips the solo mode, shown on the screen's last line:
 **TGL** (toggle: a tap solos, another tap unsolos) or **MOM** (momentary: soloed while the key is held, also after
@@ -157,7 +157,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
 | REC | press REC (nothing arms) | a CC or a note | a press = a REC tap, as the button: TRACKS the selected track, elsewhere REC ALL (step record as the button) |
 | NEXT TRACK / PREV TRACK | turn ALGORITHM right / left (the track stays) | a CC or a note | a press selects the next / previous track |
 | a PERFORM effect | hold FX, press its black key (nothing plays) | a CC or a note | held while the controller's button is held, as the key (FX need not be held) |
-| a track's REPEAT STEP | hold FX, press its white key F3..F4 | a CC or a note | the track repeats its step while held, as the key (a control learned to a PERFORM mute before now does this) |
+| a track's REPEAT STEP | hold FX, press its white key F3..D4 | a CC or a note | the track repeats its step while held, as the key (a control learned to a PERFORM mute before now does this) |
 | a PERFORM macro | on the PERFORM screen, turn KNOB 1..4 (it turns as usual) | a CC | FILTER (0 at 64: left LPF, right HPF), CRUSH, THROW, DEPTH; stays on, as the knob |
 
 - **Turn it on:** hold GLO (the MUTE screen) and press **G4**: `G4 LEARN: ON`, and `MIDI LEARN ON` in the top bar.
@@ -196,14 +196,14 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
 ### PERFORM
 
 Hold FX for the PERFORM screen. The black keys are buffer effects while held (REPEAT 1/8 1/16 1/32, REVERSE, TAPE
-STOP, LPF and HPF sweeps, FREEZE, OCT UP / DN), the white keys F3..F4 are **REPEAT STEP** for tracks 1..8, and KNOB 1
+STOP, LPF and HPF sweeps, FREEZE, OCT UP / DN), the white keys F3..D4 are **REPEAT STEP** for tracks 1..6, and KNOB 1
 to 4 are FILTER (left LPF, right HPF), CRUSH, THROW and DEPTH: while the PERFORM screen is up the knobs are only these,
 and SELECT turns no page under it. **The knob effects stay on** after FX is let go (or the PERFORM
 page closes) and keep working on every page; the top bar shows an amber `FX` in place of the tempo icon while any
 is on. To switch one off, turn it back to 0 on the PERFORM screen; TOOLS `INIT*` switches them all off. The
 buffer effects stop when their key is let go.
 
-**REPEAT STEP.** Hold a track key (F3 = track 1 .. F4 = track 8): the track plays the step it was on when you pressed
+**REPEAT STEP.** Hold a track key (F3 = track 1 .. D4 = track 6): the track plays the step it was on when you pressed
 again and again at the rate (its note, loud if the step has an accent; a step that is off repeats the track's last
 note), while its own steps pause; let go and its pattern carries on in time, as if it had played all along. Playing,
 the repeats land on the song's grid of the rate (with the swing and the tempo, or the MIDI clock you follow), the
@@ -217,7 +217,7 @@ the master effects work on top of them.
 | F#3 G#3 A#3 | REPEAT 1/8, 1/16, 1/32 (the whole mix) |
 | C#4 D#4 F#4 G#4 A#4 | REVERSE, TAPE STOP, LPF, HPF, FREEZE |
 | C#5 D#5 | OCT UP, OCT DN |
-| F3 G3 A3 B3 C4 D4 E4 F4 | REPEAT STEP of tracks 1..8 while held |
+| F3 G3 A3 B3 C4 D4 | REPEAT STEP of tracks 1..6 while held (E4 and F4 do nothing) |
 | D5 E5 F5 G5 | REPEAT STEP's rate: 1/4, 1/8, 1/16, 1/32 |
 | G4 A4 B4 C5, F#5 | nothing |
 
@@ -283,8 +283,9 @@ projects page, now on its release; SAVE does nothing in the menu, a dialog, NAME
 screen. Unsaved variations of a slot you leave wait in RAM, one slot's at a time: while C's wait there, cueing
 any slot but C says `SAVE C FIRST` (stop, load C or cue it, and SAVE it).
 
+**FREITAKT's project format (FRT6, 6 tracks) is new:** projects (and variation banks) saved by Hortator (8 tracks) are not read; their slots show as empty. Lock banks and user presets keep their formats.
 Projects saved by this build can't be read by 0.16.0 or older; older projects load (every track with PRIO HIGH).
-Since NUDGE, projects saved now (format FDRG) show an empty slot on 0.26.0 and older (`LOAD FAILED`; downgrading is
+Since NUDGE, projects saved now (then format FDRG) show an empty slot on 0.26.0 and older (`LOAD FAILED`; downgrading is
 safe, not supported); every older project loads, its steps at NUDGE 0.
 Since the parameter locks, a project's motion lives in its own lock bank beside it: projects saved now show
 an empty slot on 0.23.x and older (`LOAD FAILED` at power-on; downgrading is safe, not supported: nothing breaks, the projects stay for this
@@ -483,12 +484,12 @@ loads SYNC OFF, ROUT NOTE); THRU is a setting of the FM-1 itself, kept over powe
 | --- | --- |
 | **NOTE** (default) | on the drum channel, each note plays the tracks whose NOTE it is, at their tuning |
 | **SEL** | on the drum channel, every note plays the selected track, pitched: C4 (note 60) is its tuning, a semitone a note |
-| **TRACK** | MIDI channel 1 to 8 play tracks 1 to 8, pitched from C4 as SEL (CH plays no part; channels 9 to 16 nothing) |
+| **TRACK** | MIDI channel 1 to 6 play tracks 1 to 6, pitched from C4 as SEL (CH plays no part; channels 9 to 16 nothing) |
 
 Note-offs are ignored (a hit is a hit; an ACID note ends after its GATE). A note into an armed track while playing is
 recorded, with its pitch on SEL and TRACK. The white keys send their notes to USB as before: on the drum channel with
 the track's NOTE, with ROUT TRACK on the track's own channel at C4 (so a recording in a DAW plays back the same
-tracks). SEL and TRACK are upstream Felucca's ROUT SEL and CH1-4, for eight tracks.
+tracks). SEL and TRACK are upstream Felucca's ROUT SEL and CH1-4, for six tracks.
 
 **CLK** follows a MIDI clock: INT (its own tempo), USB, TRS (or BLE in the Bluetooth version).
 
@@ -516,7 +517,7 @@ The FM-1 is a USB audio input as well as a MIDI port: a DAW, AUM or Audio MIDI S
 16-bit stereo, 44.1 kHz. It sends the master, as the speaker and headphones hear it; the device is **Hortator**.
 MENU (hold HOME) **USB LEVEL** picks whether it follows the MASTER knob (MASTER) or gets the full level (FIXED).
 macOS, iPadOS, Linux and Windows take it (class-compliant USB audio 1.0). FREITAKT removed the older USB AUDIO 10 CH
-mode (the eight tracks on their own channels); a 10 CH setting saved by an older firmware is ignored.
+mode (the tracks on their own channels); a 10 CH setting saved by an older firmware is ignored.
 
 ### CPU and PRIO
 
@@ -614,7 +615,7 @@ cursor, KNOB 1 changes a row, OCT+ acts, OCT- goes back.
 3. SELECT to **+ ADD A DEVICE**, OCT+. After the 8 s scan, SELECT to the controller (it says `MIDI`), OCT+. It is saved
    and connects; the top bar shows `BT CONNECTED`.
 4. Play: notes on the drum channel (GLO CH, 10 at first) play the tracks whose NOTE matches; GLO ROUT SEL plays the
-   selected track pitched, ROUT TRACK plays tracks 1–8 from channels 1–8. To map its knobs: MIDI LEARN (hold GLO,
+   selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs: MIDI LEARN (hold GLO,
    press G4).
 5. To play in time with it: GLO CLK **BLE** follows its clock; GLO SYNC **BLE** (or BOTH, USB too) sends it the FM-1's.
 6. Next time it connects by itself once BLUETOOTH is ON (or set AUTOSTART ON).
@@ -726,7 +727,7 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 | PLAY | stopped: play; playing: nothing |
 | STOP | stop |
 | REC | as the FM-1's REC tap: on TRACKS arm / disarm the selected track, elsewhere REC ALL on / off |
-| BANK ◀ / CHANNEL ◀, BANK ▶ / CHANNEL ▶ | the previous / next track (stops at 1 and 8) |
+| BANK ◀ / CHANNEL ◀, BANK ▶ / CHANNEL ▶ | the previous / next track (stops at 1 and 6) |
 | REW, FF, the arrows | nothing |
 
 An armed track records the

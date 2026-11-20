@@ -5,7 +5,7 @@
 
 The FM-1 is a USB audio input as well as a MIDI port: a DAW, AUM or Audio MIDI Setup records it over the cable, 16-bit stereo, 44.1 kHz. The device is called **Hortator**, and it carries the stereo master, exactly as the speaker and headphones hear it.
 
-There is nothing to choose in the menu: USB audio is always stereo. (FREITAKT removed the older USB AUDIO 10 CH mode, which sent the eight tracks on their own channels; a 10 CH setting saved by an older firmware is ignored.)
+There is nothing to choose in the menu: USB audio is always stereo. (FREITAKT removed the older USB AUDIO 10 CH mode, which sent the tracks on their own channels; a 10 CH setting saved by an older firmware is ignored.)
 
 ## Level
 

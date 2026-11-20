@@ -57,28 +57,28 @@ Hold [[GLO]]: the **MUTE screen**, up while GLO is held (a quick tap opens GLOBA
 
 | Key | Does |
 | --- | --- |
-| white F3 to F4 | toggle the mute of tracks 1 to 8 |
-| black F#3 to A#4 | **solo** tracks 1 to 8 (several at once; their LEDs lit while soloed) |
+| white F3 to D4 | toggle the mute of tracks 1 to 6 |
+| black F#3 to F#4 | **solo** tracks 1 to 6 (G#4 and A#4 do nothing; several at once; their LEDs lit while soloed) |
 | C#5 (top C#) | `MUTE: NOW` |
 | D#5 (top D#) | `MUTE: NEXT BAR` |
 | F#5 | solo mode: **TGL** (a tap solos / unsolos) or **MOM** (soloed only while the key is held, also after GLO is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`) |
 | G4 | MIDI LEARN on / off |
 
-- The eight tracks are boxes: **filled = heard, outline = muted, half filled = hushed by a solo elsewhere**, an **S** in the corner of a soloed box; each with its number and model, and under it the key.
+- The six tracks are boxes: **filled = heard, outline = muted, half filled = hushed by a solo elsewhere**, an **S** in the corner of a soloed box; each with its number and model, and under it the key.
 - `MUTE: NEXT BAR` (the same setting as GLOBAL 3/7 MUTE): a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
 - Solo itself is not saved (INIT and power-on clear it); mutes stay as they are under a solo. It is the same solo state the SMC-Mixer uses.
 - While the screen is up the keys play nothing and the knobs and other buttons rest, [[PLAY]] aside. Let go of GLO to return.
 
 ## PERFORM
 
-Hold [[FX]] for the PERFORM screen (it shows T1 to T8 and the four repeat rates).
+Hold [[FX]] for the PERFORM screen (it shows T1 to T6 and the four repeat rates).
 
 | Keys | While held |
 | --- | --- |
 | **F#3, G#3, A#3** | REPEAT 1/8, 1/16, 1/32 of the whole mix |
 | **C#4, D#4, F#4, G#4, A#4** | REVERSE, TAPE STOP, LPF sweep, HPF sweep, FREEZE |
 | **C#5, D#5** | OCT UP, OCT DN |
-| **white F3 to F4** | **REPEAT STEP** of tracks 1 to 8 (below) |
+| **white F3 to D4** | **REPEAT STEP** of tracks 1 to 6 (below) |
 | **D5, E5, F5, G5** | the REPEAT STEP rate: 1/4, 1/8, 1/16 (power-on default), 1/32 (a tap picks it; the chosen one is lit; not saved) |
 | G4, A4, B4, C5, F#5 | nothing |
 
@@ -97,7 +97,7 @@ While the PERFORM screen is up the knobs are only these, and [[SELECT]] turns no
 
 ### REPEAT STEP
 
-Hold [[FX]], then hold a track key (F3 = track 1 ... F4 = track 8): the track plays the step it was on, again and again at the rate, while its own steps pause. The repeat plays the step's note, loud when the step has an accent; a step that is off, a TIE or a Grids track repeats the track's last note (no PROB, no RATCH). Let go and its pattern carries on in time as if it had played all along.
+Hold [[FX]], then hold a track key (F3 = track 1 .. D4 = track 6): the track plays the step it was on, again and again at the rate, while its own steps pause. The repeat plays the step's note, loud when the step has an accent; a step that is off, a TIE or a Grids track repeats the track's last note (no PROB, no RATCH). Let go and its pattern carries on in time as if it had played all along.
 
 While playing, the repeats land on the grid of the rate (following swing, the tempo and an incoming MIDI clock), the first on the next grid point; while stopped they start at once at the tempo. Several tracks can repeat together. A change of rate while repeating takes over at the next grid point. The repeats are drum hits from the sequencer, so the master effects work on top of them. *If you used FX plus a white key to mute a track in an older version, use the MUTE screen instead.* A controller button learned to a PERFORM mute now holds that track's REPEAT STEP.
 
@@ -118,4 +118,4 @@ In STEPS, on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVE
 
 ## MOTION
 
-Knob turns are recorded per step while a track plays, and played back with the pattern: up to 1024 events per project (shared by the 8 tracks and the locks). SEQ's MOTION page shows the selected track's MOTION (recorded events) and LOCKS counts, with PLAY and CLEAR.
+Knob turns are recorded per step while a track plays, and played back with the pattern: up to 1024 events per project (shared by the 6 tracks and the locks). SEQ's MOTION page shows the selected track's MOTION (recorded events) and LOCKS counts, with PLAY and CLEAR.

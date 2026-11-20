@@ -30,11 +30,11 @@ Applies to notes from USB, the TRS jack and, in MIDI mode, Bluetooth.
 | --- | --- |
 | **NOTE** (default) | On the drum channel (CH), each note plays the tracks whose NOTE it is, at their tuning. |
 | **SEL** | On the drum channel, every note plays the selected track, pitched: C4 (note 60) is its tuning, a semitone per note. |
-| **TRACK** | MIDI channels 1 to 8 play tracks 1 to 8, pitched from C4 as SEL (CH plays no part; channels 9 to 16 do nothing). |
+| **TRACK** | MIDI channels 1 to 6 play tracks 1 to 6, pitched from C4 as SEL (CH plays no part; channels 9 to 16 do nothing). |
 
 Note-offs are ignored (a hit is a hit; an ACID note ends after its GATE). A note into an armed track while playing is recorded, with its pitch on SEL and TRACK. The white keys send their notes to USB: on the drum channel with the track's NOTE, and with ROUT TRACK on the track's own channel at C4 (so a recording in a DAW plays back the same tracks).
 
-The power-on kit notes are: kick 36, snare 38, clap 39, closed hat 42, open hat 46, tom 45, rim 37, cymbal 49.
+The power-on kit notes are: kick 36, snare 38, clap 39, closed hat 42, open hat 46, tom 45, rim 37, cymbal 49 (the last two have no track now).
 
 ## CLK: following a clock
 
@@ -64,7 +64,7 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 | REC | press REC (nothing arms) | a CC or a note | a press = a REC tap: TRACKS arms the selected track, elsewhere REC ALL |
 | NEXT TRACK / PREV TRACK | turn ALGORITHM right / left | a CC or a note | selects the next / previous track |
 | a PERFORM effect | hold FX, press its black key | a CC or a note | held while the controller's button is held (FX need not be held) |
-| a track's REPEAT STEP | hold FX, press its white key F3..F4 | a CC or a note | the track repeats its step while held, as the key (a control learned to a PERFORM mute in an older version does this now) |
+| a track's REPEAT STEP | hold FX, press its white key F3..D4 | a CC or a note | the track repeats its step while held, as the key (a control learned to a PERFORM mute in an older version does this now) |
 | a PERFORM macro | on the PERFORM screen, turn KNOB 1..4 | a CC | FILTER (0 at 64: left LPF, right HPF), CRUSH, THROW, DEPTH; stays on |
 
 ### How to learn a control

@@ -13,7 +13,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | --- | --- |
 | **MASTER** | The volume: the speaker, the headphones and USB audio. |
 | **SELECT** | Turns the pages of a section and moves the menu's cursor. On HOME's TRACKS mode it sets the tempo instead (`CLK USB` / `CLK TRS` when following a clock). |
-| **ALGORITHM** | Picks the selected track (T1 to T8), on any page. In MIDI LEARN it picks NEXT / PREV TRACK. |
+| **ALGORITHM** | Picks the selected track (T1 to T6), on any page. In MIDI LEARN it picks NEXT / PREV TRACK. |
 | **PRESETS** | Loads the next or previous preset onto the selected track at each detent; a popup shows the bank and the presets around it. A factory preset sets the sound only; a USER preset also sets the track's FX. |
 | **KNOB 1 to KNOB 4** | Edit the four values on the screen, one knob per column. Knob turns can be recorded as MOTION. |
 
@@ -40,17 +40,17 @@ HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length),
 
 ### EDIT, FX, LFO and the selected track
 
-On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to F4) is lit, and pressing a white key there selects that track. KEYS, COMP, the step pages, GLOBAL and SAVE keep their own key jobs.
+On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to D4) is lit, and pressing a white key there selects that track. KEYS, COMP, the step pages, GLOBAL and SAVE keep their own key jobs.
 
 ## The keys
 
-- **16 white keys**: the steps 1 to 16 of the current bank (up to four banks, 64 steps); on HOME the white keys F3 to F4 play tracks 1 to 8; with [[GLO]] held they mute them.
+- **16 white keys**: the steps 1 to 16 of the current bank (up to four banks, 64 steps); on HOME the white keys F3 to D4 play tracks 1 to 6; with [[GLO]] held they mute them.
 - **11 black keys**: with [[FX]] held, live effects on the whole mix. In KEYS, the sharps. On HOME and SEQ the first 8 black keys queue variations (see Sequencer).
-- **Held buttons** change what the keys do: [[GLO]] held: white keys mute, black keys solo; [[FX]] held: black keys are effects, white keys F3 to F4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held: step copy and paste tools; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
+- **Held buttons** change what the keys do: [[GLO]] held: white keys mute, black keys solo; [[FX]] held: black keys are effects, white keys F3 to D4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held: step copy and paste tools; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
 
 ## Screens and the top bar
 
-The screen has an inverted **top bar** (title, track T1 to T8, tempo icon, messages such as `T3 DECAY 64`, `REC ALL`, `LOCK STEP 5`, `LOADED`, `BT CONNECTED`), a compact **knob row** with round dials and their values, the **graph area** (scope, sound graph, piano roll...), a **trig strip** of steps and a **breadcrumb** such as `T1>K909>SOUND`.
+The screen has an inverted **top bar** (title, track T1 to T6, tempo icon, messages such as `T3 DECAY 64`, `REC ALL`, `LOCK STEP 5`, `LOADED`, `BT CONNECTED`), a compact **knob row** with round dials and their values, the **graph area** (scope, sound graph, piano roll...), a **trig strip** of steps and a **breadcrumb** such as `T1>K909>SOUND`.
 
 | Top-bar sign | Meaning |
 | --- | --- |

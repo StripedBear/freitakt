@@ -52,7 +52,7 @@
 | **PERC** | the built-in sample set: 16 drum and percussion samples. |
 | **PLAY** | SAMPLE: KEY (the keys play one sample up and down) or CHOP. |
 | **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/7 KNOB 4). |
-| **REPEAT STEP** | PERFORM: a held white key (F3 to F4) repeats that track's step; D5 to G5 pick the rate. |
+| **REPEAT STEP** | PERFORM: a held white key (F3 to D4) repeats that track's step; D5 to G5 pick the rate. |
 | **SET / SLOT** | SAMPLE and LAYER: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
 | **SOLO** | MUTE screen black keys; TGL or MOM mode. |
 | **SRR** | sample rate reduction on a track (INSERT 2/2). |
@@ -64,7 +64,7 @@
 
 ## Panel abbreviations
 
-HOME, EDIT, SEQ, FX, ARP, LFO, ENV, SCL, GLO, SAVE, PLAY, REC, OCT-, OCT+, SELECT, ALGORITHM, PRESETS, MASTER and KNOB 1 to 4 are described under *The panel*. White keys are named by note: F3 to F4 are the eight track keys (tracks 1 to 8); F3 to G5 are the 16 step keys.
+HOME, EDIT, SEQ, FX, ARP, LFO, ENV, SCL, GLO, SAVE, PLAY, REC, OCT-, OCT+, SELECT, ALGORITHM, PRESETS, MASTER and KNOB 1 to 4 are described under *The panel*. White keys are named by note: F3 to D4 are the six track keys (tracks 1 to 6); F3 to G5 are the 16 step keys.
 
 ## Note names on the keys
 
@@ -72,5 +72,5 @@ HOME, EDIT, SEQ, FX, ARP, LFO, ENV, SCL, GLO, SAVE, PLAY, REC, OCT-, OCT+, SELEC
 | --- | --- |
 | white keys, steps 1 to 16 | F3, G3, A3, B3, C4, D4, E4, F4, G4, A4, B4, C5, D5, E5, F5, G5 |
 | black keys | F#3, G#3, A#3, C#4, D#4, F#4, G#4, A#4, C#5, D#5, F#5 |
-| PERFORM effects | F#3 REPEAT 1/8, G#3 REPEAT 1/16, A#3 REPEAT 1/32, C#4 REVERSE, D#4 TAPE STOP, F#4 LPF, G#4 HPF, A#4 FREEZE, C#5 OCT UP, D#5 OCT DOWN; white F3 to F4 REPEAT STEP of tracks 1 to 8; D5 E5 F5 G5 its rate 1/4, 1/8, 1/16 (default), 1/32; G4 A4 B4 C5 and F#5 nothing |
-| MUTE screen | white F3 to F4 mute tracks 1 to 8; black F#3 to A#4 solo them; C#5 `MUTE: NOW`; D#5 `MUTE: NEXT BAR`; F#5 solo TGL / MOM; G4 MIDI LEARN |
+| PERFORM effects | F#3 REPEAT 1/8, G#3 REPEAT 1/16, A#3 REPEAT 1/32, C#4 REVERSE, D#4 TAPE STOP, F#4 LPF, G#4 HPF, A#4 FREEZE, C#5 OCT UP, D#5 OCT DOWN; white F3 to D4 REPEAT STEP of tracks 1 to 6; D5 E5 F5 G5 its rate 1/4, 1/8, 1/16 (default), 1/32; G4 A4 B4 C5 and F#5 nothing |
+| MUTE screen | white F3 to D4 mute tracks 1 to 6; black F#3 to F#4 solo them; C#5 `MUTE: NOW`; D#5 `MUTE: NEXT BAR`; F#5 solo TGL / MOM; G4 MIDI LEARN |

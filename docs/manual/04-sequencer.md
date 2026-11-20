@@ -3,7 +3,7 @@
 
 ## The model
 
-Each of the eight tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
+Each of the six tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
 
 Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]] again or turning [[SELECT]]: **STEP 1/3**, **PATTERN 2/3** and **MOTION 3/3**. On every SEQ page (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
 

@@ -54,7 +54,7 @@ Notes play the tracks as over USB and TRS (GLO CH and ROUT); MIDI LEARN learns t
 1. Switch the controller on and make it discoverable (most BLE-MIDI controllers are, as soon as they are on).
 2. On the FM-1: ROLE **HOST**, MODE **AUTO** (or **MIDI**), BLUETOOTH **ON**.
 3. SELECT to **+ ADD A DEVICE**, OCT+. After the 8 s scan, SELECT to the controller (it says `MIDI`), OCT+. It is saved and connects; the top bar shows `BT CONNECTED`.
-4. Play: notes on the drum channel (GLO CH, 10 at first) play the tracks whose NOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1-8 from channels 1-8. To map its knobs use MIDI LEARN (hold GLO, press G4).
+4. Play: notes on the drum channel (GLO CH, 10 at first) play the tracks whose NOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs use MIDI LEARN (hold GLO, press G4).
 5. To play in time with it: GLO CLK **BLE** follows its clock; GLO SYNC **BLE** (or BOTH, USB too) sends it the FM-1's.
 6. Next time it connects by itself once BLUETOOTH is ON (or set AUTOSTART ON).
 
@@ -92,18 +92,18 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 
 | Control | Hortator |
 | --- | --- |
-| Fader 1-8 | track 1-8 LEVEL, with pickup; recorded as motion for the selected track while armed and playing |
+| Fader 1–6 | track 1–6 LEVEL (strips 7 and 8 do nothing), with pickup; recorded as motion for the selected track while armed and playing |
 | Master fader | nothing |
 | Knob 1-4 | the selected track's first four knobs (TUNE DECAY TONE and the model's fourth; ACID: TUNE DECAY CUTOF RESO), one step a click; the top bar shows e.g. `T3 DECAY 64`; recorded as motion while armed and playing |
 | Knob 5-8 | MIDI LEARN's (CC 20-23): learned to a parameter, a click steps it by one value; while LEARN waits for a CC, turning one learns it; not learned: nothing |
-| MUTE 1-8 | mute / unmute the track, as on the MUTE screen (MUTE: NEXT BAR applies) |
-| SOLO 1-8 | solo / unsolo the track |
-| REC 1-8 | arm / disarm the track (no play started). During REC ALL: REC ALL ends and that track is disarmed, the others stay armed |
-| SELECT 1-8 | select the track |
+| MUTE 1–6 | mute / unmute the track, as on the MUTE screen (MUTE: NEXT BAR applies) |
+| SOLO 1–6 | solo / unsolo the track |
+| REC 1–6 | arm / disarm the track (no play started). During REC ALL: REC ALL ends and that track is disarmed, the others stay armed |
+| SELECT 1–6 | select the track |
 | PLAY | stopped: play; playing: nothing |
 | STOP | stop |
 | REC | as the FM-1's REC tap |
-| BANK / CHANNEL left, right | the previous / next track (stops at 1 and 8) |
+| BANK / CHANNEL left, right | the previous / next track (stops at 1 and 6) |
 | REW, FF, the arrows | nothing |
 
 - While a dialog or NAME is on screen, the mixer's buttons and knobs do nothing.
