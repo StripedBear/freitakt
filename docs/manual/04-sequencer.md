@@ -61,7 +61,7 @@ Up to **1024 events** per project are shared by all tracks and by parameter lock
 - **BPM** 40 to 240 (default 120): on TRACKS [[SELECT]] sets it (a `TEMPO` popup shows); on GLOBAL 1/7 [[KNOB 1]] sets it on any page.
 - **SWG** (GLOBAL 1/7) is global swing, 0 to 100 %; each track adds its own.
 - When the clock is external, the tempo controls say `CLK USB`, `CLK TRS`, `CLK BLE` or `CLK LINK` instead.
-- The four boxes on HOME above `PROJ` show the bar of a four-bar cycle.
+- HOME's status line shows the pattern slot, variation, selected track and its step page (`P1 V2 T6 L1`).
 
 ## Live cue and variations
 
@@ -72,7 +72,7 @@ While a pattern plays you can queue the next project slot (A to D) or another va
 - A **slot** switch brings the slot's sounds, steps, timing and locks; the tempo, swing, clock, MIDI, master effects, mutes and selected track stay. The old sounds fade out over the last 5 ms. A **variation** switch changes the steps and timing only; the sounds ring on.
 - Each slot has **8 variations** (both versions): variation 1 is its own steps; 2 to 8 hold their own steps and timing and share the slot's sounds and locks. A variation never used before starts as a copy of the one playing. A slot comes back on the variation it played last. When a slot's variations are full: `VARIATIONS FULL`.
 - Following an external clock (USB or TRS) the switch comes on the pulse that ends the pattern.
-- **Chain:** up to 16 slots can play in turn, each switching at the pattern end (or MLEN's boundary), wrapping at the end; empty slots are skipped. HOME shows the chain under the strip when it has more than one entry (playing inverted, next underlined). STOP ends the chain (the slot playing stays). Set it with **GLO held + 2 or more white keys**: on GLO's release the chain is those slots in the order pressed (repeats allowed, up to 16; white keys past D are left out). GLO + a single white key is a plain cue and ends the chain. The console also sets it: `chain 1 1 3 2` (slots A to D as 1 to 4); `chain` alone clears it.
+- **Chain:** up to 16 slots can play in turn, each switching at the pattern end (or MLEN's boundary), wrapping at the end; empty slots are skipped. HOME shows the chain under its status line when it has more than one entry (playing inverted, next underlined). STOP ends the chain (the slot playing stays). Set it with **GLO held + 2 or more white keys**: on GLO's release the chain is those slots in the order pressed (repeats allowed, up to 16; white keys past D are left out). GLO + a single white key is a plain cue and ends the chain. The console also sets it: `chain 1 1 3 2` (slots A to D as 1 to 4); `chain` alone clears it.
 
 ## NUDGE: a step early or late
 

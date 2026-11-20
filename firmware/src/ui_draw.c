@@ -1709,8 +1709,6 @@ static uint32_t graph_signature(void)
     uint32_t h = 2166136261u, i;
     if (ui.hot_t && settings.zoom)
         h = str_hash(str_hash(str_hash(h ^ 0x5555u, ui.focus_v), ui.focus_l), ui.focus_u);
-    if (ui.home)
-        return h ^ (ui.frame / 2u);                  /* scope: redraw every other frame */
     h ^= (uint32_t)pg->graph * 131u + song.sel * 7777u + ui.bank * 104729u;
     for (i = 0; i < P_COUNT; i++)
         h = (h ^ (uint32_t)t->p[i]) * 16777619u;
@@ -1885,23 +1883,6 @@ static void motion_columns(void)
     draw_column(3, "CLEAR", "", "", CV_NORM, -1);
 }
 
-/* HOME's scope (y 69..180) in the canvas or a window of it: the tab, the wave (fresh: a new snapshot), ZOOM */
-static void scope_paint(int fresh)
-{
-    cv_oy = 0;
-    cv_tab(1, 0, "SCOPE", C_INK, C_BG);
-    graph_scope(62, 46, fresh);
-    if (ui.hot_t && settings.zoom) {                   /* ZOOM: the touched value large, under the tab */
-        int32_t x;
-        cv_popup(4, 16, 150, 50, "", C_INK, C_BG);
-        md_text(10, 20, &MD_F3, 2, ui.focus_l, C_INK);
-        x = md_text(10, 34, &MD_F3, 4, ui.focus_v, C_INK);
-        md_text(x + 4, 44, &MD_F3, 2, ui.focus_u, C_INK);
-    }
-    cv_rect(0, 0, 1, 112, C_INK);
-    cv_rect(239, 0, 1, 112, C_INK);
-}
-
 /* the page's graph in the canvas or a window of it, with ZOOM and the frame's edges; 1: something in the band above
  * the graph proper (the canvas from row 0). whole: the graph changed (the roll's view is chosen again) */
 static uint32_t graph_paint(int whole)
@@ -2012,17 +1993,7 @@ static void draw_graph(void)
     if (!ui.home && pg->graph == GR_LFO)
         lfo_trail();
     sig = graph_signature();
-    if (ui.home && ui.hot_t && !settings.zoom)        /* a knob turning: the scope waits (the LCD's time to the knob) */
-        sig = ui.graph_sig;
     whole = ui.force || sig != ui.graph_sig;
-    if (ui.home) {                                    /* HOME: the scope under the strip, y 69..180 */
-        for (n = rg_plan(&ui.graph_sig, sig, 0, 69, 240, 112), i = 0; i < n; i++) {
-            rg_win(i, 69, C_BG);
-            scope_paint(whole && !i);                 /* (one snapshot for all its windows) */
-            cv_blit(0, 69);
-        }
-        return;
-    }
     n = rg_plan(&ui.graph_sig, sig, 0, Y_GRAPH, 240, H_GRAPH);
     if (whole) {                                      /* (the band above the graph proper only when it holds
                                                        * something, or held something) */
@@ -2328,199 +2299,141 @@ static const char *abbr4(const char *l, char *b)
     return b;
 }
 
-/* HOME's LEV column (x 63..86, y 17..67; the user, 2026-10-19: a level meter): the selected track's live level as the
- * solid bar (its peak since the last frame, falling 1 px a frame), the level setting a 10 px marker wider than it;
- * redrawn when either changes (again: the strip was just redrawn under it). PRESETS' popup up (from y 61): only the
- * rows above it */
-static void draw_home_lev(int again)
-{
-    track_t *t = TSEL;
-    int32_t lvl = t->p[P_LEVEL] & 127, m = !lvl || trk_silent(t) ? 0 : meter_px(t->peak) * 35 / MX_LW, hs, y;
-    uint32_t sig;
-    t->peak = 0;
-    if (m < (int32_t)ui.lev_m - 1)
-        m = (int32_t)ui.lev_m - 1;
-    if (m < 0)
-        m = 0;
-    ui.lev_m = (uint32_t)m;
-    sig = (uint32_t)m * 131u + (uint32_t)lvl + 1u;
-    if (!again && !ui.force && sig == ui.lev_sig)
-        return;
-    ui.lev_sig = sig;
-    cv_begin_at(24, !ui.force && pp_on() ? (uint32_t)(Y_GRAPH - Y_KNOB) : 51u, Y_KNOB, C_BG);
-    md_text(12 - md_text_w(&MD_F3, 2, "LEV") / 2, 2, &MD_F3, 2, "LEV", C_INK);
-    if (m)
-        cv_rect(9, 49 - m, 6, m, C_INK);
-    for (y = 14; y <= 48; y += 4) {
-        cv_rect(5, y, 2, 1, C_INK);
-        cv_rect(17, y, 2, 1, C_INK);
-    }
-    hs = lvl * 35 / 127;
-    cv_rect(7, 47 - hs, 10, 2, C_INK);               /* the setting */
-    cv_blit(63, Y_KNOB);
-}
-
-/* HOME (spec 2026-10-19-md-ui §9), y 17..68 under the top bar: the MD main screen's strip. The 4 bar boxes (fix 6:
- * the bar of a 4-bar cycle, home_bar), the project box (inverted: slot, name), the mode line | LEV (the track's level) |
- * the model's first four sound knobs (rings r 7, the values under them; enums as text) | a rule at y 68. Drawn whole
- * on ui.force; else in parts: the left block, a knob's cell (its label, value, touched), a knob's ring alone (its LFO's
- * live dot); LEV its own (draw_home_lev) */
-#define HS_CX(c) (107 + (int32_t)(c) * 38)
+/* HOME (FREITAKT, Model:Cycles style): only the status line "P1 V2 T6 L1" (the pattern slot playing, its variation,
+ * the selected track, the track's step page) large, the CPU load and the battery small, the chain's line while a
+ * pattern chain runs; ZOOM: a knob turned, its value large in the status line's place. Bands: CPU (0..23, x 0..149),
+ * battery (x 150..239), a plain ground (24..71), the status line (72..167), the chain (168..207), a plain ground
+ * (208..239). Each band its own signature (rg_plan: whole when it moved, else the damage a popup left, round the
+ * popups up): an idle HOME draws nothing */
+#define HM_Y_MID 72
+#define HM_H_MID 96
+#define HM_Y_CH 168
+#define HM_H_CH 40
 static struct {
-    uint32_t left, cell[4];      /* the parts' signatures shown */
-    int16_t lfo[4];              /* the LFO dots shown (-1 none) */
-    int16_t lx1;                 /* the left block's mode line's end shown */
-} hs;
-/* the bar HOME's boxes light (fix 6, owner 2026-10-21): the bar of a 4-bar cycle, 0..3, from the 1/16s since PLAY (the
- * shared clock seq.c's gclk counts: any track's LEN or bank aside), bar 1 at every PLAY; stopped: bar 1 */
-static uint32_t home_bar(void)
+    uint32_t cpu, bat, mid, chain;       /* the bands' signatures shown */
+    uint8_t on;                          /* HOME shown last frame (in or out: all drawn again) */
+} hm;
+
+/* the HOME knobs' touched value into the ZOOM's (and the breadcrumb's) ui.focus_*: KNOB c of home_param */
+static void home_focus(void)
 {
-    return song.playing && gclk.cnt != 0xFFFFFFFFu ? (gclk.cnt >> 4) & 3u : 0u;
+    int16_t *vp, sv;
+    const param_desc_t *d;
+    const char *unit = "";
+    char val[12];
+    int lk;
+    if (!ui.hot_t || ui.hot_col >= 4u)
+        return;
+    d = home_param(ui.hot_col, &vp);
+    if (!d->label || d->label[0] == '-') {            /* touched, no parameter: no value */
+        ui.focus_l[0] = 0;
+        return;
+    }
+    sv = lock_shown(lock_id(ui.hot_col), *vp, &lk);
+    param_format(d, sv, val, &unit);
+    str_cpy(ui.focus_l, d->label, 8);
+    str_cpy(ui.focus_v, val, 8);
+    str_cpy(ui.focus_u, unit, 8);
 }
 
-static void draw_home_strip(void)
+/* the status line: "P1 V2 T6 L1" ("P-": no slot loaded, the power-on kit) */
+static void home_status(char *s)
 {
-    char l[4][8], v[4][8], ab[8], m[16], nm[NAME_LEN + 1u], pj[8], cs[8];
-    int32_t r[4], md[4], lx1;
-    uint32_t c, i, sig, cur = home_bar(), cn = 0, cf = 0, cpre = 0;
-    uint32_t hot = ui.hot_t ? ui.hot_col : 9u, lev = 0, inv = 0;   /* inv: bit c, cell c's value inverted */
-    for (c = 0; c < 4u; c++) {
-        int16_t *vp, sv;
-        const param_desc_t *d = home_param(c, &vp);
-        char val[12];
-        const char *unit = "";
-        int32_t mv;
-        int lk;
-        l[c][0] = v[c][0] = 0;
-        r[c] = md[c] = -1;
-        if (!d->label || d->label[0] == '-') {
-            if (c == ui.hot_col)                      /* touched, no parameter: no whole value in the breadcrumb */
-                ui.focus_l[0] = 0;
-            continue;
-        }
-        sv = lock_shown(lock_id(c), *vp, &lk);        /* (a step held in STEPS: the macro's lock there) */
-        inv |= (uint32_t)(lk || c == hot) << c;
-        param_format(d, sv, val, &unit);
-        md_fit(l[c], abbr4(d->label, ab), sizeof l[c], 36);
-        md_fit(v[c], val, 5, 36);
-        if (d->fmt != F_ENUM)
-            r[c] = RATIO(d, sv);
-        if (lfo_live(TSEL, P_E0 + c, &mv))
-            md[c] = RATIO(d, mv);
-        if (c == ui.hot_col) {                        /* the breadcrumb's whole value while touched */
-            str_cpy(ui.focus_l, d->label, 8);
-            str_cpy(ui.focus_v, val, 8);
-            str_cpy(ui.focus_u, unit, 8);
-        }
+    int32_t ld = proj_loaded();
+    s[0] = 'P', s[1] = ld >= 0 ? (char)('1' + ld) : '-', s[2] = ' ';
+    s[3] = 'V', s[4] = (char)('1' + var_cur % 9u), s[5] = ' ';
+    s[6] = 'T', s[7] = (char)('1' + song.sel % 9u), s[8] = ' ';
+    s[9] = 'L';
+    fmt_int(s + 10, (int32_t)ui.bank + 1);
+}
+
+static uint32_t md_fit_sc(const char *s, int32_t w, uint32_t sc)   /* the largest scale <= sc that s fits w in */
+{
+    while (sc > 2u && md_text_w(&MD_F3, sc, s) > w)
+        sc--;
+    return sc;
+}
+
+static void draw_home(void)
+{
+    char st[16], b[12];
+    uint32_t i, n, sig, sc, zoom, cpu = song.cpu_q8 * 100u / 256u, cn = 0, cf = 0;
+    int32_t lvl = batt_shown(), x, w;
+    home_focus();
+    zoom = ui.hot_t && settings.zoom && ui.focus_l[0];
+    if (cpu > 999u)
+        cpu = 999u;
+    for (n = rg_plan(&hm.cpu, cpu + 1u, 0, 0, 150, 24), i = 0; i < n; i++) {   /* "CPU 23%" */
+        rg_win(i, 0, C_BG);
+        x = md_text(8, 7, &MD_F3, 2, "CPU ", C_INK);
+        fmt_int(b, (int32_t)cpu);
+        str_cpy(b + str_len(b), "%", 2);
+        md_text(x, 7, &MD_F3, 2, b, C_INK);
+        cv_blit(0, 0);
     }
-    m[0] = 0;
-    head_mode(m);
-    if (lock_view_step() < NSTEP && 4 + md_text_w(&MD_F3, 2, m) > 61) {   /* the left block's 58 px (LEV's column
-                                                       * paints over more): "LOCK 5" (the top bar has LOCK STEP 5) */
-        str_cpy(m, "LOCK ", sizeof m);
-        fmt_int(m + 5, (int32_t)lock_view_step() + 1);
+    for (n = rg_plan(&hm.bat, (uint32_t)lvl + 1u, 150, 0, 90, 24), i = 0; i < n; i++) {   /* the battery: 3 cells */
+        rg_win(i, 0, C_BG);
+        cv_frame(54, 6, 22, 12, C_INK);
+        cv_rect(76, 9, 2, 6, C_INK);
+        for (x = 0; x < lvl && x < 3; x++)
+            cv_rect(56 + x * 6, 8, 5, 8, C_INK);
+        cv_blit(150, 0);
     }
-    if (chain.n > 1u && lock_view_step() >= NSTEP) {   /* a chain runs: its line instead of the mode line, the slots'
-                                                       * numbers, "CH" before up to 4; more: 6 from the one before the
-                                                       * one playing */
+    rg_fill(0, 24, 240, HM_Y_MID - 24, C_BG);
+    rg_fill(0, HM_Y_CH + HM_H_CH, 240, 240 - HM_Y_CH - HM_H_CH, C_BG);
+    if (pp_on()) {                                    /* PRESETS' popup over the middle (y 61..180; it repaints all
+                                                       * when gone): the chain band's rows under it */
+        rg_fill(0, Y_GRAPH + H_GRAPH, 240, HM_Y_CH + HM_H_CH - Y_GRAPH - H_GRAPH, C_BG);
+        return;
+    }
+    home_status(st);
+    sig = zoom ? str_hash(str_hash(str_hash(0x5555u, ui.focus_v), ui.focus_l), ui.focus_u) : str_hash(0x811C9DC5u, st);
+    for (n = rg_plan(&hm.mid, sig, 0, HM_Y_MID, 240, HM_H_MID), i = 0; i < n; i++) {
+        rg_win(i, HM_Y_MID, C_BG);
+        if (zoom) {                                   /* ZOOM: the touched knob's name and value, large */
+            cv_popup(6, 2, 226, 90, "", C_INK, C_BG);
+            md_text(18, 12, &MD_F3, 3, ui.focus_l, C_INK);
+            w = md_text_w(&MD_F3, 2, ui.focus_u);
+            sc = md_fit_sc(ui.focus_v, 196 - (w ? w + 6 : 0), 7u);
+            x = md_text(18, 74 - 5 * (int32_t)sc, &MD_F3, sc, ui.focus_v, C_INK);
+            md_text(x + 6, 64, &MD_F3, 2, ui.focus_u, C_INK);
+        } else {                                      /* "P1 V2 T6 L1", centred */
+            sc = md_fit_sc(st, 228, 5u);
+            md_text(120 - md_text_w(&MD_F3, sc, st) / 2, 48 - 5 * (int32_t)sc / 2, &MD_F3, sc, st, C_INK);
+        }
+        cv_blit(0, HM_Y_MID);
+    }
+    sig = 0;                                          /* the chain: up to 8 entries from the one before the one
+                                                       * playing; that one inverted, the next underlined */
+    if (chain.n > 1u) {
         uint32_t p = chain.pos == CH_NONE ? 0u : chain.pos;
-        cpre = chain.n <= 4u;
-        cn = chain.n < 6u ? chain.n : 6u;
-        cf = chain.n <= 6u ? 0u : (p + chain.n - 1u) % chain.n;
+        cn = chain.n < 8u ? chain.n : 8u;
+        cf = chain.n <= 8u ? 0u : (p + chain.n - 1u) % chain.n;
+        sig = 1u + cn * 7u + cf * 31u + (chain.pos + 1u) * 7919u + (chain.nx + 1u) * 104729u;
         for (i = 0; i < cn; i++)
-            cs[i] = (char)('1' + (chain.s[(cf + i) % chain.n] & 3u));
-        cs[cn] = 0;
-        m[0] = 0;
+            sig = sig * 16777619u ^ chain.s[(cf + i) % chain.n];
     }
-    pj[0] = 'P', pj[1] = 'R', pj[2] = 'O', pj[3] = 'J', pj[4] = ' ';
-    pj[5] = (char)('A' + (uint32_t)(song.g[G_SLOT] > 0 ? song.g[G_SLOT] - 1 : 0) % 4u);
-    pj[6] = 0;
-    md_fit(nm, pname.name[0] ? pname.name : "NEW", sizeof nm, 54);
-    lx1 = m[0] ? 4 + md_text_w(&MD_F3, 2, m) : cn ? 4 + (int32_t)cpre * 18 + (int32_t)cn * 9 : 0;
-    rg_region(0, Y_KNOB, 240, 52);
-    if (ui.force) {                                   /* whole, but LEV's column (its own canvas, next) */
-        rg_add(0, 0, 63, 52);
-        rg_add(63, 51, 24, 1);
-        rg_add(87, 0, 153, 52);
-        lev = 1;
-    }
-    sig = str_hash(str_hash(str_hash(0x811C9DC5u, m), nm), pj) + cur * 101u;
-    if (cn)
-        sig += str_hash(0x811C9DC5u, cs) + (chain.pos + 1u) * 7919u + (chain.nx + 1u) * 104729u + cf * 31u;
-    if (!ui.force && sig != hs.left) {                /* the left block (the mode line may run on) */
-        int32_t x1 = lx1 > hs.lx1 ? lx1 : hs.lx1;
-        rg_add(0, 0, x1 > 62 ? x1 : 62, 51);
-        lev = x1 > 63;                                /* (over LEV's column: LEV again) */
-    }
-    hs.left = sig;
-    hs.lx1 = (int16_t)lx1;
-    for (c = 0; c < 4u; c++) {                        /* a cell: its label, ring, value (touched: inverted) */
-        int32_t cx = HS_CX(c), x0 = cx - 21 < 87 ? 87 : cx - 21, x1 = cx + 22 > 240 ? 240 : cx + 22;
-        sig = str_hash(str_hash(0x811C9DC5u, l[c]), v[c]) + (uint32_t)(r[c] + 1) * 7u + ((inv >> c) & 1u) * 7919u;
-        if (ui.force) {
-        } else if (sig != hs.cell[c])
-            rg_add(x0, 0, x1 - x0, 51);
-        else if (md[c] != hs.lfo[c] && r[c] >= 0)     /* the LFO's dot alone: the ring's box */
-            rg_add(cx - 11, 13, 23, 23);
-        hs.cell[c] = sig;
-        hs.lfo[c] = (int16_t)md[c];
-    }
-    if (!ui.force && pp_on())                         /* PRESETS' popup over the strip's last rows (y 61..68): the
-                                                       * rows above it (a full repaint draws the popup over them) */
-        rg_clip_h(Y_GRAPH - Y_KNOB);
-    for (i = 0; i < rg.n; i++) {
-        rg_win(i, Y_KNOB, C_BG);
-        cv_rect(0, 0, 1, 52, C_INK);
-        cv_rect(239, 0, 1, 52, C_INK);
-        for (c = 0; c < 4u; c++)                      /* the bar boxes (home_bar) */
-            if (c == cur)
-                cv_rect(6 + (int32_t)c * 13, 3, 10, 6, C_INK);
-            else
-                cv_frame(6 + (int32_t)c * 13, 3, 10, 6, C_INK);
-        cv_rect(2, 13, 59, 24, C_INK);                /* the project box */
-        md_text(31 - md_text_w(&MD_F3, 2, pj) / 2, 15, &MD_F3, 2, pj, C_BG);
-        md_text(31 - md_text_w(&MD_F3, 2, nm) / 2, 26, &MD_F3, 2, nm, C_BG);
-        md_text(4, 40, &MD_F3, 2, m, C_INK);
-        if (cn) {                                     /* the chain: the entry playing inverted, the next underlined */
-            int32_t x = cpre ? md_text(4, 40, &MD_F3, 2, "CH", C_INK) + 3 : 4;
-            for (c = 0; c < cn; c++, x += 9) {
+    for (n = rg_plan(&hm.chain, sig, 0, HM_Y_CH, 240, HM_H_CH), i = 0; i < n; i++) {
+        rg_win(i, HM_Y_CH, C_BG);
+        if (cn) {
+            uint32_t c;
+            x = md_text(120 - (md_text_w(&MD_F3, 3, "CH") + 6 + (int32_t)cn * 21) / 2, 12, &MD_F3, 3, "CH", C_INK) + 9;
+            for (c = 0; c < cn; c++, x += 21) {
                 uint32_t e = (cf + c) % chain.n;
-                char d[2] = {cs[c], 0};
-                int32_t w = md_text_w(&MD_F3, 2, d);
+                char d[2] = {(char)('1' + (chain.s[e] & 3u)), 0};
+                w = md_text_w(&MD_F3, 3, d);
                 if (e == chain.pos) {
-                    cv_rect(x - 1, 38, w + 2, 13, C_INK);
-                    md_text(x, 40, &MD_F3, 2, d, C_BG);
+                    cv_rect(x - 3, 9, w + 6, 21, C_INK);
+                    md_text(x, 12, &MD_F3, 3, d, C_BG);
                 } else {
-                    md_text(x, 40, &MD_F3, 2, d, C_INK);
+                    md_text(x, 12, &MD_F3, 3, d, C_INK);
                 }
                 if (e == chain.nx && e != chain.pos)
-                    cv_rect(x, 50, w, 1, C_INK);
+                    cv_rect(x, 31, w, 2, C_INK);
             }
         }
-        cv_rect(62, 0, 1, 51, C_INK);
-        cv_rect(87, 0, 1, 51, C_INK);
-        cv_vdot(125, 0, 50, C_INK);
-        cv_vdot(163, 0, 50, C_INK);
-        cv_vdot(201, 0, 50, C_INK);
-        cv_hdot(88, 238, 12, C_INK);
-        for (c = 0; c < 4u; c++) {
-            int32_t cx = HS_CX(c), vw = md_text_w(&MD_F3, 2, v[c]), vy = r[c] >= 0 ? 37 : 24;
-            if (!l[c][0])
-                continue;
-            md_text(cx - md_text_w(&MD_F3, 2, l[c]) / 2, 2, &MD_F3, 2, l[c], C_INK);
-            if (r[c] >= 0)
-                cv_knob(cx, 24, 7, r[c], md[c], C_INK);
-            if ((inv >> c) & 1u) {                    /* touched, or a step's lock: the value inverted */
-                cv_rect(cx - vw / 2 - 2, vy - 2, vw + 4, 13, C_INK);
-                md_text(cx - vw / 2, vy, &MD_F3, 2, v[c], C_BG);
-            } else {
-                md_text(cx - vw / 2, vy, &MD_F3, 2, v[c], C_INK);
-            }
-        }
-        cv_rect(1, 51, 238, 1, C_INK);
-        cv_blit(0, Y_KNOB);
+        cv_blit(0, HM_Y_CH);
     }
-    draw_home_lev((int)lev);
 }
 
 /* a step held on a steps page (step_edit_page): KNOB 1 PROB, 2 RATCH, 3 ACC, 4 NUDGE (step_edit); 1: drawn */
@@ -2556,10 +2469,6 @@ static void draw_columns(void)
         return;
     if (!ui.home && pg->graph == GR_MOTION) {          /* MOTION: PLAY EVENT - CLEAR */
         motion_columns();
-        return;
-    }
-    if (ui.home) {                                    /* HOME: the MD strip */
-        draw_home_strip();
         return;
     }
     if (pg->scope == SC_MIX) {                          /* TRACK LEVEL LEN PAN of the selected track */
@@ -2654,6 +2563,7 @@ static void draw_columns(void)
  * with upstream (the boot sequence up to the fm1_main call) */
 __attribute__((always_inline)) static inline void ui_draw(void)
 {
+    int home;
     if (safe_start) {                                 /* safe start: one static screen, drawn again after */
         static uint8_t drawn;                         /* an update session cleared it (main.c sets ui.force) */
         if (!drawn || ui.force) {
@@ -2692,11 +2602,16 @@ __attribute__((always_inline)) static inline void ui_draw(void)
                 b[12] = (char)('1' + ui.confirm_trk);
             }
             bank_fix();                               /* the page under it, then the popup */
-            draw_frame();
-            draw_head();
-            draw_columns();
-            draw_graph();
-            draw_foot();
+            if (ui.home && !ui.layer) {
+                lcd_fill(0, 0, 240, 240, C_BG);
+                draw_home();
+            } else {
+                draw_frame();
+                draw_head();
+                draw_columns();
+                draw_graph();
+                draw_foot();
+            }
             {
                 char q2[20] = "LOAD SLOT A SAVED";
                 q2[10] = (char)('A' + ui.confirm_trk % 4u);
@@ -2720,6 +2635,10 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         return;
     }
     bank_fix();
+    home = ui.home && !ui.layer;                      /* HOME: its own few bands (draw_home), no bars */
+    if (home != hm.on)                                /* (in or out of HOME: the other screen's parts all again) */
+        ui.force = 1;
+    hm.on = (uint8_t)home;
     rg.dmg.w = 0;                                     /* a popup gone: its place is damage (what lies under it draws
                                                        * there again); another message: the graph as it is now round it
                                                        * (thaw), the old one's place damage (it may be narrower) */
@@ -2748,16 +2667,20 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         rg_keep(30, 76, 180, 91);
         rg_keep(120 - (md_text_w(&MD_F3, 2, "TEMPO") + 12) / 2, 70, md_text_w(&MD_F3, 2, "TEMPO") + 12, 6);
     }
-    if (ui.force)
+    if (ui.force && !home)
         draw_frame();
     felucca_dbg.stage = 3;
-    draw_head();
-    felucca_dbg.stage = 4;
-    draw_columns();
+    if (home) {
+        draw_home();
+    } else {
+        draw_head();
+        felucca_dbg.stage = 4;
+        draw_columns();
+    }
     felucca_dbg.stage = 5;
     if (pp_on())
         draw_popup();                                 /* PRESETS turned: the popup in the graph's place */
-    else
+    else if (!home)
         draw_graph();
     draw_msg(draw_tempo());                           /* (the message over TEMPO) */
     if (ui.msg_t)
@@ -2769,7 +2692,8 @@ __attribute__((always_inline)) static inline void ui_draw(void)
     if (ui.hot_t)
         ui.hot_t--;
     felucca_dbg.stage = 6;
-    draw_foot();
+    if (!home)
+        draw_foot();
     ui.force = 0;
     rg.dmg.w = 0;
     rg.nex = 0;

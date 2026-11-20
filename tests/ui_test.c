@@ -2754,10 +2754,29 @@ static void test_rec_all(void)
     check(".. a tap after: REC ALL off", song.rec == 0u && !ui.rec_all);
 }
 
-/* HOME: a white key selects its track and plays it; an LFO on a HOME knob shows its live value on the gauge */
+/* text s in F3 at sc drawn in ink at x, y on the screen (every pixel of its box: ink where the glyphs are, else not) */
+static int region_is_text(int32_t x, int32_t y, uint32_t sc, const char *s)
+{
+    uint32_t w = (uint32_t)md_text_w(&MD_F3, sc, s), h = 5u * sc, i, j;
+    cv_begin(w, h, C_BG);
+    md_text(0, 0, &MD_F3, sc, s, C_INK);
+    for (j = 0; j < h; j++)
+        for (i = 0; i < w; i++)
+            if ((fb[((uint32_t)y + j) * 240u + (uint32_t)x + i] == C_INK) != (cv_px[j * w + i] == swap16(C_INK)))
+                return 0;
+    return 1;
+}
+/* HOME's status line (ui_draw.c draw_home): s centred, as large as fits (F3 at 5x at most) */
+static int home_line_is(const char *s)
+{
+    uint32_t sc = md_fit_sc(s, 228, 5u);
+    return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, HM_Y_MID + 48 - 5 * (int32_t)sc / 2, sc, s);
+}
+
+/* HOME: a white key selects its track and plays it (the status line's T) */
 static void test_home_keys_and_lfo(void)
 {
-    uint32_t a, x, y, amb;
+    uint32_t a;
     ui_host_init();
     a = hit_age(&trk[3]);
     keys(1u << KEY_TRK_KEY[3]);
@@ -2765,24 +2784,7 @@ static void test_home_keys_and_lfo(void)
     keys(0);
     ui_frame();
     check("HOME: white key 4 selects track 4 and plays it", ui.home && song.sel == 3 && hit_age(&trk[3]) != a);
-    for (y = 17u, amb = 0; y < 68u; y++)
-        for (x = 126; x < 163u; x++)  /* the strip's cell 2: its knob */
-            amb += fb[y * 240u + x] == C_INK;
-    x = amb;                                         /* (the knob without an LFO dot) */
-    check("HOME: no LFO, no marker on the knobs", amb > 0u);
-    TSEL->p[P_LFO1 + LF_WAVE] = LW_SQUARE;
-    TSEL->p[P_LFO1 + LF_MODE] = LM_HZ;
-    TSEL->p[P_LFO1 + LF_RATE] = 60;
-    TSEL->p[P_LFO1 + LF_DEST] = 2;                   /* the engine's 2nd knob: HOME's second column */
-    TSEL->p[P_LFO1 + LF_DEPTH] = 40;
-    for (a = 0; a < 50u; a++)
-        ui_frame();
-    a = x;
-    for (y = 17u, amb = 0; y < 68u; y++)
-        for (x = 126; x < 163u; x++)  /* the strip's cell 2: its knob */
-            amb += fb[y * 240u + x] == C_INK;
-    check("HOME: an LFO on the second knob marks its live value (a hollow dot outside the ring)", amb >= a + 6u);
-    snap_page("lfo/91_home_marker");
+    check("HOME: the status line shows the track (T4)", home_line_is("P- V1 T4 L1"));
 }
 
 /* GLOBAL 3/3: MUTE NOW / BAR, the device setting the mutes follow (track_mute_toggle) */
@@ -3910,59 +3912,58 @@ static void test_perform_buttons(void)
     ui_frame();
 }
 
-/* spec 2026-10-19-md-ui §9: HOME = the top bar, the MD main-screen strip (bar boxes, the project box, the mode
- * line | LEV | 4 knobs, the values under them), the scope below */
+/* FREITAKT HOME (Model:Cycles style): only the status line "P1 V2 T6 L1" large (y 72..167), the CPU load and the
+ * battery small (y 0..23); nothing else (no bars, no strip, no scope, no breadcrumb); an idle HOME sends nothing */
 static void test_home_strip(void)
 {
-    uint32_t nb;
+    uint32_t y, ink = 0, px;
     ui_host_init();
     TSEL->p[P_SLEN] = 32;
-    transport_req = 1;
-    seq_play_to(song.sel, 20);                       /* the playhead in bank 2 */
+    ui.bank = 1;
+    song.cpu_q8 = 128;
     ui.force = 1;
     ui_frame();
-    nb = bank_count();
-    check("HOME strip: the project box inverted (x 2..60, y 30..53)", ui.home &&
-          fb_count(2, 30, 59, 24, C_INK) > 59u * 24u * 6u / 10u && fb_count(2, 30, 59, 24, C_BG) > 40u);
-    check("HOME strip: 4 bar boxes (fix 6: not a box per bank), the playing bar (2: step 20) solid", nb == 2u &&
-          fb_count(6, 20, 10, 6, C_INK) == 28u && fb_count(19, 20, 10, 6, C_INK) == 60u &&
-          fb_count(32, 20, 10, 6, C_INK) == 28u && fb_count(45, 20, 10, 6, C_INK) == 28u);
-    check("HOME strip: rules at x 62 / 87 and y 68", fb[40u * 240u + 62u] == C_INK && fb[40u * 240u + 87u] == C_INK &&
-          fb_count(1, 68, 238, 1, C_INK) == 238u);
-    transport_req = 2;
+    check("HOME: the status line P- V1 T1 L2 (no slot loaded, variation 1, track 1, step page 2), large", ui.home &&
+          home_line_is("P- V1 T1 L2"));
+    check("HOME: CPU 50% small at the top left", region_is_text(8, 7, 2, "CPU 50%"));
+    for (y = 24; y < 72u; y++)
+        ink += fb_count(0, y, 240, 1, C_INK);
+    for (y = 208; y < 240u; y++)
+        ink += fb_count(0, y, 240, 1, C_INK);
+    check("HOME: nothing else (y 24..71 and 208..239 plain; no top bar, no breadcrumb)", ink == 0u &&
+          fb_count(0, 0, 4, 24, C_INK) == 0u);
     ui_frame();
-}
-
-static void test_home_knob_values_below(void)
-{
-    uint32_t c, ok = 1;
-    ui_host_init();
-    ui.force = 1;
+    px = host_blit_px;
     ui_frame();
-    for (c = 0; c < 4u; c++) {
-        int16_t *vp;
-        const param_desc_t *d = home_param(c, &vp);
-        uint32_t cx = 107u + c * 38u;
-        if (!d->label || d->fmt == F_ENUM)
-            continue;
-        ok &= fb[34u * 240u + cx] == C_INK && fb[35u * 240u + cx] == C_BG;   /* the ring's top, r 7 at y 41 */
-        ok &= fb_count(cx - 15u, 54, 30, 10, C_INK) > 8u;                  /* the value under it */
+    ui_frame();
+    check("HOME: idle, nothing redrawn", host_blit_px == px);
+    var_cur = 1;
+    ui_frame();
+    check("HOME: variation 2 shows (V2)", home_line_is("P- V2 T1 L2"));
+    var_cur = 0;
+    song.cpu_q8 = 0;
+    ui_frame();
+    {                                                /* a chain A A C B: its line under the status line */
+        static const uint8_t CH[4] = {0, 0, 2, 1};
+        uint32_t k;
+        for (k = 0; k < 3u; k++)
+            project_save(k);
+        project_load(0);
+        ui.bank = 0;
+        ui.msg_t = 0;                                /* (LOADED) */
+        ui_frame();
+        check("HOME: slot A loaded: P1", home_line_is("P1 V1 T1 L1"));
+        check("HOME: no chain, no chain line", fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) == 0u);
+        chain_set(CH, 4);
+        ui_frame();
+        shot("build/ui_shots/fixes/home_chain.ppm");
+        check("HOME: a chain runs: CH and its entries under the status line, the one playing inverted",
+              region_is_text(120 - (md_text_w(&MD_F3, 3, "CH") + 6 + 4 * 21) / 2, HM_Y_CH + 12, 3, "CH") &&
+              fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) > 300u);
+        chain_clear();
+        ui_frame();
+        check("HOME: the chain cleared, its line gone", fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) == 0u);
     }
-    check("HOME strip: each knob a ring (r 7 at y 41), its value under it (y 54)", ok);
-}
-
-static void test_home_scope_height(void)
-{
-    uint32_t i;
-    ui_host_init();
-    for (i = 0; i < SCOPE_N; i++)
-        scope_buf[i] = (int16_t)((i % 32u) < 16u ? 30000 : -30000);
-    scope_w = 0;
-    ui.force = 1;
-    ui_frame();
-    check("HOME: the scope fills rows 69..180 (its wave reaches y 72..95 and 160..178)",
-          fb_count(2, 72, 236, 24, C_INK) > 20u && fb_count(2, 160, 236, 19, C_INK) > 20u);
-    memset(scope_buf, 0, sizeof scope_buf);
 }
 
 /* spec 2026-10-19-md-ui §7: confirms and TEMPO as MD popups over the live page; MENU a popup window (the cursor an
@@ -4172,9 +4173,13 @@ static void test_fix_zoom_home(void)
     ui_frame();
     turn(EN_K1, 1);
     ui_frame();
-    check("ZOOM on HOME: the touched value in a popup over the scope (its shadow edge at x 152..153)", ui.home &&
-          fb[110u * 240u + 152u] == C_INK && fb[110u * 240u + 153u] == C_INK && fb[110u * 240u + 151u] == C_BG);
-    settings.zoom = 0;
+    shot("build/ui_shots/fixes/zoom_home.ppm");
+    check("ZOOM on HOME: the touched knob's value large in a popup in the status line's place (its shadow edge at x "
+          "230..231)", ui.home && ui.hot_t && ui.focus_l[0] && fb[120u * 240u + 230u] == C_INK &&
+          fb[120u * 240u + 231u] == C_INK && fb[120u * 240u + 232u] == C_BG && !home_line_is("P- V1 T1 L1"));
+    ui.hot_t = 0;
+    ui_frame();
+    check("ZOOM on HOME: gone, the status line back", home_line_is("P- V1 T1 L1"));
 }
 
 static void test_fix_msg_shrink(void)
@@ -4218,30 +4223,6 @@ static void test_fix_popup_holds_graph(void)
     check("TEMPO gone: the rows redrawn again", !ui.bpm_t && host_graph_blits > 0u);
     transport_req = 2;
     ui_frame();
-}
-
-/* HOME's LEV (the user, 2026-10-19: "level meter is not working ... on home page"): the selected track's live level as
- * the solid bar, falling back when the sound stops; the level setting a marker wider than the bar */
-static void test_home_lev_meter(void)
-{
-    uint32_t k, hs;
-    ui_host_init();
-    TSEL->p[P_LEVEL] = 40;
-    ui.force = 1;
-    ui_frame();
-    hs = 40u * 35u / 127u;
-    check("HOME LEV: the level setting a 10 px marker (x 70..79), wider than the 6 px bar",
-          fb_count(70, 64u - hs, 10, 2, C_INK) == 20u && fb[(65u - hs) * 240u + 69u] == C_BG);
-    check("HOME LEV: silent: no bar above the marker", fb[45u * 240u + 74u] == C_BG);
-    TSEL->peak = 20000;
-    ui_frame();
-    check("HOME LEV: a loud hit raises the bar over the setting (live level)", fb[45u * 240u + 74u] == C_INK &&
-          fb[45u * 240u + 72u] == C_INK);
-    for (k = 0; k < 40u; k++) {
-        TSEL->peak = 0;
-        ui_frame();
-    }
-    check("HOME LEV: ... and it falls back when the sound stops", fb[45u * 240u + 74u] == C_BG);
 }
 
 static void snap_page(const char *name)
@@ -4315,7 +4296,7 @@ static void test_screens(void)
     kit_session();                                   /* a pattern to show */
     transport_req = 1;
     snap_page("00_home");
-    ok &= fb_lit(0, 20) > 50 && fb_lit(26, 70) > 200 && fb_lit(202, 240) > 100;
+    ok &= fb_lit(0, 24) > 30 && fb_lit(72, 168) > 200;   /* HOME: CPU / battery, the status line */
     for (i = 0; i < NPAGES; i++) {
         const page_t *pg = &PAGES[i];
         uint32_t nth = i - page_first(pg->fam), j = 0;
@@ -4355,9 +4336,10 @@ static void test_screens(void)
             snprintf(d, sizeof name - (size_t)(d - name), "_%u", (unsigned)same);
         }
         snap_page(name);
-        ok &= fb_lit(26, 70) > 100 && fb_lit(202, 240) > 100;
-        if (pg->graph == GR_MIX)
-            ok &= fb_lit(74, 198) > 300;             /* 8 rows */
+        if (!(fb_lit(26, 70) > 100 && fb_lit(202, 240) > 100 && (pg->graph != GR_MIX || fb_lit(74, 198) > 300))) {
+            ok = 0;                                  /* (TRACKS: 8 rows) */
+            printf("      %s: not drawn whole\n", pg->title);
+        }
     }
     check("every page of PAGES[] is reached with its button", reach);
     check("every page draws header, columns and footer", ok);
@@ -5328,6 +5310,7 @@ static void test_perform_knobs_stay(void)
     uint32_t mode;
     int16_t e1;
     ui_host_init();
+    tap(B_EDIT);                                     /* (HOME has no top bar: SOUND's, its knobs HOME's four) */
     ui_frame();
     check("no knob effect on: no FX mark in the top bar", !head_fx_lit());
     press(B_FX);
@@ -5346,6 +5329,7 @@ static void test_perform_knobs_stay(void)
     snap_page("fixes/head_fx_keys");
     ui.keys = 0;
     song.rec = 0;
+    home_screen();                                   /* (HOME: its knobs the macros) */
     ui.force = 1;
     ui_frame();
     e1 = trk[0].p[P_E1];
@@ -7784,6 +7768,7 @@ static void test_cpu_icon(void)
 {
     uint32_t a, b, ball, c, d;
     ui_host_init();
+    tap(B_EDIT);                                     /* (HOME has no top bar) */
     fm1_ms = 5000;
     ui_frame();
     a = head_alert(166, 215);
@@ -8581,66 +8566,6 @@ static void test_about_credits_scroll(void)
     ui_frame();
     release_all();
     check("ABOUT: OCT- twice closes the menu", ui.menu == 0u);
-}
-
-/* fix 6 (owner, 2026-10-21): HOME's 4 boxes above PROJ are the bar position of a 4-bar cycle: always 4, the current bar
- * solid (1/16s since PLAY / 16, mod 4: the selected track's LEN or bank does not matter), advancing with the playhead,
- * box 1 again at every PLAY; stopped: box 1 (where PLAY starts) */
-static int hbar_lit(uint32_t c)                       /* box c (x 6 + 13c, y 20, 10 x 6): 1 solid, 0 an outline, -1 else */
-{
-    uint32_t n = fb_count(6u + c * 13u, 20, 10, 6, C_INK);
-    return n == 60u ? 1 : n == 28u ? 0 : -1;
-}
-static int hbar_only(uint32_t b)                      /* box b solid, the 3 others outlines */
-{
-    uint32_t c;
-    int ok = 1;
-    for (c = 0; c < 4u; c++)
-        ok &= hbar_lit(c) == (c == b);
-    return ok;
-}
-static void test_home_bar_cycle(void)
-{
-    uint32_t b, k, ok = 1;
-    ui_host_init();
-    TSEL->p[P_SLEN] = 16;                            /* one bank: the old boxes showed one */
-    ui.force = 1;
-    ui_frame();
-    check("HOME bars: stopped, 4 boxes, bar 1 solid", ui.home && hbar_only(0));
-    transport_req = 1;
-    for (b = 0; b < 6u; b++) {                       /* 6 bars: 1 2 3 4 1 2, redrawn as they change (no force) */
-        for (k = 0; k < 20000u && (gclk.cnt == 0xFFFFFFFFu || gclk.cnt < b * 16u + 3u); k++)
-            ui_frame();
-        ui_frame();
-        ok &= hbar_only(b % 4u);
-        if (!hbar_only(b % 4u))
-            printf("      bar %u (1/16 %u): boxes %d %d %d %d\n", b, gclk.cnt, hbar_lit(0), hbar_lit(1), hbar_lit(2),
-                   hbar_lit(3));
-        if (b == 2u)
-            shot("build/ui_shots/fixes/home_bar3.ppm");
-    }
-    check("HOME bars: playing, the current bar of 4 solid (1 2 3 4 1 2), the others outlines", ok);
-    transport_req = 2;
-    ui_frame();
-    ui_frame();
-    check("HOME bars: STOP, bar 1 again", hbar_only(0));
-    TSEL->p[P_SLEN] = 64;                            /* 4 banks: still the bar, not the bank */
-    transport_req = 1;
-    ui_frame();                                      /* (PLAY taken: the count from 0) */
-    for (k = 0; k < 20000u && (gclk.cnt == 0xFFFFFFFFu || gclk.cnt < 16u + 3u); k++)
-        ui_frame();
-    ui_frame();
-    ok = hbar_only(1);
-    if (!ok)
-        printf("      LEN 64 (1/16 %u): boxes %d %d %d %d\n", gclk.cnt, hbar_lit(0), hbar_lit(1), hbar_lit(2), hbar_lit(3));
-    transport_req = 1;                               /* PLAY again while playing: from bar 1 */
-    ui_frame();
-    ui_frame();
-    if (!hbar_only(0))
-        printf("      again (1/16 %u): boxes %d %d %d %d\n", gclk.cnt, hbar_lit(0), hbar_lit(1), hbar_lit(2), hbar_lit(3));
-    check("HOME bars: LEN 64, bar 2 solid; PLAY again: bar 1", ok && hbar_only(0));
-    transport_req = 2;
-    ui_frame();
 }
 
 /* fix 8 (owner, 2026-10-21): the MODEL knob's list runs MD -> MODERN -> CLASSIC (the models keep their numbers: projects
@@ -10087,14 +10012,10 @@ static void test_head_lock_icon(void)
         ok &= head_lock_px() == 76u;
     }
     snap_page("locks/head_seq");
-    home_screen();
-    ui_frame();
-    ok &= head_lock_px() == 76u;
-    snap_page("locks/head_home");
     env_tap();
     ui_frame();
     ok &= head_lock_px() == 0u;
-    check("STEPS: a padlock in the top bar on every page (SOUND, FX, LFO, SEQ, HOME); TRACKS: none", ok);
+    check("STEPS: a padlock in the top bar on every page (SOUND, FX, LFO, SEQ; HOME has no top bar); TRACKS: none", ok);
 }
 
 /* release check 2026-10-25: the held step's "LOCK STEP n" line drawn whole (no glyph cut by a neighbour's paint), on
@@ -10131,13 +10052,6 @@ static int lock_line_whole_now(const char *where)
     int ok;
     snprintf(t, sizeof t, "LOCK STEP %u", (unsigned)lock_view_step() + 1u);
     ok = lock_view_step() < NSTEP && text_whole(t, 0, 15, C_BG, C_INK);   /* the top bar: BG on the ink bar */
-    if (ok && ui.home) {                                                  /* HOME's strip: its mode line, whole */
-        char sh[12];                                                      /* (its 58 px: "LOCK 5") */
-        snprintf(sh, sizeof sh, "LOCK %u", (unsigned)lock_view_step() + 1u);
-        ok = (text_whole(t, Y_KNOB + 30u, Y_KNOB + 50u, C_INK, C_BG) || text_whole(sh, Y_KNOB + 30u, Y_KNOB + 50u, C_INK, C_BG)) &&
-             !text_whole("LOCK ST", Y_KNOB + 30u, Y_KNOB + 50u, C_INK, C_BG);   /* (never cut: "LOCK ST..") */
-        ok = ok || (md_text_w(&MD_F3, 2, t) <= 57 && text_whole(t, Y_KNOB + 30u, Y_KNOB + 50u, C_INK, C_BG));
-    }
     if (!ok)
         printf("     LOCK STEP line not whole: %s\n", where);
     return ok;
@@ -10160,20 +10074,13 @@ static void test_lock_line_whole_every_page(void)
         grid_up(WHITE[4]);
         grid_wait(100);
     }
-    home_screen();
-    ui_frame();
-    grid_down(WHITE[4]);
-    grid_wait(400);
-    ok &= (uint32_t)lock_line_whole("HOME");
-    snap_page("locks/home_held");
-    grid_up(WHITE[4]);
-    home_tracks();
+    home_tracks();                                   /* (FREITAKT's HOME has no top bar: TRACKS) */
     ui_frame();
     grid_down(WHITE[4]);
     grid_wait(400);
     ok &= (uint32_t)lock_line_whole("TRACKS");
     grid_up(WHITE[4]);
-    check("locks: the LOCK STEP 5 line whole on every page a step can be held in STEPS (top bar; HOME's strip too)",
+    check("locks: the LOCK STEP 5 line whole on every page a step can be held in STEPS (top bar)",
           ok && n > 15u);
 }
 
@@ -10352,8 +10259,6 @@ int main(void)
     test_tracks_peak_tick();
     test_perform_buttons();
     test_home_strip();
-    test_home_knob_values_below();
-    test_home_scope_height();
     test_confirm_popup();
     test_tempo_popup();
     test_menu_popup_cursor();
@@ -10363,7 +10268,6 @@ int main(void)
     test_fix_zoom_home();
     test_fix_msg_shrink();
     test_fix_popup_holds_graph();
-    test_home_lev_meter();
     test_popup_shows_and_loads();
     test_popup_fast_while_playing();
     test_popup_skips_capped_acid();
@@ -10380,7 +10284,6 @@ int main(void)
     test_crumb_unassigned_knob();
     test_about_moves_only_the_logo();
     test_about_credits_scroll();
-    test_home_bar_cycle();
     test_model_list_order();
     test_model_names();
     test_engine_number();

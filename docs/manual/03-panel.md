@@ -21,7 +21,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 | Button | Opens |
 | --- | --- |
-| **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the scope, the track's first four knobs, the keys play the tracks; SELECT goes on to the compressor's pages). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
+| **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the minimal status screen, the track's first four knobs, the keys play the tracks; SELECT goes on to the compressor's pages). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
 | **EDIT** | The selected track's sound: its model and knobs. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
 | **SEQ** | The steps on the white keys, then PATTERN and MOTION (a short tap turns pages, on its release). **Hold SEQ** (0.4 s, or press a white key with it) for the step TOOLS screen. **SEQ + black key 1 to 6**: mute / unmute track 1 to 6 (see *Combos*). |
 | **FX** | The track's FILTER, FX (the sends), INSERT (with SRR): 5 pages. **Hold FX** for PERFORM. |
@@ -37,7 +37,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 ### HOME in detail
 
-HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen: a strip under the top bar, the selected track's four main knobs, a large scope, and the four boxes above `PROJ` showing the bar of a four-bar cycle (the current bar solid, moving with the playhead and back to the first on every PLAY). [[SELECT]] on HOME goes on to the compressor's pages (see Modulation and compressor).
+HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern slot playing (1 to 4 for A to D; `P-` before a slot is loaded), **V** its variation, **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH 1 1 3 2`, the entry playing inverted, the next underlined) shows under the status line. The four knobs edit the selected track's first four sound knobs; turning one shows its value large in place of the status line (ZOOM, see Settings) for a moment after the turn. HOME has no top bar, knob row or breadcrumb: the screen only redraws when something on it changes. [[SELECT]] on HOME goes on to the compressor's pages (see Modulation and compressor).
 
 ### EDIT, FX, LFO and the selected track
 

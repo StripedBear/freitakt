@@ -101,7 +101,7 @@ While playing, the repeats land on the grid of the rate (following swing, the te
 
 ## ENV and parameter locks
 
-[[ENV]] toggles **STEPS / TRACKS** (on its release). In STEPS the LED is lit and a padlock shows in the top bar; the white keys are the selected track's steps on **every page** (HOME, EDIT, FX, LFO, COMP, TRACKS armed...), tapped and held as on SEQ. Hold [[ENV]] and press [[OCT+]] / [[OCT-]] for the next / previous bank. [[OCT+]] held plus a step toggles its accent. Finger drumming needs TRACKS. Off at power-on.
+[[ENV]] toggles **STEPS / TRACKS** (on its release). In STEPS the LED is lit and a padlock shows in the top bar (HOME has none); the white keys are the selected track's steps on **every page** (HOME, EDIT, FX, LFO, COMP, TRACKS armed...), tapped and held as on SEQ. Hold [[ENV]] and press [[OCT+]] / [[OCT-]] for the next / previous bank. [[OCT+]] held plus a step toggles its accent. Finger drumming needs TRACKS. Off at power-on.
 
 ### Locking a step
 

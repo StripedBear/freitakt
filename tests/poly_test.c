@@ -522,7 +522,7 @@ static void fit_longest_cue(void)
           "track (FIT, swung 1/16) sits where the never-switched loop has it", (int)ok);
 }
 
-/* HOME shows the chain: the strip draws while one runs (and its line changes with the entry playing) */
+/* HOME shows the chain: its band draws while one runs (and its line changes with the entry playing) */
 static void chain_home(void)
 {
     static const uint8_t CH[4] = {0, 0, 2, 1};
@@ -531,19 +531,19 @@ static void chain_home(void)
     ui.home = 1;
     ui.force = 1;
     ui_draw();
-    s0 = hs.left;
+    s0 = hm.chain;
     OK(chain_set(CH, 4) == 0);
     ui_draw();
-    OK(hs.left != s0);
-    s0 = hs.left;
+    OK(hm.chain != s0);
+    s0 = hm.chain;
     ui_draw();
-    OK(hs.left == s0);
+    OK(hm.chain == s0);
     chain.pos = 1;
     ui_draw();
-    OK(hs.left != s0);
+    OK(hm.chain != s0);
     chain_clear();
     ui.home = 0;
-    check("HOME: the chain line in the strip's left block (its signature: the entries, the one playing, the next)",
+    check("HOME: the chain line under the status line (its signature: the entries, the one playing, the next)",
           (int)ok);
 }
 
