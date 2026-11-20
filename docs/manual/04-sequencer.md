@@ -34,10 +34,14 @@ A step with PROB **FILL** plays only while a fill is active; **!FILL** plays onl
 | Knob | Label | Values |
 | --- | --- | --- |
 | **KNOB 1** | LEN | 1 to 64 steps (default 16) |
-| **KNOB 2** | DIV | 4BAR, 2BAR, 1/1, 1/2, 1/4, 1/8, 8T, 1/16 (default), 16T, 1/32 |
+| **KNOB 2** | DIV | 4BAR, 2BAR, 1/1, 1/2, 1/4, 1/8, 8T, 1/16 (default), 16T, 1/32, then FIT: F4BR, F2BR, FBAR, F1/2 |
 | **KNOB 3** | SWG | 0 to 100 %. The effective swing is this plus GLOBAL SWG, capped at 100 |
+| **KNOB 4** | MLEN | MASTER LENGTH: OFF (default) or 2 to 1024 sixteenths, the slot's (not a track's) |
 
 TRACKS' LEN knob is the same length.
+
+- **FIT** divisions spread the track's LEN steps evenly over a fixed span: F4BR 16 beats, F2BR 8, FBAR 4, F1/2 2. LEN 5 on FBAR plays 5 steps in exactly one bar, with no drift against the other tracks; changing LEN while it plays keeps it fitted.
+- **MLEN** restarts every track at its first step every MLEN sixteenths since PLAY, whatever its LEN, so polymeters line up again (64 = every 4 bars). A cue that ends on the same boundary makes a single restart.
 
 ## MOTION: recorded knob turns
 
@@ -68,6 +72,7 @@ While a pattern plays you can queue the next project slot (A to D) or another va
 - A **slot** switch brings the slot's sounds, steps, timing and locks; the tempo, swing, clock, MIDI, master effects, mutes and selected track stay. The old sounds fade out over the last 5 ms. A **variation** switch changes the steps and timing only; the sounds ring on.
 - Each slot has **8 variations** (both versions): variation 1 is its own steps; 2 to 8 hold their own steps and timing and share the slot's sounds and locks. A variation never used before starts as a copy of the one playing. A slot comes back on the variation it played last. When a slot's variations are full: `VARIATIONS FULL`.
 - Following an external clock (USB or TRS) the switch comes on the pulse that ends the pattern.
+- **Chain:** up to 16 slots can play in turn, each switching at the pattern end (or MLEN's boundary), wrapping at the end; empty slots are skipped. HOME shows the chain under the strip when it has more than one entry (playing inverted, next underlined). STOP ends the chain (the slot playing stays). For now it is set from the console only: `chain 1 1 3 2` (slots A to D as 1 to 4); `chain` alone clears it.
 
 ## NUDGE: a step early or late
 
