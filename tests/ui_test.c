@@ -3729,8 +3729,8 @@ static void test_cell_touched(void)
     check("cell touched: the value inverted (an ink box behind it)", ui.hot_t && ui.hot_col == 1u && box1 > box0 + 80u);
     check("cell touched: the breadcrumb shows the parameter's full value (CUT ... HZ, the page number gone)",
           !same && fb_count(200, Y_CRUMB + 8u, 34, 10, C_BG) == 0u && fb_count(6, Y_CRUMB + 8u, 60, 10, C_BG) > 40u);
-    for (k = 0; k < 60u && ui.hot_t; k++)
-        ui_frame();
+    for (k = 0; k < 100u && ui.hot_t; k++)
+        grid_wait(50);
     ui_frame();
     box2 = fb_count(87, Y_KNOB + 22u, 30, 13, C_INK);
     same = 1;
@@ -4180,6 +4180,35 @@ static void test_fix_zoom_home(void)
     ui.hot_t = 0;
     ui_frame();
     check("ZOOM on HOME: gone, the status line back", home_line_is("P- V1 T1 L1"));
+}
+
+/* ZOOM (FREITAKT): on in a new device; the popup lasts HOT_MS (3 s) of real time after the last turn, frames or not */
+static void test_zoom_time(void)
+{
+    uint32_t t0, ms, k, at2;
+    ui_host_init();
+    settings.magic = 0;
+    settings_init();
+    check("ZOOM: a new device has it on", settings.zoom == 1u);
+    tap(B_EDIT);
+    ui_frame();
+    turn(EN_K1, 1);
+    ui_frame();
+    t0 = host_ticks;
+    for (k = 0; k < 400u && ui.hot_t; k++)
+        grid_wait(50);
+    ms = (host_ticks - t0) / (1000u * FM1_TICKS_PER_US);
+    check("ZOOM: gone 3 s after the turn (real time)", !ui.hot_t && ms >= 2950u && ms <= 3150u);
+    turn(EN_K1, 1);
+    ui_frame();
+    grid_wait(2000);
+    turn(EN_K1, 1);                                  /* another turn 2 s on: 3 s from this one */
+    ui_frame();
+    grid_wait(2000);
+    at2 = ui.hot_t;
+    grid_wait(1200);
+    check("ZOOM: each turn starts the 3 s again", at2 && !ui.hot_t);
+    settings.zoom = 0;
 }
 
 static void test_fix_msg_shrink(void)
@@ -9725,7 +9754,7 @@ static void test_lock_cells(void)
     id = held_turn(1, 1);                            /* KNOB 2 locked on step 5 */
     ok = lock_get(0, 4, id, &lv);
     grid_up(WHITE[4]);
-    grid_wait(2200);                                 /* (the touched mark gone) */
+    grid_wait(3200);                                 /* (the touched mark gone: HOT_MS) */
     grid_down(WHITE[4]);
     grid_wait(350);
     param_format(track_desc(TSEL, id), lv, val, &unit);
@@ -10266,6 +10295,7 @@ int main(void)
     test_theme_sheet();
     test_fix_value_4_glyphs();
     test_fix_zoom_home();
+    test_zoom_time();
     test_fix_msg_shrink();
     test_fix_popup_holds_graph();
     test_popup_shows_and_loads();

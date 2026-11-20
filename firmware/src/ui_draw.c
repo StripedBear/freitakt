@@ -2689,8 +2689,8 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         ui.bpm_t--;
     if (ui.arm_t && !--ui.arm_t)
         ui.arm = 0;
-    if (ui.hot_t)
-        ui.hot_t--;
+    if (ui.hot_t && ui.pr.now - ui.hot_t0 >= HOT_TICKS)   /* (HOT_MS after the last turn) */
+        ui.hot_t = 0;
     felucca_dbg.stage = 6;
     if (!home)
         draw_foot();

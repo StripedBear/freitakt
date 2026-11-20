@@ -1094,8 +1094,7 @@ static void lock_knob(uint32_t c, int32_t s)
     if (!lock_get(song.sel, st, id, &cur))
         cur = motion_rest(song.sel, id);
     lock_set(song.sel, st, id, knob_turn(EN_K1 + c, track_desc(TSEL, id), cur, s));
-    ui.hot_col = (uint8_t)c;
-    ui.hot_t = 40;
+    hot_touch(c);
 }
 /* OCT- pressed with a step held (ui.ocd_t0): let go before LOCK_CLR_MS, that step's locks on this page's knobs go;
  * held LOCK_CLR_MS, all its locks at once (its release then nothing) */
@@ -1455,8 +1454,7 @@ static void ui_input(void)
             continue;
         if (ui.srec) {                                  /* step record: STEP NOTE TIME FLAG */
             srec_knob(k, s);
-            ui.hot_col = (uint8_t)k;
-            ui.hot_t = 40;
+            hot_touch(k);
             continue;
         }
         if (step_edit_page() && step_edit(k, s))
@@ -1466,10 +1464,8 @@ static void ui_input(void)
             continue;
         }
         if (ui.home || pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_LDEST ||
-            page_desc(pg, k, &hv)) {
-            ui.hot_col = (uint8_t)k;
-            ui.hot_t = 40;
-        }
+            page_desc(pg, k, &hv))
+            hot_touch(k);
         if (ui.home) {
             int16_t *vp;
             const param_desc_t *d = home_param(k, &vp);

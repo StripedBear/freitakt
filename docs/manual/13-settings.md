@@ -32,7 +32,7 @@ Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] 
 | **SPEAKER EQ** | FLAT, LOWCUT, BASS+ (FLAT) | LOWCUT is a high-pass at about 110 Hz; BASS+ lifts about 220 Hz and adds bass harmonics for the small speaker |
 | **USB LEVEL** | MASTER, FIXED (MASTER) | whether USB follows the MASTER knob |
 | **PERFORM** | HOLD, PAGE (HOLD) | PAGE keeps the PERFORM screen up after FX is released |
-| **ZOOM** | OFF, ON (OFF) | shows the touched value large in a popup |
+| **ZOOM** | OFF, ON (ON) | shows the touched knob's value large in a popup (on HOME in the status line's place), back to the page 3 s after the last turn |
 | **ACCEL** | OFF, ON (ON) | knob acceleration |
 | **BACKLIGHT** | OFF, DIM LO, DIM HI, INV, INV LO, INV HI (OFF) | key and button LED levels |
 | **HARDWARE CALIBRATION** | OCT+ runs it | teach each button and knob; also reachable by holding [[OCT-]] and [[OCT+]] at power-on; times out after 30 s idle |

@@ -92,7 +92,7 @@ static void settings_init(void)
         settings.magic = SETTINGS_MAGIC;
         settings.palette = THEME_TAG | THEME_DEFAULT;   /* ORANGE (FREITAKT default) */
         settings.lowcut = 0;
-        settings.zoom = 0;                     /* large readout of the touched value: off */
+        settings.zoom = 1;                     /* large readout of the touched value: on (FREITAKT) */
         settings.accel = 1;                    /* knob acceleration (calm, upstream 1.0): on */
         settings.usbfix = 0;                   /* USB LEVEL MASTER */
         settings.perfpage = 0;                 /* PERFORM HOLD */
