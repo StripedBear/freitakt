@@ -614,7 +614,7 @@ static void locks(void)
     OK(lock_get(0, 3, P_LEVEL, &v) && v == 127);
     OK(RQ(ED_LOCK_EDIT, ED_LK_SET, 0, 3, P_PAN, V14(-100)) == ED_OK && u14at(11) == 8192u - 64u && lock_get(0, 3, P_PAN, &v) &&
        v == -64 && u14at(13) == 2u);
-    OK(refused(RQ(ED_LOCK_EDIT, ED_LK_SET, 0, 3, P_MODEL, V14(1)), ED_E_REFUSED, ED_D_NOT_LOCKABLE));
+    OK(refused(RQ(ED_LOCK_EDIT, ED_LK_SET, 0, 3, P_FTYPE, V14(1)), ED_E_REFUSED, ED_D_NOT_LOCKABLE));
     fm1_irq_off();
     motion_add(0, 3, P_LEVEL, 50);                    /* a MOTION event on the same place */
     fm1_irq_on();

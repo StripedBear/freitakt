@@ -9739,14 +9739,15 @@ static int lock_page_ok(const char *what)            /* every knob of this scree
         id = held_turn(c, 1);
         grid_up(WHITE[4]);
         if (id < P_COUNT) {
-            want = (int16_t)(vp && *vp < d->max ? *vp + 1 : vp ? *vp : 0);
+            want = (int16_t)(id == P_MODEL ? model_list_next((uint32_t)*vp, 1) :   /* MODEL: the next model (a machine lock) */
+                             vp && *vp < d->max ? *vp + 1 : vp ? *vp : 0);
             ok &= lock_get(0, 4, id, &lv) && lv == want && mo.b.count == nlocks + 1u &&
-                  !memcmp(before, trk[0].p, sizeof before) && motion_param(id) && trk[0].step[4].on;
+                  !memcmp(before, trk[0].p, sizeof before) && (motion_param(id) || id == P_MODEL) && trk[0].step[4].on;
             if (!(lock_get(0, 4, id, &lv) && lv == want))
                 printf("     %s KNOB %u (id %u): lock %d, want %d\n", what, c + 1u, id, lock_get(0, 4, id, &lv) ? lv : -999, want);
         } else {
             ok &= mo.b.count == nlocks && !memcmp(before, trk[0].p, sizeof before) &&
-                  !(vp && vp >= TSEL->p && vp < TSEL->p + P_COUNT && motion_param((uint32_t)(vp - TSEL->p)) && d &&
+                  !(vp && vp >= TSEL->p && vp < TSEL->p + P_COUNT && lock_param((uint32_t)(vp - TSEL->p)) && d &&
                     d->label && d->label[0] != '-' && d->max > d->min);
             if (mo.b.count != nlocks || memcmp(before, trk[0].p, sizeof before))
                 printf("     %s KNOB %u: not lockable, but changed\n", what, c + 1u);
@@ -9783,8 +9784,8 @@ static void test_lock_entry_every_page(void)
     ui_frame();
     ok &= (uint32_t)lock_page_ok("TRACKS");
     check("locks: on every SOUND, LAYER, FX, INSERT, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
-          "a recordable knob writes a lock (its own value + 1), the knob and the base untouched; MODEL, TYPE, WAVE, "
-          "DEST, SRC and the rest change nothing", ok && pages > 12u);
+          "a recordable knob writes a lock (its own value + 1; MODEL the next model, a machine lock), the knob and the "
+          "base untouched; TYPE, WAVE, DEST, SRC and the rest change nothing", ok && pages > 12u);
 }
 static void test_lock_before_hold(void)
 {

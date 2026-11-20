@@ -118,7 +118,7 @@ enum {
 enum { ED_SC_TRACK, ED_SC_GLOBAL, ED_SC_MODEL };      /* DESC / GET / SET / TEXT scope (MODEL: DESC only) */
 #define ED_DF_SPLIT 0x01u           /* DESC flags: F_INT whose range is split evenly over the names */
 #define ED_DF_ORDER 0x02u           /*   the values are shown in another order (DESC first = 0x7F gives it) */
-#define ED_DF_LOCK 0x04u            /*   lockable (motion.c motion_param) */
+#define ED_DF_LOCK 0x04u            /*   lockable (motion.c lock_param: MODEL a machine lock) */
 #define ED_DF_RO 0x08u              /*   SET refuses it (rc 1) */
 #define ED_DF_CONTEXT 0x10u         /*   depends on the track's MODEL / INSERT TYPE: re-read after them */
 #define ED_DESC_ORDER 0x7Fu         /* DESC first: the shown order instead of names */

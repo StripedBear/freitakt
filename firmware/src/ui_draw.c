@@ -1901,7 +1901,7 @@ static uint32_t graph_paint(int whole)
         graph_steps(t, c);
         break;
     case GR_GRID:
-        if (trk_model(t)->gate) {
+        if (trk_model_own(t)->gate) {
             if (whole)
                 roll_view(t);                         /* (the graph changed: the view chosen again) */
             graph_roll(t, c);

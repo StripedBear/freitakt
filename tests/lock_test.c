@@ -421,6 +421,132 @@ static void lock_preset_rest(void)                  /* (what project.c preset_us
     check("lock: a knob's rest value during its locked step is its own (64), with or without motion", ok);
 }
 
+/* ---- machine locks (Model:Cycles): MODEL locked on a step plays its hit with that model, the track's own knobs */
+static uint32_t other_model(uint32_t own)        /* a model not the track's, not ACID (no machine lock's) */
+{
+    uint32_t m = (own + 1u) % NMODELS;
+    return m == DM_ACID ? (m + 1u) % NMODELS : m;
+}
+static void mlock_plays_step(void)
+{
+    int ok;
+    uint32_t own, m;
+    fresh();
+    own = (uint32_t)trk[0].p[P_MODEL];
+    m = other_model(own);
+    lock_set(0, 4, P_MODEL, (int16_t)m);
+    play();
+    to_step(0, 100);
+    ok = trk[0].model == own && !trk[0].mlock;
+    to_step(4, 100);
+    ok &= trk[0].mlock == m + 1u && trk[0].model == m && trk[0].p[P_MODEL] == (int16_t)own;
+    to_step(5, 100);
+    ok &= !trk[0].mlock && trk[0].p[P_MODEL] == (int16_t)own;
+    to_step(8, 100);
+    ok &= trk[0].model == own;                         /* (the next hit: the track's own model) */
+    to_step(4, 100);
+    ok &= trk[0].model == m;                           /* (the next pass) */
+    stop();
+    check("machine lock: step 4's hit plays the locked model, MODEL untouched, the next hit the track's own again",
+          ok && !trk[0].mlock && trk[0].p[P_MODEL] == (int16_t)own && motion_count(0) == 0u);
+}
+static void mlock_voice_snapshot(int lock, uint32_t m, dvoice_t *v)   /* step 4's voices, a machine lock or MODEL m */
+{
+    uint32_t k;
+    fresh();
+    for (k = 0; k < 16u; k++)
+        trk[0].step[k].on = k == 4u;
+    trk[0].p[P_E2] = 33;
+    if (lock) {
+        lock_set(0, 4, P_MODEL, (int16_t)m);
+        lock_set(0, 4, P_E1, 100);
+    } else {
+        trk[0].p[P_MODEL] = (int16_t)m;                /* (the knobs as they are: what each model makes of them) */
+        lock_set(0, 4, P_E1, 100);
+    }
+    play();
+    to_step(4, 300);
+    memcpy(v, trk[0].v, sizeof trk[0].v);
+    stop();
+}
+static void mlock_same_as_model(void)
+{
+    static dvoice_t a[NDV], b[NDV];
+    uint32_t m, bad = 0;
+    for (m = 0; m < NMODELS; m++) {
+        if (m == DM_ACID)
+            continue;
+        mlock_voice_snapshot(1, m, a);
+        mlock_voice_snapshot(0, m, b);
+        if (memcmp(a, b, sizeof a)) {
+            printf("     model %u: the locked hit differs from MODEL %u with the same knobs\n", m, m);
+            bad++;
+        }
+    }
+    check("machine lock: the locked hit is the locked model's with the track's knobs and the step's locks (every "
+          "model but ACID)", bad == 0u);
+}
+static void mlock_rules(void)
+{
+    int ok;
+    uint32_t own, m, ids[MO_W] = {0};
+    fresh();
+    own = (uint32_t)trk[0].p[P_MODEL];
+    m = other_model(own);
+    ok = lock_param(P_MODEL) && !motion_param(P_MODEL);   /* (a lock, never recorded) */
+    lock_set(0, 4, P_MODEL, DM_ACID);                  /* ACID: no machine lock's, the track's own model plays */
+    play();
+    to_step(4, 100);
+    ok &= !trk[0].mlock && trk[0].model == own;
+    stop();
+    lock_set(0, 4, P_MODEL, (int16_t)m);
+    lock_set(0, 4, P_E1, 100);
+    ids[P_MODEL >> 5] = 1u << (P_MODEL & 31u);
+    lock_clear_step(0, 4, ids);                         /* OCT- on a page with MODEL: its lock goes, E1's stays */
+    {
+        int16_t v;
+        ok &= !lock_get(0, 4, P_MODEL, &v) && lock_get(0, 4, P_E1, &v) && v == 100;
+    }
+    lock_set(0, 4, P_MODEL, (int16_t)m);
+    play();
+    to_step(4, 100);
+    fm1_irq_off();
+    drum_set_model(&trk[0], other_model(m));           /* a MODEL change during the locked step: the new one at once */
+    motion_rebase(0);
+    fm1_irq_on();
+    ok &= !trk[0].mlock && trk[0].model == other_model(m);
+    stop();
+    check("machine lock: MODEL is lockable, never recorded; an ACID value plays the own model; OCT- clears it; a MODEL "
+          "change lets it go", ok);
+}
+static uint64_t hit_block_cost(uint32_t st, uint64_t *next)   /* the block step st's hit fires in, and the one after */
+{
+    uint64_t a, b = 0, c;
+    to_step((st + 15u) % 16u, 3000);
+    while (trk[0].seq_idx != st) {
+        a = instr_now();
+        render_mix(0, 0, CTL);
+        b = instr_now() - a;
+    }
+    c = instr_now();
+    render_mix(0, 0, CTL);
+    *next = instr_now() - c;
+    return b;
+}
+static void mlock_cost(void)                       /* host instructions: the locked hit's blocks vs a plain hit's */
+{
+    uint64_t l0, l1, p0, p1;
+    fresh();
+    lock_set(0, 4, P_MODEL, (int16_t)other_model((uint32_t)trk[0].p[P_MODEL]));
+    play();
+    to_step(0, 100);
+    l0 = hit_block_cost(4, &l1);
+    p0 = hit_block_cost(8, &p1);                       /* (its own model again: the locked voices cut) */
+    stop();
+    printf("     a machine-locked hit's block (and the next): %llu (%llu) host instructions; the plain hit after it: "
+           "%llu (%llu)\n", (unsigned long long)l0, (unsigned long long)l1, (unsigned long long)p0, (unsigned long long)p1);
+}
+
 int main(void)
 {
     lk_size();
@@ -444,6 +570,10 @@ int main(void)
     lock_stop_releases();
     lock_model_change();
     lock_preset_rest();
+    mlock_plays_step();
+    mlock_same_as_model();
+    mlock_rules();
+    mlock_cost();
     printf(fails ? "lock_test: %d FAILED\n" : "lock_test: all passed\n", fails);
     return fails ? 1 : 0;
 }

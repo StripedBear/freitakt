@@ -1078,6 +1078,27 @@ static void acc_oct_poll(void)
     }
     acc_oct = 0;
 }
+/* a machine lock (Model:Cycles): MODEL turned with step st held, from model cur: the step's hit plays the next / previous
+ * model (MODEL_LIST's order, ACID skipped: no lock's) with the track's knobs; back at the track's own model, no lock */
+static void mlock_knob(uint32_t st, uint32_t cur, int32_t s)
+{
+    uint32_t own = (uint32_t)motion_rest(song.sel, P_MODEL) % NMODELS, m = model_list_next(cur % NMODELS, s);
+    char b[24];
+    if (m == DM_ACID)
+        m = model_list_next(m, s);
+    if (m == own) {
+        uint32_t ids[MO_W] = {0};
+        ids[P_MODEL >> 5] = 1u << (P_MODEL & 31u);
+        lock_clear_step(song.sel, st, ids);
+    } else {
+        lock_set(song.sel, st, P_MODEL, (int32_t)m);
+    }
+    str_cpy(b, "MLOCK STEP ", sizeof b);
+    fmt_int(b + 11, (int32_t)st + 1);
+    str_cpy(b + str_len(b), " ", sizeof b - str_len(b));
+    str_cpy(b + str_len(b), m == own ? "OFF" : N_MODEL[m], sizeof b - str_len(b));   /* (OFF: the track's own) */
+    ui_message(b);
+}
 /* locks (spec 2026-10-24): a held step + a knob: its lock, from the knob's value there (the lock's, else the knob's own),
  * as a held step's edit (no tap on the release, an off step on); the knob, the base and motion untouched. A knob MOTION
  * cannot record does nothing while a step is held (the held step is its own context) */
@@ -1093,7 +1114,10 @@ static void lock_knob(uint32_t c, int32_t s)
     step_hold_on(ui.held);
     if (!lock_get(song.sel, st, id, &cur))
         cur = motion_rest(song.sel, id);
-    lock_set(song.sel, st, id, knob_turn(EN_K1 + c, track_desc(TSEL, id), cur, s));
+    if (id == P_MODEL)
+        mlock_knob(st, (uint32_t)cur, s);
+    else
+        lock_set(song.sel, st, id, knob_turn(EN_K1 + c, track_desc(TSEL, id), cur, s));
     hot_touch(c);
 }
 /* OCT- pressed with a step held (ui.ocd_t0): let go before LOCK_CLR_MS, that step's locks on this page's knobs go;

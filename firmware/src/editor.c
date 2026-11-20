@@ -227,7 +227,7 @@ static int ed_knob(uint32_t cmd, uint32_t scope, uint32_t track, uint32_t id, ed
         x->k = track == ED_NONE ? song.sel : track;
         x->t = &trk[x->k];
         x->d = track_desc(x->t, id);
-        x->flags = (motion_param(id) ? ED_DF_LOCK : 0u) | (id == P_MODEL || enum_order(x->d) ? ED_DF_ORDER : 0u) |
+        x->flags = (lock_param(id) ? ED_DF_LOCK : 0u) | (id == P_MODEL || enum_order(x->d) ? ED_DF_ORDER : 0u) |
                    ((id >= P_E0 && id <= P_E7) || (id >= P_IA && id <= P_IC) || x->d->fmt == F_LDEST
                         ? ED_DF_CONTEXT : 0u);
     } else if (scope == ED_SC_GLOBAL && id < G_COUNT) {

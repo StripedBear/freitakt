@@ -123,7 +123,7 @@ int main(void)
         printf(i ? ", " : ""), str(GN[i]);
     printf("],\n\"tp\": [");
     for (i = 0; i < P_COUNT; i++)
-        printf(i ? ",\n " : "\n "), desc(&TP[i], motion_param(i));
+        printf(i ? ",\n " : "\n "), desc(&TP[i], lock_param(i));
     printf("],\n\"gp\": [");
     for (i = 0; i < G_COUNT; i++)
         printf(i ? ",\n " : "\n "), desc(&GP[i], -1);

@@ -15,7 +15,14 @@ static const uint8_t KIT_DEF[NTRK][2] = {
     {DM_OHTRX, 46}, {DM_XTTRX, 45},
 };
 
-static const dmodel_t *trk_model(const track_t *t) { return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS]; }
+/* the model a hit of t plays: a machine lock's while its step plays (motion.c motion_step: t->mlock), else MODEL */
+static uint32_t voice_model(const track_t *t)
+{
+    return t->mlock ? (uint32_t)(t->mlock - 1u) % NMODELS : (uint32_t)t->p[P_MODEL] % NMODELS;
+}
+static const dmodel_t *trk_model(const track_t *t) { return &DMODELS[voice_model(t)]; }
+/* the track's own model (the UI's: a machine lock never shows there) */
+static const dmodel_t *trk_model_own(const track_t *t) { return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS]; }
 
 /* a track's swing: its own + the global one, capped at 100 (upstream #31: 200 made 1.8 / 0.2 steps); seq.c */
 #define SWING_MAX 100
@@ -44,12 +51,28 @@ static void drum_cut(track_t *t)                         /* every voice of t, wi
     t->slide_in = 0;
 }
 
+/* tracks whose voices are a machine lock's model, sounding on after its step (the track's MODEL back): the next hit
+ * (drum_play: model_follow) or their end lets them go, so a locked hit rings out as any hit (motion.c lock_release) */
+static uint8_t ml_tail;
 static void model_follow(track_t *t)                     /* the model changed: the old voices stop */
 {
-    if (t->model != (uint8_t)t->p[P_MODEL]) {
-        drum_cut(t);
-        t->model = (uint8_t)t->p[P_MODEL];
+    uint32_t m = voice_model(t);
+    ml_tail &= (uint8_t)~(1u << (uint32_t)(t - trk));
+    if (t->model != (uint8_t)m) {
+        drum_cut(t);                                     /* (the declick tail: a model change's fade) */
+        t->model = (uint8_t)m;
     }
+}
+/* t's machine lock ends (its step over, the IRQ off or the ISR): a sounding locked voice rings on (ml_tail) */
+static void mlock_end(track_t *t)
+{
+    uint32_t i;
+    t->mlock = 0;
+    if (t->model == (uint8_t)voice_model(t))
+        return;
+    for (i = 0; i < NDV; i++)
+        if (t->v[i].active)
+            ml_tail |= (uint8_t)(1u << (uint32_t)(t - trk));
 }
 
 #ifndef DRUM_MAXV
@@ -160,12 +183,12 @@ static void drum_play(track_t *t, uint32_t vel, int32_t nt)
             if (&trk[i] != t && trk[i].p[P_CHOKE] == t->p[P_CHOKE])
                 drum_cut(&trk[i]);
     model_follow(t);
-    if ((uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL && smpl_playable(t))
+    if (voice_model(t) == DM_SMPL && smpl_playable(t))
         for (i = 0; i < NDV; i++)                       /* SAMPLE: CUT ON cuts the voice sounding; a LOOPI one ends
                                                          * at the next hit, CUT or not (declicked: dtail) */
             if (t->v[i].active && (t->p[P_SCUT] == 1 || (t->v[i].k[2] & SE_INF)))
                 dv_cut(t, &t->v[i]);
-    if ((uint32_t)t->p[P_MODEL] % NMODELS != DM_SMPL || smpl_playable(t)) {   /* nothing to play: no voice */
+    if (voice_model(t) != DM_SMPL || smpl_playable(t)) {   /* nothing to play: no voice */
         v = dv_alloc(t, t->v, nv, m->weight ? m->weight : 1u);
         dv_init(v, vel);
         m->trigger(t, v);
@@ -271,13 +294,19 @@ static uint32_t vg_render(int32_t *out, uint32_t n)
 /* track t's voices and tail into out (cleared first); returns non-zero while anything sounds */
 static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
 {
-    const dmodel_t *m = trk_model(t);
-    uint32_t i, nr = 0;
+    const dmodel_t *m;
+    uint32_t i, nr = 0, tb = 1u << (uint32_t)(t - trk);
     for (i = 0; i < n; i++)
         out[i] = 0;
     if (t->wow)
         t->wow = mulq16(t->wow, ACID_WOW);              /* ACID's accent smoother falls every block, sounding or not */
-    model_follow(t);
+    if (ml_tail & tb)                                   /* a machine lock's voices ringing on: until they end */
+        for (i = 0, ml_tail &= (uint8_t)~tb; i < NDV; i++)
+            if (t->v[i].active)
+                ml_tail |= (uint8_t)tb;
+    if (!(ml_tail & tb))
+        model_follow(t);
+    m = &DMODELS[t->model % NMODELS];                    /* (the voices' own model) */
     for (i = 0; i < NDV; i++)
         if (t->v[i].active) {
             m->render(t, &t->v[i], out, n);
@@ -310,7 +339,9 @@ static void drum_set_model(track_t *t, uint32_t mi)
     preset_t pr;
     drum_cut(t);
     t->p[P_MODEL] = (int16_t)(mi % NMODELS);
+    t->mlock = 0;                                        /* (a held machine lock let go: motion.c motion_rebase) */
     t->model = (uint8_t)t->p[P_MODEL];
+    ml_tail &= (uint8_t)~(1u << (uint32_t)(t - trk));
     if (id != PRE_NONE && preset_get(id, &pr)) {
         preset_apply(t, &pr, id);
         return;

@@ -388,7 +388,7 @@ static int edp_lock_edit(uint32_t cmd, const uint8_t *a)
         return edp_fail(cmd, ED_E_BAD, ED_D_RANGE, "OUT OF RANGE");
     if (op == ED_LK_SET) {
         const param_desc_t *d = track_desc(&trk[k], id);
-        if (!motion_param(id))
+        if (!lock_param(id))                       /* (MODEL: a machine lock) */
             return edp_fail(cmd, ED_E_REFUSED, ED_D_NOT_LOCKABLE, "NOT LOCKABLE");
         v = clamp(v, d->min > -64 ? d->min : -64, d->max < 127 ? d->max : 127);
         if (lk_find(&mo.b, lk_key(k, st, id), 1) < 0 && mo.b.count >= LK_MAX)

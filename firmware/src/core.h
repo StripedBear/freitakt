@@ -163,6 +163,7 @@ typedef struct { uint32_t ph, sub; int32_t out, from, to; uint8_t fresh; } lfo_s
 typedef struct track {
     int16_t p[P_COUNT];
     uint8_t model;               /* model the voices were started with (a change cuts them) */
+    uint8_t mlock;               /* a machine lock's model + 1 while its step plays (motion.c), 0 none */
     dvoice_t v[NDV];             /* model voices */
     dvoice_t lv[NDV];            /* sample-layer voices */
     int32_t dtail;               /* declick: last output of cut voices, decaying */

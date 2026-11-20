@@ -108,11 +108,12 @@ While playing, the repeats land on the grid of the rate (following swing, the te
 In STEPS, on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND, LAYER, FX, INSERT and SRR, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
 
 - The top bar says `LOCK STEP 5` while a step is held; the knob cells show that step's values (a locked one inverted).
-- Knobs MOTION cannot record (MODEL, FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.
+- Knobs MOTION cannot record (FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.
+- **Machine locks** (Model:Cycles): hold a step and turn MODEL (EDIT / SOUND page knob 1) to lock that step to another model: `MLOCK STEP 5 SDEFM`. The track's own model stays; on that step the hit plays the locked model with the track's current knobs (each model reads them its own way) plus that step's parameter locks, and rings out as any hit until the next one. Turn back to the track's own model (`MLOCK STEP 5 OFF`) or OCT- on a page with MODEL to clear it. ACID cannot be a machine lock (it keeps its gate and track limit). MOTION never records MODEL. Machine locks are stored as ordinary locks: copy / paste of steps, CLRSQ, variations and the editor treat them like the others.
 - Hold the step and tap [[OCT-]] to clear its locks on this page's knobs (`STEP 5 LOCKS CLEARED`); hold [[OCT-]] 0.6 s to clear all its locks (`STEP 5 ALL CLEARED`).
 - A step turned off keeps its locks for when it is on again. In STEPS the footer underlines each locked step.
 - Locks and MOTION share **1024 events per project** (`LOCKS FULL`). Locks always play; MOTION's PLAY and CLEAR apply to recorded motion only.
-- STOP, a model change, a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's.
+- STOP, a model change (it also lets a held machine lock go), a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's.
 
 ## MOTION
 

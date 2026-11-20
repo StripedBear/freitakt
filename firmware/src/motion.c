@@ -44,6 +44,11 @@ static int motion_param(uint32_t id)
            id == P_SRR || (id >= P_IA && id <= P_IMIX) ||   /* SRR; the INSERT's A B C MIX, not its TYPE */
            (id >= P_SATK && id <= P_SPLAY);                /* the SAMPLE model's ATK SUS REL LOOP (SOUND 5/5), PLAY */
 }
+/* the knobs a step can lock: the ones motion records, and MODEL (a machine lock: the step's hit plays that model with
+ * the track's knobs, drum_core.c voice_model; motion never records it). ACID is no machine lock's (ACID_MAXTRK, its
+ * gate): one in the bank plays the track's own model */
+static int lock_param(uint32_t id) { return id == P_MODEL || motion_param(id); }
+static int mlock_model(int32_t v) { return v >= 0 && v < (int32_t)NMODELS && v != DM_ACID; }
 static int motion_on(uint32_t k) { return (int)((mo.b.on >> k) & 1u); }
 static uint32_t motion_count(uint32_t k) { return lk_count(&mo.b, k, LK_MOTION); }   /* track k's motion events */
 static int motion_moved(uint32_t k, uint32_t id) { return (int)((mo.act[k][id >> 5] >> (id & 31u)) & 1u); }
@@ -91,7 +96,10 @@ static int lock_release(uint32_t k)
         held |= mo.lact[k][w];
         for (id = w * 32u; mo.lact[k][w]; id++)
             if ((mo.lact[k][w] >> (id & 31u)) & 1u) {
-                *motion_slot(&trk[k], id) = mo.under[k][id];
+                if (id == P_MODEL)
+                    mlock_end(&trk[k]);            /* a machine lock: the track's model again (MODEL never moved) */
+                else
+                    *motion_slot(&trk[k], id) = mo.under[k][id];
                 mo.lact[k][w] &= ~(1u << (id & 31u));
             }
     }
@@ -157,6 +165,10 @@ static __attribute__((noinline)) void motion_step(track_t *t, uint32_t s, uint32
         if (lock) {
             mo.under[k][id] = *slot;
             mo.lact[k][id >> 5] |= 1u << (id & 31u);
+            if (id == P_MODEL) {                    /* a machine lock: the hit's model (MODEL itself untouched) */
+                t->mlock = (uint8_t)(mlock_model(m->val[i]) ? m->val[i] + 1 : 0);
+                continue;
+            }
         } else {
             motion_mark(k, id);
         }
@@ -182,8 +194,11 @@ static void motion_add(uint32_t k, uint32_t s, uint32_t id, int32_t v)   /* repl
 }
 static void motion_forget(void)                   /* new knobs (a project load, INIT ALL): nothing to put back */
 {
+    uint32_t k;
     memset(mo.act, 0, sizeof mo.act);
     memset(mo.lact, 0, sizeof mo.lact);
+    for (k = 0; k < NTRK; k++)
+        trk[k].mlock = 0;                          /* (the locks let go: no machine lock either) */
     mo.lfull = 0;
     mo.base_ok = 0;
     mo.full = 0;
@@ -194,7 +209,9 @@ static void motion_rebase(uint32_t k)             /* track k's sound replaced (a
     for (id = 0; id < P_COUNT; id++)               /* its locks let go: the model's knobs keep the new model's values,
                                                     * the others go back to theirs */
         if (lock_held(k, id)) {
-            if (id < P_E0 || id > P_E7)
+            if (id == P_MODEL)
+                trk[k].mlock = 0;                   /* (a machine lock: the new model at once, drum_set_model's) */
+            else if (id < P_E0 || id > P_E7)
                 *motion_slot(&trk[k], id) = mo.under[k][id];
             mo.lact[k][id >> 5] &= ~(1u << (id & 31u));
         }

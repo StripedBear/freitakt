@@ -89,8 +89,11 @@ export async function runPatternTests(log = console.log) {
     const motion = pm.locks[3].length;
     await pm.lockClearTrack(3);
     ok(pm.locks[3].length === motion && motion === 4, "clear track: MOTION events stay");
-    const lk = await pm.lockSet(2, 4, m.P.MODEL, 3);
+    const lk = await pm.lockSet(2, 4, m.P.FTYPE, 3);
     ok(lk === null && /NOT LOCKABLE/.test(pm.note), "a knob that cannot be locked: the device's refusal shown");
+    await pm.lockSet(2, 4, m.P.MODEL, 3);
+    ok(pm.stepLocks(2, 4).some((e) => e.param === m.P.MODEL && e.value === 3), "MODEL: a machine lock, a lock as any");
+    await pm.lockClearStep(2, 4);
 
     /* other slots: read-only */
     await pm.setView(1, 0);

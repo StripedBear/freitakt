@@ -476,7 +476,7 @@ static int32_t keys_nt(uint32_t key) { return (int32_t)key - 7 + 12 * song.octav
 static int keys_note(const track_t *t, uint32_t key, int32_t *nt)
 {
     uint32_t i;
-    if ((uint32_t)t->p[P_MODEL] % NMODELS != DM_SMPL || t->p[P_SPLAY] != 1) {
+    if (voice_model(t) != DM_SMPL || t->p[P_SPLAY] != 1) {   /* (a machine lock's step: the model its hit plays) */
         *nt = clamp(keys_nt(key), NT_MIN, NT_MAX);
         return 1;
     }
@@ -558,7 +558,7 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     int legato = kz.key && kz.trk == song.sel;
     if (!keys_note(t, key, &nt))
         return;                                        /* (a black key on a CHOP track: nothing) */
-    if (t->p[P_SPLAY] == 1 && (uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL) {
+    if (t->p[P_SPLAY] == 1 && voice_model(t) == DM_SMPL) {
         keys_chop = (uint8_t)(nt + 1);
         keys_chop_n++;
     }

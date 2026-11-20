@@ -419,7 +419,7 @@ static void bank_fix(void)                             /* LEN shortened (knob, p
 
 /* the NOTE of a step the grid keys turn on (spec §2, user 2026-10-10): a gated (ACID) track's last KEYS / recorded
  * note; a drum's C4 (its steps transposed only by KEYS record, step record's NOTE or the roll) */
-static int8_t new_step_nt(const track_t *t) { return trk_model(t)->gate ? t->key_nt : 0; }
+static int8_t new_step_nt(const track_t *t) { return trk_model_own(t)->gate ? t->key_nt : 0; }
 
 /* a step key down this long is a hold, not a tap (owner 2026-10-23: holding a step is for editing it, never toggles
  * it). 0.3 s: a deliberate tap on these keys is well under it (~0.1 s down), a hold to edit is felt as one past it,
@@ -708,7 +708,8 @@ static uint32_t lock_view_step(void)
     uint32_t s = lock_step();
     return s < NSTEP && (ui.step_t0[ui.held] & 2u) ? s : NSTEP;
 }
-/* the P_* id KNOB slot + 1 edits here when MOTION can record it (motion.c motion_param): a track page's, HOME's macros,
+/* the P_* id KNOB slot + 1 edits here when a step can lock it (motion.c lock_param: MOTION's, and MODEL a machine
+ * lock): a track page's, HOME's macros,
  * TRACKS' LEVEL and PAN; P_COUNT none (the model, TYPE, WAVE, DEST, SRC, the timing, a global page ...) */
 static uint32_t lock_id(uint32_t slot)
 {
@@ -729,7 +730,7 @@ static uint32_t lock_id(uint32_t slot)
     if (!d || !vp || vp < TSEL->p || vp >= TSEL->p + P_COUNT || !d->label || d->label[0] == '-' || d->max <= d->min)
         return P_COUNT;
     id = (uint32_t)(vp - TSEL->p);
-    return motion_param(id) ? id : P_COUNT;
+    return lock_param(id) ? id : P_COUNT;
 }
 /* what a cell of knob id shows: with a step held, its lock there (*locked 1) or the knob's own value; else live */
 static int16_t lock_shown(uint32_t id, int16_t live, int *locked)

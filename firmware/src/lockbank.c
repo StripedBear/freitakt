@@ -24,7 +24,7 @@ _Static_assert(NTRK <= 8 && NSTEP == 64 && P_COUNT <= 128, "lock key: track 3 bi
 #define MO_W ((P_COUNT + 31u) / 32u)            /* words of a track's knob-id bits */
 typedef char motion_ids_fit[P_COUNT <= 96 && MO_W == 3u ? 1 : -1];
 
-static int motion_param(uint32_t id);           /* motion.c: the recordable knobs */
+static int motion_param(uint32_t id);           /* motion.c: the recordable knobs (MODEL: a machine lock's) */
 
 static uint32_t lk_key(uint32_t trk, uint32_t step, uint32_t param) { return trk << 13 | step << 7 | param; }
 static int lk_is_lock(const lk_bank_t *b, uint32_t i) { return (int)((b->lock[i >> 3] >> (i & 7u)) & 1u); }
@@ -155,8 +155,10 @@ static int lk_valid(const lk_bank_t *b, uint32_t slot)
         return 0;
     for (i = 0; i < b->count; i++) {
         uint32_t id = b->key[i] & 127u;
-        if ((uint32_t)(b->key[i] >> 13) >= NTRK || id >= P_COUNT || !motion_param(id) || b->val[i] < -64 || (i && lk_ord(b, i - 1u) >= lk_ord(b, i)))
+        if ((uint32_t)(b->key[i] >> 13) >= NTRK || id >= P_COUNT || b->val[i] < -64 || (i && lk_ord(b, i - 1u) >= lk_ord(b, i)))
             return 0;
+        if (id == P_MODEL ? !lk_is_lock(b, i) || b->val[i] < 0 || b->val[i] >= (int32_t)NMODELS : !motion_param(id))
+            return 0;                               /* (MODEL: a lock alone, a machine lock's model index) */
     }
     return 1;
 }
