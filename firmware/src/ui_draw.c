@@ -2311,6 +2311,7 @@ static const char *abbr4(const char *l, char *b)
 #define HM_H_CH 40
 static struct {
     uint32_t cpu, bat, mid, chain;       /* the bands' signatures shown */
+    uint32_t zl;                         /* ZOOM's knob shown (its label's hash; 0 none) */
     uint8_t on;                          /* HOME shown last frame (in or out: all drawn again) */
 } hm;
 
@@ -2388,7 +2389,17 @@ static void draw_home(void)
     }
     home_status(st);
     sig = zoom ? str_hash(str_hash(str_hash(0x5555u, ui.focus_v), ui.focus_l), ui.focus_u) : str_hash(0x811C9DC5u, st);
-    for (n = rg_plan(&hm.mid, sig, 0, HM_Y_MID, 240, HM_H_MID), i = 0; i < n; i++) {
+    rg_region(0, HM_Y_MID, 240, HM_H_MID);
+    i = zoom ? str_hash(0x7777u, ui.focus_l) : 0u;    /* (ZOOM on the same knob: only its value's rows again) */
+    if (ui.force || (sig != hm.mid && (!i || i != hm.zl)))
+        rg_whole();
+    else if (sig != hm.mid)
+        rg_add(8, 28, 220, 50);
+    if (!ui.force)
+        rg_damaged();
+    hm.mid = sig;
+    hm.zl = i;
+    for (n = rg.n, i = 0; i < n; i++) {
         rg_win(i, HM_Y_MID, C_BG);
         if (zoom) {                                   /* ZOOM: the touched knob's name and value, large */
             cv_popup(6, 2, 226, 90, "", C_INK, C_BG);

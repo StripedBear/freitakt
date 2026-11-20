@@ -572,10 +572,25 @@ int main(void)
         add(&s, frame());
     }
     report("HOME stopped, knob 1 a value a frame", &s);
-    check("HOME: a knob value <= 5000 px (the cell, the breadcrumb's text; the scope waits)", s.max <= 5000u);
+    check("HOME: a knob value <= 5000 px (ZOOM off: FREITAKT's HOME shows no cells)", s.max <= 5000u);
     same_as_full("HOME after knob 1");
+    start(1, 0);                                     /* .. ZOOM on (a new device's): the value's rows in its popup */
+    settings.zoom = 1;
+    memset(&s, 0, sizeof s);
+    turn(EN_K1, 1);
+    add(&s, frame());
+    report("HOME stopped, ZOOM on, the popup's first frame", &s);
+    memset(&s, 0, sizeof s);
+    for (i = 1; i < 30u; i++) {
+        turn(EN_K1, (i & 8u) ? -1 : 1);
+        add(&s, frame());
+    }
+    report("HOME stopped, ZOOM on, knob 1 a value a frame", &s);
+    check("HOME, ZOOM on: a knob value <= 12000 px after the popup's first frame (its value's rows)", s.max <= 12000u);
+    same_as_full("HOME after knob 1, ZOOM on");
+    settings.zoom = 0;
 
-    /* HOME idle: the scope every other frame (reported) */
+    /* HOME idle: nothing sent (FREITAKT: no scope) */
     start(1, 0);
     memset(&s, 0, sizeof s);
     for (i = 0; i < 60u; i++)
