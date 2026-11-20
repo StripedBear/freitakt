@@ -669,7 +669,7 @@ static void test_head_icon(void)
     uint32_t a, b, c;
     fresh();
     ui.menu = 0;
-    ui.home = 1;
+    ui.home = 0;                                     /* (a page with the top bar: FREITAKT's HOME has none) */
     ui.force = 1;
     ui_frame();
     a = head_hash();
