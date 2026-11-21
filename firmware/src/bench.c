@@ -155,6 +155,7 @@ static void bench_reset(void)
     perf_seq = 0;
     memset(perf_ord, 0, sizeof perf_ord);
     memset(&mo, 0, sizeof mo);
+    lk_gen++;
     memset(&pname, 0, sizeof pname);
     comp_reset();
     comp_was = NTRK;

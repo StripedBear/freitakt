@@ -677,6 +677,7 @@ static int proj_load(uint32_t slot, int irq)
         mo.b = lk_slot[slot & 3u];
     else
         memset(&mo.b, 0, sizeof mo.b);
+    lk_gen++;                                           /* (the step LEDs' lock mask: ui.c lk_view_mask) */
     motion_forget();                                    /* the new knobs are the base: the stop puts nothing back */
     proj_name_get(pname.name, p->name);                 /* the name: a broken one dropped */
     pname.from = (uint8_t)((slot & 3u) + 1u);
@@ -987,6 +988,7 @@ static __attribute__((noinline)) int proj_cue_apply(void)
             mem_swap(t->step, g->st[k], sizeof t->step);
         }
         mem_swap(&mo.b, &lk_slot[s], sizeof mo.b);    /* (lk_slot[s] holds the outgoing bank until cue_poll) */
+        lk_gen++;
         motion_forget();
         if (song.playing) {                           /* the new knobs are the base: the stop puts them back */
             for (k = 0; k < NTRK; k++)
@@ -1190,6 +1192,7 @@ static void proj_live_from(uint32_t s)
         mo.b = lk_slot[s];
     else
         memset(&mo.b, 0, sizeof mo.b);
+    lk_gen++;                                           /* (the step LEDs' lock mask: ui.c lk_view_mask) */
     motion_forget();
     var_cur = 0;
     cue.last[s] = 0;

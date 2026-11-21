@@ -211,6 +211,8 @@ static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats, uint32_t di
     led_dim_on = 1;                                   /* (after the layers: the hook composes from them) */
 }
 
+static uint32_t in_now;                               /* ui_input's fm1_ticks (the step LEDs' blinks: no read of
+                                                       * their own) */
 static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
@@ -288,17 +290,33 @@ static void ui_leds(void)
             led_put(nl, 14u + k, e < PF_N ? (int)(((ok >> e) & 1u) && (((held >> e) & 1u) || blink))
                                           : (int)(r == perf_rate));
         }
-    } else if (step_keys()) {                         /* the bank's steps; the playhead inverted */
+    } else if (step_keys()) {                         /* the bank's steps (Model:Cycles style): a trig lit, a
+                                                       * locked step (parameter / machine lock) blinking, the
+                                                       * selected track's playhead inverted; black 1..6 the tracks */
         const track_t *t = TSEL;
+        uint32_t ms = in_now / (1000u * FM1_TICKS_PER_US), len = view_len(t);   /* (ui_input's time) */
+        uint32_t ph = song.playing ? view_idx(t) : NSTEP;   /* (the selected track's own step: its LEN, DIV, FIT) */
+        uint32_t lm = acc_oct ? 0u : lk_view_mask(); /* (cached: ui.c lk_view_mask) */
+        int blink = (int)((ms / 250u) & 1u) == 0, wink = (ms % 1000u) >= 125u;
         for (k = 0; k < 16u; k++) {
             uint32_t si = ui.bank * 16u + k;
-            int on = si < view_len(t) && view_step(t, si).on && (!acc_oct || view_step(t, si).acc);   /* OCT+ held:
-                                                       * the accents */
-            if (song.playing && si == view_idx(t))
-                on = !on;
+            int lk = si < len && ((lm >> k) & 1u), on = si < len && view_step(t, si).on &&
+                                                       (!acc_oct || view_step(t, si).acc);   /* OCT+ held: the accents */
+            if (si == ph)
+                on = !(on || lk);                     /* the playhead: the key's state toggled */
+            else if (lk)
+                on = blink;
             led_put(nl, 14u + STEP_KEY[k], on);
             if ((k & 3u) == 0u)
                 beats |= 1u << STEP_KEY[k];
+        }
+        for (k = 0; k < NTRK; k++) {                  /* the tracks' black keys (SEL + one selects): the selected
+                                                       * lit, an armed one (REC) breathing, both: lit, winking */
+            int arm = (int)((song.rec >> k) & 1u);
+            if (k == song.sel)
+                led_put(nl, 14u + CUE_BK[k], !arm || wink);
+            else
+                led_put(nb, 14u + CUE_BK[k], arm);
         }
     } else if (comp_mode()) {                         /* COMP: the ducked tracks' keys */
         for (k = 0; k < NTRK; k++)
@@ -1227,7 +1245,7 @@ static void ui_input(void)
     keys_chop_say();                                    /* KEYS on a CHOP track: CHOP 5/12 */
     pressed = fm1_input_edges(0);
     notes = fm1_input_note_edges();
-    now = fm1_ticks();
+    now = in_now = fm1_ticks();
     fam = cur_fam();
     uint32_t home = btn_hold(&ui.home_t0, B_HOME, now, 1);
     uint32_t rec = btn_hold(&ui.rec_t0, B_REC, now, !ui.menu && fam == FAM_SEQ), acts;

@@ -49,6 +49,17 @@ On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to D4) is lit
 - **11 black keys** (black 1 to 11 = F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5): with [[FX]] held, live effects on the whole mix. In KEYS, the sharps. Alone they keep their page's job (a black key alone no longer queues a variation). Black keys 1 to 6 are tracks 1 to 6 for the combos below.
 - **Held buttons** change what the keys do: the combos below; [[FX]] held: black keys are effects, white keys F3 to D4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held 0.4 s (or with a white key): step copy and paste tools; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
 
+### Step LEDs
+
+Wherever the white keys are the selected track's steps (the SEQ pages, TRACKS with no track armed, and every page in ENV's STEPS mode), the keys light the way Elektron's Model:Cycles does:
+
+| Key | Lit | Blinking (250 ms) | Breathing | Winking (dark 1/8 s each second) |
+| --- | --- | --- | --- | --- |
+| **White 1 to 16** (the bank's steps) | A trig on the step | A step with a parameter lock or a machine lock | | |
+| **Black 1 to 6** (the tracks) | The selected track | | An armed track (REC) | The selected track, armed |
+
+While the pattern plays, the **running cursor** is the selected track's own step (its LEN, division and FIT; only on the bank shown): its key is toggled, so a lit or blinking step goes dark and an empty step lights. With [[OCT+]] held the keys show the bank's accents instead (no blinking). A held button's overlay (GLO, SEQ's mutes, SEL, ARP, the cue map, TOOLS, PERFORM, NAME, the PRESETS list) takes the keys over while it is up.
+
 ## Combos
 
 Hold the button, press the key (Elektron Model:Cycles style). They work on every page; a key pressed with the button plays no note, sends no MIDI and records nothing. Not in the menu, a dialog, NAME, the PRESETS list or TOOLS; with PERFORM up the buttons are plain buttons.

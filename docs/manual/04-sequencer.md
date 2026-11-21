@@ -20,6 +20,7 @@ Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]]
 | **KNOB 4** | NUDGE | -50 to +50 hundredths of a step |
 
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
+- **The keys' lights:** a trig lit, a step with a parameter or machine lock blinking; while playing the selected track's step (the running cursor) toggles its key; black 1 to 6 light the selected track and breathe for armed ones (see *Panel, Step LEDs*).
 - **Banks:** [[KNOB 1]] on STEP shows `BANK n/m`. [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
 - **Piano roll:** on an ACID track the STEP page is a piano roll; notes, SLIDE and TIE are described under *Playing and recording*.
 - **Clear:** hold [[REC]] 0.7 s on a SEQ page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.

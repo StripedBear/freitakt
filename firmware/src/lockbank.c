@@ -25,6 +25,9 @@ _Static_assert(NTRK <= 8 && NSTEP == 64 && P_COUNT <= 128, "lock key: track 3 bi
 typedef char motion_ids_fit[P_COUNT <= 96 && MO_W == 3u ? 1 : -1];
 
 static int motion_param(uint32_t id);           /* motion.c: the recordable knobs (MODEL: a machine lock's) */
+/* bumped when the locks of mo.b may have changed (a lock in, an event out, the bank replaced: project.c); ui.c
+ * lk_view_mask recomputes the step LEDs' lock mask only then. Not bumped by motion events (the audio ISR's) */
+static uint32_t lk_gen;
 
 static uint32_t lk_key(uint32_t trk, uint32_t step, uint32_t param) { return trk << 13 | step << 7 | param; }
 static int lk_is_lock(const lk_bank_t *b, uint32_t i) { return (int)((b->lock[i >> 3] >> (i & 7u)) & 1u); }
@@ -74,6 +77,8 @@ static int lk_put(lk_bank_t *b, uint32_t key, int32_t v, int lock)
     b->val[i] = (int8_t)v;
     lk_set_lock(b, i, lock);
     b->count++;
+    if (lock)
+        lk_gen++;
     return 0;
 }
 static void lk_del(lk_bank_t *b, uint32_t i)    /* event i out (the tail stays zero) */
@@ -81,6 +86,7 @@ static void lk_del(lk_bank_t *b, uint32_t i)    /* event i out (the tail stays z
     uint32_t j;
     if (i >= b->count)
         return;
+    lk_gen++;
     for (j = i; j + 1u < b->count; j++) {
         b->key[j] = b->key[j + 1u];
         b->val[j] = b->val[j + 1u];
@@ -109,6 +115,8 @@ static uint32_t lk_compact(lk_bank_t *b, uint32_t a, uint32_t z, uint32_t trk, u
         n++;
     }
     gone = b->count - n;
+    if (gone)
+        lk_gen++;
     for (i = n; i < b->count; i++) {
         b->key[i] = 0;
         b->val[i] = 0;

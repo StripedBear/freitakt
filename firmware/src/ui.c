@@ -419,6 +419,27 @@ static void bank_fix(void)                             /* LEN shortened (knob, p
     if (ui.bank >= bank_count())
         bank_set((int32_t)bank_count() - 1);
 }
+/* the shown bank's locked steps (bit j: step ui.bank * 16 + j has a parameter or machine lock, lockbank.c
+ * lk_step_mask) for the step LEDs (ui_input.c ui_leds: they blink). Kept, and found again only when the bank's locks
+ * may have changed (lk_gen; its count: a bank cleared in place) or another track / bank / variation is shown (a
+ * variation swaps mo.b: lk_gen), not each frame */
+static struct {
+    uint32_t gen;
+    uint16_t mask, count;
+    uint8_t trk, bank, ok;
+} lkv;
+static uint32_t lk_view_mask(void)
+{
+    if (!lkv.ok || lkv.gen != lk_gen || lkv.count != mo.b.count || lkv.trk != song.sel || lkv.bank != ui.bank) {
+        lkv.mask = (uint16_t)lk_step_mask(&mo.b, song.sel, ui.bank * 16u);
+        lkv.gen = lk_gen;
+        lkv.count = mo.b.count;
+        lkv.trk = (uint8_t)song.sel;
+        lkv.bank = ui.bank;
+        lkv.ok = 1;
+    }
+    return lkv.mask;
+}
 
 /* the NOTE of a step the grid keys turn on (spec §2, user 2026-10-10): a gated (ACID) track's last KEYS / recorded
  * note; a drum's C4 (its steps transposed only by KEYS record, step record's NOTE or the roll) */
@@ -549,6 +570,7 @@ static void init_all(void)
     ui.rec_all = 0;                                     /* (no REC ALL: nothing armed) */
     song.solo = 0;
     memset(&mo, 0, sizeof mo);                     /* no motion */
+    lk_gen++;
     memset(&pname, 0, sizeof pname);               /* no name */
     perf_k[0] = perf_k[1] = perf_k[2] = perf_k[3] = 0;   /* PERFORM's knob effects off (spec §7) */
     fm1_irq_on();

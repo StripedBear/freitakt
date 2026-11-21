@@ -1169,8 +1169,9 @@ static void test_grid_keys(void)
             trk[0].step[i].on = i == 2;
         ui_frame();
         for (i = 0; i < 27u; i++)
-            others += i != WHITE[2] && led_lit(14u + i);
-        check("grid: step 3's LED is the third white key's (A3), no other key lit", led_lit(14u + WHITE[2]) && !others);
+            others += i != WHITE[2] && i != CUE_BK[0] && led_lit(14u + i);   /* (black 1: the selected track) */
+        check("grid: step 3's LED is the third white key's (A3), no other step key lit (black 1: track 1, selected)",
+              led_lit(14u + WHITE[2]) && !others && led_lit(14u + CUE_BK[0]));
     }
     keys(1u << WHITE[2]);
     ui_frame();
@@ -2013,6 +2014,17 @@ static int step_clear(uint32_t k, uint32_t s)        /* off, all zero, no locks 
     return !memcmp(&trk[k].step[s], &z, sizeof z) && !step_locks(k, s, 0, 0);
 }
 
+static int key_shown(uint32_t key)                   /* key lit within 0.6 s (a blinking one too) */
+{
+    uint32_t i;
+    for (i = 0; i < 6u; i++) {
+        host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+        ui_frame();
+        if (led_lit(14u + key))
+            return 1;
+    }
+    return 0;
+}
 static void test_tools_seq_tap(void)
 {
     uint32_t a, mw, pg, k, on = 0;
@@ -2195,8 +2207,8 @@ static void test_tools_step_copy(void)
     check("PASTE STEP: nothing else changed; the source kept", ok && step_locks(0, 2, 0, 0) == 3u);
     check("PASTE STEP: the keys played nothing", hit_age(&trk[0]) == a);
     tools_close();
-    check("SEQ let go: STEP as before, the pasted steps lit", !ui.tools && str_eq(cur_page()->title, "STEP") &&
-          led_lit(14u + WHITE[5]) && led_lit(14u + WHITE[8]));
+    check("SEQ let go: STEP as before, the pasted steps lit (with their locks: blinking)", !ui.tools &&
+          str_eq(cur_page()->title, "STEP") && key_shown(WHITE[5]) && key_shown(WHITE[8]));
     rich_step(0, 7, 9);
     lock_set(0, 7, P_PAN, -3);
     tools_open();
@@ -3241,9 +3253,10 @@ static void test_backlight_leds(void)
     ok = 1;
     for (c = 0; c < FM1_NCOL; c++)
         ok &= (led_lay[c] & 0xFFFF00u) == 0u;
-    check("BACKLIGHT OFF, STEP (2 banks): the hook on for OCT+'s breath alone (item 5): the keys full or dark, no dim",
+    check("BACKLIGHT OFF, STEP (2 banks): the hook on for OCT+'s breath alone (item 5): the keys full or dark, no dim "
+          "(black 1: the selected track, lit)",
           led_dim_on && ok && led_breathes(panel.btn[B_OCTUP]) && led_level(14u + STEP_KEY[1]) == 100u &&
-          led_level(14u + STEP_KEY[0]) == 0u && led_level(14u + 1u) == 0u);
+          led_level(14u + STEP_KEY[0]) == 0u && led_level(14u + 1u) == 100u && led_level(14u + 3u) == 0u);
     backlight = 1;
     ui_frame();
     ok = led_dim_on && led_level(14u + STEP_KEY[1]) == 100u && led_level(14u + STEP_KEY[4]) == 100u;
@@ -3255,8 +3268,9 @@ static void test_backlight_leds(void)
     for (k = 0; k < 27u; k++)                        /* the black keys */
         if (k != 0u && k != 2u && k != 4u && k != 6u && k != 7u && k != 9u && k != 11u && k != 12u && k != 14u &&
             k != 16u && k != 18u && k != 19u && k != 21u && k != 23u && k != 24u && k != 26u)
-            ok &= led_level(14u + k) == 5u;
-    check("BACKLIGHT ON, STEP: on steps full, off beats 1 5 9 13 at 25 %, the other keys at 5 %", ok);
+            ok &= led_level(14u + k) == (k == 1u ? 100u : 5u);   /* (black 1: the selected track) */
+    check("BACKLIGHT ON, STEP: on steps full, off beats 1 5 9 13 at 25 %, the other keys at 5 % (black 1, the "
+          "selected track, full)", ok);
     check("BACKLIGHT ON (DIM LO): the buttons: SEQ lit, the idle ones at 5 % (SAVE, OCT-: no bank before), OCT+ breathing",
           led_level(panel.btn[B_SEQ]) == 100u && led_level(panel.btn[B_SAVE]) == 5u &&
           led_level(panel.btn[B_OCTUP]) == 60u && led_level(panel.btn[B_OCTDN]) == 5u);
@@ -3346,7 +3360,8 @@ static void test_backlight_leds(void)
  * screen when sequencer on keys available"): every page of the table and the HOME screen, KEYS off / on, the track
  * armed or not. Where step_keys(): the bank's on steps full, its unlit steps 1 5 9 13 at 25 %, the rest 5 %, in bank 1
  * and bank 2 (OCT+, as the keys' own bank); elsewhere no key at 25 %. */
-static int beats_shown(uint32_t bank)               /* track 0's pattern below; every other key 5 % */
+static int beats_shown(uint32_t bank)               /* track 0's pattern below; every other key 5 % (the selected
+                                                      * track's black key full; armed: winking) */
 {
     uint32_t k, ok = 1, steps = 0;
     for (k = 0; k < 16u; k++) {
@@ -3355,7 +3370,9 @@ static int beats_shown(uint32_t bank)               /* track 0's pattern below; 
         ok &= trk[0].step[si].on ? l == 100u : (k & 3u) == 0u ? l == 25u : l == 5u;
     }
     for (k = 0; k < 27u; k++)
-        if (!((steps >> k) & 1u))
+        if (k == CUE_BK[song.sel % NTRK])
+            ok &= led_level(14u + k) == 100u || ((song.rec >> song.sel) & 1u);
+        else if (!((steps >> k) & 1u))
             ok &= led_level(14u + k) == 5u;
     return (int)ok;
 }
@@ -9615,7 +9632,8 @@ static void test_fk_led_levels(void)
         if (m == BL_INV || m >= BL_INV_LO)
             on = 0u;
         ok = fk_layer(14u + STEP_KEY[1]) == on && fk_layer(14u + STEP_KEY[4]) == on &&
-             fk_layer(14u + STEP_KEY[2]) == idle && fk_layer(14u + 1u) == idle &&   /* an off step, a black key */
+             fk_layer(14u + STEP_KEY[2]) == idle && fk_layer(14u + 3u) == idle &&   /* an off step, a black key */
+             fk_layer(14u + 1u) == on &&     /* (black 1: the selected track) */
              fk_layer(14u + STEP_KEY[0]) == (m == BL_DIM_LO || m == BL_DIM_HI ? 2u : idle) &&   /* an unlit beat */
              fk_layer(panel.btn[B_SEQ]) == on && fk_layer(panel.btn[B_SAVE]) == idle &&
              fk_layer(panel.btn[B_OCTUP]) == 4u &&   /* breathing in every mode */
@@ -10346,6 +10364,159 @@ static void test_lock_line_whole_every_page(void)
           ok && n > 15u);
 }
 
+/* the step LEDs (Model:Cycles style, ui_input.c ui_leds' step branch): a trig lit, a locked step (parameter or
+ * machine lock) blinking, the selected track's playhead toggling its key (on its own LEN / FIT, its own page), black
+ * 1..6 the tracks: the selected lit, an armed one breathing, the selected armed winking; GLO held over it all. The
+ * lock mask cached (ui.c lk_view_mask), found again when a lock comes or goes */
+static int sk_blinks(uint32_t key, uint32_t frames, int *always_on, int *always_off)
+{
+    uint32_t i, on = 0, off = 0;
+    for (i = 0; i < frames; i++) {
+        host_ticks += 90u * 1000u * FM1_TICKS_PER_US;
+        ui_input();                                  /* (the LEDs' time: ui_input's) */
+        ui_leds();
+        if (led_on(14u + key))
+            on++;
+        else
+            off++;
+    }
+    if (always_on)
+        *always_on = !off;
+    if (always_off)
+        *always_off = !on;
+    return on && off;
+}
+static int sk_ph_key(uint32_t want)                  /* the 16 keys: only key want (16: none) differs from the
+                                                      * steps (trigs, no locks, no blink) */
+{
+    uint32_t k, si;
+    int ok = 1;
+    const track_t *t = TSEL;
+    ui_leds();
+    for (k = 0; k < 16u; k++) {
+        si = ui.bank * 16u + k;
+        int trig = si < view_len(t) && t->step[si].on;
+        ok &= led_on(14u + STEP_KEY[k]) == (k == want ? !trig : trig);
+    }
+    return ok;
+}
+static void test_step_leds(void)
+{
+    uint32_t ok = 1, k, id;
+    int on1, off1;
+    lock_fresh();
+    tap(B_EDIT);
+    trk[0].p[P_SLEN] = 16;
+    trk[0].step[0].on = trk[0].step[2].on = 1;
+    ui_frame();
+    OK0(step_keys() && led_on(14u + STEP_KEY[0]) && led_on(14u + STEP_KEY[2]) && !led_on(14u + STEP_KEY[1]));
+    OK0(led_on(14u + CUE_BK[0]) && !led_on(14u + CUE_BK[1]) && !led_breathes(14u + CUE_BK[1]));
+    check("step LEDs: the trigs lit, the empty steps dark; black 1 (the selected track) lit, the others dark", ok);
+
+    ok = 1;
+    id = lock_id(1);
+    lock_set(0, 2, id, 3);                            /* step 3: a parameter lock */
+    lock_set(0, 5, P_MODEL, 1);                       /* step 6 (no trig): a machine lock */
+    ui_frame();
+    OK0(lkv.ok && lkv.gen == lk_gen && lkv.mask == ((1u << 2) | (1u << 5)));
+    OK0(sk_blinks(STEP_KEY[2], 12, 0, 0) && sk_blinks(STEP_KEY[5], 12, 0, 0));
+    sk_blinks(STEP_KEY[0], 12, &on1, 0);
+    OK0(on1);
+    check("step LEDs: a locked step blinks (a parameter lock on a trig, a machine lock), the plain trig steady", ok);
+
+    ok = 1;
+    lk_set_lock(&mo.b, 0, 0);                         /* (behind the bank's back: no lk_gen, the same count) */
+    ui_leds();
+    OK0(lkv.mask == ((1u << 2) | (1u << 5)));          /* cached: not found again */
+    lk_set_lock(&mo.b, 0, 1);
+    OK0(lock_clear_step(0, 2, 0) == 1u);
+    ui_leds();
+    OK0(lkv.mask == (1u << 5));
+    sk_blinks(STEP_KEY[2], 12, &on1, 0);
+    OK0(on1);
+    lock_set(0, 9, id, 4);
+    ui_leds();
+    OK0(lkv.mask == ((1u << 5) | (1u << 9)));
+    lock_clear_track(0);
+    ui_leds();
+    OK0(lkv.mask == 0u);
+    sk_blinks(STEP_KEY[5], 12, 0, &off1);
+    OK0(off1);
+    check("step LEDs: the lock mask kept between frames, found again after a lock is added or cleared", ok);
+
+    ok = 1;
+    lock_set(0, 2, id, 3);
+    transport_req = 1;
+    seq_play_to(0, 1);
+    OK0(sk_ph_key(1));                                /* empty step 2: lit */
+    seq_play_to(0, 2);
+    for (k = 0; k < 8u; k++) {                        /* locked trig step 3: dark (every blink phase) */
+        host_ticks += 90u * 1000u * FM1_TICKS_PER_US;
+        ui_input();
+        ui_leds();
+        OK0(!led_on(14u + STEP_KEY[2]));
+    }
+    seq_play_to(0, 3);
+    OK0(sk_blinks(STEP_KEY[2], 12, 0, 0));            /* (blinking again once the cursor moved on) */
+    seq_play_to(0, 0);
+    ui_leds();
+    OK0(!led_on(14u + STEP_KEY[0]));                  /* trig step 1: dark */
+    check("step LEDs: the running cursor toggles its key (empty lit, a trig or a locked step dark)", ok);
+
+    ok = 1;
+    lock_clear_track(0);
+    trk[1].p[P_SLEN] = 5;                             /* track 2: LEN 5, FIT (its 5 steps over the bar) */
+    trk[1].p[P_SDIV] = DIV_FIT + 1;
+    memset(trk[1].step, 0, sizeof trk[1].step);
+    trk[1].step[0].on = 1;
+    track_select(1);
+    ui_frame();
+    OK0(song.sel == 1u && led_on(14u + CUE_BK[1]) && !led_on(14u + CUE_BK[0]));
+    for (k = 0; k < 5u; k++) {
+        seq_play_to(1, k);
+        OK0(sk_ph_key(k));                            /* the cursor on track 2's own step, keys 6..16 dark */
+    }
+    seq_play_to(1, 0);
+    OK0(sk_ph_key(0) && !led_on(14u + STEP_KEY[5]));   /* round again after 5 */
+    trk[1].p[P_SLEN] = 20;                            /* LEN 20: page 2 holds steps 17..20 */
+    trk[1].p[P_SDIV] = TP[P_SDIV].def;
+    trk[1].step[17].on = 1;
+    ui.bank = 1;
+    seq_play_to(1, 3);
+    OK0(sk_ph_key(16));                               /* step 4: on page 1, none here */
+    seq_play_to(1, 18);
+    OK0(sk_ph_key(2));                                /* step 19: key 3 */
+    seq_play_to(1, 17);
+    OK0(sk_ph_key(1));                                /* step 18 (a trig): key 2 dark */
+    ui.bank = 0;
+    check("step LEDs: the cursor follows the selected track (LEN 5 + FIT, LEN 20 over two pages: its page only)", ok);
+
+    ok = 1;
+    song.rec = (uint8_t)(1u << 3);                    /* track 4 armed, track 2 selected */
+    ui_frame();
+    OK0(led_breathes(14u + CUE_BK[3]) && !led_breathes(14u + CUE_BK[1]) && led_on(14u + CUE_BK[1]));
+    OK0(!led_on(14u + CUE_BK[0]) && !led_breathes(14u + CUE_BK[0]));
+    song.rec = (uint8_t)(1u << 1);                    /* the selected armed: lit, winking */
+    OK0(sk_blinks(CUE_BK[1], 24, 0, 0));
+    OK0(!led_breathes(14u + CUE_BK[1]));
+    check("step LEDs: an armed track's black key breathes; the selected one lit, winking when armed too", ok);
+
+    ok = 1;
+    song.rec = (uint8_t)(1u << 3);
+    trk[1].step[2].on = 1;
+    press(B_GLO);
+    glo_hold_frames(2);
+    OK0(!led_breathes(14u + CUE_BK[3]) && !led_on(14u + STEP_KEY[2]));
+    release_all();
+    ui_frame();
+    ui_frame();
+    OK0(led_breathes(14u + CUE_BK[3]));
+    transport_req = 2;
+    ui_frame();
+    song.rec = 0;
+    check("step LEDs: GLO held shows the cue map over them (no steps, no armed breathing), let go: back", ok);
+}
+
 int main(void)
 {
     test_safe_start();
@@ -10590,6 +10761,7 @@ int main(void)
     test_env_one_press_after_states();
     test_head_lock_icon();
     test_lock_line_whole_every_page();
+    test_step_leds();                                /* the step LEDs: trigs, locks, cursor, tracks */
     printf(fails ? "ui_test: %d FAILED\n" : "ui_test: all passed\n", fails);
     return fails ? 1 : 0;
 }
