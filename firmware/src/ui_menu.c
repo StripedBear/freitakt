@@ -1,50 +1,43 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* Felucca menu (HOME held): COLOR, SPEAKER EQ (FLAT LOWCUT BASS+), USB LEVEL (MASTER FIXED), PERFORM (HOLD PAGE), KNOB ACCEL, BACKLIGHT (OFF DIM LO DIM HI INV INV LO INV HI), HARDWARE CALIBRATION, (BLE build: BLUETOOTH,) ABOUT. */
+/* Felucca menu (HOME held; FREITAKT redesign: a carousel, one item at a time): COLOR, SPEAKER EQ (FLAT LOWCUT BASS+),
+ * USB LEVEL (MASTER FIXED), PERFORM (HOLD PAGE), KNOB ACCEL, BACKLIGHT (OFF DIM LO DIM HI INV INV LO INV HI), the
+ * device settings, HARDWARE CALIBRATION, (BLE build: BLUETOOTH). */
 /* ------------------------------------------------------------ menu --- */
 /* the device settings the GLOBAL / SYSTEM pages had (FREITAKT redesign: those pages went; BPM and SWING are HOME's
- * knobs, CPU HOME's top line): a row each, KNOB 1 turns it, OCT+ steps it (wrapping); USB MIDI only shows the USB
- * state. Their values where they always were (song.g, the device settings: pages.c glob_desc, ui_input.c glob_set) */
+ * knobs): an item each, KNOB 1 turns it, OCT+ steps it (wrapping); USB MIDI only shows the USB state. Their values
+ * where they always were (song.g, the device settings: pages.c glob_desc, ui_input.c glob_set) */
 #define MI_SETTINGS_ROWS MI_CLOCK, MI_SYNC, MI_DRCH, MI_ROUTE, MI_USBMIDI, MI_METRO, MI_MUTE, MI_THRU, MI_QUANT
 #define MI_SETTINGS_NAMES "CLOCK", "MIDI SYNC", "MIDI CHANNEL", "MIDI ROUTE", "USB MIDI", "METRONOME", "MUTE MODE", \
                           "MIDI THRU", "REC QUANT"
 static const uint8_t MI_GLOB[9] = {G_CLOCK, G_SYNC, G_DRCH, G_ROUTE, G_MIDI, G_METRO, G_MUTEBAR, G_THRU, G_QUANT};
 static int glob_set(uint32_t id, int32_t v);        /* ui_input.c */
 static int32_t knob_turn(uint32_t role, const param_desc_t *d, int32_t v, int32_t s);
-#if FELUCCA_BLE                                     /* the Bluetooth page's row (bt_page.c) before ABOUT */
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_BT, MI_ABOUT,
-       MI_BACK, MI_COUNT };
+#if FELUCCA_BLE                                     /* the Bluetooth page's item (bt_page.c), the last */
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_BT, MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ACCEL",
-                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "BLUETOOTH",
-                                              "ABOUT", "BACK"};
-#define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
-#define MENU_HY 196u
+                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "BLUETOOTH"};
 static void bt_page_open(void);                     /* bt_page.c (after ble/ble_core.h): ui.menu 3 */
 static void bt_page_close(void);
 static void bt_page_draw(void);
 static void bt_page_input(uint32_t pressed);
 static void bt_autostart(void);                     /* AUTOSTART: once, 5 s after power-on (ui_input only, gate 3) */
 #else
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_ABOUT,
-       MI_BACK, MI_COUNT };
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ACCEL",
-                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "ABOUT", "BACK"};
-#define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
-#define MENU_HY 196u
+                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION"};
 #endif
-#define MENU_Y0 40u                                 /* the first row (screen y), inside the MENU window */
-#define MENU_ROWS ((MENU_HY - MENU_Y0) / MENU_DY)   /* the rows shown at once (11) */
 static const char *const SPK_EQ[3] = {"FLAT", "LOWCUT", "BASS+"};   /* settings.lowcut (fx_lowcut) */
-static uint32_t *menu_onoff(uint32_t i)            /* an ON / OFF row's setting, 0 if none */
+static uint32_t *menu_onoff(uint32_t i)            /* an ON / OFF item's setting, 0 if none */
 {
     return i == MI_USB ? &settings.usbfix : i == MI_PERF ? &settings.perfpage :
            i == MI_ACCEL ? &settings.accel : 0;
 }
-static uint32_t menu_glob(uint32_t i)               /* a settings row's global id, 0xFF if none */
+static uint32_t menu_glob(uint32_t i)               /* a settings item's global id, 0xFF if none */
 {
     return i >= MI_CLOCK && i <= MI_QUANT ? MI_GLOB[i - MI_CLOCK] : 0xFFu;
 }
-static void menu_glob_text(uint32_t id, char *b)    /* its value as the row shows it (b: 16 bytes) */
+static void menu_glob_text(uint32_t id, char *b)    /* its value as the item shows it (b: 16 bytes) */
 {
     int16_t *vp;
     const param_desc_t *d;
@@ -60,195 +53,310 @@ static void menu_glob_text(uint32_t id, char *b)    /* its value as the row show
         str_cpy(b + str_len(b), unit, 16 - str_len(b));
     }
 }
-static uint32_t menu_glob_sig(void)                 /* what the settings rows show */
+static void menu_value(uint32_t i, char *b)         /* item i's value (b: 16 bytes; "": none) */
 {
-    uint32_t i, h = 2166136261u;
-    char b[16];
-    for (i = 0; i < 9u; i++) {
-        menu_glob_text(MI_GLOB[i], b);
-        h = str_hash(h, b) * 31u + i;
-    }
-    return h;
+    uint32_t *o = menu_onoff(i);
+    b[0] = 0;
+    if (menu_glob(i) != 0xFFu)
+        menu_glob_text(menu_glob(i), b);
+    else if (o)
+        str_cpy(b, i == MI_USB ? (*o ? "FIXED" : "MASTER") : i == MI_PERF ? (*o ? "PAGE" : "HOLD") : *o ? "ON" : "OFF",
+                16);
+    else if (i == MI_SPKEQ)
+        str_cpy(b, SPK_EQ[settings.lowcut % 3u], 16);
+    else if (i == MI_BACKLIGHT)                     /* (item 9: upstream's LEDS levels) */
+        str_cpy(b, BL_NAME[backlight % BL_COUNT], 16);
+    else if (i == MI_COLOR)                         /* the theme's name (owner 2026-10-23) */
+        str_cpy(b, THEMES[theme_index(settings.palette)].name, 16);
 }
+static int menu_ok_job(uint32_t i) { return menu_glob(i) != G_MIDI; }   /* OCT+ does something on item i */
 
-/* ABOUT (owner 2026-10-22): the credits under the fixed logo, one string a credit, wrapped at its spaces to the text's
- * width (a credit's further lines indented); SELECT scrolls them a row a detent (ui.about_top), clamped at both ends;
- * a thumb at the right shows where. LICENSING.md and README's Credits say the same in full. */
-static const char *const AB[] = {
-    "DRUM MACHINE ON FELUCCA", FELUCCA_VERSION, "FORK: DEADACTIVE",
-    "FELUCCA: LEO KUROSHITA, H\xDCGELTON INSTRUMENTS", "GITHUB.COM/HUGELTON/FELUCCA",
-    "MUTABLE INSTRUMENTS, EMILIE GILLET: PLAITS + STMLIB (DRUM ALGORITHMS, MIT), "
-    "STREAMS (COMPRESSOR, MIT)",
-    "DAISYSP, ELECTROSMITH + EMILIE GILLET: MODAL / MEMBRANE (SKIN; MIT)",
-    "SAMPLES: VERSILIAN STUDIOS VSCO-2 CE / VCSL (CC0) + H\xDCGELTON SAMPLE PACK",
-    "PIXEL FONT: DEADACTIVE",
-    "MD VOICES MEASURED FROM JOE LANDERS' MACHINEDRUM EMULATOR, A FORK OF GEARMULATOR BY THE USUAL SUSPECTS (DSP56300 "
-    "PROJECT): MEASUREMENTS ONLY, NO CODE OR DATA FROM IT",
-    "MACHINEDRUM IS A TRADEMARK OF ELEKTRON. NOT AFFILIATED WITH ELEKTRON, JOE LANDERS OR THE USUAL SUSPECTS",
-    "JIELI AC79 SDK (APACHE-2.0) IN THE PACKAGE",
-    "RECOVERY TOOL: JL-UBOOT-TOOL BY KAGAIMIQ (ANDREY GRIGORYEV), MIT",
-    "WEB FONT: TERMINUS (DIMITAR ZHEKOV, OFL)", "WEB ICONS: FUKIAI (H\xDCGELTON INSTRUMENTS, MIT)",
-    "BOOT SCREEN STUDY: UNIFRAKTUR FONTS (J. 'MACH' WUST, PETER WIEGEL, OFL)",
-    "GPL-3.0, NO WARRANTY"};
-#define AB_Y0 78                                    /* the first row (under the logo), 14 px rows, eleven shown */
-#define AB_DY 14
-#define AB_ROWS 11u
-#define AB_X 6
-#define AB_IND 12                                   /* a credit's further lines */
-#define AB_R 228                                    /* the text's right edge (exclusive) */
-#define AB_BX 232                                   /* the thumb: x 232..234 in rows 78..227 */
-#define AB_BH (int32_t)(AB_ROWS * AB_DY - 4u)
-#define AB_MAXL 64u
-static struct { uint8_t c, at, n; } ab_line[AB_MAXL];   /* the wrapped rows: credit, first character, length */
-static uint32_t ab_lines;
+/* ---- CAROUSEL (FREITAKT redesign, phase D): the MENU and SAVE's PROJECT / TOOLS / COPY show one item at a time
+ * under the top bar. Bands (screen rows): 16..43 the section's title and a dot an item (the item's a big one);
+ * 44..131 the item's name, big and centred between a < and a > (the largest MD_F3 that fits, up to 5x; on two lines
+ * at a space when one line would be under 3x); 132..169 its value (up to 4x); 170..199 a note (a state, or the
+ * message ui_say put up; 2x); 200..239 the keys' hints under a dotted rule, two rows of up to two keycaps. SELECT
+ * scrolls the items (the input's). A band is drawn only when what it shows changed (car_sig), all of them on
+ * ui.force: a value's change sends its band, a SELECT detent the item's few */
+typedef struct {
+    const char *title, *item, *val, *note;
+    const char *hk[4], *ha[4];                      /* the hints: key, action; [0] [1] the first row, [2] [3] the
+                                                     * second (hk 0: none) */
+    uint32_t pos, n;                                /* the item's place, the items' count */
+} car_t;
+#define CAR_BANDS 5u
+static const uint8_t CAR_Y[CAR_BANDS + 1u] = {16, 44, 132, 170, 200, 240};
+static uint32_t car_sig[CAR_BANDS];
 
-static void ab_str(char *b, uint32_t r)              /* row r's text */
+static void car_text(int32_t y, const char *s, uint32_t sc)    /* centred at band row y */
 {
-    memcpy(b, AB[ab_line[r].c] + ab_line[r].at, ab_line[r].n);
-    b[ab_line[r].n] = 0;
+    md_text(120 - md_text_w(&MD_F3, sc, s) / 2, y, &MD_F3, sc, s, C_INK);
 }
-
-static void about_wrap(void)                         /* once: the credits as rows */
+static void car_arrow(int32_t x, int32_t dir)       /* a solid triangle 6 px wide, its tip at x, the band's middle */
 {
-    uint32_t c, len, at, end, cut, fit, n = 0;
-    char b[64];
-    if (ab_lines)
-        return;
-    for (c = 0; c < sizeof AB / sizeof AB[0]; c++) {
-        const char *s = AB[c];
-        for (len = 0; s[len]; len++)
-            ;
-        for (at = 0; at < len && n < AB_MAXL;) {
-            int32_t x = at ? AB_X + AB_IND : AB_X;
-            for (cut = fit = 0, end = at + 1u; end <= len && end - at < sizeof b; end++) {
-                memcpy(b, s + at, end - at);
-                b[end - at] = 0;
-                if (x + md_text_w(&MD_F3, 2, b) > AB_R)
-                    break;
-                fit = end;
-                if (end == len || s[end] == ' ')
-                    cut = end;                      /* the last word end that fits */
+    int32_t i;
+    for (i = 0; i < 6; i++)
+        cv_rect(x + dir * i, 44 - i, 1, 2 * i + 1, C_INK);
+}
+static void car_name(const char *s)                 /* band 1: the item's name */
+{
+    char a[24];
+    uint32_t sc = md_fit_sc(s, 196, 5u), n = str_len(s), i, cut = 0, best = sc;
+    if (sc < 3u)                                    /* two lines: at the space that lets them be biggest */
+        for (i = 1; i + 1u < n && i < sizeof a; i++) {
+            uint32_t k, k2;
+            if (s[i] != ' ')
+                continue;
+            str_cpy(a, s, i + 1u);
+            k = md_fit_sc(a, 196, 4u);
+            k2 = md_fit_sc(s + i + 1u, 196, 4u);
+            k = k2 < k ? k2 : k;
+            if (k > best) {
+                best = k;
+                cut = i;
             }
-            if (!cut)                               /* (a word wider than the row: as much as fits) */
-                cut = fit > at ? fit : at + 1u;
-            ab_line[n].c = (uint8_t)c;
-            ab_line[n].at = (uint8_t)at;
-            ab_line[n].n = (uint8_t)(cut - at);
-            n++;
-            for (at = cut; at < len && s[at] == ' '; at++)
-                ;
         }
+    if (!cut) {
+        str_cpy(a, s, sizeof a);
+        while (a[0] && md_text_w(&MD_F3, sc, a) > 196)
+            a[str_len(a) - 1u] = 0;
+        car_text(44 - (int32_t)(5u * sc) / 2, a, sc);
+        return;
     }
-    ab_lines = n;
+    str_cpy(a, s, cut + 1u);                        /* (two rows of 5 x sc, 2 x sc apart, about the middle) */
+    car_text(44 - (int32_t)(6u * best), a, best);
+    car_text(44 + (int32_t)best, s + cut + 1u, best);
 }
-
-static uint32_t about_max(void)                      /* the last first row: the last credit on the last row */
+static int32_t car_cap_w(const char *k, const char *a)   /* a keycap's width (cv_keycap) */
 {
-    about_wrap();
-    return ab_lines > AB_ROWS ? ab_lines - AB_ROWS : 0u;
+    return md_text_w(&MD_F3, 2, k) + 6 + (a && a[0] ? 4 + md_text_w(&MD_F3, 2, a) : 0);
 }
-
-static void draw_about(void)                         /* the credits' rows and the thumb (into the band's canvas) */
+static void car_hints(const car_t *v, uint32_t r, int32_t y)   /* hint row r (its two keycaps, centred) */
 {
-    uint32_t i, r;
-    char b[64];
-    int32_t th, ty, mx = (int32_t)about_max();
-    for (i = 0; i < AB_ROWS && (r = ui.about_top + i) < ab_lines; i++) {
-        int32_t y = AB_Y0 + (int32_t)i * AB_DY;
-        ab_str(b, r);
-        md_text(ab_line[r].at ? AB_X + AB_IND : AB_X, y, &MD_F3, 2, b, C_INK);
-        if (ab_line[r].c == 1u && !ab_line[r].at)   /* the version's row: the build date at the right */
-            md_text(AB_R - md_text_w(&MD_F3, 2, __DATE__), y, &MD_F3, 2, __DATE__, C_INK);
+    const char *const *k = v->hk + 2u * r, *const *a = v->ha + 2u * r;
+    int32_t w = 0, x;
+    if (k[0])
+        w += car_cap_w(k[0], a[0]);
+    if (k[1])
+        w += (w ? 14 : 0) + car_cap_w(k[1], a[1]);
+    x = 120 - w / 2;
+    if (k[0])
+        x = cv_keycap(x, y, k[0], a[0], C_INK) + 14;
+    if (k[1])
+        cv_keycap(x, y, k[1], a[1], C_INK);
+}
+/* the carousel v: the bands whose content changed (all on ui.force), the top bar as everywhere; 1 when any band was
+ * sent */
+static int car_draw(const car_t *v)
+{
+    uint32_t s[CAR_BANDS], i, any = 0;
+    s[0] = str_hash(v->n * 131u + v->pos * 7u + 1u, v->title);
+    s[1] = str_hash(2u, v->item);
+    s[2] = str_hash(3u, v->val);
+    s[3] = str_hash(4u, v->note);
+    s[4] = 5u;
+    for (i = 0; i < 4u; i++)
+        s[4] = str_hash(str_hash(s[4] * 31u + i, v->hk[i] ? v->hk[i] : ""), v->ha[i] ? v->ha[i] : "");
+    draw_head();
+    for (i = 0; i < CAR_BANDS; i++) {
+        int32_t h = CAR_Y[i + 1u] - CAR_Y[i];
+        if (!ui.force && s[i] == car_sig[i])
+            continue;
+        car_sig[i] = s[i];
+        any = 1;
+        cv_begin_at(240, (uint32_t)h, CAR_Y[i], C_BG);
+        cv_oy = 0;
+        switch (i) {
+        case 0: {                                   /* the title, the dots (the item's 6 x 6, the others 2 x 2) */
+            int32_t p = v->n > 1u ? (int32_t)(200u / (v->n - 1u)) : 0, x0;
+            uint32_t d;
+            p = p > 12 ? 12 : p;
+            x0 = 120 - p * (int32_t)(v->n - 1u) / 2;
+            car_text(3, v->title, 2);
+            for (d = 0; d < v->n && v->n > 1u; d++)
+                if (d == v->pos)
+                    cv_rect(x0 + p * (int32_t)d - 3, 18, 6, 6, C_INK);
+                else
+                    cv_rect(x0 + p * (int32_t)d - 1, 20, 2, 2, C_INK);
+            break;
+        }
+        case 1:                                     /* the item, < > when there are others */
+            if (v->n > 1u) {
+                car_arrow(4, 1);
+                car_arrow(235, -1);
+            }
+            car_name(v->item);
+            break;
+        case 2:                                     /* its value */
+            if (v->val[0]) {
+                uint32_t sc = md_fit_sc(v->val, 224, 4u);
+                char b[24];
+                str_cpy(b, v->val, sizeof b);
+                while (b[0] && md_text_w(&MD_F3, sc, b) > 224)
+                    b[str_len(b) - 1u] = 0;
+                car_text(19 - (int32_t)(5u * sc) / 2, b, sc);
+            }
+            break;
+        case 3: {                                   /* the note */
+            char b[32];
+            md_fit(b, v->note, sizeof b, 228);
+            car_text(10, b, 2);
+            break;
+        }
+        default:                                    /* the hints */
+            cv_hdot(4, 235, 0, C_INK);
+            car_hints(v, 0, 6);
+            car_hints(v, 1, 23);
+            break;
+        }
+        cv_blit(0, CAR_Y[i]);
     }
-    th = mx ? AB_BH * (int32_t)AB_ROWS / (int32_t)ab_lines : AB_BH;
-    th = th < 10 ? 10 : th;
-    ty = AB_Y0 + (mx ? (AB_BH - th) * (int32_t)ui.about_top / mx : 0);
-    cv_rect(AB_BX, ty, 3, th, C_INK);
+    return (int)any;
 }
 
+/* the MENU's carousel: the item's name, its value, OCT+'s and KNOB 1's jobs (none on USB MIDI: shown only) */
 static void draw_menu(void)
 {
-    static int16_t pk[8];                           /* ABOUT: the logo's peak dots */
-    static uint32_t pf;                             /* the logo's frame shown */
-    uint32_t i, pass, fr = fm1_ms / 66u,
-                      sig = ui.menu * 7u + ui.menu_sel * 131u + settings.palette * 1009u + settings.lowcut * 7919u +
-                            settings.accel * 15485863u + settings.usbfix * 32452843u +
-                            settings.perfpage * 49979687u + backlight * 67867967u + ui.about_top * 86028121u +
-                            (ui.menu == 1 ? menu_glob_sig() : 0u);
+    char v[16];
+    car_t c;
+    uint32_t i = ui.menu_sel % MI_COUNT;
 #if FELUCCA_BLE
     if (ui.menu == 3u) {                            /* the Bluetooth page: its own drawing and signature */
         bt_page_draw();
         return;
     }
 #endif
-    if (!ui.force && sig == ui.menu_sig) {
-        if (ui.menu == 2 && fr != pf) {             /* ABOUT: the logo moves (15 fps), alone: rows 17..77, x 82..157
-                                                     * (an even x: the dither keeps its phase) */
-            pf = fr;
-            cv_begin_at(76, 61, 17, C_BG);
-            cv_oy = -17;
-            cv_vu(2, 18, fr, 1, pk);
-            cv_blit(82, 17);
-        }
-        return;
+    memset(&c, 0, sizeof c);
+    menu_value(i, v);
+    c.title = "MENU";
+    c.item = MI_NAME[i];
+    c.val = v;
+    c.note = ui.msg_t ? ui.msg : i == MI_PANEL ? "TEACH BUTTONS AND KNOBS" : "";
+    c.pos = i;
+    c.n = MI_COUNT;
+    c.hk[2] = "SEL";
+    c.ha[2] = "MOVE";
+    c.hk[3] = "OCT-";
+    c.ha[3] = "BACK";
+    if (i == MI_PANEL) {
+        c.hk[0] = "OCT+";
+        c.ha[0] = "START";
+#if FELUCCA_BLE
+    } else if (i == MI_BT) {
+        c.hk[0] = "OCT+";
+        c.ha[0] = "OPEN";
+#endif
+    } else if (menu_ok_job(i)) {
+        c.hk[0] = "K1";
+        c.ha[0] = "SET";
+        c.hk[1] = "OCT+";
+        c.ha[1] = "NEXT";
     }
-    ui.menu_sig = sig;
-    ui.force = 1;
-    draw_head();                                    /* the top bar as everywhere */
-    for (pass = 0; pass < 2u; pass++) {             /* the canvas holds 124 rows: two bands, screen rows 16..239 */
-        uint32_t y0 = H_HEAD + pass * 124u, h = pass ? 240u - H_HEAD - 124u : 124u;
-        cv_begin_at(240, h, y0, C_BG);
-        cv_oy = -(int32_t)y0;                       /* (drawn in screen rows) */
-        cv_rect(0, (int32_t)y0, 1, (int32_t)h, C_INK);
-        cv_rect(239, (int32_t)y0, 1, (int32_t)h, C_INK);
-        cv_rect(0, 239, 240, 1, C_INK);
-        if (ui.menu == 2) {                         /* ABOUT: the logo, the credits (scrolled) */
-            if (pass == 0u && fr != pf) {           /* (the peaks step once a frame, not once a band) */
-                pf = fr;
-                cv_vu(84, 18, fr, 1, pk);
-            } else {
-                int16_t keep[8];
-                memcpy(keep, pk, sizeof keep);
-                cv_vu(84, 18, fr, 1, keep);
-            }
-            draw_about();
-        } else {                                    /* MENU: a window, the cursor an inverted bar */
-            uint32_t top = ui.menu_sel >= MENU_ROWS ? ui.menu_sel + 1u - MENU_ROWS : 0u;   /* (scrolled: the cursor's
-                                                                                    * row the last shown) */
-            char gb[16];
-            cv_popup(6, 30, 228, 184, "MENU", C_INK, C_BG);
-            if (top)                                /* more above / below: a small arrow at the right edge */
-                cv_rect(226, 36, 3, 2, C_INK), cv_rect(227, 35, 1, 1, C_INK);
-            if (top + MENU_ROWS < MI_COUNT)
-                cv_rect(226, (int32_t)(MENU_Y0 + MENU_ROWS * MENU_DY) - 4, 3, 2, C_INK),
-                    cv_rect(227, (int32_t)(MENU_Y0 + MENU_ROWS * MENU_DY) - 2, 1, 1, C_INK);
-            for (i = top; i < MI_COUNT && i < top + MENU_ROWS; i++) {
-                int32_t y = (int32_t)(MENU_Y0 + (i - top) * MENU_DY);
-                int sel = i == ui.menu_sel;
-                const char *v = 0;
-                if (menu_glob(i) != 0xFFu) {
-                    menu_glob_text(menu_glob(i), gb);
-                    v = gb;
-                }
-                if (menu_onoff(i))
-                    v = i == MI_USB ? (*menu_onoff(i) ? "FIXED" : "MASTER") : i == MI_PERF ? (*menu_onoff(i) ? "PAGE" : "HOLD") :
-                        *menu_onoff(i) ? "ON" : "OFF";
-                if (i == MI_SPKEQ)
-                    v = SPK_EQ[settings.lowcut % 3u];
-                if (i == MI_BACKLIGHT)              /* (item 9: upstream's LEDS levels) */
-                    v = BL_NAME[backlight % BL_COUNT];
-                if (i == MI_COLOR)                  /* the theme's name (owner 2026-10-23) */
-                    v = THEMES[theme_index(settings.palette)].name;
-                list_row(10, 225, y, MI_NAME[i], v, sel);
-            }
-            i = (uint32_t)cv_keycap(12, (int32_t)MENU_HY, "OCT+", "OK", C_INK);
-            i = (uint32_t)cv_keycap((int32_t)i + 8, (int32_t)MENU_HY, "OCT-", "BACK", C_INK);
-            cv_keycap((int32_t)i + 8, (int32_t)MENU_HY, "SEL", "MOVE", C_INK);
+    car_draw(&c);
+    if (ui.msg_t)
+        ui.msg_t--;
+}
+
+/* SAVE's pages as carousels (FREITAKT redesign, phase D): PROJECT and COPY a project slot an item (SELECT, or KNOB 1:
+ * SLOT, song.g[G_SLOT]; wrapping), TOOLS an action an item (ui.tool; a knob turned shows its action). The knobs do
+ * what they did (ui_input.c edit_param): PROJECT K2 NAME, K3 LOAD, K4 SAVE (LOAD and SAVE turned twice: AGAIN: ...);
+ * TOOLS K1 CLEAR TRACK, K2 INIT SOUND, K3 CLEAR ALL, K4 INIT ALL (each turned twice); COPY K2 COPY, K3 PASTE (twice),
+ * K4 MIDI LEARN on / off. The PRESETS popup (the PRESET knob) over it as on the other pages */
+static const char *const TOOL_NAME[4] = {"CLEAR TRACK", "INIT SOUND", "CLEAR ALL", "INIT ALL"};
+static const char *const TOOL_NOTE[4] = {"STEPS, MOTION, LOCKS", "MODEL DEFAULT, FILTER", "STEPS, LEN, DIV, SWG",
+                                         "PROJECTS, SETTINGS KEPT"};
+static uint8_t car_pp;                              /* the PRESETS popup was up (its end: all again) */
+static int save_car_on(void) { return !ui.home && !ui.layer && !ui.menu && cur_page()->fam == FAM_SAVE; }
+static int save_slots(void) { return cur_page()->id[0] == G_SLOT; }   /* PROJECT, COPY (not TOOLS) */
+static void save_select(int32_t s)                  /* SELECT: the next / previous item, wrapping */
+{
+    if (save_slots())
+        song.g[G_SLOT] = (int16_t)(((uint32_t)(song.g[G_SLOT] - 1) + (s > 0 ? 1u : 3u)) % 4u + 1u);
+    else
+        ui.tool = (uint8_t)((ui.tool + (s > 0 ? 1u : 3u)) % 4u);
+}
+static void car_word(char *n, const char *w)        /* the note n (28 bytes): w after its words */
+{
+    uint32_t k = str_len(n);
+    if (k)
+        n[k++] = ' ';
+    str_cpy(n + k, w, 28u - k);
+}
+static void draw_save(void)
+{
+    static const char *const KN[4] = {"K1", "K2", "K3", "K4"};
+    const page_t *pg = cur_page();
+    char t[20], it[2] = {0, 0}, v[NAME_LEN + 8u], n[28];
+    car_t c;
+    uint32_t pos, np = fam_pages(FAM_SAVE, &pos), k;
+    memset(&c, 0, sizeof c);
+    str_cpy(t, pg->title, 12);                      /* PROJECT 1/3 */
+    k = str_len(t);
+    t[k] = ' ';
+    t[k + 1u] = (char)('0' + pos);
+    t[k + 2u] = '/';
+    t[k + 3u] = (char)('0' + np);
+    t[k + 4u] = 0;
+    c.title = t;
+    c.hk[2] = "SEL";
+    c.ha[2] = "MOVE";
+    n[0] = 0;
+    if (save_slots()) {                             /* a slot: its letter, its name, its state */
+        uint32_t s = (uint32_t)(song.g[G_SLOT] - 1) & 3u;
+        it[0] = (char)('A' + s);
+        if (!project_name(s, v))
+            str_cpy(v, "EMPTY", sizeof v);
+        else if (!v[0])
+            str_cpy(v, "USED", sizeof v);
+        if (proj_loaded() == (int32_t)s)
+            car_word(n, "LOADED");
+        if (slot_dirty(s))
+            car_word(n, "EDITED");
+        if (copy_src == s + 1u)
+            car_word(n, "COPIED");
+        c.item = it;
+        c.pos = s;
+        c.ha[2] = "SLOT";
+        if (pg->id[1] == G_NAME) {                  /* PROJECT */
+            c.hk[0] = "K3";
+            c.ha[0] = "LOAD";
+            c.hk[1] = "K4";
+            c.ha[1] = "SAVE";
+            c.hk[3] = "K2";
+            c.ha[3] = "NAME";
+        } else {                                    /* COPY */
+            c.hk[0] = "K2";
+            c.ha[0] = "COPY";
+            c.hk[1] = "K3";
+            c.ha[1] = "PASTE";
+            c.hk[3] = "K4";
+            c.ha[3] = ui.ml.on ? "LEARN ON" : "LEARN OFF";
         }
-        cv_oy = 0;
-        cv_blit(0, y0);
+    } else {                                        /* TOOLS: the action, whom it hits, what it does */
+        k = ui.tool & 3u;
+        c.item = TOOL_NAME[k];
+        c.pos = k;
+        if (k < 2u) {
+            str_cpy(v, "TRACK 1", sizeof v);
+            v[6] = (char)('1' + song.sel);
+        } else {
+            str_cpy(v, k == 2u ? "ALL TRACKS" : "EVERYTHING", sizeof v);
+        }
+        str_cpy(n, TOOL_NOTE[k], sizeof n);
+        c.hk[0] = KN[k];
+        c.ha[0] = "TURN TWICE";
     }
-    ui.force = 0;
+    c.n = 4;
+    c.val = v;
+    c.note = ui.msg_t ? ui.msg : n;
+    if (car_pp != (uint8_t)pp_on()) {               /* the PRESETS popup came or went: all */
+        car_pp = (uint8_t)pp_on();
+        ui.force = 1;
+    }
+    if (car_draw(&c) && pp_on())                    /* (a band over the popup's place: the popup whole again) */
+        ui.force = 1;
+    if (pp_on())
+        draw_popup();
 }
 
 static void enc_drop(void)                             /* knob turns nobody takes */
@@ -411,38 +519,32 @@ static void splash_input(uint32_t pressed, uint32_t notes)
     }
 }
 
-/* menu: SELECT moves, OCT+ confirms, OCT- cancels (ABOUT -> list -> close) */
+/* the MENU's carousel: SELECT scrolls the items (wrapping), KNOB 1 sets the item's value, OCT+ steps it (wrapping) or
+ * starts it (HARDWARE CALIBRATION, BLUETOOTH), OCT- closes the menu */
 static void menu_input(uint32_t pressed)
 {
     int32_t s;
     uint32_t ok = (pressed >> panel.btn[B_OCTUP]) & 1u, back = (pressed >> panel.btn[B_OCTDN]) & 1u;
 #if FELUCCA_BLE
-    if (ui.menu == 3u) {                               /* the Bluetooth page (OCT-: back to the list) */
+    if (ui.menu == 3u) {                               /* the Bluetooth page (OCT-: back to the carousel) */
         bt_page_input(pressed);
         enc_drop();
         return;
     }
 #endif
     if (back) {
-        if (ui.menu == 2)
-            ui.menu = 1, ui.force = 1;
-        else
-            menu_close();
+        menu_close();
         return;
     }
-    if ((s = panel_enc(EN_SELECT)) != 0 && ui.menu == 1)
+    if ((s = panel_enc(EN_SELECT)) != 0)
         ui.menu_sel = (uint8_t)((ui.menu_sel + (s > 0 ? 1u : MI_COUNT - 1u)) % MI_COUNT);
-    else if (s != 0 && ui.menu == 2) {                 /* ABOUT: the credits a row a detent, clamped */
-        int32_t t = (int32_t)ui.about_top + s, mx = (int32_t)about_max();
-        ui.about_top = (uint8_t)(t < 0 ? 0 : t > mx ? mx : t);
-    }
     s = panel_enc(EN_K1);
-    if (s != 0 && ui.menu == 1 && ui.menu_sel == MI_COLOR) {
+    if (s != 0 && ui.menu_sel == MI_COLOR) {
         settings.palette = theme_step(settings.palette, s);
         theme_set(settings.palette);
         ui.force = 1;                               /* every region in the new colours */
     }
-    if ((s != 0 || ok) && ui.menu == 1 && ui.menu_sel == MI_SPKEQ) {
+    if ((s != 0 || ok) && ui.menu_sel == MI_SPKEQ) {
         /* KNOB 1 steps FLAT LOWCUT BASS+ and stops at the ends; OCT+ steps and wraps (upstream 1.0.2) */
         settings.lowcut = s > 0 ? (settings.lowcut < 2u ? settings.lowcut + 1u : 2u)
                         : s < 0 ? (settings.lowcut ? settings.lowcut - 1u : 0u) : (settings.lowcut + 1u) % 3u;
@@ -450,7 +552,7 @@ static void menu_input(uint32_t pressed)
         ok = 0;
         s = 0;
     }
-    if ((s != 0 || ok) && ui.menu == 1 && ui.menu_sel == MI_BACKLIGHT) {
+    if ((s != 0 || ok) && ui.menu_sel == MI_BACKLIGHT) {
         /* BACKLIGHT (item 9): KNOB 1 steps OFF DIM LO DIM HI INV INV LO INV HI and stops at the ends; OCT+ steps and
          * wraps (as SPEAKER EQ) */
         backlight = s > 0 ? (backlight + 1u < BL_COUNT ? backlight + 1u : BL_COUNT - 1u)
@@ -458,8 +560,8 @@ static void menu_input(uint32_t pressed)
         ok = 0;
         s = 0;
     }
-    if ((s != 0 || ok) && ui.menu == 1 && menu_glob(ui.menu_sel) != 0xFFu) {
-        /* a settings row: KNOB 1 turns it, OCT+ steps it and wraps; USB MIDI: only shown */
+    if ((s != 0 || ok) && menu_glob(ui.menu_sel) != 0xFFu) {
+        /* a settings item: KNOB 1 turns it, OCT+ steps it and wraps; USB MIDI: only shown */
         uint32_t g = menu_glob(ui.menu_sel);
         if (g != G_MIDI) {
             int16_t *vp;
@@ -471,14 +573,14 @@ static void menu_input(uint32_t pressed)
         ok = 0;
         s = 0;
     }
-    if ((s != 0 || ok) && ui.menu == 1 && menu_onoff(ui.menu_sel)) {
+    if ((s != 0 || ok) && menu_onoff(ui.menu_sel)) {
         /* KNOB 1: right = ON, left = OFF; OCT+ toggles */
         uint32_t *v = menu_onoff(ui.menu_sel);
         *v = s > 0 ? 1u : s < 0 ? 0u : !*v;
         fx_usb_fixed = (uint8_t)settings.usbfix;
         ok = 0;
     }
-    if (ok && ui.menu == 1) {
+    if (ok) {
         switch (ui.menu_sel) {
         case MI_COLOR:                                 /* OCT+ steps through the themes too */
             settings.palette = theme_step(settings.palette, 1);
@@ -494,13 +596,7 @@ static void menu_input(uint32_t pressed)
             bt_page_open();
             break;
 #endif
-        case MI_ABOUT:
-            ui.menu = 2;
-            ui.about_top = 0;                          /* the credits from the top */
-            ui.force = 1;
-            break;
         default:
-            menu_close();
             break;
         }
     }

@@ -205,9 +205,10 @@ static void add(const uint8_t a[6], uint32_t kind, const char *name)
 static void test_menu_row(void)
 {
     fresh();
-    check("menu: BLUETOOTH is the row before ABOUT; nineteen rows (BACKLIGHT, spec 2026-10-11-fixes §12; FREITAKT: "
-          "the nine device settings of the old GLOBAL / SYSTEM pages, no ZOOM since the knob popup)",
-          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_ABOUT && MI_COUNT == 19 &&
+    check("menu: BLUETOOTH is the last item; seventeen items (BACKLIGHT, spec 2026-10-11-fixes §12; FREITAKT: "
+          "the nine device settings of the old GLOBAL / SYSTEM pages, no ZOOM since the knob popup, no ABOUT and no "
+          "BACK since the carousel)",
+          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_COUNT && MI_COUNT == 17 &&
           str_eq(MI_NAME[MI_BACKLIGHT], "BACKLIGHT"));
     {   /* MENU > USB AUDIO 10 CH removed in FREITAKT: no row, stereo always */
         uint32_t k, none = 1;
@@ -222,10 +223,10 @@ static void test_menu_row(void)
             ui_frame();
         }
         snap("00_menu");
-        shot("build/ui_shots/fixes/menu_backlight_ble.ppm");   /* (the Bluetooth build's menu, with BACKLIGHT) */
+        shot("build/ui_shots/fixes/menu_bluetooth_ble.ppm");   /* (the Bluetooth build's menu: its BLUETOOTH item) */
     }
-    check("menu: the eleven rows end above the hints", ink_in(MENU_Y0 + 10u * MENU_DY, MENU_Y0 + 10u * MENU_DY + 10u) > 50 &&
-          ink_in(MENU_Y0 + 10u * MENU_DY + 12u, MENU_HY) == 0 && ink_in(MENU_HY, MENU_HY + 14u) > 50);
+    check("menu: the carousel on BLUETOOTH: its name big, the hints under it",
+          ui.menu_sel == MI_BT && ink_in(44, 131) > 200 && ink_in(200, 239) > 100);
     tap(B_OCTUP);
     check("menu: OCT+ on BLUETOOTH opens the page", ui.menu == 3 && btp.sel == 0);
     check("the page opened: nothing started, no role asked", !bs.starts && !bs.wants && bs_role < 0);
@@ -239,7 +240,7 @@ static void test_menu_row(void)
           str_eq(BT_NAME[BTR_RATE], "RECONNECT") && bt_page_rows() == 6u);
     tap(B_OCTDN);
     bt_devs_frame();
-    check("OCT-: back to the menu's list on BLUETOOTH; the page's scan ends", ui.menu == 1 && ui.menu_sel == MI_BT &&
+    check("OCT-: back to the menu's carousel on BLUETOOTH; the page's scan ends", ui.menu == 1 && ui.menu_sel == MI_BT &&
           bh.scan_want == 0);
     tap(B_OCTUP);
     menu_close();                                    /* (HOME held on the page) */

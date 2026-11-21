@@ -16,6 +16,7 @@ static void seq_play_to(uint32_t ti, uint32_t step);
 static void seq_open(const char *title);
 static uint32_t fb_lit(uint32_t y0, uint32_t y1);
 static int list_rows_drawn(void);
+static int menu_value_is(uint32_t item, const char *s);
 static uint32_t fb_count(uint32_t x0, uint32_t y0, uint32_t w, uint32_t h, uint16_t c);
 static void tap(uint32_t b);
 #define OK0(e) do { if (!(e)) { printf("     (line %d)\n", __LINE__); ok = 0; } } while (0)
@@ -543,16 +544,12 @@ static void test_step_hold(void)
     grid_up(WHITE[10]);
     check("a quick press whose page changes before the release: no toggle", !trk[0].step[10].on);
     ui_host_init();
-    seq_open("STEP");
-    step_hold_on_page("STEP");
     seq_open("PATTERN");
     step_hold_on_page("PATTERN");
-    seq_open("MOTION");
-    step_hold_on_page("MOTION");
     open_tracks();
     check("TRACKS open (keys = the steps)", mix_mode() && step_keys());
     step_hold_on_page("TRACKS");
-    seq_open("STEP");                                /* KEYS: the keys are notes, no step changes */
+    seq_open("PATTERN");                                /* KEYS: the keys are notes, no step changes */
     tap(B_SCL);
     memset(&trk[0].step[3], 0, sizeof trk[0].step[3]);
     grid_down(WHITE[3]);
@@ -994,7 +991,7 @@ static void test_grid_keys(void)
     uint32_t a;
     ui_host_init();
     open_step_page();
-    check("SEQ opens the STEP grid (keys belong to it)", str_eq(cur_page()->title, "PATTERN") && song.seq_mode);
+    check("SEQ opens PATTERN (the keys its steps)", str_eq(cur_page()->title, "PATTERN") && song.seq_mode);
     a = dvage;
     keys(1u << WHITE[2]);                            /* the third white key, A3 */
     ui_frame();
@@ -1185,7 +1182,7 @@ static void test_rec_everywhere(void)
     hold(B_HOME);
     ui_host_init();
     trk[0].step[0].on = 1;
-    seq_open("STEP");
+    seq_open("PATTERN");
     hold(B_REC);                                     /* REC held on SEQ: FILL (phase C: no CLEAR TRACK? dialog) */
     check("REC held on SEQ: no dialog (the clear is REC + SEL since phase C), no tap, the steps kept", !ui.confirm &&
           song.rec == 0u && !ui.rec_all && !fill_on && trk[0].step[0].on);
@@ -1753,14 +1750,14 @@ static void test_glo_keys(void)
     tap(B_REC);
     transport_req = 2;
     ui_frame();
-    seq_open("STEP");
+    seq_open("PATTERN");
     s0 = TSEL->step[0];
     press(B_GLO);
     glo_key(0);
     release_all();
     ui_frame();
-    check("STEP grid: GLO + key 1 toggles no step", TSEL->step[0].on == s0.on);
-    seq_open("STEP");
+    check("PATTERN: GLO + key 1 toggles no step", TSEL->step[0].on == s0.on);
+    seq_open("PATTERN");
     s0 = TSEL->step[1];
     press(B_ARP);
     btn_key(B_ARP, STEP_KEY[1]);
@@ -1770,7 +1767,7 @@ static void test_glo_keys(void)
     btn_key(B_SCL, STEP_KEY[1]);
     release_all();
     ui_frame();
-    check("STEP grid: ARP / SEL + key 2 toggle no step", TSEL->step[1].on == s0.on && !ui.keys);
+    check("PATTERN: ARP / SEL + key 2 toggle no step", TSEL->step[1].on == s0.on && !ui.keys);
 }
 
 /* ---- SEQ (FREITAKT phase C: the TOOLS screen gone): a tap or a hold turns the SEQ pages on the release; SEQ + black
@@ -2665,7 +2662,7 @@ static void test_rec_all(void)
 
     ui_host_init();
     trk[0].step[0].on = 1;
-    seq_open("STEP");
+    seq_open("PATTERN");
     tap(B_REC);
     check("STEP, KEYS off: a REC tap: REC ALL (no play)", ui.rec_all && song.rec == REC_ALL_MASK && !song.playing);
     hold(B_REC);
@@ -2974,7 +2971,7 @@ static void test_backlight_leds(void)
     ui_frame();                                      /* (the HOME screen: no OCT LED breathes) */
     check("BACKLIGHT OFF, nothing breathing: ui_leds writes fm1_led, no dimming (the hook idle)",
           !led_dim_on && led_level(14u + KEY_TRK_KEY[0]) == 100u && led_level(14u + 1u) == 0u);
-    seq_open("STEP");
+    seq_open("PATTERN");
     ui_frame();
     ok = 1;
     for (c = 0; c < FM1_NCOL; c++)
@@ -3165,7 +3162,7 @@ static void test_backlight_beats_everywhere(void)
                                                       * keys are not steps */
     ui.keys = 0;
     song.rec = 0;
-    seq_open("STEP");
+    seq_open("PATTERN");
     ui_frame();
     i = beats_shown(0);
     ui.menu = 1;
@@ -3191,7 +3188,7 @@ static void test_backlight_beats_everywhere(void)
 }
 
 /* MENU > BACKLIGHT (fixes 2026-10-21 item 9: upstream Felucca's LEDS levels): KNOB 1 steps OFF DIM LO DIM HI INV INV LO
- * INV HI, stopping at the ends; OCT+ steps and wraps; the keys follow at once; the row drawn (default build: ten rows) */
+ * INV HI, stopping at the ends; OCT+ steps and wraps; the keys follow at once; the item drawn (the carousel) */
 static void test_backlight_menu(void)
 {
     uint32_t ok = 1, i;
@@ -3231,13 +3228,7 @@ static void test_backlight_menu(void)
     ui.force = 1;
     ui_frame();
     snap_page("fixes/menu_backlight");
-    ui.menu_sel = (uint8_t)(MI_COUNT - 1u);          /* (more rows than shown since FREITAKT: scrolled to BACK) */
-    ui.force = 1;
-    ui_frame();
-    check("menu: scrolled to BACK, it is the last row shown, drawn above the hints",
-          fb_count(12, MENU_Y0 + (MENU_ROWS - 1u) * MENU_DY, 214, 10, C_INK) > 50u &&
-          fb_count(12, MENU_Y0 + (MENU_ROWS - 1u) * MENU_DY + 12u, 214, MENU_HY - (MENU_Y0 + (MENU_ROWS - 1u) * MENU_DY + 12u),
-                   C_INK) == 0u && fb_count(12, MENU_HY, 214, 14, C_INK) > 50u);
+    check("menu: BACKLIGHT's carousel item, its level under it", menu_value_is(MI_BACKLIGHT, "DIM HI"));
     backlight = 0;
     menu_close();
     ui_frame();
@@ -3457,47 +3448,89 @@ static void test_theme_menu(void)
     ui_frame();
 }
 
-/* the menu row's value: s in F3 at 2x right-aligned at the row's end (list_row 10..225), the row's pen, 2 px clear */
-static int menu_value_is(uint32_t row, const char *s, int sel)
+/* ---- the carousel (FREITAKT redesign phase D, ui_menu.c car_draw): the MENU and SAVE's PROJECT / TOOLS / COPY, one
+ * item at a time: the title and a dot an item (rows 16..43), the item's name centred about row 88, as large as fits
+ * (F3 at 5x at most; on two lines at a space when one would be under 3x), its value about row 151 (4x at most), a
+ * note at row 180 (2x), the hints' keycaps in rows 200..239 */
+static int car_item_is(const char *s)
 {
-    uint32_t w = (uint32_t)md_text_w(&MD_F3, 2, s) + 4u, h = 14u, x0 = 225u - 4u - (w - 4u) - 2u,
-             y0 = MENU_Y0 + row * MENU_DY - 2u, x, y;
-    uint16_t pen = sel ? C_BG : C_INK, gr = sel ? C_INK : C_BG;
-    cv_begin(w, h, gr);
-    md_text(2, 2, &MD_F3, 2, s, pen);
-    for (y = 0; y < h; y++)
-        for (x = 0; x < w; x++)
-            if ((fb[(y0 + y) * 240u + x0 + x] == pen) != (cv_px[y * w + x] == swap16(pen)))
-                return 0;
-    return 1;
+    char a[24];
+    uint32_t sc = md_fit_sc(s, 196, 5u), n = (uint32_t)strlen(s), i, cut = 0, best = sc;
+    if (sc < 3u)
+        for (i = 1; i + 1u < n && i < sizeof a; i++) {
+            uint32_t k, k2;
+            if (s[i] != ' ')
+                continue;
+            snprintf(a, sizeof a, "%.*s", (int)i, s);
+            k = md_fit_sc(a, 196, 4u);
+            k2 = md_fit_sc(s + i + 1u, 196, 4u);
+            k = k2 < k ? k2 : k;
+            if (k > best) {
+                best = k;
+                cut = i;
+            }
+        }
+    if (!cut)
+        return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, 44 + 44 - 5 * (int32_t)sc / 2, sc, s);
+    snprintf(a, sizeof a, "%.*s", (int)cut, s);
+    return region_is_text(120 - md_text_w(&MD_F3, best, a) / 2, 88 - 6 * (int32_t)best, best, a) &&
+           region_is_text(120 - md_text_w(&MD_F3, best, s + cut + 1u) / 2, 88 + (int32_t)best, best, s + cut + 1u);
+}
+static int car_val_is(const char *s)
+{
+    uint32_t sc = md_fit_sc(s, 224, 4u);
+    return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, 132 + 19 - 5 * (int32_t)sc / 2, sc, s);
+}
+static int car_note_is(const char *s) { return region_is_text(120 - md_text_w(&MD_F3, 2, s) / 2, 180, 2, s); }
+static int car_title_is(const char *s) { return region_is_text(120 - md_text_w(&MD_F3, 2, s) / 2, 19, 2, s); }
+/* s in F3 at 2x in the hints' rows (a keycap's key at row 208 / 225, its action beside it), whole, anywhere along */
+static int car_hint_has(const char *s)
+{
+    uint32_t y, x, w = (uint32_t)md_text_w(&MD_F3, 2, s);
+    for (y = 208; y <= 225u; y += 17u)
+        for (x = 0; x + w <= 240u; x++)
+            if (region_is_text((int32_t)x, (int32_t)y, 2, s))
+                return 1;
+    return 0;
+}
+static uint32_t car_dot(uint32_t n, uint32_t i)       /* dot i of n: its centre x */
+{
+    int32_t p = n > 1u ? (int32_t)(200u / (n - 1u)) : 0;
+    p = p > 12 ? 12 : p;
+    return (uint32_t)(120 - p * (int32_t)(n - 1u) / 2 + p * (int32_t)i);
+}
+static int car_pos_is(uint32_t n, uint32_t i)        /* the dots: n of them, the i-th the big one */
+{
+    uint32_t d, ok = fb_count(car_dot(n, i) - 3u, 34, 6, 6, C_INK) == 36u;
+    for (d = 0; d < n; d++)
+        if (d != i)
+            ok &= fb_count(car_dot(n, d) - 3u, 34, 6, 6, C_INK) == 4u;
+    return (int)ok;
+}
+static int menu_value_is(uint32_t item, const char *s)   /* the MENU's carousel on item, its value s */
+{
+    return car_item_is(MI_NAME[item]) && car_val_is(s);
 }
 
-/* owner 2026-10-23: the COLOR row shows the theme's name as its value (as SPEAKER EQ's FLAT), no boxes */
+/* owner 2026-10-23: COLOR shows the theme's name as its value (as SPEAKER EQ's FLAT); since the carousel (phase D) the
+ * value under the item's name */
 static void test_theme_row_name(void)
 {
-    uint32_t k, ok = 1, clear = 1;
+    uint32_t k, ok = 1;
     ui_host_init();
     ui.menu = 1;
     for (k = 0; k < NTHEMES; k++) {
-        uint32_t sel;
         settings.palette = THEME_TAG | THEME_ORDER[k];
         theme_set(settings.palette);
-        for (sel = 0; sel < 2u; sel++) {
-            uint32_t x, w = (uint32_t)md_text_w(&MD_F3, 2, THEME_SHOWN[k]), y = MENU_Y0 + MI_COLOR * MENU_DY;
-            ui.menu_sel = sel ? MI_COLOR : MI_SPKEQ;
-            ui.force = 1;
-            ui_frame();
-            if (!menu_value_is(MI_COLOR, THEME_SHOWN[k], (int)sel)) {
-                ok = 0;
-                printf("      COLOR %s%s: no name\n", THEME_SHOWN[k], sel ? " (cursor)" : "");
-            }
-            for (x = 80; x < 221u - w - 4u; x++)     /* between COLOR and the name: nothing (no boxes) */
-                clear &= fb_count(x, y - 1u, 1, 12, sel ? C_BG : C_INK) == 0u;
+        ui.menu_sel = MI_COLOR;
+        ui.force = 1;
+        ui_frame();
+        if (!menu_value_is(MI_COLOR, THEME_SHOWN[k])) {
+            ok = 0;
+            printf("      COLOR %s: no name\n", THEME_SHOWN[k]);
         }
     }
-    check("MENU: COLOR shows the theme's name (RED .. GREEN INV) right-aligned as the other rows' values, cursor or not",
-          ok);
-    check("MENU: COLOR draws no boxes (nothing between the label and the name)", clear);
+    check("MENU: COLOR shows the theme's name (ORANGE .. GREEN INV) under the item, centred", ok);
     settings.palette = THEME_TAG | THEME_DEFAULT;
     theme_set(settings.palette);
     menu_close();
@@ -3613,19 +3646,6 @@ static void test_graph_model_name(void)              /* FREITAKT LIST: the MODEL
     check("SOUND: row 1 the machine (K909) and its preset, row 2 TUNE; the hit waveform's band above (y 16..63)",
           col_has(0, "K909|") && col_has(1, "TUNE|") && fb_count(0, 16, 240, 48, C_INK) > 50u &&
               fb_count(0, 16, 240, 48, C_BG) > 240u * 48u / 2u);
-}
-
-static void test_graph_slots_cursor(void)
-{
-    uint32_t r;
-    ui_host_init();
-    tap(B_SAVE);
-    ui.force = 1;
-    ui_frame();
-    r = song.g[G_SLOT] ? (uint32_t)song.g[G_SLOT] - 1u : 0u;
-    check("PROJECT: the cursor's slot row an inverted bar", str_eq(cur_page()->title, "PROJECT") &&
-          fb_count(2, Y_GRAPH + 20u + r * 16u, 236, 14, C_INK) > 236u * 14u * 7u / 10u &&
-          fb_count(2, Y_GRAPH + 20u + ((r + 1u) % 4u) * 16u, 236, 14, C_INK) < 236u * 14u * 3u / 10u);
 }
 
 static void test_perform_buttons(void)
@@ -3748,20 +3768,6 @@ static void test_tempo_popup(void)
         ui_frame();
     check("TEMPO: gone when bpm_t runs out", !ui.bpm_t &&
           !(fb[120u * 240u + 208u] == C_INK && fb[120u * 240u + 209u] == C_INK && fb[120u * 240u + 207u] == C_BG));
-}
-
-static void test_menu_popup_cursor(void)
-{
-    uint32_t y;
-    ui_host_init();
-    ui.menu = 1;
-    ui.menu_sel = MI_SPKEQ;
-    ui.force = 1;
-    ui_frame();
-    y = MENU_Y0 + MI_SPKEQ * MENU_DY;
-    check("MENU: the cursor's row an inverted bar", fb_count(12, y - 2u, 214, 14, C_INK) > 214u * 14u * 7u / 10u);
-    menu_close();
-    ui_frame();
 }
 
 static void test_name_block_cursor(void)
@@ -4221,7 +4227,7 @@ static int list_rows_drawn(void)
     return fb_count(6, (uint32_t)y + 2u, 110, (uint32_t)h - 4u, C_INK) > 40u;
 }
 
-/* a screenshot of HOME, every page of PAGES[] (reached with its own button), the menu, ABOUT and
+/* a screenshot of HOME, every page of PAGES[] (reached with its own button; SAVE's carousels), the menu (carousel) and
  * the clear's warning: build/ui_shots/NN_title[_n].png */
 static void test_screens(void)
 {
@@ -4264,8 +4270,10 @@ static void test_screens(void)
         }
         snap_page(name);
         if (!(fb_count(220, 4, 16, 8, C_INK) > 20u &&                   /* the battery */
-              (list_on() ? list_rows_drawn() : fb_lit(26, 70) > 100 && fb_lit(182, 240) == 0u) &&   /* the LIST
-                                                      * rows, else the knob cells (no step strip, no crumb) */
+              (list_on() ? list_rows_drawn() : save_car_on() ? fb_lit(44, 131) > 100 && fb_lit(200, 239) > 100 :
+                                                fb_lit(26, 70) > 100 && fb_lit(182, 240) == 0u) &&   /* the LIST
+                                                      * rows, SAVE's carousel, else the knob cells (no step strip,
+                                                      * no crumb) */
               (pg->graph != GR_MIX || fb_lit(74, 198) > 300))) {   /* (TRACKS: 8 rows) */
             ok = 0;
             printf("      %s: not drawn whole\n", pg->title);
@@ -4280,39 +4288,14 @@ static void test_screens(void)
     hold(B_HOME);                                    /* HOME held: the menu */
     snap_page("90_menu");
     check("HOME held: the menu draws", ui.menu == 1 && fb_lit(20, 230) > 300);
-    for (k = 0; k < MI_ABOUT; k++) {                 /* SELECT: one item per detent */
-        turn(EN_SELECT, 1);
-        ui_frame();
-    }
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    snap_page("91_about");
-    check("menu > ABOUT draws", ui.menu == 2 && fb_lit(20, 230) > 300);
-    {
-        uint16_t a[60 * 80];
-        uint32_t y, x, d = 0, n0 = fb_count(80, 18, 80, 60, C_INK);
-        for (y = 0; y < 60u; y++)
-            for (x = 0; x < 80u; x++)
-                a[y * 80u + x] = fb[(18u + y) * 240u + 80u + x];
-        fm1_ms += 200u;                              /* 3 frames of the meter (15 fps) */
-        ui_frame();
-        for (y = 0; y < 60u; y++)
-            for (x = 0; x < 80u; x++)
-                d += fb[(18u + y) * 240u + 80u + x] != a[y * 80u + x];
-        check("ABOUT: the VU mark on top (half size), moving", n0 > 300u && d > 20u);
-    }
-    turn(EN_SELECT, 12);                             /* the credits scrolled: the middle, the end */
-    snap_page("91_about_2");
-    turn(EN_SELECT, 80);
-    snap_page("91_about_3");
+    for (k = 0; k < MI_CLOCK; k++)                   /* SELECT: one item per detent (the carousel) */
+        sel(1);
+    snap_page("91_menu_clock");
+    check("menu: SELECT to CLOCK (a former GLOBAL setting) draws it", ui.menu == 1 && car_item_is("CLOCK"));
     press(B_OCTDN);
     ui_frame();
     release_all();
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-    seq_open("STEP");                                /* (SEQ: STEP) */
+    seq_open("PATTERN");                             /* (SEQ: PATTERN) */
     press(B_REC);                                    /* REC + SEL held: the clear's warning (phase C) */
     press(B_SCL);
     ui_frame();
@@ -4396,12 +4379,9 @@ static void seq_play_to(uint32_t ti, uint32_t step)  /* play until track ti's pl
 }
 
 static void seq_open(const char *title)              /* SEQ until the page shows (PATTERN: SEQ's only page since
-                                                      * FREITAKT's redesign; "STEP", the old grid's, opens it too:
-                                                      * the white keys the steps there as well) */
+                                                      * FREITAKT's redesign, the white keys its steps) */
 {
     uint32_t k;
-    if (str_eq(title, "STEP"))
-        title = "PATTERN";
     for (k = 0; k < NPAGES && (!str_eq(cur_page()->title, title) || ui.home); k++) {
         press(B_SEQ);
         ui_frame();
@@ -4441,7 +4421,7 @@ static void test_seq_screens(void)
     trk[5].step[31].acc = 1;
     trk[4].p[P_SLEN] = 12;                           /* HATO: a 12-step loop, swung */
     trk[4].p[P_SSWING] = 60;
-    seq_open("STEP");
+    seq_open("PATTERN");
     snap_page("seq/01_step_t1_stopped");
     transport_req = 1;
     for (i = 0; i < 4; i++) {                        /* the playhead walks the kick's bar */
@@ -4475,7 +4455,7 @@ static void test_seq_screens(void)
     for (k = 0; k < 16; k++)                         /* live recording: the snare's steps cleared, track 2 armed */
         trk[1].step[k].on = trk[1].step[k].acc = 0;
     seq_select(1);
-    seq_open("STEP");
+    seq_open("PATTERN");
     seq_snap_at(1, 0, "14_rec_t2_before");
     seq_open("PATTERN");                             /* off the grid: the keys play (and record) the drums */
     song.rec = 1u << 1;
@@ -4487,7 +4467,7 @@ static void test_seq_screens(void)
         ui_frame();
     }
     seq_snap_at(1, 0, "15_rec_t2_pattern_after");
-    seq_open("STEP");
+    seq_open("PATTERN");
     seq_snap_at(1, 1, "16_rec_t2_step_after");
     transport_req = 2;
     for (k = 0; k < 8; k++)
@@ -5009,7 +4989,7 @@ static void test_perform_keys(void)
     release_all();
     ui_frame();
     check("all let go: nothing held, the map gone", !perf_held && !ui.layer);
-    seq_open("STEP");                                 /* the STEP grid: FX + a white key toggles no step */
+    seq_open("PATTERN");                              /* PATTERN: FX + a white key toggles no step */
     {
         step_t s0 = TSEL->step[0];
         press(B_FX);
@@ -5020,7 +5000,7 @@ static void test_perform_keys(void)
         fx_hold_frames(1);
         release_all();
         ui_frame();
-        check("STEP grid: FX + a white key toggles no step", TSEL->step[0].on == s0.on);
+        check("PATTERN: FX + a white key toggles no step", TSEL->step[0].on == s0.on);
     }
 }
 
@@ -5754,23 +5734,22 @@ static void test_perform_dead_knob(void)
     check("FX dead (held through the menu), its layer key let go: no PERFORM screen over the page the knobs edit", !bad);
 }
 
-/* user 2026-10-08: on every SEQ page (STEP PATTERN MOTION) and on HOME's TRACKS mode (not armed) the 16 white
+/* user 2026-10-08: on SEQ's page (PATTERN, its only one since the redesign) and on HOME's TRACKS mode (not armed) the 16 white
  * keys are the selected track's steps in the bank (a tap: on / off, OCT+ held + a key: accent); they play nothing and select
  * nothing; OCT+ / OCT- change the bank; the key LEDs show the steps. The track: ALGO (or TRACKS' KNOB 1) */
 static void test_step_keys_everywhere(void)
 {
-    static const char *const SEQ[3] = {"STEP", "PATTERN", "MOTION"};
     uint32_t p, k;
-    for (p = 0; p < 4u; p++) {
+    for (p = 0; p < 2u; p++) {
         uint32_t a2, a3, was;
-        const char *name = p < 3u ? SEQ[p] : "TRACKS";
+        const char *name = p < 1u ? "PATTERN" : "TRACKS";
         char what[96];
         ui_host_init();
         for (k = 0; k < NSTEP; k++)
             trk[1].step[k].on = trk[1].step[k].acc = 0;
         trk[1].p[P_SLEN] = 32;
-        if (p < 3u) {
-            seq_open(SEQ[p]);
+        if (p < 1u) {
+            seq_open("PATTERN");
         } else {
             open_tracks();                           /* HOME's TRACKS mode */
         }
@@ -6209,7 +6188,7 @@ static void test_keys_oct_uboot(void)
     uint32_t both;
     ui_host_init();
     tap(B_SCL);
-    seq_open("STEP");
+    seq_open("PATTERN");
     both = (1u << panel.btn[B_OCTDN]) | (1u << panel.btn[B_OCTUP]);
     press(B_OCTDN);
     press(B_OCTUP);
@@ -6725,21 +6704,17 @@ static void test_acid_screens(void)
     tap(B_OCTUP);
     snap_page("acid/02_home_keys_f4");
     tap(B_OCTDN);
-    seq_open("STEP");
-    snap_page("acid/03_roll");
-    keys(1u << 11);                                  /* E4 held: its row lit on the keyboard strip */
-    snap_page("acid/04_roll_key_held");
+    seq_open("PATTERN");                             /* (SEQ: PATTERN; the ACID roll went with the STEP page) */
+    snap_page("acid/03_pattern_keys");
+    keys(1u << 11);                                  /* E4 held: played (KEYS) */
+    snap_page("acid/04_pattern_key_held");
     keys(0);
     ui_frame();
-    tap(B_REC);                                      /* step record, the cursor on step 5 */
-    turn(EN_K1, 4);
-    snap_page("acid/05_step_rec_05");
-    tap(B_REC);
     transport_req = 1;
     seq_play_to(0, 7);
-    snap_page("acid/06_roll_play_step08");
+    snap_page("acid/06_pattern_play_step08");
     seq_play_to(0, 12);
-    snap_page("acid/07_roll_play_step13");
+    snap_page("acid/07_pattern_play_step13");
     transport_req = 2;
     ui_frame();
     tap(B_SCL);                                      /* KEYS off */
@@ -6748,16 +6723,16 @@ static void test_acid_screens(void)
         trk[1].step[k].on = k % 4u == 0u || k == 6u || k == 14u;
         trk[1].step[k].nt = (int8_t)(k == 4u ? 5 : k == 6u ? -7 : k == 14u ? 12 : 0);
     }
-    snap_page("acid/08_drum_grid_transposed");
+    snap_page("acid/08_drum_pattern_transposed");
     trk[1].key_nt = 3;
-    press(B_OCTUP);                                  /* step 2 accented (OCT+ held) and held: the footer's note */
+    press(B_OCTUP);                                  /* step 2 accented (OCT+ held) and held             */
     ui_frame();
     keys(1u << WHITE[1]);
     for (k = 0; k < 10u; k++) {
         host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
         ui_frame();
     }
-    snap_page("acid/09_footer_held_step");
+    snap_page("acid/09_pattern_held_step");
     keys(0);
     ui_frame();
     release_all();
@@ -6772,20 +6747,16 @@ static void test_acid_screens(void)
     t->p[P_E0 + 1] = 127;
     t->p[P_E0 + 7] = 127;
     snap_page("acid/12_edit_acid_decay_gate");
-    seq_select(1);                                   /* track 2, a drum, on STEP: KEYS on, then step record */
-    seq_open("STEP");
+    seq_select(1);                                   /* track 2, a drum, on PATTERN: KEYS on */
+    seq_open("PATTERN");
     tap(B_SCL);
-    snap_page("acid/13_drum_grid_keys");
-    tap(B_REC);                                      /* the cursor on step 5 (F4, transposed): the footer's note */
-    turn(EN_K1, 4);
-    snap_page("acid/14_drum_grid_step_rec");
-    tap(B_REC);
-    seq_select(0);                                   /* the ACID roll: a KEYS key over the view */
-    seq_open("STEP");
+    snap_page("acid/13_drum_pattern_keys");
+    seq_select(0);                                   /* ACID: a KEYS key held (G7) */
+    seq_open("PATTERN");
     tap(B_OCTUP);
     tap(B_OCTUP);
     keys(1u << 26);                                  /* G7 */
-    snap_page("acid/15_roll_key_over_view");
+    snap_page("acid/15_pattern_key_g7");
     keys(0);
     tap(B_OCTDN);
     tap(B_OCTDN);
@@ -6796,7 +6767,7 @@ static void test_acid_screens(void)
     ui_frame();
     for (k = 0; k < 3u; k++)
         srec_turn(0, -1);
-    snap_page("acid/16_roll_held_prob");
+    snap_page("acid/16_pattern_held_prob");
     keys(0);
     ui_frame();
     t->step[8].cond = t->step[4].cond = 0;
@@ -7401,183 +7372,6 @@ static void test_popups_keep_their_margins(void)
         ui_frame();
 }
 
-static void test_about_moves_only_the_logo(void)
-{
-    uint32_t k, px;
-    ui_host_init();
-    hold(B_HOME);
-    for (k = 0; k < MI_ABOUT; k++) {
-        turn(EN_SELECT, 1);
-        ui_frame();
-    }
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    ui_frame();
-    host_blit_px = 0;
-    fm1_ms += 70u;                                   /* the logo's next frame */
-    ui_frame();
-    px = host_blit_px;
-    check("ABOUT: a logo frame sends the logo, not the whole screen", ui.menu == 2 && px > 0u && px < 240u * 70u);
-    check("ABOUT: the credits stay", fb_lit(80, 230) > 300);
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-}
-
-/* owner 2026-10-22: ABOUT credits everyone whose work went into the firmware, its research and its pages; the credits
- * scroll under the fixed logo with SELECT (one row per detent, clamped at both ends; a scroll bar at the right), back
- * at the top whenever ABOUT opens. Rows of 14 px from y 78, eleven shown (78..228), x 6..228, the bar at x 232..234 */
-#define AB_T_Y0 78u
-#define AB_T_ROWS 11u
-
-/* s in F3 at 2x anywhere in the credits' area (y 76..238), whole and 2 px clear of other ink: 1, its top-left */
-static int about_text_at(const char *s, uint32_t *px, uint32_t *py)
-{
-    uint32_t w = (uint32_t)md_text_w(&MD_F3, 2, s) + 4u, h = 14u, x0, y0, x, y;
-    int ok;
-    cv_begin(w, h, C_BG);
-    md_text(2, 2, &MD_F3, 2, s, C_INK);
-    for (y0 = AB_T_Y0 - 2u; y0 + h <= 239u; y0++)
-        for (x0 = 0; x0 + w <= 240u; x0++) {
-            for (ok = 1, y = 0; y < h && ok; y++)
-                for (x = 0; x < w && ok; x++)
-                    ok = (fb[(y0 + y) * 240u + x0 + x] == C_INK) == (cv_px[y * w + x] == swap16(C_INK));
-            if (ok) {
-                *px = x0 + 2u;
-                *py = y0 + 2u;
-                return 1;
-            }
-        }
-    return 0;
-}
-
-static void about_open(void)
-{
-    uint32_t k;
-    ui_host_init();
-    hold(B_HOME);
-    for (k = 0; k < MI_ABOUT; k++) {
-        turn(EN_SELECT, 1);
-        ui_frame();
-    }
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    ui_frame();
-}
-
-static int about_layout_ok(void)                      /* the credits in their rows, clear of the frame and the bar */
-{
-    uint32_t r, ok = 1;
-    ok &= fb_count(1, AB_T_Y0, 4, 239u - AB_T_Y0, C_INK) == 0u;           /* the left margin */
-    ok &= fb_count(229, AB_T_Y0, 3, 239u - AB_T_Y0, C_INK) == 0u;         /* text .. bar */
-    ok &= fb_count(235, AB_T_Y0, 4, 239u - AB_T_Y0, C_INK) == 0u;         /* bar .. the right edge */
-    ok &= fb_count(1, AB_T_Y0 + AB_T_ROWS * 14u - 4u, 238, 239u - (AB_T_Y0 + AB_T_ROWS * 14u - 4u), C_INK) == 0u;
-    for (r = 0; r < AB_T_ROWS; r++)                   /* each row's 4 px gap under its glyphs */
-        ok &= fb_count(1, AB_T_Y0 + r * 14u + 10u, 228, 4, C_INK) == 0u;
-    return (int)ok;
-}
-
-static void test_about_credits_scroll(void)
-{
-    static const char *const WHO[] = {"FORK: DEADACTIVE", "LEO KUROSHITA", "HUGELTON INSTRUMENTS",
-                                      "GITHUB.COM/HUGELTON/FELUCCA", "MUTABLE", "EMILIE GILLET", "PLAITS", "STMLIB",
-                                      "STREAMS", "DAISYSP", "ELECTROSMITH", "SKIN", "VERSILIAN",
-                                      "VCSL", "CC0", "PIXEL FONT: DEADACTIVE", "LANDERS'", "GEARMULATOR",
-                                      "SUSPECTS", "DSP56300", "ELEKTRON", "NOT AFFILIATED", "JIELI", "APACHE-2.0",
-                                      "JL-UBOOT-TOOL", "KAGAIMIQ", "GRIGORYEV", "TERMINUS", "ZHEKOV", "FUKIAI",
-                                      "UNIFRAKTUR", "WIEGEL", "GPL-3.0, NO WARRANTY"};
-    uint32_t x, y, k, i, pos, ok = 1, okl = 1, found[sizeof WHO / sizeof WHO[0]] = {0}, px;
-    uint16_t logo[60 * 76], snap[240 * 162];
-    about_open();
-    check("ABOUT: the first credit at the top (6, 78), the fork's under it",
-          about_text_at("DRUM MACHINE ON FELUCCA", &x, &y) && x == 6u && y == AB_T_Y0 &&
-          about_text_at(FELUCCA_VERSION, &x, &y) && y == AB_T_Y0 + 14u &&
-          about_text_at("FORK: DEADACTIVE", &x, &y) && y == AB_T_Y0 + 28u);
-    check("ABOUT: the last credit not yet shown", !about_text_at("GPL-3.0, NO WARRANTY", &x, &y));
-    check("ABOUT: the scroll bar's thumb at the top", fb_count(232, AB_T_Y0, 3, 6, C_INK) > 0u &&
-          fb_count(232, 222, 3, 6, C_INK) == 0u);
-    check("ABOUT: the credits in their rows, inside 240 px (top)", about_layout_ok());
-    for (y = 0; y < 60u; y++)
-        for (x = 0; x < 76u; x++)
-            logo[y * 76u + x] = fb[(17u + y) * 240u + 82u + x];
-    host_blit_px = 0;
-    turn(EN_SELECT, 1);
-    ui_frame();
-    check("ABOUT: SELECT one detent: the credits one row up", !about_text_at("DRUM MACHINE ON FELUCCA", &x, &y) &&
-          about_text_at(FELUCCA_VERSION, &x, &y) && y == AB_T_Y0 &&
-          about_text_at("FORK: DEADACTIVE", &x, &y) && y == AB_T_Y0 + 14u && host_blit_px > 0u);
-    for (k = 0, y = 0; y < 60u; y++)
-        for (x = 0; x < 76u; x++)
-            k += fb[(17u + y) * 240u + 82u + x] != logo[y * 76u + x];
-    check("ABOUT: the logo stays put while the credits scroll", k == 0u);
-    turn(EN_SELECT, 2);
-    ui_frame();
-    check("ABOUT: two detents at once: two rows more (the fork's credit scrolled off)",
-          !about_text_at("FORK: DEADACTIVE", &x, &y) && !about_text_at(FELUCCA_VERSION, &x, &y));
-    turn(EN_SELECT, -3);
-    ui_frame();
-    check("ABOUT: three detents back: the top again", about_text_at("DRUM MACHINE ON FELUCCA", &x, &y) &&
-          y == AB_T_Y0);
-    turn(EN_SELECT, -2);
-    ui_frame();
-    check("ABOUT: SELECT back at the top: it stays", about_text_at("DRUM MACHINE ON FELUCCA", &x, &y) && y == AB_T_Y0);
-    for (pos = 0; pos < 80u; pos++) {                  /* every position, row by row, to the end */
-        okl &= about_layout_ok();
-        for (i = 0; i < sizeof WHO / sizeof WHO[0]; i++)
-            if (!found[i])
-                found[i] = (uint32_t)about_text_at(WHO[i], &x, &y);
-        turn(EN_SELECT, 1);
-        ui_frame();
-    }
-    for (i = 0; i < sizeof WHO / sizeof WHO[0]; i++)
-        if (!found[i]) {
-            ok = 0;
-            printf("      ABOUT: no %s\n", WHO[i]);
-        }
-    check("ABOUT: every credit shows somewhere on the way down", ok);
-    check("ABOUT: the credits in their rows, inside 240 px (every position)", okl);
-    check("ABOUT: at the end the last credit on the last row", about_text_at("GPL-3.0, NO WARRANTY", &x, &y) &&
-          x == 6u && y == AB_T_Y0 + (AB_T_ROWS - 1u) * 14u);
-    check("ABOUT: the scroll bar's thumb at the bottom", fb_count(232, AB_T_Y0, 3, 6, C_INK) == 0u &&
-          fb_count(232, 222, 3, 6, C_INK) > 0u);
-    memcpy(snap, fb + 77u * 240u, sizeof snap);
-    host_blit_px = 0;
-    turn(EN_SELECT, 3);
-    ui_frame();
-    check("ABOUT: SELECT past the end: clamped, nothing redrawn", !memcmp(snap, fb + 77u * 240u, sizeof snap) &&
-          host_blit_px < 240u * 70u);
-    host_blit_px = 0;
-    fm1_ms += 70u;                                   /* the logo's next frame, scrolled */
-    ui_frame();
-    px = host_blit_px;
-    check("ABOUT scrolled: a logo frame sends the logo alone, the credits stay", px > 0u && px < 240u * 70u &&
-          !memcmp(snap, fb + 77u * 240u, sizeof snap));
-    turn(EN_SELECT, -4);
-    ui_frame();
-    press(B_OCTDN);                                  /* back to the list, ABOUT again: the top */
-    ui_frame();
-    release_all();
-    check("ABOUT: OCT- back to the list", ui.menu == 1u);
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    ui_frame();
-    check("ABOUT reopened: the credits from the top", ui.menu == 2u &&
-          about_text_at("DRUM MACHINE ON FELUCCA", &x, &y) && y == AB_T_Y0);
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-    check("ABOUT: OCT- twice closes the menu", ui.menu == 0u);
-}
-
 /* fix 8 (owner, 2026-10-21): the MODEL knob's list runs MD -> MODERN -> CLASSIC (the models keep their numbers: projects
  * store them); each voice with its first preset, wrapping both ways */
 static void test_model_list_order(void)
@@ -8167,7 +7961,7 @@ static void test_fk_track_keys(void)
 
 /* item 5: OCT- / OCT+ breathe (upstream Felucca's #119, led_dim.c) where pressing them would do something, a way back
  * lit: the steps (a bank that way; OCT+ lit while held, its accent), a dialog
- * (NO lit, YES breathing), the menu (BACK lit, OK breathing; ABOUT: back), NAME, MIDI LEARN, the PRESETS list (LOAD;
+ * (NO lit, YES breathing), the menu (BACK lit, OK breathing; USB MIDI: back), NAME, MIDI LEARN, the PRESETS list (LOAD;
  * DELETE on a used user slot); KEYS: lit off octave 0 as before; HOME, GLOBAL: dark */
 static uint32_t fk_oct(void)                         /* 1 OCT- lit, 2 OCT+ lit, 4 OCT+ breathing, 8 OCT- breathing */
 {
@@ -8181,7 +7975,7 @@ static void test_fk_oct_breath(void)
     ui_frame();
     check("item 5: the HOME screen: OCT- / OCT+ dark, the hook idle (BACKLIGHT OFF)", fk_oct() == 0u && !led_dim_on);
     trk[0].p[P_SLEN] = 48;
-    seq_open("STEP");
+    seq_open("PATTERN");
     ui_frame();
     check("item 5: STEP, bank 1 of 3: OCT+ breathes (a bank after), OCT- dark", fk_oct() == 4u && led_br_on);
     tap(B_OCTUP);
@@ -8219,10 +8013,9 @@ static void test_fk_oct_breath(void)
     release_all();
     ui_frame();
     check("item 5: the menu: OCT- (BACK) lit, OCT+ (OK) breathes", ui.menu == 1u && fk_oct() == 5u);
-    ui.menu_sel = MI_ABOUT;
-    tap(B_OCTUP);
-    check("item 5: ABOUT: OCT- (back) lit alone", ui.menu == 2u && fk_oct() == 1u);
-    tap(B_OCTDN);
+    ui.menu_sel = MI_USBMIDI;
+    ui_frame();
+    check("item 5: the menu on USB MIDI (shown only): OCT- (BACK) lit alone", ui.menu == 1u && fk_oct() == 1u);
     menu_close();
     ui_frame();
     ui.ml.on = 1;
@@ -8285,7 +8078,7 @@ static void test_fk_led_levels(void)
     ui_host_init();
     trk[0].p[P_SLEN] = 32;
     trk[0].step[1].on = trk[0].step[4].on = 1;       /* step 2; step 5 a beat */
-    seq_open("STEP");
+    seq_open("PATTERN");
     for (m = 0; m < BL_COUNT; m++) {
         uint32_t on = 1u, idle = m == BL_OFF ? 0u : m == BL_INV ? 1u : m >= BL_INV_LO ? 2u : 3u, ok;
         backlight = m;
@@ -9130,6 +8923,281 @@ static void test_step_leds(void)
     check("step LEDs: GLO held shows the cue map over them (no steps, no armed breathing), let go: back", ok);
 }
 
+/* ---- the carousels (FREITAKT redesign phase D) ---- */
+/* the MENU (HOME held): one item at a time; SELECT scrolls both ways and wraps; KNOB 1 sets, OCT+ steps on, OCT- closes;
+ * every item reachable, the former GLOBAL / SYSTEM settings among them; a frame sends only what changed */
+static void test_menu_carousel(void)
+{
+    static const char *const MOVED[9] = {"CLOCK", "MIDI SYNC", "MIDI CHANNEL", "MIDI ROUTE", "USB MIDI", "METRONOME",
+                                         "MUTE MODE", "MIDI THRU", "REC QUANT"};
+    uint32_t i, k, ok, seen = 0, idle, px;
+    char v[16];
+    int16_t ch;
+    ui_host_init();
+    hold(B_HOME);
+    check("MENU (HOME held): a carousel on COLOR: its value ORANGE under it, the title MENU, a dot an item (the first "
+          "big), the hints K1 SET  OCT+ NEXT / SEL MOVE  OCT- BACK",
+          ui.menu == 1u && ui.menu_sel == MI_COLOR && car_title_is("MENU") && menu_value_is(MI_COLOR, "ORANGE") &&
+              car_pos_is(MI_COUNT, 0) && car_hint_has("K1") && car_hint_has("SET") && car_hint_has("OCT+") &&
+              car_hint_has("NEXT") && car_hint_has("SEL") && car_hint_has("MOVE") && car_hint_has("OCT-") &&
+              car_hint_has("BACK"));
+    snap_page("menu_carousel_color");
+    sel(1);
+    ok = ui.menu_sel == MI_SPKEQ && menu_value_is(MI_SPKEQ, "FLAT") && car_pos_is(MI_COUNT, 1);
+    sel(-1);
+    ok &= ui.menu_sel == MI_COLOR && car_item_is("COLOR") && car_pos_is(MI_COUNT, 0);
+    sel(-1);
+    ok &= ui.menu_sel == MI_COUNT - 1u && car_item_is(MI_NAME[MI_COUNT - 1u]) && car_pos_is(MI_COUNT, MI_COUNT - 1u);
+    sel(1);
+    ok &= ui.menu_sel == MI_COLOR && car_item_is("COLOR");
+    check("MENU: SELECT right the next item, left the one before; past either end it wraps (COLOR <-> the last)", ok);
+    for (ok = 1, i = 0; i < MI_COUNT; i++) {
+        menu_value(ui.menu_sel, v);
+        if (!car_item_is(MI_NAME[ui.menu_sel]) || (v[0] && !car_val_is(v)) || !car_pos_is(MI_COUNT, ui.menu_sel)) {
+            ok = 0;
+            printf("      MENU item %u (%s = %s) not drawn\n", (unsigned)ui.menu_sel, MI_NAME[ui.menu_sel], v);
+        }
+        for (k = 0; k < 9u; k++)
+            if (str_eq(MI_NAME[ui.menu_sel], MOVED[k]))
+                seen |= 1u << k;
+        ok &= !str_eq(MI_NAME[ui.menu_sel], "ABOUT") && !str_eq(MI_NAME[ui.menu_sel], "BACK");
+        sel(1);
+    }
+    check("MENU: SELECT reaches every item, each drawn with its value (HARDWARE CALIBRATION on two lines); CLOCK, MIDI "
+          "SYNC, MIDI CHANNEL, MIDI ROUTE, USB MIDI, METRONOME, MUTE MODE, MIDI THRU, REC QUANT among them; no ABOUT, "
+          "no BACK", ok && seen == 0x1FFu && ui.menu_sel == MI_COLOR);
+    check("MENU: the items (default build): COLOR .. BACKLIGHT, the nine settings, HARDWARE CALIBRATION",
+          MI_COUNT == 16u && str_eq(MI_NAME[MI_PANEL], "HARDWARE CALIBRATION") && MI_PANEL == MI_COUNT - 1u);
+    while (ui.menu_sel != MI_DRCH)
+        sel(1);
+    ui_frame();
+    host_blit_px = 0;
+    ui_frame();
+    idle = host_blit_px;
+    ch = song.g[G_DRCH];
+    turn(EN_K1, 1);
+    host_blit_px = 0;
+    ui_frame();
+    px = host_blit_px;
+    menu_glob_text(G_DRCH, v);
+    check("MENU: KNOB 1 sets the item's value (MIDI CHANNEL + 1), drawn under it; that frame sends the value's band alone "
+          "(240 x 38), an idle frame nothing", song.g[G_DRCH] == ch + 1 && car_val_is(v) && px == 240u * 38u &&
+                                                    idle == 0u);
+    snap_page("menu_carousel_midi_channel");
+    press(B_OCTUP);
+    ui_frame();
+    release_all();
+    ui_frame();
+    menu_glob_text(G_DRCH, v);
+    check("MENU: OCT+ steps the value on", song.g[G_DRCH] == ch + 2 && car_val_is(v) && ui.menu == 1u);
+    song.g[G_DRCH] = ch;
+    while (ui.menu_sel != MI_USBMIDI)
+        sel(1);
+    menu_value(MI_USBMIDI, v);
+    press(B_OCTUP);
+    ui_frame();
+    release_all();
+    ui_frame();
+    check("MENU: USB MIDI shows the USB state, no K1 / OCT+ hint (only shown); OCT+ does nothing there",
+          car_item_is("USB MIDI") && car_val_is(v) && !car_hint_has("SET") && !car_hint_has("NEXT") &&
+              car_hint_has("BACK") && ui.menu == 1u && ui.menu_sel == MI_USBMIDI);
+    while (ui.menu_sel != MI_PANEL)
+        sel(1);
+    check("MENU: HARDWARE CALIBRATION: OCT+ START, a note what it does",
+          car_item_is("HARDWARE CALIBRATION") && car_hint_has("START") && car_note_is("TEACH BUTTONS AND KNOBS"));
+    snap_page("menu_carousel_calibration");
+    press(B_OCTDN);
+    ui_frame();
+    release_all();
+    ui_frame();
+    check("MENU: OCT- closes it (HOME as last shown)", ui.menu == 0u);
+}
+
+static void save_open(const char *title)              /* SAVE taps until its page title shows */
+{
+    uint32_t k;
+    for (k = 0; k < 4u && (ui.home || !str_eq(cur_page()->title, title)); k++)
+        tap(B_SAVE);
+}
+static void save_turn(uint32_t k, int32_t d)           /* KNOB k+1, d detents (one a frame) */
+{
+    for (; d; d += d > 0 ? -1 : 1) {
+        turn(EN_K1 + k, d > 0 ? 1 : -1);
+        ui_frame();
+    }
+}
+static void msg_wait(void)                             /* the message's frames out */
+{
+    uint32_t k;
+    for (k = 0; k < 400u && ui.msg_t; k++)
+        ui_frame();
+    ui_frame();
+}
+/* SAVE > PROJECT: a slot at a time (A..D, its name, its state), SELECT and KNOB 1 scroll, K4 SAVE, K3 LOAD */
+static void test_save_carousel(void)
+{
+    uint32_t ok = 1;
+    ui_host_init();
+    memset(proj_slot, 0, sizeof proj_slot);
+    kit_session();
+    save_open("PROJECT");
+    song.g[G_SLOT] = 1;
+    ui_frame();
+    OK0(car_title_is("PROJECT 1/3"));
+    OK0(car_item_is("A") && car_val_is("EMPTY") && car_pos_is(4, 0));
+    OK0(car_hint_has("K3") && car_hint_has("LOAD") && car_hint_has("K4") && car_hint_has("SAVE"));
+    OK0(car_hint_has("SEL") && car_hint_has("SLOT") && car_hint_has("K2") && car_hint_has("NAME"));
+    check("SAVE > PROJECT: a carousel of the slots: A, EMPTY under it, the title PROJECT 1/3, four dots (A's big), the "
+          "hints K3 LOAD  K4 SAVE / SEL SLOT  K2 NAME", ok);
+    ok = 1;
+    sel(1);
+    ok &= song.g[G_SLOT] == 2 && car_item_is("B") && car_pos_is(4, 1);
+    sel(-1);
+    ok &= song.g[G_SLOT] == 1 && car_item_is("A");
+    sel(-1);
+    ok &= song.g[G_SLOT] == 4 && car_item_is("D") && car_pos_is(4, 3);
+    sel(1);
+    ok &= song.g[G_SLOT] == 1 && car_item_is("A");
+    save_turn(0, 2);
+    ok &= song.g[G_SLOT] == 3 && car_item_is("C");
+    save_turn(0, -2);
+    ok &= song.g[G_SLOT] == 1 && car_item_is("A") && !kp.on;
+    check("PROJECT: SELECT steps A B C D, wrapping both ways; KNOB 1 (SLOT) too; no knob popup", ok);
+    save_turn(3, 1);
+    ok = ui.arm == G_SAVE && car_note_is("AGAIN: SAVE") && !project_used(0);
+    save_turn(3, 1);
+    ok &= project_used(0) && proj_loaded() == 0 && !strncmp(ui.msg, "SAVED", 5) && car_note_is(ui.msg);
+    msg_wait();
+    ok &= car_note_is("LOADED") && car_val_is("USED") && car_item_is("A");
+    check("PROJECT: K4 once arms (AGAIN: SAVE in the note), again saves the slot shown (SAVED, then LOADED; USED: no "
+          "name)", ok);
+    snap_page("save_project_slot");
+    sel(1);
+    save_turn(3, 2);
+    msg_wait();
+    ok = project_used(1) && proj_loaded() == 1 && car_item_is("B") && car_note_is("LOADED");
+    trk[5].step[3].on ^= 1;                          /* B edited */
+    ui_frame();
+    ok &= slot_dirty(1) && car_note_is("LOADED EDITED");
+    sel(-1);
+    save_turn(2, 1);
+    ok &= ui.arm == G_LOAD && car_note_is("AGAIN: LOAD");
+    save_turn(2, 1);
+    msg_wait();
+    ok &= !ui.confirm && proj_loaded() == 0 && car_item_is("A") && car_note_is("LOADED");
+    sel(1);
+    ok &= car_item_is("B") && car_note_is("EDITED");
+    check("PROJECT: B saved, edited (LOADED EDITED); K3 twice on A loads A (B keeps its edits: EDITED)", ok);
+    memset(proj_slot, 0, sizeof proj_slot);
+}
+/* SAVE > PROJECT's questions over the carousel: OVERWRITE B*? (SAVE onto an edited slot not loaded), DISCARD EDITS?
+ * (LOAD of an edited slot); the carousel whole again after */
+static void test_save_carousel_confirms(void)
+{
+    uint32_t ok;
+    ui_host_init();
+    memset(proj_slot, 0, sizeof proj_slot);
+    kit_session();
+    save_open("PROJECT");
+    song.g[G_SLOT] = 1;
+    save_turn(3, 2);                                 /* A saved */
+    sel(1);
+    save_turn(3, 2);                                 /* B saved (B loaded) */
+    trk[5].step[3].on ^= 1;
+    sel(-1);
+    save_turn(2, 2);                                 /* A loaded, B keeps its edits */
+    msg_wait();
+    sel(1);
+    save_turn(3, 2);
+    ok = 1;
+    OK0(ui.confirm == CONFIRM_OVERWRITE && ui.confirm_trk == 1u);
+    OK0(text_whole("OVERWRITE B*?", 82, 120, C_INK, C_BG));
+    OK0(car_title_is("PROJECT 1/3") && car_hint_has("SLOT"));
+    snap_page("save_project_overwrite");
+    press(B_OCTDN);
+    ui_frame();
+    release_all();
+    ui_frame();
+    OK0(!ui.confirm && proj_loaded() == 0 && slot_dirty(1));
+    msg_wait();                                      /* (AGAIN: SAVE's time out) */
+    OK0(car_item_is("B") && car_val_is("USED") && car_note_is("EDITED") && !text_whole("OVERWRITE B*?", 82, 120, C_INK, C_BG));
+    check("PROJECT: SAVE onto B (edited, not loaded) asks OVERWRITE B*? over the carousel; OCT- (NO) keeps it, the "
+          "carousel whole again", ok);
+    save_turn(2, 2);
+    ok = ui.confirm == CONFIRM_DISCARD && text_whole("DISCARD EDITS?", 82, 120, C_INK, C_BG) &&
+         car_title_is("PROJECT 1/3");
+    press(B_OCTUP);
+    ui_frame();
+    release_all();
+    msg_wait();
+    ok &= !ui.confirm && proj_loaded() == 1 && !slot_dirty(1) && car_item_is("B") && car_note_is("LOADED");
+    check("PROJECT: LOAD of B (edited) asks DISCARD EDITS? over the carousel; OCT+ (YES) loads it as saved (LOADED)",
+          ok);
+    memset(proj_slot, 0, sizeof proj_slot);
+}
+/* SAVE > TOOLS and SAVE > COPY as carousels; the PRESETS popup over them */
+static void test_tools_copy_carousels(void)
+{
+    uint32_t ok, k;
+    char n[32];
+    ui_host_init();
+    memset(proj_slot, 0, sizeof proj_slot);
+    kit_session();
+    save_open("TOOLS");
+    ui.tool = 0;
+    ui.force = 1;
+    ui_frame();
+    check("SAVE > TOOLS: a carousel of its four actions: CLEAR TRACK (TRACK n, STEPS, MOTION, LOCKS), the title TOOLS "
+          "2/3, the hints K1 TURN TWICE / SEL MOVE",
+          car_title_is("TOOLS 2/3") && car_item_is("CLEAR TRACK") && car_val_is("TRACK 1") &&
+              car_note_is("STEPS, MOTION, LOCKS") && car_pos_is(4, 0) && car_hint_has("K1") &&
+              car_hint_has("TURN TWICE") && car_hint_has("MOVE"));
+    sel(1);
+    ok = ui.tool == 1u && car_item_is("INIT SOUND") && car_hint_has("K2");
+    sel(-1);
+    sel(-1);
+    ok &= ui.tool == 3u && car_item_is("INIT ALL") && car_val_is("EVERYTHING") && car_hint_has("K4");
+    sel(1);
+    ok &= ui.tool == 0u && car_item_is("CLEAR TRACK");
+    check("TOOLS: SELECT steps the actions, wrapping both ways", ok);
+    save_turn(2, 1);
+    ok = ui.tool == 2u && car_item_is("CLEAR ALL") && car_note_is("AGAIN: CLEAR ALL") && trk[0].step[0].on;
+    snap_page("save_tools_clear_all");
+    save_turn(2, 1);
+    for (k = 0; k < NTRK; k++)
+        ok &= !trk[k].step[0].on && !trk[k].step[4].on;
+    ok &= car_note_is("ALL PATTERNS CLEARED");
+    check("TOOLS: a knob shows its action (K3: CLEAR ALL, AGAIN: CLEAR ALL in the note); again it acts", ok);
+    save_open("COPY");
+    song.g[G_SLOT] = 1;
+    ui_frame();
+    ok = car_title_is("COPY 3/3") && car_item_is("A") && car_val_is("EMPTY") && car_hint_has("COPY") &&
+         car_hint_has("PASTE") && car_hint_has("LEARN OFF") && car_hint_has("SLOT");
+    project_save(0);
+    msg_wait();
+    save_turn(1, 1);
+    ok &= copy_src == 1u && car_note_is(ui.msg);
+    msg_wait();
+    snprintf(n, sizeof n, "%s%s%s", proj_loaded() == 0 ? "LOADED " : "", slot_dirty(0) ? "EDITED " : "", "COPIED");
+    ok &= car_note_is(n);
+    snap_page("save_copy_slot");
+    save_turn(3, 1);
+    ok &= ui.ml.on && car_hint_has("LEARN ON");
+    save_turn(3, -1);
+    ok &= !ui.ml.on && car_hint_has("LEARN OFF");
+    sel(1);
+    ok &= song.g[G_SLOT] == 2 && car_item_is("B") && car_note_is("");
+    check("SAVE > COPY: a carousel of the slots (COPY 3/3); K2 copies the one shown (COPIED in its note), K4 MIDI "
+          "LEARN ON / OFF in its hint", ok);
+    pre_turn(1);
+    ok = pp_on() && car_title_is("COPY 3/3") && lit_box(8, Y_GRAPH + 56, 140, Y_GRAPH + 86) > 0;
+    pre_wait(1600);
+    ui_frame();
+    ok &= !pp_on() && car_item_is("B") && car_val_is("EMPTY") && car_hint_has("PASTE");
+    check("SAVE's carousel: the PRESETS popup over it (the title still there); gone, the carousel whole again", ok);
+    memset(proj_slot, 0, sizeof proj_slot);
+}
+
 int main(void)
 {
     test_safe_start();
@@ -9264,12 +9332,14 @@ int main(void)
     test_topbar();
     test_msg_popup();
     test_graph_model_name();
-    test_graph_slots_cursor();
+    test_save_carousel();
+    test_save_carousel_confirms();
+    test_tools_copy_carousels();
     test_perform_buttons();
     test_home_strip();
     test_confirm_popup();
     test_tempo_popup();
-    test_menu_popup_cursor();
+    test_menu_carousel();
     test_name_block_cursor();
     test_theme_sheet();
     test_fix_value_4_glyphs();
@@ -9294,8 +9364,6 @@ int main(void)
     test_list_save_saves_real_sound();
     test_list_seven_rows();
     test_popups_keep_their_margins();
-    test_about_moves_only_the_logo();
-    test_about_credits_scroll();
     test_model_list_order();
     test_model_names();
     test_vg_deterministic();

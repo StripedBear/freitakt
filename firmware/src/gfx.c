@@ -427,41 +427,6 @@ static void cv_lock_marks(int32_t x0, int32_t y, uint32_t n, uint32_t mask16, ui
             cv_rect(x0 + i * 14 + (i / 4) * 2, y + 12, 10, 1, ink);
 }
 
-/* the logo (spec 2026-10-19-md-ui §9a; the user's pick, C3-4 "VU"): 8 bars mirrored round a dotted centre line, every
- * fourth solid, the rest dithered, moving like a level meter. 144 x 120 at ox, oy (half: 72 x 60). Frame f (15 fps):
- * the downbeat bars full every 8th frame, the others a pseudo-random 30..90 % (a new value every 2 frames); a 2 px
- * peak dot over and under each bar holds, then falls 1.5 px a frame (peaks: 8 half-pixel values the caller keeps; 0:
- * none, the dots on the bars) */
-static void cv_vu(int32_t ox, int32_t oy, uint32_t f, uint32_t half, int16_t *peaks)
-{
-    static const uint8_t BASE[8] = {52, 24, 40, 16, 52, 24, 40, 16};
-    int32_t s = half ? 2 : 1, i;
-    cv_hdot(ox, ox + 143 / s, oy + 60 / s, C_INK);
-    for (i = 0; i < 8; i++) {
-        uint32_t n = ((f / 2u) * 9u + (uint32_t)i) * 1103515245u + 12345u, r = (n >> 16) & 0x7FFFu;
-        int32_t lvl = f % 8u == 0u && i % 4 == 0 ? BASE[i] : BASE[i] * (300 + (int32_t)(600u * r / 32767u)) / 1000;
-        int32_t x = ox + i * 18 / s, w = 12 / s, top, bot, ph;
-        lvl /= s;
-        top = oy + 58 / s - lvl;
-        bot = oy + 63 / s;
-        if (i % 4 == 0) {
-            cv_rect(x, top, w, lvl, C_INK);
-            cv_rect(x, bot, w, lvl, C_INK);
-        } else {
-            cv_dither(x, top, w, lvl, C_INK);
-            cv_dither(x, bot, w, lvl, C_INK);
-        }
-        ph = lvl;
-        if (peaks) {                                  /* the peak: held at the level, falling 1.5 px a frame */
-            int32_t p2 = peaks[i] - 3;
-            peaks[i] = (int16_t)(p2 < lvl * 2 ? lvl * 2 : p2);
-            ph = peaks[i] / 2;
-        }
-        cv_rect(x, oy + 58 / s - ph - 4 / s, w, 2 / s, C_INK);
-        cv_rect(x, bot + ph + 2 / s, w, 2 / s, C_INK);
-    }
-}
-
 /* one-shot text boxes keep the names the frozen main.c uses (crash, UBOOT; tools/check_untouched.py): FONT_S / FONT_L
  * are MD_F3 at 2x / 4x, C_BLACK / C_WHITE the frozen screens' colours (they stay black and white) */
 typedef struct {

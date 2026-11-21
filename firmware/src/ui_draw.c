@@ -4,6 +4,8 @@
 /* Drum UI drawing in the Machinedrum style (spec docs/superpowers/specs/2026-10-19-md-ui-design.md): the top bar,
  * the knob cells, the graphs, the popups, the trig strip and the breadcrumb; two colours (C_BG, C_INK) */
 static void draw_menu(void);
+static int save_car_on(void);                      /* ui_menu.c: SAVE's pages, carousels */
+static void draw_save(void);
 
 static uint32_t str_hash(uint32_t h, const char *s)
 {
@@ -864,34 +866,6 @@ static void list_row(int32_t x0, int32_t x1, int32_t y, const char *l, const cha
         md_text(x1 - 4 - md_text_w(&MD_F3, 2, r), y, &MD_F3, 2, r, pen);
 }
 
-static uint32_t slots_dirty(void)                   /* bit per slot: unsaved edits (project.c slot_dirty) */
-{
-    uint32_t i, m = 0;
-    for (i = 0; i < 4u; i++)
-        m |= (uint32_t)slot_dirty(i) << i;
-    return m;
-}
-static void graph_slots(void)
-{
-    uint32_t i, dirty = slots_dirty();
-    char nb[NAME_LEN + 1u], f[NAME_LEN + 1u], row[NAME_LEN + 5u];
-    cv_tab(2, 2, "PROJECTS", C_INK, C_BG);
-    for (i = 0; i < 4u; i++) {
-        int sel = (int32_t)i + 1 == song.g[G_SLOT], used = project_name(i, nb);
-        md_fit(f, used ? (nb[0] ? nb : "USED") : "EMPTY", sizeof f, 180);
-        row[0] = (char)('A' + i);
-        row[1] = (char)((dirty >> i) & 1u ? '*' : ' ');   /* unsaved edits (spec 2026-10-26) */
-        row[2] = (char)(copy_src == i + 1u ? '#' : ' ');  /* the slot COPY took */
-        str_cpy(row + 3, f, sizeof row - 3);
-        list_row(2, 237, 22 + (int32_t)i * 16, row, 0, sel);
-    }
-    if (pname.name[0]) {
-        md_text(6, 92, &MD_F3, 2, "NOW", C_INK);
-        md_fit(f, pname.name, sizeof f, 180);
-        md_text(40, 92, &MD_F3, 2, f, C_INK);
-    }
-}
-
 #define MX_LW 34                                        /* a level meter's width (COMP's IN) */
 static int32_t meter_px(int32_t a)                   /* |sample| (Q15) -> px, 6 dB = MX_LW / 10 */
 {
@@ -1357,15 +1331,6 @@ static uint32_t graph_signature(void)
             h = (h ^ (uint32_t)song.g[i] + (uint32_t)song.g[G_DMODE] * 7u + (uint32_t)song.g[G_RTYPE] * 11u +
                  (uint32_t)song.g[G_RSIZE] * 13u + (uint32_t)song.g[G_RDAMP] * 17u + (uint32_t)song.g[G_BPM] * 19u) *
                 16777619u;
-    if (pg->graph == GR_SLOTS) {
-        char nb[NAME_LEN + 1u];
-        for (i = 0; i < 4u; i++) {
-            h ^= (uint32_t)project_name(i, nb) << (20u + i);
-            h = str_hash(h, nb);
-        }
-        h ^= slots_dirty() * 0x9E3779B1u + copy_src * 0x85EBCA6Bu;
-        h = str_hash(h, pname.name);
-    }
     if (pg->graph == GR_MODEL) {
         char nb[9];
         h ^= (uint32_t)song.g[G_BPM] * 40503u + vg.ok * 2654435761u;   /* ACID's gate: GATE of a step at the tempo; the
@@ -1505,11 +1470,6 @@ static uint32_t graph_paint(void)
         break;
     case GR_CHO:
         graph_chorus();
-        break;
-    case GR_SLOTS:
-        cv_oy = 0;
-        top = 1;
-        graph_slots();
         break;
     default:
         break;
@@ -1925,10 +1885,6 @@ static void draw_columns(void)
             draw_column(c, "USB", val, "USB", CV_NORM, -1);
             continue;
         }
-        if (pg->id[c] == G_NAME && pg->scope == SC_GLOBAL) {
-            draw_column(c, "NAME", "EDIT", "", CV_NORM, -1);
-            continue;
-        }
         int lk = 0;
         int16_t sv = pg->scope == SC_TRACK ? lock_shown(lock_id(c), *vp, &lk) : *vp;   /* (a step held in STEPS: the
                                                                                           * knob's lock there) */
@@ -2135,7 +2091,9 @@ __attribute__((always_inline)) static inline void ui_draw(void)
                 b[10] = (char)('A' + ui.confirm_trk % 4u);
             }
             bank_fix();                               /* the page under it, then the popup */
-            if (ui.home && !ui.layer) {
+            if (save_car_on()) {                      /* (SAVE's carousel) */
+                draw_save();
+            } else if (ui.home && !ui.layer) {
                 lcd_fill(0, 0, 240, 240, C_BG);
                 draw_home();
             } else {
@@ -2172,6 +2130,23 @@ __attribute__((always_inline)) static inline void ui_draw(void)
             ui.arm = 0;
         ui.force = 0;
         hm.on = 0;                                    /* (HOME under it: all again when it goes) */
+        return;
+    }
+    if (save_car_on()) {                              /* SAVE's PROJECT / TOOLS / COPY: carousels (ui_menu.c), the
+                                                       * messages in their note */
+        draw_save();
+        if (ui.msg_t)
+            ui.msg_t--;
+        if (ui.bpm_t)
+            ui.bpm_t--;
+        if (ui.arm_t && !--ui.arm_t)
+            ui.arm = 0;
+        ui.hot_t = 0;
+        hm.on = 0;                                    /* (HOME after it: all again) */
+        ui.force = 0;
+        rg.dmg.w = 0;
+        rg.nex = 0;
+        rg.thaw = 0;
         return;
     }
     bank_fix();

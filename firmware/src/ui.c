@@ -27,7 +27,7 @@ static int cue_led(uint32_t n);            /* .. the cue map's key n (1..4 slots
 static int32_t proj_loaded(void);          /* .. the slot loaded, -1 none */
 static void project_copy(uint32_t s);      /* .. COPY / PASTE of a slot (the COPY page) */
 static void project_paste(uint32_t t);
-static uint8_t copy_src;                   /* .. the slot COPY took + 1, 0 none (graph_slots marks it) */
+static uint8_t copy_src;                   /* .. the slot COPY took + 1, 0 none (SAVE's COPY shows it) */
 enum { CM_OFF, CM_ON, CM_WINK, CM_BLINK, CM_BREATHE };   /* a cue map key: dark, lit, winking, blinking, breathing */
 static int transport_busy(void);
 static int name_on(void);                  /* ui_name.c (NAME) */
@@ -78,14 +78,14 @@ static struct {
     uint8_t bank;                /* STEP grid: 16-step bank shown on the keys */
     uint8_t hot_col, hot_t;      /* column whose knob was just turned (its value inverted): hot_t on */
     uint32_t hot_t0;             /* .. the last turn (fm1_ticks: HOT_MS after it, off) */
-    uint8_t menu;                /* 0 off, 1 list, 2 about (HOME held), 3 Bluetooth (BLE build: bt_page.c) */
+    uint8_t menu;                /* 0 off, 1 the MENU's carousel (HOME held), 3 Bluetooth (BLE build: bt_page.c) */
     uint8_t splash;              /* the boot splash (ui_menu.c): 0 off, 1 to start, 2 running, 3 skipped (the keys
                                   * let go first) */
     uint8_t sp_sub, sp_bar;      /* .. the subtitle's glyphs and cursor shown, the bar's width shown */
     uint32_t sp_t0;              /* .. its start (fm1_ms) */
-    uint8_t menu_sel;
-    uint8_t about_top;           /* ABOUT: the first credits row shown (ui_menu.c; 0 whenever ABOUT opens) */
-    uint32_t menu_sig, home_t0;
+    uint8_t menu_sel;            /* the MENU's item shown (ui_menu.c) */
+    uint8_t tool;                /* SAVE's TOOLS: the action shown (0..3: KNOB 1..4's; ui_menu.c draw_save) */
+    uint32_t home_t0;
     uint8_t force;               /* full redraw pending */
     uint8_t msg_t;               /* transient message frames */
     uint8_t bpm_t;

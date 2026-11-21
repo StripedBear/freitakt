@@ -116,7 +116,7 @@ static int track_keys(void)
 /* fixes 2026-10-21 item 5 (upstream Felucca's breath, #119): the OCT LEDs, OCT_LIT_* lit, OCT_BR_* breathing (dark ..
  * ~60 % and back, led_dim.c: it would do something if pressed); a way back (NO, CANCEL, BACK) lit; elsewhere dark.
  * NAME: OCT- cancels, OCT+ writes; the PRESETS list: OCT+ LOAD, OCT- DELETE where it would (a used user slot); a
- * dialog: OCT- NO, OCT+ YES; the menu and the Bluetooth page: OCT- BACK, OCT+ OK (ABOUT: OCT- back alone); MIDI LEARN:
+ * dialog: OCT- NO, OCT+ YES; the menu and the Bluetooth page: OCT- BACK, OCT+ OK (USB MIDI: OCT- alone); MIDI LEARN:
  * OCT- CLEAR, OCT+ DONE; KEYS: lit off octave 0, as before (where it is); the steps: each breathes while there is a
  * bank that way, OCT+ lit while held (its accent: item 1); the LFO pages: OCT+ (a RATE MODE) */
 #define OCT_LIT_DN 1u
@@ -134,8 +134,8 @@ static uint32_t oct_leds(void)
                                                                                                           : 0u);
     if (ui.confirm)
         return OCT_LIT_DN | OCT_BR_UP;
-    if (ui.menu)
-        return ui.menu == 2u ? OCT_LIT_DN : OCT_LIT_DN | OCT_BR_UP;
+    if (ui.menu)                                      /* (the MENU's USB MIDI: shown only, no OCT+) */
+        return ui.menu == 1u && !menu_ok_job(ui.menu_sel) ? OCT_LIT_DN : OCT_LIT_DN | OCT_BR_UP;
     if (ui.ml.on)
         return OCT_LIT_DN | OCT_BR_UP;
     if (keys_mode())
@@ -595,7 +595,8 @@ static void edit_param(uint32_t slot, int32_t steps)
         *vp = 0;                                      /* one detent arms, a second one within ~1.5 s acts */
         ui.arm = (uint8_t)id;
         ui.arm_t = 90;
-        ui_say("AGAIN: ", d->label);
+        ui_say("AGAIN: ", pg->id[0] == G_CLRSEQ ? TOOL_NAME[slot & 3u] : d->label);   /* (TOOLS: as its carousel
+                                                                                    * names it) */
         return;
     }
     ui.arm = 0;
@@ -1635,8 +1636,11 @@ static void ui_input(void)
         track_select((uint32_t)clamp((int32_t)song.sel + dt, 0, NTRK - 1));
     if ((s = panel_enc(EN_SELECT)) != 0 && (fx_knobs || ui.layer)) {
         /* PERFORM up: SELECT turns no page under it (item 7; the turn dropped) */
-    } else if (s) {                                     /* SELECT: the section's pages; HOME's TRACKS mode: BPM */
-        if (!mix_mode())
+    } else if (s) {                                     /* SELECT: the section's pages; SAVE's: the carousel's items;
+                                                         * HOME's TRACKS mode: BPM */
+        if (save_car_on())
+            save_select(s);
+        else if (!mix_mode())
             page_turn(s > 0 ? 1 : -1);
         else if (song.g[G_CLOCK])                       /* following a clock: its tempo, not the knob */
             ui_say("CLK ", N_CLOCK[song.g[G_CLOCK]]);
@@ -1652,6 +1656,8 @@ static void ui_input(void)
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
         kp_turn(k);                                     /* the knob popup: its session (before the edit) */
+        if (save_car_on() && pg->id[0] == G_CLRSEQ)     /* SAVE's TOOLS: the carousel shows the knob's action */
+            ui.tool = (uint8_t)k;
         if (step_edit_page() && step_edit(k, s))
             continue;
         if (lock_step() < NSTEP) {                      /* STEPS, a step held: a lock (or nothing) */
