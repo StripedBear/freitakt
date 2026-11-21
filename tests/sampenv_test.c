@@ -291,7 +291,7 @@ static void t_knobs(void)
               ids[12] == P_CHOKE && ids[13] == P_PRIO && ids[14] == P_SPLAY && ids[15] == P_SCUT);
     {
         uint32_t pos, np = fam_pages(FAM_SND, &pos), i5 = page_first(FAM_SND) + 4u;
-        check("SOUND has 5 pages on a SAMPLE track, the fifth shown", np == 5u && !page_hidden(i5) &&
+        check("SOUND has 5 pages on a SAMPLE track (then ARP's 2), the fifth shown", np == 7u && !page_hidden(i5) &&
                                                                           PAGES[i5].fam == FAM_SND);
         old_set_model(TSEL, DM_K909);
         n = snd_list(TSEL, ids);

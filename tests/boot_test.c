@@ -1662,8 +1662,9 @@ static int fdrf_round_trip(void)
         ok &= proj_slot[2].rsv_mo[i] == 0;
     return (int)ok && bank_events_eq(&mo.b, &want) && proj_slot[2].magic == PROJ_MAGIC && proj_slot[2].lk_n == 5u &&
            sizeof(project_t) == 3044u && sizeof proj_slot[2].rsv_mo + sizeof proj_slot[2].xp + sizeof proj_slot[2].xp2 +
-                   sizeof proj_slot[2].xp3 == 504u &&
-           sizeof proj_slot[2].xp == 42u && sizeof proj_slot[2].xp2 == 24u && sizeof proj_slot[2].xp3 == 12u && !proj_slot[2].var_len &&
+                   sizeof proj_slot[2].xp3 + sizeof proj_slot[2].xp4 == 504u &&
+           sizeof proj_slot[2].xp == 42u && sizeof proj_slot[2].xp2 == 24u && sizeof proj_slot[2].xp3 == 12u &&
+           sizeof proj_slot[2].xp4 == 42u && !proj_slot[2].var_len &&
            !proj_slot[2].var_link && str_eq(ui.msg, "LOADED");
 }
 /* MICRO (spec 2026-10-31 §1): "FRT6" keeps every step's micro in its spare byte, and the 7 parameters past the block
@@ -1994,7 +1995,7 @@ int main(void)
           old_8track_record_boots_empty());
     check("last project: lowcut's bits keep SPEAKER EQ, the slot and the Bluetooth bytes", last_project_bits());
     check("FDRF: motion, locks and PLAY bits through a save and a load (the project record 3044 B, 504 B reserved: xp, "
-          "xp2, the rest 0)",
+          "xp2, xp3, xp4, the rest 0)",
           fdrf_round_trip());
     check("FRT6: every step's MICRO and the 7 parameters past the block through a save and a load (3044 B)",
           fdrg_micro_round_trip());

@@ -128,7 +128,8 @@ static void lk_valid_rejects(void)
     BAD("count 1025", C.count = 1025);
     BAD("unsorted", { uint16_t x = C.key[3]; C.key[3] = C.key[4]; C.key[4] = x; });
     BAD("duplicate", { C.key[4] = C.key[3]; if (lk_is_lock(&C, 3) != lk_is_lock(&C, 4)) C.lock[4 >> 3] ^= 1u << 4; });
-    BAD("param", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, P_MODEL); });
+    BAD("param (MODEL as a motion record)", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, P_MODEL); C.lock[0] &= (uint8_t)~1u; });
+    BAD("param (CHOKE)", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, P_CHOKE); });
     BAD("param past P_COUNT", { C.count = 1; C.key[0] = (uint16_t)lk_key(3, 3, 127); });
     BAD("value", C.val[5] = -65);
     BAD("track 7 (Hortator's 8-track bank)", { C.count = 1; C.key[0] = (uint16_t)lk_key(6, 3, P_E1); C.val[0] = 0; });
