@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
-/* MIDI out beyond the keys' notes: GLO SYNC (MIDI clock out), GLOBAL 3/8 THRU and GLO MIDI OUT (the sequencer's
- * notes). Included from seq.c.
+/* MIDI out beyond the keys' notes: GLO SYNC (MIDI clock out), GLOBAL 3/8 THRU, GLO MIDI OUT (the sequencer's
+ * notes) and the MIDI KEYBOARD (KEYS' notes as Note On / Off: mkb_*). Included from seq.c.
  *
  * SYNC (song.g[G_SYNC], a project global: SY_ bits, OFF 0, USB 1, and in the Bluetooth build BLE 2, BOTH 3; the FM-1's
  * TRS jack is MIDI IN only, so there is no TRS out). On the own clock (CLK INT): Start on PLAY (PLAY while playing:
@@ -221,6 +221,83 @@ static __attribute__((noinline)) void mon_post(uint32_t n)
         else if (!mon.gate[k])
             mon.left[k] -= n;
     }
+}
+/* ---- the MIDI KEYBOARD (the audio ISR: seq.c keyboard_block) ----
+ * KEYS with KBD not OFF (MIDI OUT 4/8; mkb_kbd, mkb_local_off: seq.c): each of the 27 keys sends its own Note On /
+ * Note Off (several keys at once: several notes), velocity 100 (the keys are switches, as the keys' hits), F3 = note
+ * 53 + 12 x the octave (OCT- / OCT+, -4..+4: notes 5..127), on KBD's channel (TRK: the selected track's MIDI OUT
+ * channel, nothing while it is OFF; or 1..16), to every output as the keys' hits go (USB, and the Bluetooth device
+ * when linked in MIDI mode: SY_ALL, not OUT's setting), through MIDI OUT's queue: each leaves when it is heard, nothing
+ * during an update (All Notes Off after it: mout_tick), a Note On only with MON_ROOM free (the Offs keep their room).
+ * A key's Off is the note and channel its On went out with (the octave, the track or KBD changed while it was held).
+ * The keys not the MIDI KEYBOARD's any more (KEYS off, a page whose keys are not KEYS', the menu, KBD OFF) or the
+ * Bluetooth link dropped (bt_link_downs): every held key's Off at once; that key then sends nothing until pressed
+ * again (its release not even the pad's Off). An Off lost to a full queue: All Notes Off on its channel once no key is held */
+static struct {
+    uint32_t held;                                  /* bit per key: its Note On went out, its Off not yet */
+    uint32_t gone;                                  /* .. its Off sent before its release (the mode left, the link
+                                                     * dropped): that release sends nothing */
+    uint8_t nt[27], ch[27];                         /* .. that note and channel 0..15 */
+    uint16_t lost;                                  /* channels an Off was lost on */
+    uint8_t downs;                                  /* bt_link_downs seen */
+    uint32_t notes, drops;                          /* console: Note Ons queued, refused (no room) */
+} mkb;
+static uint32_t mkb_chan(void)                      /* the channel 1..16 the keys send on now; 0: none */
+{
+    uint32_t k = mkb_kbd;
+    if (k == 1u)
+        k = (uint32_t)song.g[G_MCH1 + song.sel % NTRK] + 1u;   /* TRK: the selected track's (0: OFF) */
+    return k >= 2u && k <= 17u ? k - 1u : 0u;
+}
+static void mkb_off(uint32_t key)
+{
+    if (!((mkb.held >> key) & 1u))
+        return;
+    mkb.held &= ~(1u << key);
+    if (!mout_put(0x08u | (0x80u | mkb.ch[key]) << 8 | (uint32_t)mkb.nt[key] << 16 | 0x40u << 24, SY_ALL, 0))
+        mkb.lost |= (uint16_t)(1u << mkb.ch[key]);
+}
+/* keyboard_block: this block's key edges not taken by a combo or PERFORM (press, rel); on: the keys are the MIDI
+ * KEYBOARD's now. Returns the releases it took (their Offs sent: no pad note-off for them) */
+static __attribute__((noinline)) uint32_t mkb_keys(uint32_t press, uint32_t rel, int on)
+{
+    uint32_t took = rel & (mkb.held | mkb.gone), k, c;
+#if FELUCCA_BLE
+    if ((uint8_t)bt_link_downs() != mkb.downs) {   /* (a link dropped: what was held is ended) */
+        mkb.downs = (uint8_t)bt_link_downs();
+        on = 0;
+        press = 0;
+    }
+#endif
+    mkb.gone &= ~(rel | press);
+    if (!mkb.held && !mkb.lost && !(on && press))
+        return took;
+    if (!on)
+        mkb.gone |= mkb.held & ~rel;
+    for (k = 0; k < 27u && mkb.held; k++)
+        if (!on || ((took >> k) & 1u))
+            mkb_off(k);
+    c = on ? mkb_chan() : 0u;
+    for (k = 0; c && press && k < 27u; k++) {
+        int32_t nt;
+        if (!((press >> k) & 1u))
+            continue;
+        mkb_off(k);                                 /* (a release this block did not see: its Off first) */
+        if (mout.w - mout.r > MOUT_Q - MON_ROOM) {
+            mkb.drops++;
+            continue;
+        }
+        nt = clamp(53 + (int32_t)k + 12 * song.octave, 0, 127);
+        (void)mout_put(0x09u | (0x8Fu + c) << 8 | (uint32_t)nt << 16 | 100u << 24, SY_ALL, 0);
+        mkb.held |= 1u << k;
+        mkb.nt[k] = (uint8_t)nt;
+        mkb.ch[k] = (uint8_t)(c - 1u);
+        mkb.notes++;
+    }
+    for (c = 0; mkb.lost && !mkb.held && c < 16u; c++)
+        if (((mkb.lost >> c) & 1u) && mout_put(0x0Bu | (0xB0u | c) << 8 | 123u << 16, SY_ALL, 0))
+            mkb.lost &= (uint16_t)~(1u << c);
+    return took;
 }
 static void mout_clock(uint32_t off)
 {

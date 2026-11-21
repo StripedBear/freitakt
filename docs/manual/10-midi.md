@@ -21,6 +21,8 @@
 | **QUANT** (live-record grid) | GLOBAL 3/8 |
 | **OUT** (the sequencer's notes out) | MIDI OUT 4/8 |
 | **TnCH** (a track's MIDI OUT channel) | MIDI OUT 4/8 |
+| **KBD** (the MIDI KEYBOARD: OFF, TRK, 1 to 16) | MIDI OUT 4/8 |
+| **LOCL** (the MIDI KEYBOARD's keys sound here too) | MIDI OUT 4/8 |
 
 SYNC, ROUT, OUT and the tracks' channels are saved with each project; projects saved before them load SYNC OFF, ROUT NOTE, OUT USB and track n on channel n. THRU is a setting of the FM-1 itself, kept over power-off, OFF until you turn it on.
 
@@ -70,6 +72,28 @@ KNOB 2 sets the channel of the selected track (selected as on any page); OFF sil
 - **Timing** is the SYNC clock's (see above): each note leaves when it is heard. If the computer does not read the port, notes are dropped (and counted), never delayed; the clock and Note Offs keep their room. During a firmware update (and 3 s after) nothing is sent; notes cut by it get All Notes Off afterwards.
 
 The web editor can also write a pattern or a chain as a MIDI file (*Web editor*, Patterns, **Export MIDI…**).
+
+## MIDI KEYBOARD
+
+The FM-1 as a plain MIDI keyboard for a DAW or a phone app: each of the 27 keys sends its own Note On / Note Off.
+
+| Knob | Label | Values (default) |
+|---|---|---|
+| [[KNOB 3]] | KBD | OFF (default), TRK, 1 to 16 |
+| [[KNOB 4]] | LOCL | ON (default), OFF |
+
+Both are on **MIDI OUT 4/8** and saved with the device settings (not in projects).
+
+- **On**: turn KBD away from OFF. KEYS turns on with it, and HOME's status line reads `MIDI KBD CH1 OCT+1` (channel and octave). On the step pages the top bar reads `MIDI KBD F3` instead of `KEYS F3`.
+- **Off**: KBD back to OFF, or turn KEYS off (a SEL tap with no key pressed, or ENV). With KEYS on again and KBD not OFF, it is the MIDI KEYBOARD again.
+- **Channel**: TRK sends on the selected track's MIDI OUT channel (T*n*CH; `CH-` on HOME and nothing sent if it is OFF), 1 to 16 a fixed channel.
+- **Notes**: F3 (the leftmost key) is note 53 at octave 0. [[OCT-]] / [[OCT+]] move the keys an octave down / up, -4 to +4 (notes above 127 are clamped). The OCT buttons light the way they do in KEYS.
+- **Velocity**: always 100. The keys are on/off switches; they don't sense velocity.
+- **Where the notes go**: USB MIDI out, and in the Bluetooth version also the Bluetooth MIDI device (ROLE DEVICE) while it is linked. This doesn't depend on OUT.
+- **LOCL**: ON, the keys also play the selected track as in KEYS. OFF, they send MIDI only and play nothing here.
+- **The sequencer** keeps running and keeps sending its own MIDI OUT notes. Step editing is off in this mode: no STEP REC, no live recording of the keys, and SEQ held gives no step tools (SEQ + black key still mutes). The other combos and pages work as usual.
+- **No hung notes**: a key's Off always goes out on the channel and note its On used, even if the octave or KBD changed while the key was held. Leaving the mode sends an Off for every held key. If the Bluetooth link drops, every held key's Off goes out at once, and those keys stay silent until pressed again. While a firmware update runs, nothing is sent. If an Off cannot be sent (full queue), an All Notes Off follows on that channel once no key is held.
+- **The knobs** don't send CCs in this mode. To send CCs from the knobs, use MIDI LEARN.
 
 ## THRU
 

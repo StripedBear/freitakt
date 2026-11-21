@@ -588,6 +588,23 @@ static void edit_param(uint32_t slot, int32_t steps)
             ml_toggle();
         return;
     }
+    if (pg->scope == SC_GLOBAL && id == G_KBD) {      /* KBD: the MIDI KEYBOARD's channel (midi_out.c mkb_*), saved;
+                                                       * turned on: KEYS on too, OFF: KEYS' own octaves again */
+        if (v && !mkb_kbd && !ui.keys)
+            keys_toggle();
+        mkb_kbd = (uint8_t)v;
+        if (!v)
+            keys_octave(0);
+        ui_message(v ? "MIDI KEYBOARD" : "MIDI KEYBOARD OFF");
+        settings_save();
+        return;
+    }
+    if (pg->scope == SC_GLOBAL && id == G_LOCAL) {    /* LOCL: the MIDI KEYBOARD's keys sound here too (OFF: MIDI
+                                                       * only), saved */
+        mkb_local_off = (uint8_t)!v;
+        settings_save();
+        return;
+    }
     if (pg->scope == SC_GLOBAL && id == G_QUANT) {    /* QUANT: the device setting (seq.c rec_hit), saved */
         rec_quant = (uint8_t)v;
         settings_save();
@@ -1010,7 +1027,7 @@ static void play_press(void)
  * (FX held) end it. The ISR sounds the keys. */
 static int srec_ok(void)
 {
-    return keys_mode() && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing;
+    return keys_mode() && !mkb_kbd && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing;
 }
 static void srec_start(void)
 {
@@ -1390,6 +1407,8 @@ static void ui_input(void)
     song.act[4] = (int16_t)midi_thru;
     song.act[5] = (int16_t)rec_quant;
     song.act[6] = (int16_t)ui.ml.on;
+    song.act[7] = (int16_t)mkb_kbd;
+    song.act[8] = (int16_t)!mkb_local_off;
     bank_fix();                                         /* LEN may have changed (knob, load) */
     if (!ui.home && page_hidden(ui.page)) {             /* the engine changed: its last EDIT page */
         while (ui.page > page_first(FAM_SND) && page_hidden(ui.page))

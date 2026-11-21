@@ -233,8 +233,8 @@ static int head_mode(char *b)
     }
     if (!ui.keys)
         return 0;
-    str_cpy(b, "KEYS ", 16);
-    note_text(b + 5, 53 + 12 * song.octave);
+    str_cpy(b, mkb_kbd ? "MIDI KBD " : "KEYS ", 16);   /* (the MIDI KEYBOARD: KBD not OFF) */
+    note_text(b + str_len(b), 53 + 12 * song.octave);
     return 1;
 }
 
@@ -279,8 +279,8 @@ static void draw_head(void)
     uint32_t blink = cpu;                             /* steady for its 2 s (cpu_alert) */
     uint32_t sig = (uint32_t)song.playing * 3u + rec * 5u + song.sel * 13131u + (uint32_t)song.g[G_BPM] * 101u +
                    (uint32_t)batt_shown() * 7777u + (usb.config && !usb.suspended) * 99991u +
-                   ui.keys * 7919u +
-                   (uint32_t)(song.octave + 2) * 1009u + ui.srec * 3571u + ui.sr_cur * 211u + pfx * 6151u +
+                   ui.keys * 7919u + (mkb_kbd != 0u) * 104723u +
+                   (uint32_t)(song.octave + 4) * 1009u + ui.srec * 3571u + ui.sr_cur * 211u + pfx * 6151u +
                    (lock_view_step() + 1u) * 92821u + ui.env * 15485863u + fill_on * 7907u + ui.tools * 1299709u +
                    (ui.cue_map ? (1u + cue.q_slot + cue.q_var * 7u + var_cur * 61u +
                                   (uint32_t)(proj_loaded() + 1) * 503u +
@@ -2337,10 +2337,25 @@ static void home_focus(void)
     str_cpy(ui.focus_u, unit, 8);
 }
 
-/* the status line: "P1 V2 T6 L1" ("P-": no slot loaded, the power-on kit) */
+/* the status line: "P1 V2 T6 L1" ("P-": no slot loaded, the power-on kit); as the MIDI KEYBOARD "MIDI KBD CH1 OCT+1"
+ * (its channel now, "CH-" none: TRK on a track whose MIDI OUT channel is OFF) */
 static void home_status(char *s)
 {
     int32_t ld = proj_loaded();
+    if (kbd_mode()) {
+        uint32_t c = mkb_chan(), n;
+        str_cpy(s, "MIDI KBD CH", 24);
+        if (c)
+            fmt_int(s + 11, (int32_t)c);
+        else
+            str_cpy(s + 11, "-", 2);
+        str_cpy(s + str_len(s), " OCT", 8);
+        n = str_len(s);
+        if (song.octave > 0)
+            s[n++] = '+';
+        fmt_int(s + n, song.octave);
+        return;
+    }
     s[0] = 'P', s[1] = ld >= 0 ? (char)('1' + ld) : '-', s[2] = ' ';
     s[3] = 'V', s[4] = (char)('1' + var_cur % 9u), s[5] = ' ';
     s[6] = 'T', s[7] = (char)('1' + song.sel % 9u), s[8] = ' ';
@@ -2357,7 +2372,7 @@ static uint32_t md_fit_sc(const char *s, int32_t w, uint32_t sc)   /* the larges
 
 static void draw_home(void)
 {
-    char st[16], b[12];
+    char st[24], b[12];
     uint32_t i, n, sig, sc, zoom, cpu = song.cpu_q8 * 100u / 256u, cn = 0, cf = 0;
     int32_t lvl = batt_shown(), x, w;
     home_focus();

@@ -97,6 +97,7 @@ static int bt_sync_out(uint32_t pkt, int rt)
     return 1;
 }
 static void bt_midi_out_isr(uint32_t pkt) { (void)pkt; }   /* (the keys' notes to the device: tests/bt_midi_test.c) */
+static uint32_t bt_link_downs(void) { return 0; }                  /* (the MIDI KEYBOARD's link Offs: tests/midikbd_test.c) */
 static void bt_fml_block(uint32_t n, uint32_t *seq_n)      /* (FM-Link: tests/bt_fml_test.c) */
 {
     (void)n;

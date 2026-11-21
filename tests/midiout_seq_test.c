@@ -127,6 +127,7 @@ static void bt_fml_block(uint32_t n, uint32_t *seq_n)
     (void)seq_n;
 }
 static void bt_fml_adv(void) {}
+static uint32_t bt_link_downs(void) { return 0; }
 #endif
 /* a kit as the firmware's power-on (the GM notes), the steps cleared, 1/16, LEN 16, MIDI OUT USB */
 static void hw_reset(void)

@@ -171,14 +171,18 @@ static const param_desc_t GP[G_COUNT] = {
 _Static_assert(G_MCH6 == G_MCH1 + NTRK - 1, "MIDI OUT: a channel per track");
 
 /* after G_COUNT: the TOOLS actions (G_CLRALL, G_INITALL) and GLOBAL 3/7's MUTE, METRO, THRU and QUANT (G_MUTEBAR,
- * G_METRO, G_THRU, G_QUANT: the device settings settings.mutebar, fx_metro, midi_thru, rec_quant); their knob values
- * are song.act, not song.g / projects */
+ * G_METRO, G_THRU, G_QUANT: the device settings settings.mutebar, fx_metro, midi_thru, rec_quant), MIDI OUT's KBD and
+ * LOCL (G_KBD, G_LOCAL: the device settings mkb_kbd, !mkb_local_off); their knob values are song.act, not song.g /
+ * projects */
 static const char *const N_MUTEBAR[] = {"NOW", "BAR"};
 static const char *const N_METRO[] = {"OFF", "LOW", "MID", "HIGH"};
 static const char *const N_QUANT[] = {"1/16", "1/8", "1/32", "OFF"};   /* seq.c QUANT_16 .. QUANT_OFF */
-static const param_desc_t GP_ACT[9] = {PE("CLR*", N_GO, 0), PE("INIT*", N_GO, 0), PE("MUTE", N_MUTEBAR, 0),
-                                       PE("METRO", N_METRO, 0), PE("COPY", N_GO, 0), PE("PASTE", N_GO, 0),
-                                       PE("THRU", N_ONOFF, 0), PE("QUANT", N_QUANT, 0), PE("LEARN", N_ONOFF, 0)};
+static const char *const N_KBD[] = {"OFF", "TRK", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13",
+                                    "14", "15", "16"};   /* G_KBD: the MIDI KEYBOARD's channel (midi_out.c mkb_kbd) */
+static const param_desc_t GP_ACT[11] = {PE("CLR*", N_GO, 0), PE("INIT*", N_GO, 0), PE("MUTE", N_MUTEBAR, 0),
+                                        PE("METRO", N_METRO, 0), PE("COPY", N_GO, 0), PE("PASTE", N_GO, 0),
+                                        PE("THRU", N_ONOFF, 0), PE("QUANT", N_QUANT, 0), PE("LEARN", N_ONOFF, 0),
+                                        PE("KBD", N_KBD, 0), PE("LOCL", N_ONOFF, 1)};
 
 /* the INSERT's A B C as its TYPE names them (Skiff 1.3, from Felucca 1.5; insert.c): the drives, CRUSH, the swept
  * ones; OFF: TP's A B C */

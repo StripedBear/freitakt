@@ -377,6 +377,11 @@ static void tools_input(uint32_t now, uint32_t notes)
             *t0 |= TL_PLAIN;
         if (!(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN)) && ((hits | notes) & BLACK_MASK))
             *t0 |= TL_MUTE;                         /* (a black key first: the mutes) */
+        if (!(*t0 & (TL_OPEN | TL_DEAD | TL_PLAIN | TL_MUTE)) && kbd_mode() &&
+            ((notes | hits) || now - (*t0 & ~31u) >= TL_HOLD_MS * 1000u * FM1_TICKS_PER_US))
+            *t0 |= TL_MUTE;                         /* the MIDI KEYBOARD: no TOOLS screen (no step editing): SEQ held,
+                                                     * or a white key with it, does nothing; SEQ + black 1..6 still
+                                                     * mute, a SEQ tap still opens the SEQ pages */
         if (*t0 & TL_MUTE) {
             tl_mutes(hits);
             hits = 0;

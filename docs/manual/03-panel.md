@@ -33,7 +33,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s off the SEQ pages: a fill. Hold 0.7 s on a SEQ page: CLEAR TRACK. See *Playing and recording*. |
-| **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS; NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
+| **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS (-2 to +2; as the MIDI KEYBOARD -4 to +4, see *MIDI*); NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
 
 ### HOME in detail
 

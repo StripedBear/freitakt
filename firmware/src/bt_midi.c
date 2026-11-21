@@ -31,6 +31,9 @@ static struct {
 } bt_in;
 static uint32_t bt_out_q[BT_OUT_Q];
 static volatile uint32_t bt_out_w, bt_out_r;
+static volatile uint8_t bt_downs;                    /* links dropped (bt_link's only writer; midi_out.c mkb_keys: the
+                                                     * MIDI KEYBOARD's held keys end) */
+static uint32_t bt_link_downs(void) { return bt_downs; }
 
 /* 1 = the SMC-Mixer DAW layout, 0 = MIDI: MODE, or AUTO by the connected device's name */
 static uint32_t bt_mode_now(void)
@@ -52,6 +55,8 @@ static int bt_link_only(void)                        /* MODE FM-LINK: no MIDI ei
 static void bt_link(int up)
 {
     char n[24];
+    if (!up && bt_in.up)
+        bt_downs++;                                  /* (the MIDI KEYBOARD: its held keys' Offs, midi_out.c) */
     bt_in.up = (uint8_t)(up != 0);
     bt_in.smc = (uint8_t)(up && ble_ui_conn_name(n) && n[0] == 'S' && n[1] == 'M' && n[2] == 'C');
     bt_in.out_on = (uint8_t)(up && !bt_mode_now() && !bt_link_only());   /* (at once: bt_midi_frame follows MODE from

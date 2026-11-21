@@ -1882,6 +1882,8 @@ static void persist_boot(void)                    /* before settings_init / pane
     backlight = 0;                                    /* BACKLIGHT OFF, as well */
     midi_thru = 0;                                    /* MIDI THRU OFF, as well */
     rec_quant = QUANT_16;                             /* QUANT 1/16, as well */
+    mkb_kbd = 0;                                      /* the MIDI KEYBOARD OFF, LOCL ON, as well */
+    mkb_local_off = 0;
     memset(ml_map, 0, sizeof ml_map);                 /* MIDI LEARN: nothing learned, as well */
     memset(&upr, 0, sizeof upr);                      /* no user preset, as well (presets.c) */
     upr_pending = 0;
@@ -1937,6 +1939,12 @@ static void persist_boot(void)                    /* before settings_init / pane
                                                            * 1/16 */
         solo_mom = (uint8_t)((p.palette >> 15) & 1u);    /* bit 15 = SOLO MOMENTARY (ARP + F#5, ui_input.c):
                                                            * older records read TOGGLE */
+        mkb_kbd = (uint8_t)((p.palette >> 18) & 31u);    /* bits 18..22 = the MIDI KEYBOARD's KBD (0 OFF, 1 TRK,
+                                                           * 2..17 channel 1..16; midi_out.c), bit 23 its LOCL OFF:
+                                                           * older records read OFF, ON */
+        if (mkb_kbd > 17u)
+            mkb_kbd = 0;
+        mkb_local_off = (uint8_t)((p.palette >> 23) & 1u);
         /* bits 12..13: USB AUDIO's 10 CH (removed in FREITAKT): reserved, ignored, written 0 */
         lc_unpack(p.lowcut);
         if (((p.palette >> 9) & 7u) - 1u < BL_COUNT - 1u && backlight)   /* BACKLIGHT's level, bits 9..11 (item 9; 0:
@@ -2059,9 +2067,10 @@ static void settings_save(void)                    /* asked for while playing: w
     p.magic = PERSIST_MAGIC;
     p.palette = (settings.palette & 0xFFu) | (btset.bt_auto & 1u) << 8 | (backlight & 7u) << 9;
     p.palette |= (uint32_t)(midi_thru & 1u) << 14 | (uint32_t)(solo_mom & 1u) << 15 | (uint32_t)(rec_quant & 3u) << 16;
+    p.palette |= (uint32_t)(mkb_kbd & 31u) << 18 | (uint32_t)(mkb_local_off & 1u) << 23;
     /* an older Hortator reads a palette out of range from bit 8: its display settings reset; 9..11 BACKLIGHT's level
      * (item 9: an older one reads lowcut's bit 7, ON); 12..13 reserved, 0 (USB AUDIO 10 CH, removed in FREITAKT); 14 MIDI THRU, 15 SOLO MOMENTARY, 16..17
-     * QUANT (an older one ignores them) */
+     * QUANT, 18..22 the MIDI KEYBOARD's KBD, 23 its LOCL OFF (an older one ignores them) */
     p.lowcut = lc_pack() | btset.bt_hi << 8;
     p.zoom = (settings.zoom & 1u) | (settings.mutebar & 1u) << 1 | (uint32_t)!settings.accel << 2 | (settings.usbfix & 1u) << 3 |
              (settings.perfpage & 1u) << 4 | (btset.btmode & 3u) << 5 | (btset.bt_type & 1u) << 7 | btset.bt_lo << 8;

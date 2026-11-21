@@ -283,8 +283,15 @@ static void env_toggle(void)
     song.seq_mode = seq_mode_now();
     /* (no full repaint: the top bar's padlock, its KEYS line and the strip's marks are in their signatures) */
 }
-/* OCT- / OCT+ while KEYS has the keys: the keyboard an octave down / up, -2..+2 (seq.c keys_nt) */
-static void keys_octave(int32_t d) { song.octave = (int8_t)clamp(song.octave + d, -2, 2); }
+/* the MIDI KEYBOARD (MIDI OUT 4/8 KBD not OFF): KEYS has the keys and they send MIDI notes (midi_out.c mkb_keys) */
+static int kbd_mode(void) { return mkb_kbd && keys_mode(); }
+/* OCT- / OCT+ while KEYS has the keys: the keyboard an octave down / up, -2..+2 (seq.c keys_nt); as the MIDI
+ * KEYBOARD -4..+4 (notes 5..127) */
+static void keys_octave(int32_t d)
+{
+    int32_t r = mkb_kbd ? 4 : 2;
+    song.octave = (int8_t)clamp(song.octave + d, -r, r);
+}
 /* a note (MIDI, 60 = C4) by name: "C4", "F#3", "C-1" */
 static void note_text(char *b, int32_t n)
 {

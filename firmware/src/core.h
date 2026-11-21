@@ -95,11 +95,12 @@ enum {                          /* global parameters */
 };
 #define G_NSTORED G_DMODE        /* the globals in a project's block (FDR7 .. FDRF: G_BPM .. G_RTYPE) */
 enum { CG_MUTE, CG_KEEP, CG_HIDE };                 /* GHOST: muted = muted; muted still keys; never heard, keys */
-enum { G_CLRALL = G_COUNT, G_INITALL, G_MUTEBAR, G_METRO, G_COPY, G_PASTE, G_THRU, G_QUANT, G_LEARN };   /* TOOLS actions, the
+enum { G_CLRALL = G_COUNT, G_INITALL, G_MUTEBAR, G_METRO, G_COPY, G_PASTE, G_THRU, G_QUANT, G_LEARN, G_KBD, G_LOCAL };   /* TOOLS actions, the
                                                      * MUTE and METRO settings, COPY / PASTE of a slot (spec 2026-10-26),
                                                      * the THRU setting (midi_out.c), QUANT (seq.c rec_quant, spec
                                                      * 2026-10-31), LEARN (MIDI LEARN on / off, the COPY page's KNOB 4,
-                                                     * ui_learn.c): shown like globals, not stored in projects */
+                                                     * ui_learn.c), MIDI OUT 4/8's KBD and LOCL (the MIDI KEYBOARD,
+                                                     * midi_out.c mkb_*): shown like globals, not stored in projects */
 #define SY_USB 1u                                   /* G_SYNC: the outputs the clock goes to (OFF 0, USB 1, BLE 2, BOTH 3) */
 #define SY_BLE 2u
 enum { RT_NOTE, RT_SEL, RT_TRACK };                 /* G_ROUTE: a note on CH plays the tracks with its NOTE; on CH, the
@@ -226,16 +227,17 @@ typedef struct {
     uint8_t playing, seq_mode;
     uint8_t rec;                 /* live recording armed: bit per track */
     uint8_t sel;                 /* selected track 0..NTRK-1: keys, pages, editor */
-    int8_t octave;               /* KEYS: the keyboard's octave, -2..+2 (OCT- / OCT+), never stored */
+    int8_t octave;               /* KEYS: the keyboard's octave, -2..+2 (OCT- / OCT+; -4..+4 as the MIDI KEYBOARD),
+                                  * never stored */
     uint32_t tick;               /* blocks since play */
     uint32_t cpu_q8;             /* audio ISR load, 1/256 */
     uint32_t cpu_rem;            /* its average's remainder (audio.c) */
     uint32_t sheds;              /* overload sheds (audio.c shed_voice): the top bar's CPU icon (ui_draw.c) */
     uint32_t master_q12;
     int32_t batt_raw;            /* smoothed ADC ch3 (battery divider), 0 = not read yet */
-    int16_t act[7];              /* TOOLS action knobs CLR* INIT* (G_CLRALL ..): GO buttons, never stored; MUTE: a
+    int16_t act[9];              /* TOOLS action knobs CLR* INIT* (G_CLRALL ..): GO buttons, never stored; MUTE: a
                                   * copy of settings.mutebar; METRO: of fx_metro; THRU: of midi_thru; QUANT: of
-                                  * rec_quant; LEARN: of ui.ml.on */
+                                  * rec_quant; LEARN: of ui.ml.on; KBD, LOCL: of mkb_kbd, !mkb_local_off */
     uint8_t mute_q;              /* mutes to flip on the next bar (bit per track; seq.c) */
     uint8_t solo;                /* SOLO (the SMC-Mixer): bit per track, runtime only (trk_silent) */
     uint8_t lfo_in;              /* lfo.c: inside an audio block, between lfo_apply and lfo_restore */

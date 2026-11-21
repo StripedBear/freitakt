@@ -11,6 +11,7 @@ static volatile uint8_t fill_on;         /* REC held off SEQ (ui_input.c rec_fil
 static volatile uint8_t panic_req;       /* bit per track: cut its voices */
 #if FELUCCA_BLE
 static void bt_midi_out_isr(uint32_t pkt); /* bt_midi.c: what goes to USB MIDI out, to the BLE device too */
+static uint32_t bt_link_downs(void);       /* bt_midi.c: the device's links dropped so far (the MIDI KEYBOARD's Offs) */
 #define CLK_LINK 4u                       /* G_CLOCK LINK: FM-Link's follower (bt_fml.c) */
 static void bt_fml_block(uint32_t n, uint32_t *seq_n);   /* bt_fml.c: FM-Link, CLK INT (leads) / LINK (follows) */
 static void bt_fml_adv(void);                           /* .. a MIDI clock's leader: the clock's pulses */
@@ -24,6 +25,11 @@ static uint32_t kb_prev;
  * record's palette bits 16..17, project.c), main writes, the ISR reads */
 enum { QUANT_16, QUANT_8, QUANT_32, QUANT_OFF, QUANT_N };
 static volatile uint8_t rec_quant;
+/* the MIDI KEYBOARD (MIDI OUT 4/8 KBD, LOCL; midi_out.c mkb_*): device settings (the settings record's palette bits
+ * 18..22 and 23, project.c), main writes, the ISR reads. KBD: 0 OFF, 1 TRK (the selected track's MIDI OUT channel),
+ * 2..17 channel 1..16; LOCL OFF: the keys play no internal sound */
+static volatile uint8_t mkb_kbd, mkb_local_off;
+static uint32_t mkb_keys(uint32_t press, uint32_t rel, int on);   /* midi_out.c: the keys' Note On / Off */
 /* live recording (the keys, MIDI notes, the SMC: rec_hit) while the web editor restores (editor_backup.c ed_restoring,
  * ED_RESTORE_LOCK: felucca.c, the editor's host tests): nothing recorded, the hits only play, as the device's other
  * edits are refused meanwhile (ui.c ui_locked) */
@@ -702,8 +708,8 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     }
     if (kz.key && !legato)
         keys_off();                                    /* mono over the keys: another track's held note ends */
-    if (((song.rec >> song.sel) & 1u) && song.playing && !REC_LOCKED())
-        keys_rec(t, nt, legato);                       /* live record (spec §6) */
+    if (((song.rec >> song.sel) & 1u) && song.playing && !REC_LOCKED() && !mkb_kbd)
+        keys_rec(t, nt, legato);                       /* live record (spec §6; not as the MIDI KEYBOARD) */
     else
         kz.rec = 0;
     if (m->gate) {
@@ -768,10 +774,14 @@ static void keyboard_block(void)
         keys_tie();                                 /* KEYS live record: the held note's TIEs (before this block's
                                                      * presses: a legato key in the block that passes a middle finds
                                                      * its TIE, the SLIDE goes there) */
-    if (song.seq_mode == 3u) {                      /* KEYS: the presses play the selected track */
-        for (key = 0; key < 27u; key++)
-            if (((ch & cur) >> key) & 1u)
-                keys_on(key);
+    ch &= ~mkb_keys(ch & cur, ch & ~cur, song.seq_mode == 3u && mkb_kbd);   /* the MIDI KEYBOARD (KEYS, KBD not OFF):
+                                                     * each key's Note On / Off (its releases its own) */
+    if (song.seq_mode == 3u) {                      /* KEYS: the presses play the selected track (LOCL OFF: not as the
+                                                     * MIDI KEYBOARD) */
+        if (!(mkb_kbd && mkb_local_off))
+            for (key = 0; key < 27u; key++)
+                if (((ch & cur) >> key) & 1u)
+                    keys_on(key);
         ch &= ~cur;                                 /* (releases still send their note-off, as on the grid) */
     } else if (song.seq_mode == 1u) {
         ch &= ~cur;                                 /* the STEP grid / TRACKS / COMP ducks (ui_input.c) own presses; releases

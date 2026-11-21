@@ -47,6 +47,8 @@ Up to 8, controllers and FM-1s, kept over power-off with their names. The FM-1 h
 
 Notes play the tracks as over USB and TRS (GLO CH and ROUT); MIDI LEARN learns the device's CCs and notes. GLO **CLK BLE** follows the device's MIDI clock (the tempo knobs then say `CLK BLE`). The FM-1's key hits go to the device. GLO SYNC **BLE** / **BOTH** sends it the MIDI clock. When the link drops, what the device held is released. SYNC BLE loads SYNC OFF and BOTH loads USB in the plain version. In SMC DAW mode nothing but the mixer's LEDs is sent; in FM-LINK mode no MIDI at all.
 
+As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MIDI OUT 4/8, KBD; see *MIDI*). Each key then sends its own Note On / Off to the device, as well as to USB. If the link drops while keys are held, their Offs are sent at once.
+
 ## Connecting, step by step
 
 ### A Bluetooth MIDI controller

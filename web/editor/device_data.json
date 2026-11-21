@@ -350,7 +350,7 @@
  {"title": "GLOBAL", "fam": 5, "scope": 1, "graph": 0, "id": [0, 1, 2, 21]},
  {"title": "SYSTEM", "fam": 5, "scope": 1, "graph": 0, "id": [11, 12, 13, 14]},
  {"title": "GLOBAL", "fam": 5, "scope": 1, "graph": 0, "id": [41, 42, 45, 46]},
- {"title": "MIDI OUT", "fam": 5, "scope": 1, "graph": 0, "id": [32, 33, 255, 255]},
+ {"title": "MIDI OUT", "fam": 5, "scope": 1, "graph": 0, "id": [32, 33, 48, 49]},
  {"title": "DLY", "fam": 5, "scope": 1, "graph": 13, "id": [3, 4, 5, 6]},
  {"title": "DLY", "fam": 5, "scope": 1, "graph": 13, "id": [31, 255, 255, 255]},
  {"title": "REVERB", "fam": 5, "scope": 1, "graph": 14, "id": [30, 7, 8, 255]},

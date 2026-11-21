@@ -7,7 +7,9 @@
 #ifndef FELUCCA_FLASH
 #define FELUCCA_FLASH 0
 #endif
+#ifndef FELUCCA_OTA
 #define FELUCCA_OTA 0
+#endif
 #define FELUCCA_CDC 0
 /* ---- LCD: framebuffer (RGB565, native order) */
 static uint16_t fb[240 * 240];

@@ -33,6 +33,12 @@ cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-re
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
     -Wno-int-to-pointer-cast -Wno-macro-redefined -DFELUCCA_BLE=1 -Ibuild/gen -Ifirmware/src -o "$OUT/midiout_seq_test_ble" tests/midiout_seq_test.c -lm   # (.. BLE / BOTH)
 "$OUT/midiout_seq_test_ble"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/midikbd_test" tests/midikbd_test.c -lm   # (the MIDI KEYBOARD: USB; ASan + UBSan)
+"$OUT/midikbd_test"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -DFELUCCA_BLE=1 -Ibuild/gen -Ifirmware/src -o "$OUT/midikbd_test_ble" tests/midikbd_test.c -lm   # (.. USB and the Bluetooth device, its link)
+"$OUT/midikbd_test_ble"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src \
     -o "$OUT/midiout_cost" tests/midiout_seq_test.c -lm   # (.. its CPU cost: host instructions, -O2)
 "$OUT/midiout_cost" > "$OUT/midiout_cost.txt" 2>&1 || { grep -v "^ok" "$OUT/midiout_cost.txt"; exit 1; }

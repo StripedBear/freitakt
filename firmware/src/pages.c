@@ -47,8 +47,9 @@ static const page_t PAGES[] = {
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_MUTEBAR, G_METRO, G_THRU, G_QUANT}},   /* device settings
                                                                        * (settings.mutebar, fx_metro, midi_thru, seq.c
                                                                        * rec_quant) */
-    {"MIDI OUT", FAM_GLO, SC_GLOBAL, GR_NONE, {G_MOUT, G_MCH1, 0xFF, 0xFF}},   /* the sequencer's notes (midi_out.c
-                                                                       * mon_*): OUT, the selected track's channel */
+    {"MIDI OUT", FAM_GLO, SC_GLOBAL, GR_NONE, {G_MOUT, G_MCH1, G_KBD, G_LOCAL}},   /* the sequencer's notes (midi_out.c
+                                                                       * mon_*): OUT, the selected track's channel; the
+                                                                       * MIDI KEYBOARD (mkb_*): KBD, LOCL */
     {"DLY", FAM_GLO, SC_GLOBAL, GR_DLY, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},   /* the send effects' buses: after GLO's
                                                                                 * own pages */
     {"DLY", FAM_GLO, SC_GLOBAL, GR_DLY, {G_DMODE, 0xFF, 0xFF, 0xFF}},   /* MODE: NORMAL / PING-PONG */
@@ -123,8 +124,9 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     *valp = 0;
     if (id == 0xFFu || pg->scope == SC_GRID || pg->scope == SC_MIX)
         return 0;
-    if (pg->scope == SC_GLOBAL && id >= G_COUNT) {   /* TOOLS actions, MUTE, METRO, COPY / PASTE, THRU, QUANT, LEARN */
-        id = id - G_COUNT < 9u ? id - G_COUNT : 0u;
+    if (pg->scope == SC_GLOBAL && id >= G_COUNT) {   /* TOOLS actions, MUTE, METRO, COPY / PASTE, THRU, QUANT, LEARN,
+                                                      * KBD, LOCL */
+        id = id - G_COUNT < 11u ? id - G_COUNT : 0u;
         *valp = &song.act[id < 4u ? id : id < 6u ? id - 4u : id - 2u];   /* (COPY / PASTE: GO buttons, 0 at rest:
                                                                          * CLR* / INIT*'s act) */
         return &GP_ACT[id];
