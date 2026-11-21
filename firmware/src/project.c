@@ -95,8 +95,21 @@ static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .
 }
 /* global i of a record: the block (G_NSTORED), past it G_DMODE in the reserved byte rsv[0] (0 in every record before
  * it: NORMAL) */
-static int16_t proj_g(const project_t *p, uint32_t i) { return i < G_NSTORED ? p->g[PR_G(i)] : (int16_t)p->rsv[0]; }
-typedef char proj_g_fit[G_COUNT - G_NSTORED == 1 ? 1 : -1];   /* (one reserved byte used: rsv[1..2] free) */
+/* MIDI OUT (G_MOUT, midi_out.c) in rsv[1] XOR 1 (0, as every record before it holds: USB); the tracks' channels
+ * (G_MCH1..) in rsv_song[2..7], each (channel - its default) mod 17 (0: the default, track n on channel n) */
+#define PROJ_MCH 2u                                 /* rsv_song[PROJ_MCH + k]: track k's channel */
+static int16_t proj_g(const project_t *p, uint32_t i)
+{
+    if (i < G_NSTORED)
+        return p->g[PR_G(i)];
+    if (i == G_MOUT)
+        return (int16_t)(p->rsv[1] ^ 1u);
+    if (i >= G_MCH1)
+        return (int16_t)((p->rsv_song[PROJ_MCH + i - G_MCH1] + i - G_MCH1 + 1u) % 17u);
+    return (int16_t)p->rsv[0];
+}
+static uint8_t proj_mch_enc(uint32_t k, int32_t v) { return (uint8_t)(((uint32_t)clamp(v, 0, 16) + 16u - k) % 17u); }
+typedef char proj_g_fit[G_COUNT - G_NSTORED == 2 + NTRK && PROJ_MCH + NTRK <= 36u ? 1 : -1];   /* (rsv[2] free) */
 /* MASTER LENGTH (cue.c, song.mlen) in a record: rsv_song[0..1], little-endian, 2..1024, 0 OFF (every record before
  * it: OFF). Read as the knob's value: OFF 1 */
 static int16_t proj_mlen(const project_t *p)
@@ -293,10 +306,13 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
         memset(&p->g[PR_GR], 0, 10u * sizeof p->g[0]);  /* (Grids' places) */
         p->sel = song.sel;
         p->rsv[0] = (uint8_t)song.g[G_DMODE];          /* the globals past the block (proj_g) */
+        p->rsv[1] = (uint8_t)(song.g[G_MOUT] ^ 1);
+        for (k = 0; k < NTRK; k++)
+            p->rsv_song[PROJ_MCH + k] = proj_mch_enc(k, song.g[G_MCH1 + k]);
     }
     p->magic = PROJ_MAGIC;
     p->size = sizeof *p;
-    p->rsv[1] = p->rsv[2] = 0;
+    p->rsv[2] = 0;
     for (k = 0; k < NTRK; k++) {
         int16_t tm[PAT_NT], mute = p->t[k].p[PR_P(P_MUTE)];
         int keep = !globals && ok;                      /* (a write-back: the mutes are the performance's, kept) */
@@ -325,7 +341,7 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
     }
     lk_slot[slot & 3u] = mo.b;                          /* the bank: the motion and the locks (sealed: proj_seal) */
     memset(p->rsv_mo, 0, sizeof p->rsv_mo);
-    memset(p->rsv_song, 0, sizeof p->rsv_song);
+    memset(p->rsv_song + PROJ_MCH + NTRK, 0, sizeof p->rsv_song - PROJ_MCH - NTRK);   /* (the channels: globals) */
     proj_mlen_set(p, song.mlen);                        /* (the pattern's: live, as its steps) */
     memcpy(p->name, pname.name, NAME_LEN);
 }
@@ -396,7 +412,7 @@ static int16_t g_loaded(uint32_t i, int32_t v)
 {
     if (i == G_CLOCK && (v < 0 || v > GP[i].max))
         return 0;
-    if (i == G_SYNC)
+    if (i == G_SYNC || i == G_MOUT)
         return (int16_t)(v < 0 ? 0 : v & GP[i].max);
     return (int16_t)clamp(v, GP[i].min, GP[i].max);
 }

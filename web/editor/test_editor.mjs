@@ -206,7 +206,7 @@ const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
   ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 6 && info.pcount === 76
-    && info.gcount === 32 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
+    && info.gcount === 39 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
   ok(P.classifyPort("Hortator") === "fm1" && P.classifyPort("Hortator 8ch MIDI 1") === "fm1" && P.classifyPort("Felucca") === "fm1"
@@ -227,8 +227,8 @@ const q = (cmd, args) => m.request(cmd, args);
   ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "STEP", "TRACKS"].includes(p.title))
     && pages[0].title === "SOUND" && same(pages[0].ids, [0, 1, 2, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
   "PAGES: paged, DEST x 4, no slot / motion / tools pages, SOUND list, DLY MODE");
-  ok(t0.p.length === 76 && t0.g.length === 32 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
-    "DUMP: 76 parameters, 32 globals, the model");
+  ok(t0.p.length === 76 && t0.g.length === 39 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
+    "DUMP: 76 parameters, 39 globals, the model");
   const names = [];
   let d0;
   for (let first = 0; ;) {

@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
-/* MIDI out beyond the keys' notes: GLO SYNC (MIDI clock out) and GLOBAL 3/7 THRU. Included from seq.c.
+/* MIDI out beyond the keys' notes: GLO SYNC (MIDI clock out), GLOBAL 3/8 THRU and GLO MIDI OUT (the sequencer's
+ * notes). Included from seq.c.
  *
  * SYNC (song.g[G_SYNC], a project global: SY_ bits, OFF 0, USB 1, and in the Bluetooth build BLE 2, BOTH 3; the FM-1's
  * TRS jack is MIDI IN only, so there is no TRS out). On the own clock (CLK INT): Start on PLAY (PLAY while playing:
@@ -26,8 +27,23 @@
  * DAW or no link: nothing to Bluetooth.
  * An update (SysEx on USB, ota.c) pauses all of it: nothing is sent while its SysEx moves and for 3 s after. The web
  * editor's frames (F0 7D ..., editor.c) do not pause it (web/EDITOR_PROTOCOL.md rule 8): a frame whose first data byte
- * is 7D, and the out ring while it holds only the editor's replies (mout.ed_end / ed_tx), are not update traffic. */
-#define MOUT_Q 16u                                  /* the scheduled Start / Clock / Stop */
+ * is 7D, and the out ring while it holds only the editor's replies (mout.ed_end / ed_tx), are not update traffic.
+ *
+ * MIDI OUT (G_MOUT, a project global: SY_ bits as SYNC's, USB by default; G_MCH1.. each track's channel, OFF or 1..16,
+ * track n on channel n by default): the sequencer's hits (seq_tick: the steps, RATCH, MICRO, ARP / RTRG's repeats; not
+ * REPEAT STEP, the keys (keyboard_block sends theirs), MIDI in) as Note On / Off, scheduled in the Clocks' queue from
+ * the block the voice starts in (drum_play's mon_hit: mon_seq), timed as a Clock is. The note: a pitched model's
+ * (arp_model: ACID SAMPL FM SKIN, the hit's machine) the hit's own (60 + its offset from C4: the step's NOTE, ARP's
+ * chord and octaves); a drum's the track's NOTE (P_NOTE, the kit's GM note). The velocity: the hit's (ACC 127, else 96,
+ * RTRG / ARP's FADE). One note a track at a time (a new hit ends the sounding one first; an ACID slide sends the new
+ * note before the old one's Off: legato). Its Off: a gated model's (ACID) when its gate closes; any other's after
+ * its length (a roll's hit: GATE of its repeat; else the step, swung, / RATCH), counted in blocks (mon_post). STOP,
+ * PLAY again, the track muted (or another soloed): the Off at once. The Off goes to the channel and ports its On went
+ * to. A Note On needs MON_ROOM free places in the queue (the Offs and the Clocks keep theirs); a full queue drops and
+ * counts (mon.drops), never waits; a lost Off: STOP adds All Notes Off (CC 123) on the channels played. An update's
+ * pause swallows the queue: All Notes Off on the channels it swallowed notes of, once the pause is over. */
+#define MOUT_Q 64u                                  /* the scheduled Start / Clock / Stop and MIDI OUT's notes */
+#define MON_ROOM 8u                                 /* a Note On only while this many places are free */
 #define MOUT_TPS_Q16 35665605u                      /* TIMER4 ticks a sample (24 MHz / 44.1 kHz), Q16 */
 #define MOUT_HALF_TICKS ((uint32_t)(((uint64_t)HALF_FRAMES * MOUT_TPS_Q16) >> 16))
 #define MOUT_TICK 2400u                             /* TIMER5: 100 us */
@@ -45,7 +61,8 @@ static int bt_sync_out(uint32_t pkt, int rt);       /* bt_midi.c: to the BLE dev
 static volatile uint8_t midi_thru;                  /* GLOBAL 3/7 THRU (settings: project.c, the palette word's bit 14) */
 static struct {
     uint32_t due[MOUT_Q];                           /* TIMER4 tick */
-    uint8_t st[MOUT_Q];                             /* F8 FA FC */
+    uint32_t pk[MOUT_Q];                            /* the USB-MIDI packet: a Clock's 0F F8 / FA / FC, MIDI OUT's */
+    uint8_t po[MOUT_Q];                             /* its ports (SY_ bits); 0: a Clock's (SYNC's when it leaves) */
     volatile uint32_t w, r;                         /* the audio ISR writes w, TIMER5 r */
     uint32_t t0, blk, r_ticks;                      /* the half's IRQ, its samples before this block, the last render */
     uint32_t pos, pair, pulses;                     /* samples into the 1/8 (gclk.cnt / 2: pair), Clocks counted */
@@ -56,7 +73,20 @@ static struct {
     uint32_t sent, drops, fwd;                      /* console: packets out, refused, forwarded */
     volatile uint32_t ed_end;                       /* editor.c: the SysEx out ring's write index after its last frame */
     volatile uint8_t ed_tx;                         /* editor.c: writing a frame into that ring now */
+    uint16_t ano_ch;                                /* MIDI OUT: an update swallowed notes on these channels .. */
+    uint8_t ano_po;                                 /* .. to these ports: All Notes Off there once it is over */
 } mout;
+/* MIDI OUT's notes (the audio ISR only) */
+static uint8_t mon_seq;                             /* seq_tick running: drum_play's hits are the sequencer's */
+static struct {
+    uint8_t nt[NTRK], ch[NTRK], po[NTRK];           /* the sounding note, its channel 0..15, its ports (0: none) */
+    uint8_t gate[NTRK];                             /* .. a gated model's: its Off when the gate closes */
+    uint32_t left[NTRK];                            /* .. else the samples to its Off */
+    uint32_t on;                                    /* bit per track: a note sounding */
+    uint32_t used;                                  /* bit per channel: notes since PLAY (All Notes Off when lost) */
+    uint32_t notes, drops, lost;                    /* console: Note Ons queued, refused (no room), Offs lost */
+    uint8_t lostf;                                  /* an Off lost since PLAY */
+} mon;
 
 static uint32_t mout_port(uint32_t src)            /* the output an input's port is (midi_in_source) */
 {
@@ -67,7 +97,7 @@ static uint32_t mout_port(uint32_t src)            /* the output an input's port
 static void mout_send(uint32_t pkt, uint32_t ports, int rt)
 {
     if (ports & SY_USB) {
-        if (!rt || mo_w - mo_r < MOUT_CLOCK_ROOM)
+        if (rt ? mo_w - mo_r < MOUT_CLOCK_ROOM : mo_w - mo_r < MQ)
             midi_out_event(pkt);                    /* (usb_app.c: dropped while no host has configured us) */
         else
             mout.drops++;
@@ -89,17 +119,108 @@ static void mout_half_done(uint32_t t1)             /* .. and ends */
 {
     mout.r_ticks = t1 - mout.t0;
 }
-static void mout_push(uint32_t st, uint32_t off)    /* st at sample off of this block */
+static int mout_put(uint32_t pkt, uint32_t po, uint32_t off)   /* pkt to ports po (0: a Clock) at sample off */
 {
     uint32_t w = mout.w;
     if (w - mout.r >= MOUT_Q) {
         mout.drops++;
-        return;
+        return 0;
     }
     mout.due[w % MOUT_Q] = mout.t0 + (uint32_t)(((uint64_t)(HALF_FRAMES + mout.blk + off) * MOUT_TPS_Q16) >> 16);
-    mout.st[w % MOUT_Q] = (uint8_t)st;
+    mout.pk[w % MOUT_Q] = pkt;
+    mout.po[w % MOUT_Q] = (uint8_t)po;
     RING_PUBLISH();
     mout.w = w + 1u;
+    return 1;
+}
+static void mout_push(uint32_t st, uint32_t off)    /* the Clock's st at sample off of this block */
+{
+    (void)mout_put(0x0Fu | st << 8, 0, off);
+}
+
+/* ---- MIDI OUT: the sequencer's notes (the audio ISR) ---- */
+static void mon_off(uint32_t k)                     /* track k's sounding note ends (now: this block's start) */
+{
+    if (!((mon.on >> k) & 1u))
+        return;
+    mon.on &= ~(1u << k);
+    if (!mout_put(0x08u | (0x80u | mon.ch[k]) << 8 | (uint32_t)mon.nt[k] << 16 | 0x40u << 24, mon.po[k], 0))
+        mon.lost++, mon.lostf = 1;
+}
+static void mon_all_off(void)                       /* STOP, PLAY: every Off; a lost one: All Notes Off */
+{
+    uint32_t k, c;
+    for (k = 0; k < NTRK; k++)
+        mon_off(k);
+    if (mon.lostf && mon.used) {
+        uint32_t po = (uint32_t)song.g[G_MOUT] & SY_ALL;
+        for (c = 0; c < 16u && po; c++)
+            if ((mon.used >> c) & 1u)
+                (void)mout_put(0x0Bu | (0xB0u | c) << 8 | 123u << 16, po, 0);
+    }
+    mon.used = 0;
+    mon.lostf = 0;
+}
+/* drum_play: track t's hit at velocity vel, seq_tick's (mon_seq); legato: an ACID slide (the old note's Off after) */
+static __attribute__((noinline)) void mon_note(track_t *t, uint32_t vel, int legato)
+{
+    uint32_t k = trk_index(t), po = (uint32_t)song.g[G_MOUT] & SY_ALL, ch = (uint32_t)song.g[G_MCH1 + k], nt, len;
+    uint32_t was = (mon.on >> k) & 1u, ont = mon.nt[k];
+    if (!po || ch - 1u > 15u || trk_silent(t)) {
+        mon_off(k);
+        return;
+    }
+    nt = arp_model(voice_model(t)) ? (uint32_t)clamp(60 + t->nt, 0, 127) : (uint32_t)t->p[P_NOTE] & 127u;
+    if (legato && was && ont == nt && mon.ch[k] == ch - 1u)
+        return;                                     /* (slid into the same note: it goes on) */
+    if (!legato)
+        mon_off(k);                                 /* one note a track: the sounding one ends first */
+    if (mout.w - mout.r > MOUT_Q - MON_ROOM) {      /* (the Offs and the Clocks keep their room) */
+        mon.drops++;
+        if (legato)
+            mon_off(k);
+        return;
+    }
+    vel = vel < 1u ? 1u : vel > 127u ? 127u : vel;
+    (void)mout_put(0x09u | (0x90u | (ch - 1u)) << 8 | nt << 16 | vel << 24, po, 0);
+    mon.notes++;
+    if (legato && was && (ont != nt || mon.ch[k] != ch - 1u))
+        (void)mout_put(0x08u | (0x80u | mon.ch[k]) << 8 | ont << 16 | 0x40u << 24, mon.po[k], 0);
+    mon.on |= 1u << k;
+    mon.used |= 1u << (ch - 1u);
+    mon.nt[k] = (uint8_t)nt;
+    mon.ch[k] = (uint8_t)(ch - 1u);
+    mon.po[k] = (uint8_t)po;
+    mon.gate[k] = (uint8_t)(trk_model(t)->gate != 0);
+    if (!mon.gate[k]) {
+        if (ar_glen) {
+            len = ar_glen;                          /* a roll's hit: GATE of its repeat */
+        } else {
+            uint32_t r = t->step[t->seq_idx].rat;
+            len = step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt) / (r < 3u ? r + 1u : 4u);
+        }
+        mon.left[k] = len > 2u * CTL ? len : 2u * CTL;
+    }
+}
+static void mon_hit(track_t *t, uint32_t vel)       /* drum_core.c drum_play (the hit plays: not muted) */
+{
+    if (mon_seq)
+        mon_note(t, vel, 0);
+}
+/* events_block, after the steps (n samples): the Offs due in this block, a gated model's when its gate closed, a muted
+ * track's */
+static __attribute__((noinline)) void mon_post(uint32_t n)
+{
+    uint32_t k;
+    for (k = 0; k < NTRK; k++) {
+        const track_t *t = &trk[k];
+        if (!((mon.on >> k) & 1u))
+            continue;
+        if (trk_silent(t) || (mon.gate[k] ? !t->gate_n : mon.left[k] <= n))
+            mon_off(k);
+        else if (!mon.gate[k])
+            mon.left[k] -= n;
+    }
 }
 static void mout_clock(uint32_t off)
 {
@@ -144,6 +265,7 @@ static __attribute__((noinline)) void mout_block(uint32_t n, uint32_t run)
 }
 static __attribute__((noinline)) void mout_start(void)   /* seq_start (block start) */
 {
+    mon_all_off();                                  /* (PLAY while playing: the sounding notes end) */
     if (song.g[G_CLOCK]) {                          /* following: the source's Start goes through as it is */
         mout.run = 0;
         return;
@@ -163,6 +285,7 @@ static __attribute__((noinline)) void mout_stop(void)   /* seq_stop */
     if (mout.run && song.g[G_SYNC])
         mout_push(0xFCu, 0);
     mout.run = 0;
+    mon_all_off();                                  /* MIDI OUT: no note left hanging */
 }
 
 /* ---- TIMER5, outside the render ---- */
@@ -212,18 +335,18 @@ static void mout_scan(void)
 static void mout_release(uint32_t now)
 {
     uint32_t q = now + (1u + (5u - mout.sub % 5u) % 5u) * MOUT_TICK, t_next = mout.t0 + MOUT_HALF_TICKS, lim;
-    uint32_t sync = (uint32_t)song.g[G_SYNC] & SY_ALL;
+    uint32_t sync = (uint32_t)song.g[G_SYNC] & SY_ALL, e, i;
     if ((int32_t)(t_next - now) > 0 && (int32_t)(q - t_next) >= 0)
         q = t_next + mout.r_ticks + MOUT_TICK;
     lim = now + (q - now) / 2u;
-    while (mout.r != mout.w) {
-        uint32_t i = mout.r % MOUT_Q;
-        if ((int32_t)(mout.due[i] - lim) > 0)
-            break;
-        if (sync)
-            mout_send(0x0Fu | (uint32_t)mout.st[i] << 8, sync, 1);
+    for (e = mout.r; e != mout.w && (int32_t)(mout.due[e % MOUT_Q] - lim) <= 0; e++)
+        if (!mout.po[e % MOUT_Q] && sync)           /* the Clocks first: their room rule before this poll's notes */
+            mout_send(mout.pk[e % MOUT_Q], sync, 1);
+    for (; mout.r != e; mout.r++) {
+        i = mout.r % MOUT_Q;
+        if (mout.po[i])
+            mout_send(mout.pk[i], mout.po[i], 0);   /* MIDI OUT's notes */
         RING_PUBLISH();
-        mout.r++;
     }
 }
 /* every TIMER5 tick, before main.c's handler (felucca.c); in_audio: nested in the render */
@@ -239,9 +362,23 @@ static void mout_tick(uint32_t now, uint32_t in_audio)
     poll = mout.owed;
     mout.owed = 0;
     if (mout_paused()) {
-        mout.r = mout.w;
+        for (; mout.r != mout.w; mout.r++) {        /* (MIDI OUT's notes swallowed: All Notes Off after it) */
+            uint32_t i = mout.r % MOUT_Q;
+            if (mout.po[i]) {
+                mout.ano_ch |= 1u << ((mout.pk[i] >> 8) & 15u);
+                mout.ano_po |= mout.po[i];
+            }
+        }
         mout.fw = mi_w;
         return;
+    }
+    if (mout.ano_ch) {
+        uint32_t c;
+        for (c = 0; c < 16u; c++)
+            if ((mout.ano_ch >> c) & 1u)
+                mout_send(0x0Bu | (0xB0u | c) << 8 | 123u << 16, mout.ano_po, 0);
+        mout.ano_ch = 0;
+        mout.ano_po = 0;
     }
     mout_scan();
     if (poll && mout.r != mout.w)

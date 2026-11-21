@@ -47,6 +47,8 @@ static const page_t PAGES[] = {
     {"GLOBAL", FAM_GLO, SC_GLOBAL, GR_NONE, {G_MUTEBAR, G_METRO, G_THRU, G_QUANT}},   /* device settings
                                                                        * (settings.mutebar, fx_metro, midi_thru, seq.c
                                                                        * rec_quant) */
+    {"MIDI OUT", FAM_GLO, SC_GLOBAL, GR_NONE, {G_MOUT, G_MCH1, 0xFF, 0xFF}},   /* the sequencer's notes (midi_out.c
+                                                                       * mon_*): OUT, the selected track's channel */
     {"DLY", FAM_GLO, SC_GLOBAL, GR_DLY, {G_DTIME, G_DFDBK, G_DCOLOR, G_DMIX}},   /* the send effects' buses: after GLO's
                                                                                 * own pages */
     {"DLY", FAM_GLO, SC_GLOBAL, GR_DLY, {G_DMODE, 0xFF, 0xFF, 0xFF}},   /* MODE: NORMAL / PING-PONG */
@@ -110,6 +112,8 @@ static uint32_t page_id(const page_t *pg, uint32_t slot)
     }
     if (pg->graph == GR_LDEST)
         return slot & 3u ? LS_ID[song.lslot & 3u][(slot & 3u) - 1u] : 0xFFu;
+    if (id == G_MCH1 && pg->scope == SC_GLOBAL)
+        return G_MCH1 + song.sel % NTRK;            /* MIDI OUT's CH: the selected track's */
     return id;
 }
 

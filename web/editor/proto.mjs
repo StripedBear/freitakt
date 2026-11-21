@@ -81,7 +81,7 @@ export const isFullRecord = (m) => m === MAGIC.PROJ;
 export const OLD_PROJECTS = new Map();
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 6, nstep: 64, pcount: 76, gcount: 32, pStored: 57, gStored: 31,
+  ntrk: 6, nstep: 64, pcount: 76, gcount: 39, pStored: 57, gStored: 31,
   // a record keeps the places of the removed Grids, RESON and SLICER (FREITAKT; project.c PR_G / PR_P): [first id
   // after the gap, its count], written 0
   gGap: [22, 10], sGap: [18, 4], pGap: [26, 1], rGap: [43, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
@@ -585,6 +585,8 @@ export function decodeProject(b) {
   const g = [];
   for (let i = 0; i < LAYOUT.gStored; i++) g.push(v.getInt16(L.g + 2 * recG(i), true));
   g.push(b[L.rsv]); // G_DMODE rides in rsv[0]
+  g.push(b[L.rsv + 1] ^ 1); // G_MOUT (MIDI OUT) in rsv[1] XOR 1 (0 in older records: USB)
+  for (let k = 0; k < LAYOUT.ntrk; k++) g.push((b[L.rsv_song + 2 + k] + k + 1) % 17); // G_MCH1..: (ch - (k+1)) mod 17
   const tracks = [];
   for (let k = 0; k < LAYOUT.ntrk; k++) {
     const o = L.t + k * L.trk, p = [], steps = [];
@@ -617,6 +619,11 @@ export function encodeProject(p) {
   v.setUint32(4, SZ.PROJECT, true);
   for (let i = 0; i < LAYOUT.gStored; i++) v.setInt16(L.g + 2 * recG(i), p.g[i], true);
   b[L.rsv] = p.g[LAYOUT.gStored] & 255;
+  b[L.rsv + 1] = ((p.g[LAYOUT.gStored + 1] ?? 1) ^ 1) & 255; // (project.c proj_g / PROJ_MCH)
+  for (let k = 0; k < LAYOUT.ntrk; k++) {
+    const ch = p.g[LAYOUT.gStored + 2 + k] ?? k + 1;
+    b[L.rsv_song + 2 + k] = (((ch - k - 1) % 17) + 17) % 17;
+  }
   b[L.sel] = p.sel;
   p.tracks.forEach((t, k) => {
     const o = L.t + k * L.trk;

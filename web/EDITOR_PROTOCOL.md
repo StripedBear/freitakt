@@ -136,7 +136,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   GET, SET's reply, DUMP and CHANGED all report MOTION's base and, on a locked step, the value under the LOCK.
 - **PAGES** lists, in the device's order, the pages of its page table the editor may show, resolved for the
   selected track **now**: the pages of scope track or global except the PROJECT / COPY (slots) and MOTION pages
-  and the pages holding a knob past G_COUNT (TOOLS, GLOBAL 3/7: MUTE, METRO, THRU, QUANT — device settings, not
+  and the pages holding a knob past G_COUNT (TOOLS, GLOBAL 3/8: MUTE, METRO, THRU, QUANT — device settings, not
   project data). The GLO pages DLY (two), REVERB (TYPE ROOM / SPRNG / HALL, SIZE, DAMP) and CHORUS (RATE, DEPTH) are
   global pages like GLOBAL and SYSTEM (graphs 17..19: the device's drawings of the echoes, the tail, the sweep). A column is a parameter id or `3FFF` (empty). SOUND
   columns are the selected track's SOUND list (MODEL, P_E0..P_E3, the P_E4..P_E7 whose label does not start with

@@ -437,6 +437,8 @@ static __attribute__((noinline)) void acid_gate_set(track_t *t, const step_t *ne
         t->gate_n = acid_gate_len(t, t->rat_len / t->rat_n);
 }
 
+static void mon_note(track_t *t, uint32_t vel, int legato);   /* midi_out.c: MIDI OUT */
+
 /* a gated model's step (spec §3): TIE holds the sounding note, its gate open through the whole step (the next step
  * decides: a rest closes it, an ON step restarts or glides, a TIE goes on); a slid-into ON step glides, any other ON
  * step restarts; the gate stays open into the next step when this one slides or the next is a TIE. */
@@ -473,6 +475,7 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
         t->nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
         v->vel = t->rat_vel;                           /* glide reads it: the slid-to step's accent */
         m->glide(t, v);
+        mon_note(t, t->rat_vel, 1);                    /* MIDI OUT: legato */
     } else {
         drum_play(t, t->rat_vel, nt);
     }
@@ -1210,11 +1213,15 @@ static void events_block(uint32_t n)
                                                      * pulse; stopped, seq_tick counts ACID's gates in real time */
     cue_block(n, seq_n, run);                        /* cue.c: this block's fade; a queued switch's boundary */
     if (run) {
+        mon_seq = 1;                                 /* MIDI OUT: drum_play's hits are the steps' */
         for (i = 0; i < NTRK; i++)
             seq_tick(&trk[i], seq_n);
+        mon_seq = 0;
         gclk_tick(seq_n);
         cue.cut = 0;
     }
+    if (mon.on)
+        mon_post(n);                                 /* midi_out.c: MIDI OUT's Offs due */
     mout_block(n, run);                             /* midi_out.c: SYNC's Clocks on the own clock (after gclk_tick) */
     if (song.playing)
         song.tick++;

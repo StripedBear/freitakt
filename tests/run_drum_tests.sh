@@ -27,6 +27,16 @@ cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-re
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
     -Wno-int-to-pointer-cast -Wno-macro-redefined -DFELUCCA_BLE=1 -Ibuild/gen -Ifirmware/src -o "$OUT/sync_test_ble" tests/sync_test.c -lm   # (.. the Bluetooth build's BLE / BOTH)
 "$OUT/sync_test_ble"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/midiout_seq_test" tests/midiout_seq_test.c -lm   # (GLO MIDI OUT: the sequencer's notes; ASan + UBSan)
+"$OUT/midiout_seq_test"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -DFELUCCA_BLE=1 -Ibuild/gen -Ifirmware/src -o "$OUT/midiout_seq_test_ble" tests/midiout_seq_test.c -lm   # (.. BLE / BOTH)
+"$OUT/midiout_seq_test_ble"
+cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src \
+    -o "$OUT/midiout_cost" tests/midiout_seq_test.c -lm   # (.. its CPU cost: host instructions, -O2)
+"$OUT/midiout_cost" > "$OUT/midiout_cost.txt" 2>&1 || { grep -v "^ok" "$OUT/midiout_cost.txt"; exit 1; }
+grep "cost" "$OUT/midiout_cost.txt"
 cc -O1 -g -fsanitize=signed-integer-overflow -fno-sanitize-recover=all -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/metro_test" tests/metro_test.c -lm   # (UBSan: the click in the mix)
 "$OUT/metro_test"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ifirmware/src -o "$OUT/led_dim_test" tests/led_dim_test.c   # (the key backlight on the real scan)

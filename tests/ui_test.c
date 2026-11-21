@@ -3126,6 +3126,44 @@ static void test_glo_quant(void)
           song.act[2] == (int16_t)settings.mutebar && song.act[3] == (int16_t)fx_metro && song.act[4] == (int16_t)midi_thru);
 }
 
+/* GLO MIDI OUT 4/8: KNOB 1 OUT (OFF USB, + BLE BOTH in the Bluetooth build; USB by default), KNOB 2 the selected
+ * track's channel (OFF, 1..16; track n on n by default), project globals (midi_out.c mon_*) */
+static void test_glo_midi_out(void)
+{
+    uint32_t k;
+    int16_t *vp;
+    const param_desc_t *d;
+    char v[12];
+    const char *u;
+    ui_host_init();
+    for (k = 0; k < 10u && (ui.home || !str_eq(cur_page()->title, "MIDI OUT")); k++)
+        tap(B_GLO);
+    d = page_desc(cur_page(), 0, &vp);
+    param_format(d, *vp, v, &u);
+    check("GLO MIDI OUT: KNOB 1 is OUT, USB", d && str_eq(d->label, "OUT") && vp == &song.g[G_MOUT] && str_eq(v, "USB"));
+    d = page_desc(cur_page(), 1, &vp);
+    param_format(d, *vp, v, &u);
+    check("GLO MIDI OUT: KNOB 2 the selected track's channel (T1CH 1)", d && str_eq(d->label, "T1CH") &&
+                                                                          vp == &song.g[G_MCH1] && str_eq(v, "1"));
+    song.sel = 2;
+    ui_frame();
+    d = page_desc(cur_page(), 1, &vp);
+    check("GLO MIDI OUT: track 3 selected: T3CH 3", d && str_eq(d->label, "T3CH") && vp == &song.g[G_MCH1 + 2] &&
+                                                       *vp == 3);
+    turn(EN_K2, -3);
+    ui_frame();
+    param_format(d, song.g[G_MCH1 + 2], v, &u);
+    check("T3CH: KNOB 2 down to OFF, track 1's untouched", song.g[G_MCH1 + 2] == 0 && str_eq(v, "OFF") &&
+                                                             song.g[G_MCH1] == 1);
+    turn(EN_K2, 20);
+    ui_frame();
+    check("T3CH: up to 16 at most", song.g[G_MCH1 + 2] == 16);
+    turn(EN_K1, -1);
+    ui_frame();
+    check("OUT: KNOB 1 -> OFF", song.g[G_MOUT] == 0);
+    song.sel = 0;
+}
+
 /* GLO SYSTEM 2/3: KNOB 2 SYNC (MIDI clock out: OFF USB, + BLE BOTH in the Bluetooth build), KNOB 3 ROUT (MIDI in:
  * NOTE SEL TRACK), project globals; GLOBAL 3/3 KNOB 3: THRU OFF / ON, the device setting midi_thru (midi_out.c) */
 static void test_glo_midi_settings(void)
@@ -4980,7 +5018,7 @@ static void test_key_selects_track(void)
     static const struct { const char *title; uint32_t btn, presses; int want; } C[] = {
         {"SOUND", B_EDIT, 1, 1},
         {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"INSERT", B_FX, 5, 1},
-        {"DLY", B_GLO, 4, 0}, {"CHORUS", B_GLO, 7, 0},
+        {"MIDI OUT", B_GLO, 4, 0}, {"DLY", B_GLO, 5, 0}, {"CHORUS", B_GLO, 8, 0},
         {"PATTERN", B_SEQ, 2, 0},
     };
     uint32_t i, ok = 1;
@@ -5061,30 +5099,31 @@ static void glo_open(const char *title)             /* GLO until the page shows 
         ui_frame();
     }
 }
-/* the delay's, the reverb's and the chorus' pages are GLO's, after its own (GLOBAL, SYSTEM, GLOBAL 3/7); FX keeps
- * the per-track pages */
+/* the delay's, the reverb's and the chorus' pages are GLO's, after its own (GLOBAL, SYSTEM, GLOBAL 3/8, MIDI OUT); FX
+ * keeps the per-track pages */
 static void test_bus_pages_on_glo(void)
 {
     uint32_t k, seen = 0;
-    static const char *const WANT[] = {"GLOBAL", "SYSTEM", "GLOBAL", "DLY", "DLY", "REVERB", "CHORUS", "GLOBAL"};
+    static const char *const WANT[] = {"GLOBAL", "SYSTEM", "GLOBAL", "MIDI OUT", "DLY", "DLY", "REVERB", "CHORUS",
+                                       "GLOBAL"};
     ui_host_init();
     glo_open("GLOBAL");
-    for (k = 0; k < 8u; k++) {
+    for (k = 0; k < 9u; k++) {
         seen += str_eq(cur_page()->title, WANT[k]) && cur_page()->fam == FAM_GLO;
         press(B_GLO);
         ui_frame();
         release_all();
         ui_frame();
     }
-    check("GLO: GLOBAL, SYSTEM, GLOBAL 3/7, then DLY 4/7, DLY 5/7, REVERB 6/7, CHORUS 7/7, then round to GLOBAL",
-          seen == 8u);
+    check("GLO: GLOBAL, SYSTEM, GLOBAL 3/8, MIDI OUT 4/8, then DLY 5/8, DLY 6/8, REVERB 7/8, CHORUS 8/8, then round to "
+          "GLOBAL", seen == 9u);
     for (k = 0, seen = 0; k < NPAGES; k++)
         seen += PAGES[k].fam == FAM_FX && (str_eq(PAGES[k].title, "DLY") || str_eq(PAGES[k].title, "REVERB") ||
                                            str_eq(PAGES[k].title, "CHORUS"));
     check("FX: no DLY, REVERB or CHORUS page any more", seen == 0u);
     for (k = 0, seen = 0; k < NPAGES; k++)
         seen += PAGES[k].fam == FAM_GLO;
-    check("GLO: 7 pages", seen == 7u);
+    check("GLO: 8 pages", seen == 8u);
 }
 /* GLO > DLY / REVERB: their graphs (the echo train; the tail), redrawn when their values change; screens for the user */
 static uint32_t graph_ink(void)                      /* ink pixels in the graph's area (the frame's edges aside) */
@@ -10387,7 +10426,7 @@ static int sk_blinks(uint32_t key, uint32_t frames, int *always_on, int *always_
     return on && off;
 }
 static int sk_ph_key(uint32_t want)                  /* the 16 keys: only key want (16: none) differs from the
-                                                      * steps (trigs, no locks, no blink) */
+                                                      * steps (trigs; a locked step other than want blinks: either) */
 {
     uint32_t k, si;
     int ok = 1;
@@ -10395,6 +10434,8 @@ static int sk_ph_key(uint32_t want)                  /* the 16 keys: only key wa
     ui_leds();
     for (k = 0; k < 16u; k++) {
         si = ui.bank * 16u + k;
+        if (k != want && ((lkv.mask >> k) & 1u))
+            continue;
         int trig = si < view_len(t) && t->step[si].on;
         ok &= led_on(14u + STEP_KEY[k]) == (k == want ? !trig : trig);
     }
@@ -10573,6 +10614,7 @@ int main(void)
     test_global_mute_setting();
     test_global_metro_setting();
     test_glo_midi_settings();
+    test_glo_midi_out();
     test_glo_quant();
     test_comp_pages();
     test_comp_ghost_knob();

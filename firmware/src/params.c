@@ -25,6 +25,8 @@ static const char *const N_SYNC[] = {"OFF", "USB",   /* G_SYNC: SY_ bits (midi_o
                                      "BLE", "BOTH",
 #endif
 };
+static const char *const N_MCH[] = {"OFF", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14",
+                                    "15", "16"};   /* G_MCH1..: a track's MIDI OUT channel (midi_out.c mon_*) */
 static const char *const N_ROUTE[] = {"NOTE", "SEL", "TRACK"};   /* G_ROUTE: RT_ (seq.c midi_block) */
 static const char *const N_SLOT[] = {"-", "A", "B", "C", "D"};   /* G_SLOT 1..4: the project slots A..D */
 static const char *const N_GO[] = {"--", "GO"};
@@ -161,7 +163,12 @@ static const param_desc_t GP[G_COUNT] = {
     [G_CGHOST] = PE("GHOST", N_GHOST, CG_KEEP),
     [G_RTYPE] = PE("TYPE", N_RTYPE, 0),
     [G_DMODE] = PE("MODE", N_DMODE, 0),
+    [G_MOUT] = PE("OUT", N_SYNC, 1),                 /* MIDI OUT: the sequencer's notes, USB by default */
+#define MCH(n) [G_MCH1 + n - 1] = {"T" #n "CH", F_ENUM, 0, 16, n, N_MCH, 0}   /* track n: channel n by default */
+    MCH(1), MCH(2), MCH(3), MCH(4), MCH(5), MCH(6),
+#undef MCH
 };
+_Static_assert(G_MCH6 == G_MCH1 + NTRK - 1, "MIDI OUT: a channel per track");
 
 /* after G_COUNT: the TOOLS actions (G_CLRALL, G_INITALL) and GLOBAL 3/7's MUTE, METRO, THRU and QUANT (G_MUTEBAR,
  * G_METRO, G_THRU, G_QUANT: the device settings settings.mutebar, fx_metro, midi_thru, rec_quant); their knob values

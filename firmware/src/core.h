@@ -88,6 +88,9 @@ enum {                          /* global parameters */
     G_DMODE,                                         /* DLY MODE (fx.c): 0 NORMAL, 1 PING-PONG. Past the project's
                                                       * globals (G_NSTORED): stored in its reserved byte rsv[0]
                                                       * (project.c; every earlier firmware wrote 0 there: NORMAL) */
+    G_MOUT,                                          /* MIDI OUT (midi_out.c mon_*): the sequencer's notes to SY_ bits
+                                                      * OFF 0, USB 1 (+ BLE 2, BOTH 3); rsv[1], stored XOR 1 */
+    G_MCH1, G_MCH2, G_MCH3, G_MCH4, G_MCH5, G_MCH6,  /* .. track n's channel: 0 OFF, 1..16 (default n); rsv_song[2..7] */
     G_COUNT
 };
 #define G_NSTORED G_DMODE        /* the globals in a project's block (FDR7 .. FDRF: G_BPM .. G_RTYPE) */

@@ -224,6 +224,9 @@ static void con_status(void)
     con_kv("midi_thru", midi_thru);                      /* the own clock's Clocks */
     con_kv("midi_out_sent", (int32_t)mout.sent);
     con_kv("midi_out_drops", (int32_t)mout.drops);
+    con_kv("midi_out_notes", (int32_t)mon.notes);       /* MIDI OUT: Note Ons queued, refused (no room), Offs lost */
+    con_kv("midi_out_note_drops", (int32_t)mon.drops);
+    con_kv("midi_out_off_lost", (int32_t)mon.lost);
     con_kv("midi_out_fwd", (int32_t)mout.fwd);
     con_kv("midi_out_clocks", (int32_t)mout.pulses);
 #if FELUCCA_UAC

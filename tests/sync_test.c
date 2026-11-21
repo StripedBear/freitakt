@@ -108,6 +108,8 @@ static void hw_reset(void)
 {
     host_init_live();
     memset(&mout, 0, sizeof mout);
+    memset(&mon, 0, sizeof mon);
+    song.g[G_MOUT] = 0;                                /* (MIDI OUT's notes: tests/midiout_seq_test.c) */
     midi_thru = 0;
     mo_r = mo_w = 0;
     usb.config = 1;
