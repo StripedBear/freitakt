@@ -35,8 +35,9 @@ static const theme_t THEMES[] = {
     {"GREEN", RGB(0xa3, 0xbf, 0x3c), RGB(0x1c, 0x2a, 0x08)},        /* 3 BLACK ON GREEN */
     {"BLUE INV", RGB(0xf4, 0xf8, 0xff), RGB(0x24, 0x45, 0xc8)},     /* 4 BLUE ON WHITE */
     {"GREEN INV", RGB(0x0c, 0x12, 0x04), RGB(0xb4, 0xd0, 0x44)},    /* 5 GREEN ON BLACK */
-    {"ORANGE", RGB(0xff, 0x8c, 0x00), RGB(0x10, 0x08, 0x00)},       /* 6 BLACK ON ORANGE (FREITAKT default) */
-    {"ORANGE INV", RGB(0x10, 0x08, 0x00), RGB(0xff, 0x8c, 0x00)},   /* 7 ORANGE ON BLACK */
+    {"ORANGE", RGB(0xff, 0x60, 0x00), RGB(0x10, 0x08, 0x00)},       /* 6 BLACK ON ORANGE (FREITAKT default: more
+                                                                     * orange, less yellow; the ink black) */
+    {"ORANGE INV", RGB(0x10, 0x08, 0x00), RGB(0xff, 0x60, 0x00)},   /* 7 ORANGE ON BLACK (the same two swapped) */
 };
 #define NTHEMES (sizeof(THEMES) / sizeof(THEMES[0]))
 #define THEME_TAG 0x10u

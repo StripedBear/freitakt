@@ -216,7 +216,7 @@ static void menu_close(void)
 
 #define SPLASH_MS 1200u
 #define SP_Y 76u                                       /* the name's band: y 76..135 */
-#define SP_SUB "MASCHINE // TAKT"
+#define SP_SUB "Form folgt Function"   /* (MD_F3: drawn in caps) */
 /* the start screen (main.c fm1_main, right after lcd_init, while the rest starts): the theme reversed (ORANGE: orange
  * on black), the CRT's beam a line across the middle; the splash runs on from it in the first UI frames */
 static void draw_boot_title(void)
@@ -228,7 +228,7 @@ static void draw_boot_title(void)
 
 /* the FREITAKT boot splash (FREITAKT: Model:Cycles style, light): SPLASH_MS of UI frames after boot, no blocking, no
  * bitmap: the beam sweeps down revealing FREITAKT through scanlines (the rows near it torn sideways), glitch slices
- * that settle, then the clean name, "MASCHINE // TAKT" typed under it and a boot bar filling. Any key, button or knob
+ * that settle, then the clean name, "Form folgt Function" typed under it and a boot bar filling. Any key, button or knob
  * skips it (and does nothing else: ui_input waits for everything let go). Drawn: the name's band (240 x 60) every
  * frame, the subtitle when it grows, the bar's new part */
 static void sp_row_fill(int32_t y, uint16_t c)
