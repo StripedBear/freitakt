@@ -226,8 +226,8 @@ static void draw_head(void)
     int32_t x = 4, lvl;
     uint32_t rec = (song.rec >> song.sel) & 1u ? 2u : song.rec != 0u;
     /* FREITAKT redesign: the battery alone, top right; the ENV STEPS padlock left of it; on the left only what is
-     * essential and passing: a track armed (the record icon), MIDI LEARN's line, the held modes (CUE, FILL, LOCK STEP,
-     * STEP TOOLS, STEP REC; not KEYS: its LED says it) */
+     * essential and passing: a track armed (the record icon), MIDI LEARN's line, the held modes (CUE, FILL, LOCK STEP;
+     * not KEYS: its LED says it) */
     if (ui.ml.on)
         ml_line(m);
     else if (!head_text(m, 0))

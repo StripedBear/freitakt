@@ -189,7 +189,7 @@ static void pre_frame(uint32_t now)
     }
 }
 
-/* EDIT pressed (ui_input, before it opens its page; not in step record): the page it leaves, kept for a hold */
+/* EDIT pressed (ui_input, before it opens its page): the page it leaves, kept for a hold */
 static void edit_down(uint32_t now)
 {
     ui.pr.e_st = 1;
