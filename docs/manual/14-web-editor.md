@@ -62,7 +62,7 @@ Four cards, **A to D**, show what is **saved in the FM-1's flash**: the name, th
 
 A backup holds **what is saved**, not what is only in the FM-1's memory. A card marked "unsaved changes" tells you to **SAVE on the FM-1 first** (or use Save on FM-1 in the Patterns tab).
 
-Restores and copies run only while the FM-1 is **stopped**. During a restore the FM-1 shows `RESTORING`; its PLAY, cue keys, LOAD, SAVE, the TOOLS pastes, DUPLICATE and CLEAR, and a held step's knobs wait, and nothing is recorded. A power cut in the middle leaves the old or the new project whole. A file made by a newer editor than the FM-1 understands is refused with `UPDATE THE FM-1 FIRST`, and the FM-1 keeps what it has. Backups made by earlier test builds (before NUDGE) still restore, every step at NUDGE 0.
+Restores and copies run only while the FM-1 is **stopped**. During a restore the FM-1 shows `RESTORING`; its PLAY, cue keys, LOAD, SAVE, the copy / paste combos and the track clear, and a held step's knobs wait, and nothing is recorded. A power cut in the middle leaves the old or the new project whole. A file made by a newer editor than the FM-1 understands is refused with `UPDATE THE FM-1 FIRST`, and the FM-1 keeps what it has. Backups made by earlier test builds (before NUDGE) still restore, every step at NUDGE 0.
 
 ## Patterns
 

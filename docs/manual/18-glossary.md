@@ -59,7 +59,7 @@
 | **SOLO** | ARP + black keys 1 to 6; TOGGLE or MOMENTARY mode (ARP + F#5). |
 | **SRR** | sample rate reduction on a track (INSERT 2/2). |
 | **START / END** | SAMPLE: play part of a sample, 0 to 127 over its length. |
-| **TOOLS (hold SEQ)** | the step tools screen: copy, paste, fill, duplicate. (The SAVE page's TOOLS is a different screen.) |
+| **Copy / paste combos** | SAVE + REC / PLAY copies / pastes the selected track, GLO + REC / PLAY the pattern; no screen, a short message (`COPIED T3`, `PASTED PATTERN`). REC + SEL held 5 s clears the track. (There is no step TOOLS screen; the SAVE page TOOLS is something else.) |
 | **USER** | the 96 slots for your own presets; each keeps the track's FX. |
 | **Write** | in the editor, sends your changes to the FM-1 (user presets, sample sets). |
 | **Safe start** | hold SEQ at power-on: loads nothing; USB updates still answer. |

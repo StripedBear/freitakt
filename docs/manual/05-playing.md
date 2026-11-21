@@ -7,7 +7,7 @@ Tap [[SCL]] (labelled SEL; on its release): the 27 keys play the selected track 
 
 - With KEYS on, [[OCT-]] / [[OCT+]] are the octave. The LFO pages' RATE MODE needs KEYS off.
 - On TRACKS the OCT buttons remain the bank.
-- TRACKS, COMP, NAME, the menu, PERFORM (FX held), the combos (GLO, SEL, SEQ or ARP held), the step TOOLS (SEQ held) and the cue map (SAVE held) keep their own key jobs.
+- TRACKS, COMP, NAME, the menu, PERFORM (FX held), the combos (GLO, SEL, SEQ or ARP held) and the cue map (SAVE held) keep their own key jobs.
 - KEYS notes send **no MIDI out**. An ACID note (or a tied chain) longer than 5.5 s is cut, a safety limit.
 - [[ENV]] turns KEYS off, and [[SCL]] turns STEPS off.
 
@@ -38,9 +38,13 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 
 FREITAKT has no step record. Steps are entered with the white keys (on PATTERN and TRACKS, or anywhere with ENV in STEPS mode) and shaped by holding a step and turning a knob (PROB, RATCH, ACCENT, NUDGE, or a parameter lock); notes go in by playing them in KEYS mode on an armed track (see *Live recording*).
 
-## Clearing with REC
+## Fill, clear, copy and paste
 
-Hold [[REC]] on SEQ's page: **CLEAR TRACK** (steps, motion and locks). Hold [[REC]] (0.4 s) on any other page to play a **fill** while you hold it (`FILL` on top).
+Hold [[REC]] (0.4 s) on any page to play a **fill** while you hold it (`FILL` on top).
+
+Hold [[REC]] and [[SCL]] (SEL) together, either first, for **5 s** to clear the selected track (steps, motion and locks of the pattern playing). While both are held the whole screen warns `CLEAR T3` and counts 5, 4, 3, 2, 1; let either button go before the end and nothing is cleared. Then the message `CLEARED T3`. Neither button does its own job in this combo (no REC ALL, fill, arm, KEYS toggle or track select), and a knob popup open at that moment closes.
+
+Copy and paste are combos too, with no screen: [[SAVE]] + [[REC]] copies the selected track, [[SAVE]] + [[PLAY]] pastes it onto the selected track; [[GLO]] + [[REC]] copies the pattern, [[GLO]] + [[PLAY]] pastes it. PLAY does not start or stop the transport there, and REC arms nothing. See *Sequencer, Copy, paste and clear*.
 
 ## Mutes, solo and track select
 
@@ -54,7 +58,7 @@ Black keys 1 to 6 (F#3 G#3 A#3 C#4 D#4 F#4) are tracks 1 to 6. Hold a button and
 | [[ARP]] + F#5 | solo mode: **TOGGLE** (a press solos / unsolos) or **MOMENTARY** (soloed only while the key is held, also after ARP is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`; F#5 lit while MOMENTARY) |
 | [[SCL]] (SEL) + black 1 to 6 | select track 1 to 6 (its key lit while SEL is held) |
 
-- A SEQ hold that began with a black key opens no TOOLS screen and turns no page; once TOOLS is up (SEQ held 0.4 s, or a white key pressed first) the black keys are its tools.
+- A SEQ hold that began with a black key turns no page; a white key with SEQ does nothing.
 - **MUTE MODE** in the device menu (hold [[HOME]]) sets `NOW` or `BAR`: with BAR a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
 - Solo itself is not saved (INIT and power-on clear it); mutes stay as they are under a solo. It is the same solo state the SMC-Mixer uses. HOME's TRACKS mode shows the mutes.
 - The keys pressed with the button play nothing, send no MIDI and record nothing.
@@ -105,9 +109,9 @@ In STEPS, on any page whose knobs MOTION can record (TRACKS' LEVEL and PAN, SOUN
 - Turning the knob shows the lock full screen (the knob popup, the value inverted). While that popup is up, [[OCT-]] is undo: the lock goes back to how it was before the turns (no lock, or its old value) and nothing is cleared.
 - Hold the step and tap [[OCT-]] (with no knob popup up: 3 s after the last turn) to clear its locks on this page's knobs (`STEP 5 LOCKS CLEARED`); hold [[OCT-]] 0.6 s to clear all its locks (`STEP 5 ALL CLEARED`).
 - A step turned off keeps its locks for when it is on again.
-- Locks and MOTION share **1024 events per project** (`LOCKS FULL`). Locks always play; CLEAR TRACK clears both.
+- Locks and MOTION share **1024 events per project** (`LOCKS FULL`). Locks always play; the track clear (REC + SEL held 5 s) clears both.
 - STOP, a model change (it also lets a held machine lock go), a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's.
 
 ## MOTION
 
-Knob turns are recorded per step while a track plays, and played back with the pattern: up to 1024 events per project (shared by the 6 tracks and the locks). Motion has no page and no PLAY switch on the panel; CLEAR TRACK clears it with the steps and locks.
+Knob turns are recorded per step while a track plays, and played back with the pattern: up to 1024 events per project (shared by the 6 tracks and the locks). Motion has no page and no PLAY switch on the panel; the track clear (REC + SEL held 5 s) clears it with the steps and locks.

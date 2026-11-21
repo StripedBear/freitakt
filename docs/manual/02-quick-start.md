@@ -26,7 +26,7 @@ You do not need to remember button names yet: every section of the screen is rea
 - **Mute, solo, select:** black keys 1 to 6 are tracks 1 to 6: hold [[SEQ]] and press one to mute it, hold [[ARP]] to solo it, hold [[SCL]] (SEL) to select it.
 - **Patterns:** hold [[GLO]] and press white key 1 to 4 to queue pattern A to D (several: a chain), or black key 1 to 8 to queue variation 1 to 8.
 - **Perform:** hold [[FX]]: the black keys are live effects (repeat, reverse, tape stop...), the white keys repeat a track's step, the knobs become FILTER / CRUSH / THROW / DEPTH.
-- **Step tools:** hold [[SEQ]] for copy, paste, fill and duplicate on the steps.
+- **Copy, paste, clear:** [[SAVE]] + [[REC]] copies the selected track, [[SAVE]] + [[PLAY]] pastes it; [[GLO]] + [[REC]] / [[GLO]] + [[PLAY]] do the same for the pattern; hold [[REC]] + [[SCL]] 5 s to clear the track.
 - **Finger-drum:** tap [[REC]] on any page except TRACKS to arm all tracks, then play the white keys while playing. [[REC]] never starts the transport; [[PLAY]] does.
 - **Play a melody:** tap [[SCL]] (labelled SEL) for KEYS: the keys become a keyboard for the selected track, [[OCT-]] / [[OCT+]] its octave.
 - **Lock a step:** tap [[ENV]] (the padlock appears), hold a step and turn a knob: that step plays its own value for that knob.

@@ -91,7 +91,7 @@ Both are on **MIDI OUT** and saved with the device settings (not in projects).
 - **Velocity**: always 100. The keys are on/off switches; they don't sense velocity.
 - **Where the notes go**: USB MIDI out, and in the Bluetooth version also the Bluetooth MIDI device (ROLE DEVICE) while it is linked. This doesn't depend on OUT.
 - **LOCL**: ON, the keys also play the selected track as in KEYS. OFF, they send MIDI only and play nothing here.
-- **The sequencer** keeps running and keeps sending its own MIDI OUT notes. Step editing is off in this mode: no live recording of the keys, and SEQ held gives no step tools (SEQ + black key still mutes). The other combos and pages work as usual.
+- **The sequencer** keeps running and keeps sending its own MIDI OUT notes. Step editing is off in this mode: no live recording of the keys, and the white keys do nothing with SEQ (SEQ + black key still mutes). The other combos and pages work as usual.
 - **No hung notes**: a key's Off always goes out on the channel and note its On used, even if the octave or KBD changed while the key was held. Leaving the mode sends an Off for every held key. If the Bluetooth link drops, every held key's Off goes out at once, and those keys stay silent until pressed again. While a firmware update runs, nothing is sent. If an Off cannot be sent (full queue), an All Notes Off follows on that channel once no key is held.
 - **The knobs** don't send CCs in this mode. To send CCs from the knobs, use MIDI LEARN.
 

@@ -22,7 +22,7 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and o
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
 - **The keys' lights:** a trig lit, a step with a parameter or machine lock blinking; while playing the selected track's step (the running cursor) toggles its key; black 1 to 6 light the selected track and breathe for armed ones (see *Panel, Step LEDs*).
 - **Banks:** [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
-- **Clear:** hold [[REC]] 0.7 s on SEQ's page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
+- **Clear:** hold [[REC]] + [[SEL]] together for 5 s (the screen counts `CLEAR T3` down from 5; let go early and nothing changes). It clears the selected track's steps, its MOTION events and its parameter locks (`CLEARED T3`). An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
 - **Where the held-step knobs work:** PATTERN and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
 
 ## ARP and RETRIG
@@ -65,7 +65,7 @@ TRACKS' LEN knob is the same length.
 
 ## Motion: recorded knob turns
 
-Knob turns are recorded per step while a track is armed and playing, and play back with the pattern. Motion has no page of its own and no PLAY switch on the panel; CLEAR TRACK (hold [[REC]] 0.7 s on SEQ's page, or TOOLS) clears it together with the track's steps and locks. There is no separate CLEAR MOTION.
+Knob turns are recorded per step while a track is armed and playing, and play back with the pattern. Motion has no page of its own and no PLAY switch on the panel; the track clear (hold [[REC]] + [[SEL]] 5 s) clears it together with the track's steps and locks. There is no separate CLEAR MOTION.
 
 Up to **1024 events** per project are shared by all tracks and by parameter locks (`MOTION FULL`, `LOCKS FULL`). Fader and knob moves from the SMC-Mixer and MIDI LEARN are recorded as motion only where stated in their sections. LFO RATE, MORPH and DEPTH knobs are recordable; SRC and DEST are not.
 
@@ -106,21 +106,20 @@ On PATTERN or TRACKS hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hi
 | **1/32** | the nearest half step (NUDGE 0 or +-50) |
 | **OFF** | the nearest step, keeping how early or late you played as its NUDGE (up to +-50) |
 
-## Step tools: hold SEQ
+## Copy, paste and clear: button combos
 
-Hold [[SEQ]] (0.4 s, or press a white key with it) for the **TOOLS** screen for the selected track. A quick SEQ tap still opens PATTERN, on its release. A black key pressed with SEQ before the screen is up mutes a track instead (black 1 to 6: tracks 1 to 6; see *The panel*, Combos): that hold opens neither TOOLS nor PATTERN. The white keys are the bank's 16 steps, [[OCT-]] / [[OCT+]] the bank, and the black keys are the tools:
+There is no TOOLS screen (Elektron Model:Cycles style, no screen, only a short message). Hold the first button and press the second:
 
-| Key | Tool |
+| Combo | What it does |
 | --- | --- |
-| **F#3** COPY STEP | hold it and tap a step: it goes into the step buffer |
-| **G#3** PASTE STEP | hold it and tap steps: the buffered step goes into each (`NO STEP COPIED` if empty) |
-| **A#3** COPY PAGE | the bank's 16 steps into the clipboard |
-| **C#4** REPLACE | the clipboard over the bank shown |
-| **D#4** MERGE | only the clipboard's steps that are on |
-| **F#4** FILL | the clipboard repeated over the whole pattern up to LEN |
-| **G#4** COPY SEL | [[KNOB 1]] START, [[KNOB 2]] END (1 to 64); G#4 again copies |
-| **A#4** PASTE SEL | then tap a step (`PICK A STEP`); hold A#4 to paste at several steps |
-| **C#5** DUPLICATE | every track's pattern twice as long, up to 64 steps, the new half a copy (`DUPLICATED`) |
-| **D#5** CLEAR | `CLEAR TRACK n?` ([[OCT+]] yes, [[OCT-]] no) |
+| [[SAVE]] + [[REC]] | copy the selected track (`COPIED T3`) |
+| [[SAVE]] + [[PLAY]] | paste it onto the selected track (`PASTED T5`, `NO TRACK COPIED`) |
+| [[GLO]] + [[REC]] | copy the pattern, all six tracks (`COPIED PATTERN`) |
+| [[GLO]] + [[PLAY]] | paste it over the pattern playing (`PASTED PATTERN`, `NO PATTERN COPIED`) |
+| [[REC]] + [[SEL]] held 5 s | clear the selected track (`CLEAR T3` counting 5 to 1, then `CLEARED T3`) |
 
-A copied step keeps everything: accent, PROB, ratchet, note, slide and tie, its NUDGE and its parameter locks. With the locks full a paste brings what fits and says `LOCKS FULL`. Other messages: `COPIED a-b`, `COPIED, LOCKS CUT`, `CLIPBOARD EMPTY`. Keys pressed with SEQ play nothing, send nothing and record nothing; [[PLAY]] works. The clipboard is kept until power-off, across projects. Holding SEQ while switching on is still the safe start.
+A copy takes the pattern and variation playing: every step whole (accent, PROB, ratchet, note, slide and tie, its NUDGE), its parameter locks, and the track's LEN, DIV and SWG. A paste replaces the target's steps, locks and LEN / DIV / SWG; the track's motion and its sound stay. With the locks full a paste brings what fits and says `LOCKS FULL`. The clipboard holds one track or one pattern (a new copy replaces it) and is kept until power-off, across projects, so a track can go to another track, pattern, variation or project. There is no undo.
+
+None of these buttons does its own job in the combo: no transport start / stop, no REC ALL, fill or arm, no projects page or cue map, no GLOBAL page, no track select or KEYS toggle. The clear works in either order (REC or SEL first); let either go before the countdown ends and nothing changes.
+
+The single-step copy, the bank copy, REPLACE / MERGE / FILL, COPY SEL / PASTE SEL and DUPLICATE are gone with the TOOLS screen. Holding SEQ while switching on is still the safe start.

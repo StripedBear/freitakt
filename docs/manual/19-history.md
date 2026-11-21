@@ -3,6 +3,11 @@
 
 The full changelog is `CHANGELOG.md` in the repository. This is a feature map by version, newest first. The current version is shown on MENU, ABOUT.
 
+## After 1.0.1: FREITAKT redesign, phase C
+
+- **No TOOLS screen** (SEQ held): copy and paste are button combos with a short message, Model:Cycles style: SAVE + REC / SAVE + PLAY copy / paste the selected track (steps, locks, LEN / DIV / SWG), GLO + REC / GLO + PLAY the pattern. The step, bank and selection copies, REPLACE, MERGE, FILL and DUPLICATE are gone.
+- **No CLEAR TRACK dialog**: hold REC + SEL 5 s (a full-screen `CLEAR T3` countdown; let go early to cancel). A REC hold on SEQ's page is a fill, as everywhere.
+
 ## After 1.0.1: FREITAKT redesign, phase A
 
 - **Screens**: parameter pages are lists (one row per knob, no dials or graphs); no step strip or breadcrumb; the top bar keeps the battery, the STEPS padlock and passing states; messages are popups. ORANGE is black on bright orange; the splash says `Form folgt Function`.
