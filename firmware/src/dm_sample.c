@@ -1,9 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
-/* One-shot IMA ADPCM playback (eng_sample.c decoder) for the SAMPLE model and the sample layer.
+/* One-shot IMA ADPCM playback (eng_sample.c decoder) for the SAMPLE model.
  *
- * SLOT (the SAMPLE model's P_E5, the LAYER's P_LKEY) picks one of its set's samples, 1..N in key order: a sample is
+ * SLOT (the SAMPLE model's P_E5) picks one of its set's samples, 1..N in key order: a sample is
  * a zone with data of its own (zones sharing their data, offset length and rate, are one sample: PERC's 24 zones are
  * 16 samples), played at its root (TUNE pitches it). Stored as SMP_SLOT_V(i) = i - 16 (-16..-1): a value >= 0 is a
  * KEY from before SLOT (a MIDI note: the zone covering it, pitched by note - root), played as it always was; the

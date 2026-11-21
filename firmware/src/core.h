@@ -1,8 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
-/* Drum machine core types: 8 drum tracks; each plays one drum model (1 or 2 voices) and an
- * optional sample layer, through Felucca's per-track DIST / INSERT / sends (fx.c). */
+/* Drum machine core types: 8 drum tracks; each plays one drum model (1 or 2 voices) through Felucca's per-track DIST / INSERT / sends (fx.c). */
 #include <stdint.h>
 #include "dm_state.h"
 #define NTRK 6                   /* drum tracks */
@@ -18,7 +17,7 @@
 enum {
     F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,
     F_ONOFF, F_OCT, F_STEPS, F_CTHR, F_CRAT, F_CATK, F_CREL, F_CMKUP, F_LRATE1, F_LRATE2, F_LDEST, F_LPHASE,
-    F_FDEC, F_SRR, F_SLOT, F_LSLOT,  /* SLOT: the SAMPLE model's (its SET), the LAYER's (LAYER SET) */
+    F_FDEC, F_SRR, F_SLOT,           /* SLOT: the SAMPLE model's (its SET) */
     F_MLEN                           /* MASTER LENGTH: 1/16 steps, below 2 OFF */
 };
 
@@ -47,8 +46,8 @@ enum {                          /* per-track parameters */
     P_LEVEL, P_PAN, P_MUTE, P_CHOKE, P_NOTE,
     P_DIST, P_CHOR, P_DLY, P_REV,
     P_SLEN, P_SDIV, P_SSWING,
-    P_LSET, P_LKEY, P_LLEVEL, P_LTUNE, P_LDEC,       /* sample layer */
-    P_DUCK,                      /* M3: the COMP source ducks this track */
+    P_DUCK,                      /* M3: the COMP source ducks this track (FREITAKT removed the
+                                  * sample LAYER's 5 knobs before it: SET SLOT LEVEL TUNE DECAY) */
     P_LFO1,                      /* LFO 1: LF_N knobs (lfo.c) */
     P_LFO2 = P_LFO1 + LF_N,      /* LFO 2 */
     P_FTYPE = P_LFO2 + LF_N,     /* FILTER (filter.c): TYPE CUT RESO ENV DECAY (FREITAKT removed RESON's 7 knobs before it) */
@@ -127,7 +126,7 @@ typedef struct {                 /* one drum voice; the fields' meaning is the m
     int32_t x[4];                /* model scratch: gains, amounts */
     int32_t rng;                 /* noise state, seeded per hit */
     int32_t last;                /* last sample added to the output (declick when cut) */
-    voice_t sv;                  /* sample playback (SAMPLE model, layer) */
+    voice_t sv;                  /* sample playback (SAMPLE model) */
     dm_state_t ms;               /* M1-C model state (dm_state.h) */
 } dvoice_t;
 
@@ -172,7 +171,6 @@ typedef struct track {
     uint8_t model;               /* model the voices were started with (a change cuts them) */
     uint8_t mlock;               /* a machine lock's model + 1 while its step plays (motion.c), 0 none */
     dvoice_t v[NDV];             /* model voices */
-    dvoice_t lv[NDV];            /* sample-layer voices */
     int32_t dtail;               /* declick: last output of cut voices, decaying */
     /* sequencer */
     step_t step[NSTEP];

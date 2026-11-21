@@ -237,7 +237,6 @@ static void smpl_on_usr(int32_t st, int32_t en, int32_t atk, int32_t sus, int32_
     trk[0].p[P_SSUS] = (int16_t)sus;
     trk[0].p[P_SREL] = (int16_t)rel;
     trk[0].p[P_SLOOP] = (int16_t)loop;
-    trk[0].p[P_LLEVEL] = 0;
 }
 /* the source samples the voice plays, one a call (TUNE 0 at 44.1 kHz: one source sample an output sample): sv.s[3] */
 static int32_t got[0x40000];

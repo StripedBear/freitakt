@@ -146,7 +146,7 @@ static struct {
         uint8_t lst;             /* the list shows */
         uint8_t arm;             /* the list: 1 SAVE over / 2 DELETE armed, on arm_id (the button again acts) */
         uint8_t e_st;            /* EDIT: 1 pressed (may become a hold), 2 the hold acted / dead until let go */
-        uint8_t e_page, e_home, e_hmode, e_snd, e_lay;   /* the page EDIT's press left (the hold puts it back) */
+        uint8_t e_page, e_home, e_hmode, e_snd;   /* the page EDIT's press left (the hold puts it back) */
         uint16_t pop_id, cur, arm_id;   /* the popup's preset; the list's cursor */
         uint16_t shown[5];       /* the popup's rows, top to bottom (the preset in the middle) */
         uint32_t now, pop_t0, arm_t0, e_t0, sig;
@@ -724,7 +724,7 @@ static uint32_t held_step(void);
  * 2026-11-01): KNOB 1-4 are its PROB RATCH ACC NUDGE (ui_input.c step_edit), the page's own knobs rest; not where
  * the held step takes locks (ENV's STEPS on TRACKS: lock_step) */
 static int step_edit_page(void) { return (grid_mode() || seq_keys()) && lock_step() >= NSTEP; }   /* HOME TRACKS SOUND
-                                                                                                * LAYER FX LFO COMP */
+                                                                                                * FX LFO COMP */
 /* the step of the last-pressed key still down (from the press: a turn right after it locks), NSTEP none (not a lock
  * page, no key, outside LEN) */
 static uint32_t lock_step(void)

@@ -239,11 +239,8 @@ static void test_select_pages(void)
         sel(1);
     check("SELECT on EDIT: stops on the family's last page, ARP (FREITAKT; empty SOUND pages skipped)",
           str_eq(cur_page()->title, "ARP") && fam_pages(FAM_SND, &pos) == pos && !page_hidden(ui.page));
-    tap(B_OCTUP);                                    /* the layer */
-    sel(1);
-    check("SELECT in the layer: LAYER 2/2", str_eq(cur_page()->title, "LAYER") && page_id(cur_page(), 0) == P_LDEC);
-    sel(1);
-    check("SELECT at LAYER 2/2: stays", page_id(cur_page(), 0) == P_LDEC);
+    tap(B_OCTUP);                                    /* (no LAYER since FREITAKT: OCT+ does nothing on EDIT) */
+    check("OCT+ on EDIT: the page stays (no LAYER)", str_eq(cur_page()->title, "ARP"));
     tap(B_HOME);                                     /* HOME as last shown (mode 2), then its TRACKS mode */
     tap(B_HOME);
     k = ui.page;
@@ -899,8 +896,6 @@ static void test_tools_all(void)
     check("TOOLS INIT*: the volume knob's level is kept", song.master_q12 == 900u);
 }
 
-/* the sample layer lives in EDIT: OCT+ on a SOUND page opens LAYER 1/2, EDIT steps LAYER 1/2 <-> 2/2 (the EDIT
- * LED blinks), OCT- goes back to the SOUND page it came from; EDIT from elsewhere opens SOUND */
 static void tap(uint32_t b)
 {
     press(b);
@@ -909,43 +904,23 @@ static void tap(uint32_t b)
     ui_frame();
 }
 
-static void test_layer_in_edit(void)
+static void test_layer_in_edit(void)                 /* FREITAKT removed the sample LAYER: no page under SOUND */
 {
-    uint32_t k, on = 0, off = 0;
+    uint32_t k;
     ui_host_init();
     tap(B_EDIT);
     tap(B_EDIT);                                     /* SOUND 2/3 */
     k = ui.page;
     tap(B_OCTUP);
-    check("EDIT: OCT+ opens LAYER 1/2", str_eq(cur_page()->title, "LAYER") && cur_page()->id[0] == P_LSET);
-    for (k = 0; k < 40u; k++) {                      /* the EDIT LED blinks while in the layer (2 s, 50 ms frames) */
-        host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
-        ui_frame();
-        if (led_lit(panel.btn[B_EDIT]))
-            on++;
-        else
-            off++;
-    }
-    check("LAYER: the EDIT LED blinks", on > 5u && off > 5u);
-    snap_page("layer_in_edit");
-    tap(B_EDIT);
-    check("LAYER: EDIT steps to LAYER 2/2", str_eq(cur_page()->title, "LAYER") && cur_page()->id[0] == P_LDEC);
-    tap(B_EDIT);
-    check("LAYER: EDIT again back to LAYER 1/2", cur_page()->id[0] == P_LSET);
+    check("EDIT: OCT+ does nothing (no LAYER)", ui.page == k && str_eq(cur_page()->title, "SOUND"));
     tap(B_OCTDN);
-    check("LAYER: OCT- back to the SOUND page it came from (2/3)", str_eq(cur_page()->title, "SOUND") &&
-                                                                      ui.page == page_first(FAM_SND) + 1u);
+    check("EDIT: OCT- does nothing either", ui.page == k && str_eq(cur_page()->title, "SOUND"));
     ui_frame();
-    check("SOUND: the EDIT LED is steady again", led_lit(panel.btn[B_EDIT]));
-    tap(B_OCTUP);
-    keys(1u << KEY_TRK_KEY[2]);
-    ui_frame();
-    keys(0);
-    ui_frame();
-    check("LAYER: a white key selects its track (as on SOUND)", song.sel == 2 && str_eq(cur_page()->title, "LAYER"));
-    tap(B_FX);
-    tap(B_EDIT);
-    check("EDIT from another section opens SOUND, not the layer", str_eq(cur_page()->title, "SOUND"));
+    check("SOUND: the EDIT LED is steady", led_lit(panel.btn[B_EDIT]));
+    for (k = 0; k < NPAGES; k++)
+        if (str_eq(PAGES[k].title, "LAYER"))
+            break;
+    check("no LAYER page left", k == NPAGES);
 }
 
 /* the LFO button (fixes 2026-10-21 item 3): one page set with both LFOs, LFO 1 on KNOB 1-2 and LFO 2 on KNOB 3-4
@@ -4595,9 +4570,6 @@ static void test_screens(void)
                 else
                     tap(B_HOME);
                 continue;
-            } else if (pg->fam == FAM_LAY) {         /* the layer: OCT+ from EDIT, then EDIT steps */
-                press(ui.home || (cur_page()->fam != FAM_SND && cur_page()->fam != FAM_LAY) ? B_EDIT
-                      : cur_page()->fam == FAM_SND ? B_OCTUP : B_EDIT);
             } else {
                 press(FAM_BTN[pg->fam]);
             }
@@ -4610,7 +4582,7 @@ static void test_screens(void)
         for (d = name + 3, c = pg->title; *c && j < 20u; c++, j++)
             *d++ = *c == '/' ? '-' : (char)(*c >= 'A' && *c <= 'Z' ? *c + 32 : *c);
         *d = 0;
-        if (nth && str_eq(PAGES[i - 1u].title, pg->title)) {   /* SOUND 2/3, LAYER 2/2, COMP 2/2: the n-th of its title */
+        if (nth && str_eq(PAGES[i - 1u].title, pg->title)) {   /* SOUND 2/3, COMP 2/2: the n-th of its title */
             uint32_t same = 1, q;
             for (q = page_first(pg->fam); q < i; q++)
                 same += str_eq(PAGES[q].title, pg->title);
@@ -4845,7 +4817,7 @@ static void test_project_roundtrip(void)
     ui_host_init();
     old_set_model(&trk[2], DM_CONGA);
     trk[2].p[P_E0] = -5;
-    trk[2].p[P_LLEVEL] = 77;
+    trk[2].p[P_DUCK] = 1;
     trk[2].step[7].on = trk[2].step[7].acc = 1;
     trk[2].p[P_SLEN] = 23;
     trk[2].step[7].cond = 33;                        /* 3/5 */
@@ -4868,7 +4840,7 @@ static void test_project_roundtrip(void)
     project_load(1);
     check("project: load restores models, params, steps, globals, selection",
           trk[2].p[P_MODEL] == DM_CONGA && trk[2].model == DM_CONGA && trk[2].p[P_E0] == -5 &&
-              trk[2].p[P_LLEVEL] == 77 && trk[2].step[7].on && trk[2].step[7].acc && trk[2].p[P_SLEN] == 23 &&
+              trk[2].p[P_DUCK] == 1 && trk[2].step[7].on && trk[2].step[7].acc && trk[2].p[P_SLEN] == 23 &&
               song.g[G_BPM] == 133 && song.sel == 2);
     check("project: load restores PROB / RATCH and the drum channel",
           trk[2].step[7].cond == 33 && trk[2].step[7].rat == 2 && song.g[G_DRCH] == 5);
@@ -4989,7 +4961,7 @@ static void test_ui_frame_cost(void)
     check("ui frame cost: under 4,000,000 host instructions (8 s watchdog, 100x margin)", !i0 || worst < 4000000u);
 }
 
-/* a white key on a per-track page (SOUND, TRACK, MIDI, LAYER, FX, INSERT) selects its track and still plays it;
+/* a white key on a per-track page (SOUND, TRACK, MIDI, FX, INSERT) selects its track and still plays it;
  * HOME, the STEP grid, PATTERN and the global pages keep the selection */
 static int key_selects(const char *title, uint32_t fam_btn, uint32_t presses)
 {
@@ -6321,7 +6293,7 @@ static uint32_t fm_graph_lit(void)               /* lit pixels right of the mode
     return n;
 }
 
-/* review fix: the FM graph keeps clear of CHOKE / SAMPLE LAYER, and INDEX 0 (a pure sine) shows no sidebands */
+/* review fix: the FM graph keeps clear of CHOKE, and INDEX 0 (a pure sine) shows no sidebands */
 static uint32_t fm_graph_area(uint32_t y0, uint32_t y1)   /* lit pixels at x 100..235 of rows y0..y1 (graph rows) */
 {
     uint32_t n = 0, x, y;
@@ -6359,14 +6331,12 @@ static void test_fm_graph_clear(void)
     ui_frame();
     plain = fm_graph_area(0u, 110u);
     TSEL->p[P_CHOKE] = 2;
-    TSEL->p[P_LLEVEL] = 100;
     ui.force = 1;
     ui_frame();
     labels = fm_graph_area(0u, 110u);
-    snap_page("fm/choke_layer");
-    check("FM graph: CHOKE and the sample layer's label stay out of the sideband area", labels == plain);
+    snap_page("fm/choke");
+    check("FM graph: the CHOKE label stays out of the sideband area", labels == plain);
     TSEL->p[P_CHOKE] = 0;
-    TSEL->p[P_LLEVEL] = 0;
     ui.force = 1;
     ui_frame();
     labels = fm_sidebands_lit();
@@ -6399,7 +6369,7 @@ static void test_fm_screens(void)
 }
 
 /* KTRX: SOUND 1/4 holds MODEL TUNE DECAY SWEEP, 2/4 SDEC PUNCH NOISE SUB; the graph draws the pitch and the level,
- * SWEEP raising the pitch curve (more lit rows high in the graph); CHOKE and the layer's label stay out of it */
+ * SWEEP raising the pitch curve (more lit rows high in the graph); the CHOKE label stays out of it */
 static uint32_t ktrx_high_lit(void)                  /* lit pixels in the graph's upper half (the pitch above ~2 oct) */
 {
     return fm_graph_area(60u, 92u);                   /* (screen rows 134..165: under the title) */
@@ -6441,13 +6411,11 @@ static void test_ktrx_screens(void)
           str_eq(page_desc(cur_page(), 1, &vp)->label, "TUNE") && str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP") &&
               fm_graph_lit() > 150u && swept > flat + 20u);
     TSEL->p[P_CHOKE] = 2;
-    TSEL->p[P_LLEVEL] = 100;
     ui.force = 1;
     ui_frame();
     labels = fm_graph_area(0u, 110u);
-    check("KTRX graph: CHOKE and the sample layer's label stay out of it", labels == plain);
+    check("KTRX graph: the CHOKE label stays out of it", labels == plain);
     TSEL->p[P_CHOKE] = 0;
-    TSEL->p[P_LLEVEL] = 0;
     page_turn(1);
     ui.force = 1;
     snap_page("ktrx/sound_2");
@@ -8931,7 +8899,7 @@ static int graph_has_text(const char *s)
 }
 
 /* owner 2026-10-22: the engine view shows the model's place in the MODEL knob's list (MD -> MODERN -> CLASSIC),
- * "#NN/45" (the list's length), not its number in the enum; every model, CHOKE and LAYER on, ACID's ENVMD line at
+ * "#NN/45" (the list's length), not its number in the enum; every model, CHOKE on, ACID's ENVMD line at
  * its leftmost: the number whole, nothing over it */
 static void test_engine_number(void)
 {
@@ -8961,7 +8929,6 @@ static void test_engine_number(void)
     for (i = 0; i < NMODELS; i++) {
         old_set_model(TSEL, MODEL_LIST[i]);
         TSEL->p[P_CHOKE] = 2;
-        TSEL->p[P_LLEVEL] = 100;
         if (MODEL_LIST[i] == DM_ACID) {
             TSEL->p[P_E0 + 2] = 0;                   /* CUT 0, ENVMD a little: its dotted line at the graph's left */
             TSEL->p[P_E0 + 4] = 3;
@@ -8971,15 +8938,15 @@ static void test_engine_number(void)
         snprintf(want, sizeof want, "#%02u/%u", i + 1u, (unsigned)NMODELS);
         if (!graph_has_text(want)) {
             okall = 0;
-            printf("      %s (CHOKE, LAYER): no %s clear\n", N_MODEL[MODEL_LIST[i]], want);
+            printf("      %s (CHOKE): no %s clear\n", N_MODEL[MODEL_LIST[i]], want);
         }
     }
-    check("engine view: every model's number whole and clear, with CHOKE and LAYER (FM, ACID, KTRX graphs too)",
+    check("engine view: every model's number whole and clear, with CHOKE (FM, ACID, KTRX graphs too)",
           okall);
 }
 
 /* ------------------------------------------------------------------ voicegraph (owner 2026-10-22) --- */
-/* every engine view as FM's / ACID's / BDTRX's: the name left (F3 4x), "#NN/45" under it, VOICES / CHOKE / LAYER under
+/* every engine view as FM's / ACID's / BDTRX's: the name left (F3 4x), "#NN/45" under it, VOICES / CHOKE under
  * that, the graph right (x 100..235); a model with no graph of its own draws its rendered hit (ui_draw.c vg_step): the
  * voice's real sound, offline, on a scratch track, as min / max columns */
 
@@ -9027,8 +8994,8 @@ static void engine_view_ready(void)                  /* a frame (the render star
 
 static void vg_label(char *b, size_t n) { snprintf(b, n, "HIT / %u MS", (unsigned)vg.span); }
 
-/* the layout, every model with CHOKE and LAYER on: the name left at 4x (the widest, 76 px, ends left of the graph),
- * the number under it, VOICES / CHOKE / LAYER under that, each whole, 2 px clear of all else; every model a graph; the
+/* the layout, every model with CHOKE on: the name left at 4x (the widest, 76 px, ends left of the graph),
+ * the number under it, VOICES / CHOKE under that, each whole, 2 px clear of all else; every model a graph; the
  * rendered hit's: columns, its span labelled (100 .. 1000 MS) */
 static void test_vg_layout(void)
 {
@@ -9039,29 +9006,27 @@ static void test_vg_layout(void)
     song.sel = 0;
     tap(B_EDIT);
     for (i = 0; i < NMODELS; i++) {
-        uint32_t mi = MODEL_LIST[i], xn = 0, yn = 0, xx = 0, yy = 0, xv = 0, yv = 0, xc = 0, yc = 0, xl = 0, yl = 0;
+        uint32_t mi = MODEL_LIST[i], xn = 0, yn = 0, xx = 0, yy = 0, xv = 0, yv = 0, xc = 0, yc = 0;
         uint32_t lit, cols = 0, x, y, sp = 0, lx = 0, ly = 0;
         const char *vs = DMODELS[mi].voices > 1 ? "2 VOICES" : "1 VOICE";
         int found;
         old_set_model(TSEL, mi);
         TSEL->p[P_CHOKE] = 2;
-        TSEL->p[P_LLEVEL] = 100;
         if (mi == DM_ACID) {
             TSEL->p[P_E0 + 2] = 0;
             TSEL->p[P_E0 + 4] = 3;
         }
         engine_view_ready();
         if (mi == DM_SMPL || mi == DM_CYTRX)
-            snap_page(mi == DM_SMPL ? "voicegraph/sampl_choke_layer" : "voicegraph/cytrx_choke_layer");
+            snap_page(mi == DM_SMPL ? "voicegraph/sampl_choke" : "voicegraph/cytrx_choke");
         snprintf(want, sizeof want, "#%02u/%u", i + 1u, (unsigned)NMODELS);
         found = graph_text_at(N_MODEL[mi], 4, &xn, &yn) && graph_text_at(want, 2, &xx, &yy) &&
-                graph_text_at(vs, 2, &xv, &yv) && graph_text_at("CHOKE 2", 2, &xc, &yc) &&
-                graph_text_at("+ LAYER", 2, &xl, &yl);
-        if (!found || xn != 4u || xx != 4u || xv != 4u || xc != 4u || xl != 4u || yy < yn + 22u || yv < yy + 12u ||
-            yc < yv + 12u || yl < yc + 12u || xn + (uint32_t)md_text_w(&MD_F3, 4, N_MODEL[mi]) > 98u) {
+                graph_text_at(vs, 2, &xv, &yv) && graph_text_at("CHOKE 2", 2, &xc, &yc);
+        if (!found || xn != 4u || xx != 4u || xv != 4u || xc != 4u || yy < yn + 22u || yv < yy + 12u ||
+            yc < yv + 12u || xn + (uint32_t)md_text_w(&MD_F3, 4, N_MODEL[mi]) > 98u) {
             ok = 0;
-            printf("      %s: name (%u,%u) %s (%u,%u) %s (%u,%u) CHOKE (%u,%u) LAYER (%u,%u)%s\n", N_MODEL[mi], xn, yn,
-                   want, xx, yy, vs, xv, yv, xc, yc, xl, yl, found ? "" : " (not all found clear)");
+            printf("      %s: name (%u,%u) %s (%u,%u) %s (%u,%u) CHOKE (%u,%u)%s\n", N_MODEL[mi], xn, yn,
+                   want, xx, yy, vs, xv, yv, xc, yc, found ? "" : " (not all found clear)");
         }
         lit = fb_count(100, Y_GRAPH + G_OY, 136, H_GRAPH - G_OY, C_INK);
         for (x = 100; x < 236u; x++) {                /* columns with 3+ px under the label: the waveform's */
@@ -9084,8 +9049,8 @@ static void test_vg_layout(void)
             printf("      %s: its own graph: %u lit\n", N_MODEL[mi], lit);
         }
     }
-    check("engine view: every model's name left (F3 4x), its number under it, VOICES / CHOKE / LAYER under that, "
-          "each whole and clear (CHOKE and LAYER on)", ok);
+    check("engine view: every model's name left (F3 4x), its number under it, VOICES / CHOKE under that, "
+          "each whole and clear (CHOKE on)", ok);
     check("engine view: every model a graph right; the rendered hit (all but FM, ACID, BDTRX): columns, the span "
           "labelled HIT / N MS", okg);
 }
@@ -9476,7 +9441,7 @@ static void test_fk_perform_preset_algo(void)
     ui_frame();
 }
 
-/* item 2: the HOME screen and the EDIT (SOUND, LAYER), FX and LFO pages show the selected track on the keys: its
+/* item 2: the HOME screen and the EDIT (SOUND), FX and LFO pages show the selected track on the keys: its
  * white key (KEY_TRK_KEY) lit, the other keys dark unless held; it follows ALGORITHM and a key's select; KEYS (the
  * keyboard), COMP (DUCK), the step pages and GLOBAL / SAVE keep their own; the menu none */
 static int fk_keys_show_only(uint32_t mask)          /* the 27 key LEDs: lit exactly where mask says */
@@ -9500,7 +9465,7 @@ static void test_fk_track_keys(void)
         song.sel = (uint8_t)(i % NTRK);
         ui_frame();
         fam = cur_fam();
-        if (ui.home || fam == FAM_SND || fam == FAM_LAY || fam == FAM_FX || fam == FAM_LFO) {
+        if (ui.home || fam == FAM_SND || fam == FAM_FX || fam == FAM_LFO) {
             ok &= fk_keys_show_only(1u << KEY_TRK_KEY[song.sel]);
             fams |= 1u << fam;
             n++;
@@ -9508,8 +9473,8 @@ static void test_fk_track_keys(void)
             other &= fk_keys_show_only(0);           /* GLOBAL SAVE: as before, the keys held only */
         }
     }
-    check("item 2: HOME, EDIT (SOUND, LAYER), FX, LFO: the selected track's key lit, every other key dark",
-          ok && n > 10u && fams == (1u << FAM_HOME | 1u << FAM_SND | 1u << FAM_LAY | 1u << FAM_FX | 1u << FAM_LFO));
+    check("item 2: HOME, EDIT (SOUND), FX, LFO: the selected track's key lit, every other key dark",
+          ok && n > 10u && fams == (1u << FAM_HOME | 1u << FAM_SND | 1u << FAM_FX | 1u << FAM_LFO));
     check("item 2: GLOBAL, SAVE: no track key (the keys held only, as before)", other);
     tap(B_FX);
     song.sel = 0;
@@ -9542,7 +9507,7 @@ static void test_fk_track_keys(void)
 }
 
 /* item 5: OCT- / OCT+ breathe (upstream Felucca's #119, led_dim.c) where pressing them would do something, a way back
- * lit: the steps (a bank that way; OCT+ lit while held, its accent), SOUND (OCT+: LAYER), LAYER (OCT- back), a dialog
+ * lit: the steps (a bank that way; OCT+ lit while held, its accent), a dialog
  * (NO lit, YES breathing), the menu (BACK lit, OK breathing; ABOUT: back), NAME, MIDI LEARN, the PRESETS list (LOAD;
  * DELETE on a used user slot); KEYS: lit off octave 0 as before; HOME, GLOBAL: dark */
 static uint32_t fk_oct(void)                         /* 1 OCT- lit, 2 OCT+ lit, 4 OCT+ breathing, 8 OCT- breathing */
@@ -9579,9 +9544,7 @@ static void test_fk_oct_breath(void)
     tap(B_OCTDN);
     tap(B_SCL);
     tap(B_EDIT);
-    check("item 5: SOUND: OCT+ breathes (the LAYER pages)", fk_oct() == 4u);
-    tap(B_OCTUP);
-    check("item 5: LAYER: OCT- lit (back to SOUND)", cur_fam() == FAM_LAY && fk_oct() == 1u);
+    check("item 5: SOUND: dark (no LAYER pages since FREITAKT)", fk_oct() == 0u);
     tap(B_GLO);
     check("item 5: GLOBAL: dark", fk_oct() == 0u);
     ui.confirm = 1;
@@ -9762,7 +9725,7 @@ static void test_env_banks(void)
     check("(ENV tapped back to STEPS)", ui.env == 1u);
     env_tap();
     tap(B_OCTUP);
-    check("ENV off on SOUND: OCT+ is the page's (LAYER), no bank", ui.bank == 0u && str_eq(cur_page()->title, "LAYER"));
+    check("ENV off on SOUND: OCT+ no bank (and no page job: no LAYER)", ui.bank == 0u && str_eq(cur_page()->title, "SOUND"));
 }
 static void test_env_oct_jobs(void)
 {
@@ -9777,10 +9740,10 @@ static void test_env_oct_jobs(void)
     ok = str_eq(cur_page()->title, "SOUND") && led_lit(panel.btn[B_OCTUP]);
     release_all();
     ui_frame();
-    ok &= str_eq(cur_page()->title, "LAYER") && ui.bank == 0u;
-    check("STEPS on SOUND: OCT+ alone goes to LAYER on its release (not the press)", ok);
+    ok &= str_eq(cur_page()->title, "SOUND") && ui.bank == 0u;
+    check("STEPS on SOUND: OCT+ alone does nothing on its release (no bank, no LAYER)", ok);
     tap(B_OCTDN);
-    check("STEPS on LAYER: OCT- back to SOUND", str_eq(cur_page()->title, "SOUND"));
+    check("STEPS on SOUND: OCT- does nothing either", str_eq(cur_page()->title, "SOUND") && ui.bank == 0u);
     TSEL->step[5].acc = 0;
     TSEL->step[5].on = 1;
     press(B_OCTUP);
@@ -9789,7 +9752,7 @@ static void test_env_oct_jobs(void)
     btn_up(B_OCTUP);
     ui_frame();
     grid_up(WHITE[5]);
-    check("STEPS: OCT+ held + a step key: its accent, OCT+'s release no LAYER",
+    check("STEPS: OCT+ held + a step key: its accent, OCT+'s release no page job",
           TSEL->step[5].acc && TSEL->step[5].on && str_eq(cur_page()->title, "SOUND"));
     tap(B_LFO);
     ui.lfo_l = 0;
@@ -9960,7 +9923,7 @@ static void test_lock_entry_every_page(void)
     lock_fresh();
     for (i = 0; i < NPAGES; i++) {
         uint32_t f = PAGES[i].fam;
-        if (PAGES[i].scope != SC_TRACK || (f != FAM_SND && f != FAM_LAY && f != FAM_FX && f != FAM_LFO) ||
+        if (PAGES[i].scope != SC_TRACK || (f != FAM_SND && f != FAM_FX && f != FAM_LFO) ||
             page_hidden(i))
             continue;
         for (l = 0; l < (PAGES[i].graph == GR_LDEST ? 4u : 1u); l++) {
@@ -9978,7 +9941,7 @@ static void test_lock_entry_every_page(void)
     home_tracks();
     ui_frame();
     ok &= (uint32_t)lock_page_ok("TRACKS");
-    check("locks: on every SOUND, LAYER, FX, INSERT, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
+    check("locks: on every SOUND, FX, INSERT, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
           "a recordable knob writes a lock (its own value + 1; MODEL the next model, a machine lock), the knob and the "
           "base untouched; TYPE, WAVE, DEST, SRC and the rest change nothing", ok && pages > 12u);
 }
@@ -10111,8 +10074,6 @@ static void test_lock_clear_all(void)
     int16_t v;
     lock_fresh();
     tap(B_EDIT);
-    tap(B_OCTUP);                                    /* (STEPS: OCT+ alone, LAYER on its release) */
-    check("(LAYER)", str_eq(cur_page()->title, "LAYER"));
     two_locks();
     grid_down(WHITE[4]);
     grid_wait(350);
@@ -10124,16 +10085,17 @@ static void test_lock_clear_all(void)
     btn_up(B_OCTDN);
     ui_frame();
     grid_up(WHITE[4]);
-    check("locks: step held + OCT- held 0.6 s clears all its locks; the release after does nothing (still LAYER)",
-          ok && str_eq(cur_page()->title, "LAYER"));
+    check("locks: step held + OCT- held 0.6 s clears all its locks; the release after does nothing (still SOUND)",
+          ok && str_eq(cur_page()->title, "SOUND"));
 }
 static void test_lock_oct_dn_alone(void)
 {
+    uint32_t k;
     lock_fresh();
     tap(B_EDIT);
-    tap(B_OCTUP);
+    k = ui.page;
     tap(B_OCTDN);
-    check("locks: OCT- with no step held on LAYER: back to SOUND", str_eq(cur_page()->title, "SOUND"));
+    check("locks: OCT- with no step held on SOUND: nothing (the page stays)", ui.page == k && str_eq(cur_page()->title, "SOUND"));
 }
 static void test_lock_step_page(void)
 {

@@ -22,21 +22,23 @@
 /* FREITAKT removed Grids; a record keeps their places (written 0, never read): the 10 globals after G_DRCH (MODE X
  * Y CHAOS, FILL K S H, LEN K S H) and the track parameter before DUCK (SRC). FREITAKT removed RESON the same way: its
  * 7 knobs' places before the FILTER's (MODEL TUNE DECAY MIX TONE STRCT POS) and KEYF's, xp's first byte; and the
- * SLICER: its 4 knobs' places after REV's (SLCR PAT RATE DEPTH). PR_G / PR_P: an id's place in a record; PR_NG /
- * PR_NP: a record's globals / a track's parameters (the block) */
+ * SLICER: its 4 knobs' places after REV's (SLCR PAT RATE DEPTH); and the sample LAYER: its 5 knobs' places before
+ * SRC's (SET SLOT LEVEL TUNE DECAY). PR_G / PR_P: an id's place in a record; PR_NG / PR_NP: a record's globals / a
+ * track's parameters (the block) */
 #define PR_GR G_CSRC                            /* the Grids globals' place (10) */
 #define PR_SL P_SLEN                            /* the SLICER's 4 places, before SLEN's */
-#define PR_SRC P_DUCK                           /* SRC's place: before DUCK's */
+#define PR_SRC P_DUCK                           /* the LAYER's 5 places and SRC's: before DUCK's */
 #define PR_RSN P_FTYPE                          /* RESON's 7 places, after SRC's */
 #define PR_G(i) ((uint32_t)(i) < (uint32_t)PR_GR ? (uint32_t)(i) : (uint32_t)(i) + 10u)
 #define PR_P(i) ((uint32_t)(i) < (uint32_t)PR_SL ? (uint32_t)(i)                                                     \
                  : (uint32_t)(i) < (uint32_t)PR_SRC ? (uint32_t)(i) + 4u                                            \
-                 : (uint32_t)(i) < (uint32_t)PR_RSN ? (uint32_t)(i) + 5u : (uint32_t)(i) + 12u)
+                 : (uint32_t)(i) < (uint32_t)PR_RSN ? (uint32_t)(i) + 10u : (uint32_t)(i) + 17u)
 #define PR_SLS (PR_P(PR_SL) - 4u)               /* the SLICER's first place (SLCR's) */
 #define PR_SRCP (PR_P(PR_SRC) - 1u)             /* SRC's place */
+#define PR_LYS (PR_SRCP - 5u)                   /* the LAYER's first place (SET's) */
 #define PR_RS (PR_P(PR_RSN) - 7u)               /* RESON's first place (its MODEL's) */
 #define PR_NG (G_NSTORED + 10)
-#define PR_NP (P_NSTORED + 12)
+#define PR_NP (P_NSTORED + 17)
 typedef struct {
     int16_t p[PR_NP];                           /* the block; P_NSTORED + j: xp[track][j] (FDRE / FDRF: step[j].rsv) */
     step_t step[NSTEP];                         /* FDRG: rsv = the step's MICRO */
@@ -322,6 +324,7 @@ static __attribute__((noinline)) void proj_image(project_t *p, uint32_t slot, in
             p->t[k].p[PR_P(i)] = motion_rest(k, i);
         p->t[k].p[PR_SRCP] = 0;                         /* (SRC's place) */
         memset(&p->t[k].p[PR_SLS], 0, 4u * sizeof p->t[k].p[0]);   /* (the SLICER's places) */
+        memset(&p->t[k].p[PR_LYS], 0, 5u * sizeof p->t[k].p[0]);   /* (the LAYER's places) */
         memset(&p->t[k].p[PR_RS], 0, 7u * sizeof p->t[k].p[0]);   /* (RESON's places) */
         p->xp[k][0] = 0;                                /* (KEYF's) */
         if (keep)
@@ -647,7 +650,6 @@ static __attribute__((noinline)) void proj_tracks_in(const project_t *p, int cue
             t->p[i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[PR_P(i)] : proj_xp_get(p, k, i));
         }
         smpl_knobs_conv(&t->p[P_E0], m);                /* (presets.c: a KEY stored before SLOT) */
-        layer_knobs_conv(t->p);
         if (cue_in)
             t->p[P_MUTE] = mute;                        /* (a cue: the mutes stay the performance's) */
         t->p[P_MODEL] = (int16_t)m;
@@ -830,7 +832,6 @@ static void cue_stage_knobs(const project_t *p, int16_t o[NTRK][P_COUNT], uint16
             o[k][i] = (int16_t)knob_in(d, i < P_NSTORED ? s->p[PR_P(i)] : proj_xp_get(p, k, i));
         }
         smpl_knobs_conv(&o[k][P_E0], m);
-        layer_knobs_conv(o[k]);
         o[k][P_MODEL] = (int16_t)m;
         pre[k] = (uint16_t)preset_ref(preset_rec_dec(p->pre[k]), m);
         pre_ed[k] = p->pre_ed[k] ? 1u : 0u;

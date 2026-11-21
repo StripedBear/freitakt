@@ -107,10 +107,10 @@ firmware ([below](#back-to-the-official-firmware)).
 | **GLO** | a tap: global and system settings, then the delay, the reverb and the chorus; held: the MUTE screen ([mutes](#mutes); G4: [MIDI LEARN](#midi-learn)) |
 | **SAVE** | tap (on the release): projects (save, load, name) and tools; held: the cue map (live cue) |
 | **SCL** (labelled SEL in the web simulator) | KEYS: the keys play the selected track; OCT- / OCT+ set the octave (-2 to +2); on STEP, stopped, REC starts step record |
-| **ENV** | STEPS / TRACKS (and [parameter locks](#parameter-locks)) (a tap, on its release; its LED lit and a padlock in the top bar, left of the battery, in STEPS). **STEPS**: the white keys are the selected track's steps on every page (HOME, EDIT, FX, LFO, COMP, TRACKS armed ...), tapped and held as on SEQ; hold ENV and press OCT+ / OCT- for the next / previous bank; OCT+ held + a step: its accent; OCT+ alone and OCT- keep their page's job (LAYER, back to SOUND, the LFO's RATE MODE). Finger drumming needs TRACKS (ENV off: the keys as before). ENV turns KEYS off, SCL turns STEPS off. Off at power-on |
+| **ENV** | STEPS / TRACKS (and [parameter locks](#parameter-locks)) (a tap, on its release; its LED lit and a padlock in the top bar, left of the battery, in STEPS). **STEPS**: the white keys are the selected track's steps on every page (HOME, EDIT, FX, LFO, COMP, TRACKS armed ...), tapped and held as on SEQ; hold ENV and press OCT+ / OCT- for the next / previous bank; OCT+ held + a step: its accent; OCT+ alone keeps its page's job (the LFO's RATE MODE). Finger drumming needs TRACKS (ENV off: the keys as before). ENV turns KEYS off, SCL turns STEPS off. Off at power-on |
 
-With KEYS on, OCT- / OCT+ are the octave: LAYER (from EDIT) and the LFO pages' OCT+ (the RATE MODE of the LFO turned
-last) need KEYS off; the STEP
+With KEYS on, OCT- / OCT+ are the octave: the LFO pages' OCT+ (the RATE MODE of the LFO turned
+last) needs KEYS off; the STEP
 bank stays on KNOB 1; TRACKS keeps OCT as its bank. TRACKS, COMP, NAME, the menu, PERFORM (FX held), the MUTE
 screen (GLO held) and the TOOLS screen (SEQ held) keep their keys.
 Step record starts in KEYS mode, on the STEP page, with the transport stopped, by a REC tap: the cursor starts at the
@@ -123,7 +123,7 @@ page). KNOB 1 to 4 edit what the screen shows. PRESETS loads the next / previous
 each detent (a popup shows the bank and the presets around it); EDIT held opens the PRESETS list (LOAD, SAVE into the
 USER bank, DELETE). A factory preset is the sound only (MODEL and the 8 SOUND knobs): loading one leaves the track's FX
 as they are. A USER preset (96 slots) keeps the sound and the track's FX: the DIST / CHO / DLY / REV sends, FILTER,
-INSERT, and SRR (not LAYER, the LFOs, LEVEL, PAN, NOTE, CHOKE, PRIO or the steps); loading it
+INSERT, and SRR (not the LFOs, LEVEL, PAN, NOTE, CHOKE, PRIO or the steps); loading it
 sets them all. The SOUND pages show the track's preset, with `*` once a knob the preset holds moved (a SOUND knob; on a
 USER preset an FX knob too). USER presets saved by an earlier version (the voice only, up to 128) move into slots 1
 to 96 at the first start (those past 96 into the first empty slots; if all are full, the rest are lost and the screen
@@ -162,7 +162,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
 
 - **Turn it on:** hold GLO (the MUTE screen) and press **G4**: `G4 LEARN: ON`, and `MIDI LEARN ON` in the top bar.
   Let go of GLO: the footer's first row (where the steps are) shows `LEARN: TURN OR PRESS`.
-- **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND, LAYER), FX (FILTER, the sends,
+- **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND), FX (FILTER, the sends,
   INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on HOME's TRACKS mode. It edits as usual and the footer says
   `T3 DECAY: SEND A CC`.
 - **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of
@@ -178,7 +178,7 @@ A controller's knobs, faders, buttons and pads can each be learned: up to 32 of 
   (`CC NOT LEARNABLE`). MODEL can't be learned (`NOT LEARNABLE`).
 - **While LEARN is on, OCT- and OCT+ are its own:** OCT- clears the pick's CC or note (`T3 DECAY CC CLEARED`,
   `PLAY CLEARED`); with nothing picked it asks `CLEAR ALL LEARNED?` (OCT+ yes, OCT- no). **OCT+ ends LEARN**
-  (`LEARN DONE`), as GLO + G4 does. So pick the page first (LAYER, the step bank, a DEST slot), then turn LEARN on. The
+  (`LEARN DONE`), as GLO + G4 does. So pick the page first (the step bank, a DEST slot), then turn LEARN on. The
   menu, a confirm, or NAME also end it; it is always off at power-on.
 - **What a CC does on a knob:** 0 to 127 spans the knob's whole range; a centred knob (PAN, an LFO's DEPTH, FILTER
   ENV) is 0 at 64; a list (FILTER TYPE, DIV, WAVE) steps through it in its order. A model's knob follows the track's
@@ -340,7 +340,7 @@ The **SAMPLE** model (SAMPL) plays one sample of a set. SOUND 1: **TUNE**, **DEC
   ends at the next hit with CUT OFF too.
 - With ATK 0, SUS 0 and LOOP OFF a hit sounds exactly as it did before these knobs. They take MOTION, step locks and
   MIDI LEARN (`T1 ATK`, `T1 LOOP`), are saved with projects and in USER presets; a factory SAMPLE preset sets them back
-  to ATK 0, SUS 0, REL 40, LOOP OFF. The LAYER keeps its one-shot DECAY.
+  to ATK 0, SUS 0, REL 40, LOOP OFF.
 - In a user set START, END and LOOP work on whichever sample SLOT plays, over that sample's own length (sets the
   web editor writes carry the decoder's states for it; a set written before that, or restored from such a backup,
   has START only in its first sample until you write it again from the editor).
@@ -355,16 +355,12 @@ The **SAMPLE** model (SAMPL) plays one sample of a set. SOUND 1: **TUNE**, **DEC
   presets; a factory SAMPLE preset sets it back to KEY. CUT takes MIDI LEARN (`T1 CUT`) and is saved the same way (no
   step locks).
 
-The **LAYER** (EDIT, then OCT+) puts a sample under any model: **SET**, **SLOT**, **LEVEL**, **TUNE** (1/2) and
-**DECAY** (2/2), SET and SLOT as the SAMPLE model's. MIDI LEARN names them `T3 L.SET`, `T3 L.SLOT`, `T3 L.LEVEL`,
-`T3 L.TUNE`, `T3 L.DECAY` (the SAMPLE model's own: `T3 SLOT`, `T3 START` ...).
-
 Projects and presets from before SLOT (when it was KEY, a MIDI note picking the sample under it) load as SLOT:
 
 - A KEY on a sample's own note (every factory preset, PERC's one-note samples) becomes its SLOT: the same sound.
 - A KEY that played a sample away from its own note (in PERC: 35 the kick; 41, 42, 44, 45 the low tom and 47, 49, 50
   the high tom — 42, 44 and 49 played the toms, not the hats or the crash, and still do; 62, 64 the conga; 69 the
-  shaker; 77 the wood block; in a user slot, any note but the sample's) becomes its SLOT with TUNE (LAYER: its TUNE)
+  shaker; 77 the wood block; in a user slot, any note but the sample's) becomes its SLOT with TUNE
   moved by the difference: the same sound. When TUNE has no room for it
   (past ±24), the KEY stays as it was and plays as before; the SLOT knob shows its sample, and the first turn moves it
   to SLOT values (the sample at its own pitch). A step lock or MOTION on TUNE keeps its value, so on that step the
@@ -403,7 +399,7 @@ also across projects. Let go of SEQ: back to the page you were on.
 
 ### Parameter locks
 
-In STEPS (ENV lit), on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND, LAYER,
+In STEPS (ENV lit), on any page whose knobs MOTION can record (HOME's macros, TRACKS' LEVEL and PAN, SOUND,
 FX, INSERT (and SRR), FILTER, the LFOs' RATE MORPH DEPTH, the DEST slots' DEPTH), **hold a step and turn a knob**: that
 step plays with its own value for that knob, and the next step plays the knob's value again (the LFO, if any,
 modulates round the locked value). The top bar says `LOCK STEP 5` while a step is held, and the knob cells show that
@@ -466,9 +462,9 @@ the unlit steps 1, 5, 9 and 13 of the bank shown glow at about 25 % (bank 2: 17,
 HI: the same, brighter (about 6 %, the beats about 30 %). INV turns it around as the stock firmware does: the idle
 LEDs lit, the active ones (steps that are on, the playhead, held keys, the page's button) dark; INV LO / INV HI the
 same with the idle ones at about 10 % / 25 %. In every mode OCT- / OCT+ **breathe** (fade in and out, upstream
-Felucca's) where pressing them would do something: the next / previous bank on the steps, LAYER from SOUND, the LFO pages' RATE MODE (OCT+),
+Felucca's) where pressing them would do something: the next / previous bank on the steps, the LFO pages' RATE MODE (OCT+),
 YES in a dialog, OK in the menu, NAME's RENAME, MIDI LEARN's DONE, the PRESETS list's LOAD (and DELETE on a used user slot); a
-way back (NO, CANCEL, BACK, LAYER's OCT-) is lit; KEYS' octave shift lit as before. KNOB 1 on the row steps through the
+way back (NO, CANCEL, BACK) is lit; KEYS' octave shift lit as before. KNOB 1 on the row steps through the
 levels, OCT+ steps on and wraps. A device setting: saved when the menu closes, not part of projects; OFF until it is
 set. A safe start keeps every LED dark, as before.
 
@@ -549,7 +545,7 @@ From 1.0.0 the [editor](https://deadactive.github.io/hortator/webapp/editor/) wo
   pick the sample rate (its own up to 44.1 kHz, lower ones when the room needs them, with the resulting length),
   encodes it as the FM-1 stores it and plays you exactly what the FM-1 will play before you send it. Then **add** it
   to a set as its next sample, put it **in place of** one, or let it **replace the whole set**. A set's samples are
-  its SLOT 1, 2, 3 … on the SAMPLE model and the LAYER page (SET = USR1..USR3), in the order the page lists them.
+  its SLOT 1, 2, 3 … on the SAMPLE model (SET = USR1..USR3), in the order the page lists them.
   For each sample: **Play** (as the FM-1 plays it), **Edit** (open it in the editor to trim, normalize or resample
   it, then replace it), move it up or down, rename or delete it. Moving, renaming and deleting wait for **Write**
   (the set's card says it has changes; Undo changes reads it back from the FM-1); adding, replacing and chopping

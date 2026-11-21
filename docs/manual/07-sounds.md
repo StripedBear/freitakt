@@ -1,11 +1,11 @@
 # Sounds
-<!--blurb: The 45 sound models, their knobs, presets, samples and layers.-->
+<!--blurb: The 45 sound models, their knobs, presets and samples.-->
 
 ## How a track's sound works
 
 Press [[EDIT]] to open the selected track's sound. [[KNOB 1]] picks the **MODEL**; the SOUND page then shows the model's knobs, four per page, followed by LEVEL, PAN, NOTE, CHOKE and PRIO (SAMPL adds PLAY and CUT, and a fifth page with ATK SUS REL LOOP). Every model has **TUNE** (-24 to +24 semitones), **DECAY**, and then its own knobs (all 0 to 127 unless stated). The first four knobs are the ones on HOME.
 
-The SOUND page shows the model's name, its place in the list (`#NN/45`), VOICES, CHOKE and `+ LAYER`, and on the right a graph. Models without a graph of their own show *the hit*: the voice's real sound (one hit at velocity 100, played silently in the background) as a waveform, labelled e.g. `HIT / 300 MS`; it redraws a few frames after MODEL or a knob changes. SAMPL shows its sample. The page also shows the track's preset, with `*` once a SOUND knob has moved.
+The SOUND page shows the model's name, its place in the list (`#NN/45`), VOICES and CHOKE, and on the right a graph. Models without a graph of their own show *the hit*: the voice's real sound (one hit at velocity 100, played silently in the background) as a waveform, labelled e.g. `HIT / 300 MS`; it redraws a few frames after MODEL or a knob changes. SAMPL shows its sample. The page also shows the track's preset, with `*` once a SOUND knob has moved.
 
 Per-track extras on the SOUND pages:
 
@@ -97,7 +97,7 @@ At power-on, on TOOLS **INIT ALL** and in a new project the six tracks load the 
 
 ## Presets
 
-A **preset** is one voice: MODEL plus the eight SOUND knobs (the SAMPLE model's PLAY, CUT, ATK, SUS, REL and LOOP too) and a name. A **USER** preset also stores the track's **FX**: the DIST, CHO, DLY and REV sends, FILTER, INSERT and SRR. No preset stores LEVEL, PAN, NOTE, CHOKE, PRIO, LAYER, the LFOs or steps. Factory presets change only the sound; the track's FX stay.
+A **preset** is one voice: MODEL plus the eight SOUND knobs (the SAMPLE model's PLAY, CUT, ATK, SUS, REL and LOOP too) and a name. A **USER** preset also stores the track's **FX**: the DIST, CHO, DLY and REV sends, FILTER, INSERT and SRR. No preset stores LEVEL, PAN, NOTE, CHOKE, PRIO, the LFOs or steps. Factory presets change only the sound; the track's FX stay.
 
 | Bank | Presets |
 | --- | --- |
@@ -126,7 +126,3 @@ The SAMPLE model has five SOUND pages: 1 MODEL TUNE DECAY TONE; 2 DRIVE SET SLOT
 - **PERC** has 16 samples, in this order: 1 kick, 2 rim, 3 snare, 4 clap, 5 low tom, 6 closed hat, 7 open hat, 8 high tom, 9 crash, 10 ride, 11 tambourine, 12 cowbell, 13 conga, 14 shaker, 15 claves, 16 wood block. They are Hortator's generated drum samples (Hügelton Sample Pack) and CC0 hand percussion (Versilian Studios VSCO-2 CE and VCSL), stored as 22,050 Hz IMA ADPCM.
 - **User slots.** USR1 holds 80 KiB, USR2 and USR3 48 KiB each (the rest of their flash holds the projects' variations and lock banks). Each holds a set of up to 16 samples, mono IMA ADPCM at rates up to 44.1 kHz. USR1 holds about 3.7 s at 44.1 kHz, 7.4 s at 22.05 kHz or 14.8 s at 11.025 kHz; USR2 and USR3 about 2.2, 4.4 and 8.8 s. Load them with the **web editor's Samples tab**, which also trims, normalizes, resamples and chops a sound.
 - A longer USR2 or USR3 written under upstream Felucca is shortened once at the next power-on (`USR2 SHORTENED TO 48K`, `USR3 SHORTENED TO 48K`); if that fails (`USR2 CLAMP FAILED`, `USR3 CLAMP FAILED`), SAVE says `USR2 ERROR: NO SAVE` until the next power-on. Do not upload to USR2 or USR3 with upstream Felucca's tools: an 80 KiB upload overwrites Hortator's variations and lock banks.
-
-## LAYER: a sample under any model
-
-Press [[EDIT]], then [[OCT+]] (with KEYS off) for the **LAYER** pages: a sample layer under any model. Page 1/2: **SET**, **SLOT**, **LEVEL** (0 = off, the default) and **TUNE** (-24 to +24); page 2/2: **DECAY**. SET and SLOT work as on the SAMPLE model. [[OCT-]] returns to SOUND. MIDI LEARN names them `T3 L.SET`, `L.SLOT`, `L.LEVEL`, `L.TUNE`, `L.DECAY`.

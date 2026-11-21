@@ -29,7 +29,7 @@ The tabs are **Sound**, **Presets**, **Projects**, **Patterns** and **Samples**.
 
 ## Sound
 
-The Sound tab shows **the selected track's pages** (SOUND for its model, LAYER, FILTER, FX, INSERT, SRR, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
+The Sound tab shows **the selected track's pages** (SOUND for its model, FILTER, FX, INSERT, SRR, LFO 1 and 2, DEST) under "Track", and **the globals** (among them GLOBAL, SYSTEM, DLY, REVERB (ROOM, SPRNG, HALL) and CHORUS) under "Global". Every knob has the FM-1's own text beside it (`-12`, `1/8`, `64 %`) and a slider or a menu.
 
 - It works **both ways**. Turn a knob on the FM-1 and it moves in the page (the value flashes). Move it in the page and the FM-1 plays it at once.
 - Choosing a track in the page selects it on the FM-1, and the other way round.
@@ -81,7 +81,7 @@ The Patterns tab edits the sequence of the **loaded slot**.
 
 ## Samples
 
-The Samples tab loads your own sounds into **USR1, USR2 and USR3**. Each slot holds a **set of up to 16 samples**; the SAMPLE model's and the LAYER's SET knob picks USR1 to USR3, and SLOT picks one of the set's samples in the order the page lists them (`2/5`).
+The Samples tab loads your own sounds into **USR1, USR2 and USR3**. Each slot holds a **set of up to 16 samples**; the SAMPLE model's SET knob picks USR1 to USR3, and SLOT picks one of the set's samples in the order the page lists them (`2/5`).
 
 Each slot's card shows the set's name, how full it is, the room left, and its samples (number, name, length, size) with the buttons **Play** (as the FM-1 plays it), **Edit** (open it again to trim, normalize or resample), the arrows (move), **Name** and **Del**.
 

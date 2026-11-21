@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Drum machine fork: 2026 DEADACTIVE
-// The Samples tab: the FM-1's three user sample slots USR1–USR3 (the SAMPLE model's and the LAYER's own sets;
+// The Samples tab: the FM-1's three user sample slots USR1–USR3 (the SAMPLE model's own sets;
 // web/EDITOR_PROTOCOL.md §2.7, §5). Each slot holds a set of up to 16 samples (sampset.mjs): its name, the bytes used
 // of its room, its samples (each: name, length, size, Play decoded as the FM-1 decodes it, Edit, up / down, Delete,
 // Rename), Back up (.fsmp), Restore…, Rename…, Clear. A sound file (WAV, AIFF — whatever the browser decodes) becomes
@@ -644,7 +644,7 @@ function cardHtml(m, k, lock) {
 export function mountSamples(el, ctx) {
   style();
   const m = new SamplesModel(ctx.session);
-  el.innerHTML = `<div class="snd-head"><h2>Samples</h2><span class="snd-sub">USR1–USR3: the SAMPLE model's and the LAYER's own sets</span>
+  el.innerHTML = `<div class="snd-head"><h2>Samples</h2><span class="snd-sub">USR1–USR3: the SAMPLE model's own sets</span>
     <span class="snd-load" hidden>Reading the FM-1…</span></div>
     <div class="smp-acts"><button type="button" class="smp-btn main" data-a="open">Load a sound file…</button>
       <button type="button" class="smp-btn" data-a="reload">Read again</button></div>

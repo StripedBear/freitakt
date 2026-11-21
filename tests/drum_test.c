@@ -36,7 +36,7 @@ static int track_idle(const track_t *t)
 {
     uint32_t i;
     for (i = 0; i < NDV; i++)
-        if (t->v[i].active || t->lv[i].active)
+        if (t->v[i].active)
             return 0;
     return t->dtail == 0;
 }
@@ -660,34 +660,6 @@ static void test_perc(void)
     check("claves: near 2.5 kHz", f > 2400 && f < 2600);
 }
 
-static void test_layer(void)
-{
-    double a, b;
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    drum_hit(&trk[0], 127);
-    check("layer: LLEVEL 0 starts no layer voice", !trk[0].lv[0].active && !trk[0].lv[1].active);
-    render_track(&trk[0], wl, SECS(0.3));
-    a = hf_of(wl, 0, SECS(0.3));
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = 0;                            /* PERC */
-    trk[0].p[P_LKEY] = 38;                           /* the GM snare sample on top of the kick */
-    drum_hit(&trk[0], 127);
-    check("layer: a hit starts the model and the layer", trk[0].v[0].active && trk[0].lv[0].active);
-    render_track(&trk[0], wl, SECS(6));
-    b = hf_of(wl, 0, SECS(0.3));
-    check("layer: adds the sample (more high-frequency energy)", b > 1.5 * a);
-    check("layer: ends with the hit, no voice left", track_idle(&trk[0]));
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = SMP_NSETS;                    /* USR1, empty */
-    drum_hit(&trk[0], 127);
-    check("layer: an empty user slot adds nothing", !trk[0].lv[0].active && trk[0].v[0].active);
-}
-
 static void test_extremes(void)
 {
     static const int16_t V[] = {-24, 0, 127};
@@ -734,8 +706,8 @@ static void test_stress(void)
 }
 
 static int kit_filter;                               /* kit_cost: the FILTER on all tracks (test_cost) */
-/* the cost of NTRK (6) tracks of model mi kept busy (1/32 at 240 BPM, DECAY 127, every FX), with or without layers */
-static double kit_cost(uint32_t mi, int layers)
+/* the cost of NTRK (6) tracks of model mi kept busy (1/32 at 240 BPM, DECAY 127, every FX) */
+static double kit_cost(uint32_t mi)
 {
     uint64_t i0;
     uint32_t i;
@@ -752,8 +724,6 @@ static double kit_cost(uint32_t mi, int layers)
             t->p[P_E3] = 127;
             t->p[P_E5] = 38;
         }
-        t->p[P_LLEVEL] = layers ? 100 : 0;
-        t->p[P_LKEY] = 38;
         t->p[P_DIST] = 60;
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 60;
         t->p[P_SDIV] = 3;
@@ -795,7 +765,7 @@ static void test_cost(void)
         "..x...x...x...x.", "......x....x....",          /* (FREITAKT: 6 tracks, tracks 7 and 8 gone) */
     };
     double ref = cost_ref("ref"), emax = cost_ref("extreme_max"), worst = 0, real, c;
-    uint32_t mi, wm = 0, lay, wl_ = 0, i, k;
+    uint32_t mi, wm = 0, i, k;
     uint64_t i0;
 #ifdef DM_QCHECK
     printf("     cost: measured by the build without overflow checks (drum_test)\n");
@@ -806,8 +776,6 @@ static void test_cost(void)
         track_t *t = &trk[i];
         for (k = 0; k < 16; k++)
             t->step[k].on = PAT[i][k] == 'x';
-        t->p[P_LLEVEL] = 100;
-        t->p[P_LKEY] = 38;
         t->p[P_DIST] = 40;
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 40;
     }
@@ -816,24 +784,22 @@ static void test_cost(void)
     i0 = instr_now();
     render_mix(wl, wr, SECS(4));
     real = i0 ? (double)(instr_now() - i0) / SECS(4) : 0;
-    for (mi = 0; mi < NMODELS; mi++)                 /* the extreme: every model kept busy on every track */
-        for (lay = 0; lay < 2; lay++) {
-            c = kit_cost(mi, (int)lay);
-            if (c > worst) {
-                worst = c;
-                wm = mi;
-                wl_ = lay;
-            }
+    for (mi = 0; mi < NMODELS; mi++) {               /* the extreme: every model kept busy on every track */
+        c = kit_cost(mi);
+        if (c > worst) {
+            worst = c;
+            wm = mi;
         }
+    }
     kit_filter = 1;
-    c = kit_cost(wm, (int)wl_);                      /* the same worst kit, the FILTER on every track */
+    c = kit_cost(wm);                      /* the same worst kit, the FILTER on every track */
     kit_filter = 0;
     printf("     extreme kit with the FILTER on all tracks: %.0f (its own limit %.0f)\n", c, cost_ref("extreme_filter_max"));
     check("cost: the extreme kit with the FILTER on all tracks within its recorded limit",
           !i0 || cost_ref("extreme_filter_max") == 0 || c <= cost_ref("extreme_filter_max"));
     printf("     realistic heavy kit: %.0f host instructions / sample (reference %.0f)\n", real, ref);
-    printf("     extreme kit: %.0f (%u x %s%s; limit %.0f, above the reference by design: device shedding)\n", worst,
-           (unsigned)NTRK, N_MODEL[wm], wl_ ? " + layers" : "", emax);
+    printf("     extreme kit: %.0f (%u x %s; limit %.0f, above the reference by design: device shedding)\n", worst,
+           (unsigned)NTRK, N_MODEL[wm], emax);
     check("cost: realistic heavy use within the stock Felucca reference", !i0 || ref == 0 || real <= ref);
     check("cost: the extreme case has not grown past its recorded limit", !i0 || emax == 0 || worst <= emax);
 }
@@ -876,48 +842,6 @@ static void test_drum_transpose(void)
     clamp_ok &= dm_tune(&trk[0]) == trk[0].p[P_E0] - 24;
     check("drum transpose: a step's note = TUNE by as many semitones, every model", ok);
     check("drum transpose: clamped to +-24 semitones", clamp_ok);
-}
-
-/* a transposed step moves the sample layer as it moves the model: nt +7 = LTUNE + 7 (and TUNE + 7) at nt 0 */
-static void test_layer_transpose(void)
-{
-    static int32_t a[SECS_MS(500)];
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_E0] = 0;
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = 0;
-    trk[0].p[P_LKEY] = 38;
-    trk[0].p[P_LTUNE] = 0;
-    drum_play(&trk[0], 96, 7);
-    render_track(&trk[0], a, SECS(0.5));
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_E0] = 7;
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = 0;
-    trk[0].p[P_LKEY] = 38;
-    trk[0].p[P_LTUNE] = 7;
-    drum_play(&trk[0], 96, 0);
-    render_track(&trk[0], wl, SECS(0.5));
-    check("layer transpose: a step's note moves the layer as LTUNE + 7 (bit-identical)", !memcmp(a, wl, sizeof a));
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = 0;
-    trk[0].p[P_LKEY] = 38;
-    drum_play(&trk[0], 96, 40);
-    render_track(&trk[0], a, SECS(0.5));
-    host_init();
-    old_set_model(&trk[0], DM_K909);
-    trk[0].p[P_E0] = 24;
-    trk[0].p[P_LLEVEL] = 100;
-    trk[0].p[P_LSET] = 0;
-    trk[0].p[P_LKEY] = 38;
-    trk[0].p[P_LTUNE] = 24;
-    drum_play(&trk[0], 96, 0);
-    render_track(&trk[0], wl, SECS(0.5));
-    check("layer transpose: clamped to +-24 as the model", !memcmp(a, wl, sizeof a));
 }
 
 static void test_golden(void)
@@ -973,7 +897,7 @@ static uint32_t voices_sounding(void)
     uint32_t i, k, n = 0;
     for (i = 0; i < NTRK; i++)
         for (k = 0; k < NDV; k++)
-            n += trk[i].v[k].active + trk[i].lv[k].active;
+            n += trk[i].v[k].active;
     return n;
 }
 
@@ -981,11 +905,8 @@ static void test_voice_cap(void)
 {
     uint32_t i, k, ok = 1, mx = 0;
     host_init();
-    for (i = 0; i < NTRK; i++) {
+    for (i = 0; i < NTRK; i++)
         old_set_model(&trk[i], i % 2 ? DM_CYMB : DM_TOM);
-        trk[i].p[P_LLEVEL] = 100;
-        trk[i].p[P_LKEY] = 38;
-    }
     for (k = 0; k < 200; k++) {
         for (i = 0; i < NTRK; i++) {
             drum_hit(&trk[i], 127);
@@ -1048,7 +969,7 @@ static void test_silent_sample_keeps_voices(void)
           before == DRUM_MAXV && voices_sounding() == DRUM_MAXV && !trk[NTRK - 1].v[0].active && !trk[NTRK - 1].v[1].active);
 }
 
-/* every model on every track (6): the sequencer at 1/32, 240 BPM, MIDI flams (two note-ons per block), layers on
+/* every model on every track (6): the sequencer at 1/32, 240 BPM, MIDI flams (two note-ons per block)
  * half the tracks, DECAY 127: the cap holds every block, the mix stays in range, every voice ends */
 static void test_stress_seq(void)
 {
@@ -1060,8 +981,6 @@ static void test_stress_seq(void)
             old_set_model(t, mi);
             t->p[P_E1] = 127;
             t->p[P_NOTE] = (int16_t)(36 + (i & 3));
-            t->p[P_LLEVEL] = i & 1 ? 100 : 0;
-            t->p[P_LKEY] = 38;
             t->p[P_SDIV] = 3;
             t->p[P_SLEN] = 1;
             t->step[0].on = 1;
@@ -1083,7 +1002,7 @@ static void test_stress_seq(void)
                 ok = 0;
             }
     }
-    check("stress (sequencer 1/32 @ 240, MIDI flams, layers, every model): cap holds, bounded, all voices end", ok);
+    check("stress (sequencer 1/32 @ 240, MIDI flams, every model): cap holds, bounded, all voices end", ok);
 }
 
 static void test_shed(void)
@@ -3082,14 +3001,12 @@ int main(void)
     test_metal();
     test_cowb_tune();
     test_perc();
-    test_layer();
     test_extremes();
     test_stress();
     test_cost();
     test_boot_cost();
     test_golden();
     test_drum_transpose();
-    test_layer_transpose();
     test_voice_cap();
     test_heavy_cap();
     test_swing_grid();

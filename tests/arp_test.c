@@ -369,8 +369,6 @@ static double heavy(int mode, int pitched, uint32_t ratch)
             drum_set_model(t, PM[i]);
         for (k = 0; k < 16; k++)
             t->step[k].on = PAT[i][k] == 'x', t->step[k].rat = ratch & 3u;
-        t->p[P_LLEVEL] = 100;
-        t->p[P_LKEY] = 38;
         t->p[P_DIST] = 40;
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = 40;
         t->p[P_AMODE] = (int16_t)mode;

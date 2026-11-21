@@ -199,7 +199,6 @@ static void edit_down(uint32_t now)
     ui.pr.e_home = ui.home;
     ui.pr.e_hmode = ui.hmode;
     ui.pr.e_snd = ui.fam_last[FAM_SND];
-    ui.pr.e_lay = ui.fam_last[FAM_LAY];
 }
 /* every frame after the buttons: EDIT held PP_HOLD_MS since its press: the page before it, the list over it */
 static void edit_hold(uint32_t now)
@@ -211,7 +210,6 @@ static void edit_hold(uint32_t now)
     ui.home = ui.pr.e_home;
     ui.hmode = ui.pr.e_hmode;
     ui.fam_last[FAM_SND] = ui.pr.e_snd;
-    ui.fam_last[FAM_LAY] = ui.pr.e_lay;
     page_entered();
     preset_list_open();
 }

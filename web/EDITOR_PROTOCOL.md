@@ -146,7 +146,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   PAGES after a selection change and after the selected track's MODEL changed.
 - **DESC**: fmt (`core.h` F_*: 0 INT, 1 PCT, 2 BIPCT, 3 TIME, 4 LFOHZ, 5 CUTOFF, 6 DB, 7 SEMI, 8 ENUM, 9 BPM, 10 NOTE,
   11 ONOFF, 12 OCT, 13 STEPS, 14 CTHR, 15 CRAT, 16 CATK, 17 CREL, 18 CMKUP, 19 LRATE1, 20 LRATE2, 21 LDEST,
-  22 LPHASE, 23 NOTEO, 24 RDECAY, 25 FDEC, 26 SRR, 27 SLOT and 28 LSLOT: the SAMPLE model's / the LAYER's sample of
+  22 LPHASE, 23 FDEC, 24 SRR, 25 SLOT: the SAMPLE model's sample of
   its SET, -16..-1 = 1..16, a value >= 0 an older KEY note; text "3/16"), min / max / def, the label and unit the device shows, and the
   value names from index `first` (as many as fit; `nnames` = how many there are: ask again from first + count):
   - ENUM: the names of the values min..max (the name of v = names[v − min]).
@@ -184,7 +184,7 @@ SMP_INFO 1, SMP_BEGIN 11, SMP_DATA 6 + the pack, SMP_END 1 + the pack (549), SMP
   their names live only in the page and files).
 - **PRESET_LOAD** loads a preset onto a track as the device's PRESETS list does: MODEL and the 8 SOUND knobs; a user
   preset that holds its FX (used 1, §6) sets them too; a factory or voice-only preset leaves the track's FX. Never LEVEL, PAN, NOTE,
-  CHOKE, LAYER, the LFOs or the steps. rc 2 detail 17: an empty user slot; detail 18: ACID onto a third
+  CHOKE, the LFOs or the steps. rc 2 detail 17: an empty user slot; detail 18: ACID onto a third
   track. The push shadows are not updated (editor_pattern.c): on the **selected** track the knobs that moved arrive
   as CHANGED pushes (as if turned on the device; at most 4 a pass); another track: no push. Neither carries the
   preset id (DUMP): the page re-reads the track it shows.
@@ -310,7 +310,7 @@ One restore at a time: **BEGIN → DATA … → COMMIT** (or ABORT). The transpo
 
 ### 2.7 Samples: SMP_INFO, SMP_BEGIN, SMP_DATA, SMP_END, SMP_READ, SMP_CLEAR, SMP_RENAME
 
-The three user sample slots USR1..USR3 (the SAMPLE model's and the LAYER's sets after the built-in ones), in flash,
+The three user sample slots USR1..USR3 (the SAMPLE model's sets after the built-in ones), in flash,
 in upstream Felucca's slot format (Appendix): a 480-byte header at the slot's start, IMA ADPCM data at +512.
 
 | slot | Name | Flash | Size | Data at most (`max`) |
@@ -551,7 +551,7 @@ mono, trimmed, optionally normalized (peak to full scale), and kept at its own r
 source), so the page's preview — decoded from the encoded bytes with the device's decoder — is what the FM-1 plays.
 
 **Sets the page makes** (`web/editor/sampset.mjs`). A slot holds a set of 1..16 samples; the firmware's SLOT knob (the
-SAMPLE model's and the LAYER's) steps through a set's distinct samples in key order (`dm_sample.c` `sl_make`), so
+SAMPLE model's) steps through a set's distinct samples in key order (`dm_sample.c` `sl_make`), so
 the page's sample n is SLOT n. The page composes the whole image and writes it with one upload (BEGIN, DATA …, END):
 adding, replacing, moving, renaming or deleting a sample, and chopping, all rewrite the set, header last, so a failed
 or cancelled write leaves the slot empty (the page keeps the set to write again or to save as a `.fsmp`).

@@ -684,8 +684,8 @@ static void test_record_layout(void)
           "FILTER ENV's 15",
           UPR_NFB == 23u && upr_fb(3) == 3u && upr_fb(4) == 12u && upr_fb(UPR_NFX - 1u) == 22u && upr_fb(7) == UPR_FENV &&
               upr_bfx(4) < 0 && upr_bfx(11) < 0 && upr_bfx(12) == 4);
-    check("not stored: LAYER, LFOs and their DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO",
-          !is_fx(P_LSET) && !is_fx(P_LFO1 + LF_DEST) && !is_fx(P_LS3DEST) &&
+    check("not stored: LFOs and their DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO",
+          !is_fx(P_LFO1 + LF_DEST) && !is_fx(P_LS3DEST) &&
               !is_fx(P_LEVEL) && !is_fx(P_PAN) && !is_fx(P_NOTE) && !is_fx(P_CHOKE) && !is_fx(P_PRIO));
     check("the record: 4 + 96 x 33 + 32 = 3204 B, <= 3584 (one sector, below the loader's scan)",
           sizeof(upr_rec_t) == 3204u && sizeof(upr_rec_t) <= 3584u && sizeof(upr_rec_t) <= ST_PAYLOAD_MAX &&
@@ -717,13 +717,12 @@ static void test_user_fx_round_trip(void)
     u->p[P_LFO1 + LF_DEST] = 2;
     u->p[P_LS3DEST] = 4;
     u->p[P_LS4DEST] = LD_MAX;                        /* an appended DEST (the INSERT's C) is kept too */
-    u->p[P_LSET] = 1;
     before = *u;
     ok = preset_load(u, user_id(4)) == 0 && preset_get(user_id(4), &p) && knobs_are(u, &p) && fx_same(u->p, want);
     for (i = 0; i < P_COUNT; i++)
         if ((i < P_MODEL || i > P_E7) && !is_fx(i))
             ok &= u->p[i] == before.p[i];
-    check("a user load: the voice and the FX = the slot's; LAYER, LFOs, slots, LEVEL, PAN, NOTE, CHOKE, PRIO "
+    check("a user load: the voice and the FX = the slot's; LFOs, slots, LEVEL, PAN, NOTE, CHOKE, PRIO "
           "unchanged", ok && u->pre == user_id(4) && !u->pre_ed);
     power_cycle();
     fx_fill(&trk[3], 7);

@@ -116,7 +116,7 @@ export async function runMidiExportTests(log = console.log) {
   /* the Patterns tab against the mock device */
   {
     const data = await loadDeviceData();
-    ok(J([0, 8, 13, 69, 70, 75].map((i) => data.P[i])) === J(["MODEL", "E7", "NOTE", "AMODE", "ARATE", "ARANGE"])
+    ok(J([0, 8, 13, 64, 65, 70].map((i) => data.P[i])) === J(["MODEL", "E7", "NOTE", "AMODE", "ARATE", "ARANGE"])
       && J([0, 1, 33, 38].map((i) => data.G[i])) === J(["BPM", "SWING", "MCH1", "MCH6"]), "the ids exportMidi reads = the firmware's (device_data)");
     const m = createMockDevice(data), c = await connect(m.access, { timing: FAST }), s = c.session, pm = new PatternsModel(s);
     await pm.load();

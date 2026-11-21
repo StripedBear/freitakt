@@ -22,7 +22,6 @@
 | **FM-Link** | two FM-1s in time over Bluetooth. |
 | **GO action** | a TOOLS / PROJECT knob that needs two detents within 1.5 s. |
 | **KEYS** | the keys play the selected track chromatically ([[SCL]]). |
-| **LAYER** | a sample layered under any model. |
 | **LOCK** | a per-step value for a knob (parameter lock). |
 | **MD / MODERN / CLASSIC** | the three sound banks. |
 | **MOTION** | recorded knob turns. |
@@ -56,7 +55,7 @@
 | **PLAY** | SAMPLE: KEY (the keys play one sample up and down) or CHOP. |
 | **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/8 KNOB 4). |
 | **REPEAT STEP** | PERFORM: a held white key (F3 to D4) repeats that track's step; D5 to G5 pick the rate. |
-| **SET / SLOT** | SAMPLE and LAYER: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
+| **SET / SLOT** | SAMPLE: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
 | **SOLO** | ARP + black keys 1 to 6; TOGGLE or MOMENTARY mode (ARP + F#5). |
 | **SRR** | sample rate reduction on a track (INSERT 2/2). |
 | **START / END** | SAMPLE: play part of a sample, 0 to 127 over its length. |

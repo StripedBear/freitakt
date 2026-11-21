@@ -53,15 +53,15 @@ static __attribute__((noinline)) void bench_time(uint32_t us, uint32_t late)   /
 
 /* the cases: idle; 6 tracks of each model without and with every FX; the realistic heavy kit, then without one
  * feature each; the PHYS-heavy kit */
-enum { BH_LAYER = 1, BH_DIST = 2, BH_CHOR = 8, BH_DLY = 16, BH_REV = 32 };
+enum { BH_DIST = 2, BH_CHOR = 8, BH_DLY = 16, BH_REV = 32 };
 enum { BH_FILTER = 128, BH_COMP = 256, BH_SIDE = 512, BH_ACID = 1024 };   /* the cases after the PHYS kits: added, not taken out */
 #define BH_FX (BH_DIST | BH_CHOR | BH_DLY | BH_REV)
 static const uint16_t BENCH_MORE_OFF[6] = {BH_FILTER, BH_COMP, BH_FX | BH_COMP, BH_COMP | BH_SIDE, BH_FX | BH_COMP | BH_SIDE,
                                             BH_ACID};
 static const char *const BENCH_MORE_NAME[6] = {"heavy+filter", "heavy+comp", "heavy-fx+comp", "heavy+sidechain",
                                                "heavy-fx+sidechain", "heavy+2acid"};
-static const uint8_t BENCH_HEAVY_OFF[] = {0, BH_LAYER, BH_DIST, BH_CHOR, BH_DLY, BH_REV};
-static const char *const BENCH_OFF_NAME[] = {"", "-layer", "-dist", "-chorus", "-delay", "-reverb"};
+static const uint8_t BENCH_HEAVY_OFF[] = {0, BH_DIST, BH_CHOR, BH_DLY, BH_REV};   /* (FREITAKT: no LAYER case) */
+static const char *const BENCH_OFF_NAME[] = {"", "-dist", "-chorus", "-delay", "-reverb"};
 #define BENCH_MODELS 1u                                  /* first model case */
 #define BENCH_HEAVY (BENCH_MODELS + 2u * NMODELS)
 #define BENCH_PHYS (BENCH_HEAVY + sizeof BENCH_HEAVY_OFF)
@@ -168,7 +168,7 @@ static void bench_reset(void)
 }
 
 /* 6 tracks of model mi, 1/32 at 240 BPM, DECAY 127 (drum_test's kit_cost); fx: every FX (DIST, the three
- * sends), no layer */
+ * sends) */
 static void bench_kit(uint32_t mi, int fx_on)
 {
     uint32_t i;
@@ -181,7 +181,6 @@ static void bench_kit(uint32_t mi, int fx_on)
             t->p[P_E3] = 127;
             t->p[P_E5] = 38;
         }
-        t->p[P_LLEVEL] = 0;
         t->p[P_DIST] = (int16_t)(fx_on ? 60 : 0);
         t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = (int16_t)(fx_on ? 60 : 0);
         t->p[P_SDIV] = 3;
@@ -201,7 +200,7 @@ static const uint8_t BENCH_ACID_FL[16] = {1, 2, 0, 4, 8, 0, 3, 0, 0, 1, 8, 2, 0,
  * theirs, so a run stays comparable with the earlier ones, docs/PERFORMANCE.md; FREITAKT: its first 6, RIM CYMB gone) */
 static const uint8_t BENCH_KIT[NTRK] = {DM_K909, DM_S808, DM_C808, DM_HATC, DM_HATO, DM_TOM};
 
-/* the realistic heavy kit (drum_test's test_cost: the demo with a layer, DIST and sends on every track) at
+/* the realistic heavy kit (drum_test's test_cost: the demo with DIST and sends on every track) at
  * 120 BPM; phys: MEMB on 5 and 6;
  * off: the features taken out (BH_), or added (BH_FILTER on all 6, BH_COMP keyed by T1, BH_SIDE: DUCK on 2..6, BH_ACID: tracks 5 and 6 ACID) */
 static void bench_heavy(int phys, uint32_t off)
@@ -227,8 +226,6 @@ static void bench_heavy(int phys, uint32_t off)
                 t->step[k].nt = (int8_t)(BENCH_ACID_NT[k] + (i == NTRK - 1u ? 12 : 0));
             }
         }
-        t->p[P_LLEVEL] = (int16_t)(off & BH_LAYER ? 0 : 100);
-        t->p[P_LKEY] = 38;
         t->p[P_DIST] = (int16_t)(off & BH_DIST ? 0 : 40);
         t->p[P_CHOR] = (int16_t)(off & BH_CHOR ? 0 : 40);
         t->p[P_DLY] = (int16_t)(off & BH_DLY ? 0 : 40);

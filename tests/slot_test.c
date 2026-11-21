@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
-/* The SAMPLE model's and the LAYER's sample knobs (dm_sample.c): their labels, SLOT (a set's samples 1..N, in key order,
+/* The SAMPLE model's sample knobs (dm_sample.c): their labels, SLOT (a set's samples 1..N, in key order,
  * each played at its own root; a stored note from before SLOT converted where it loads: projects, presets, the user
  * bank; LOCK / MOTION events keep their note and play it as before), START / END (0..127 over the sample, exact ADPCM
  * decoder states: generated for the built-in set, worked out in the main loop for a user slot; the defaults
@@ -63,7 +63,7 @@ static void hit(int32_t *w, uint32_t n)
     drum_play(&trk[0], 127, 0);
     render_track(&trk[0], w, n);
 }
-/* a SAMPLE track 0 with knobs k (E0..E7 as stored, no conversion), LAYER off */
+/* a SAMPLE track 0 with knobs k (E0..E7 as stored, no conversion) */
 static void smpl_raw(const int16_t *k)
 {
     uint32_t i;
@@ -71,7 +71,6 @@ static void smpl_raw(const int16_t *k)
     drum_set_model(&trk[0], DM_SMPL);
     for (i = 0; i < 8u; i++)
         trk[0].p[P_E0 + i] = k[i];
-    trk[0].p[P_LLEVEL] = 0;
 }
 
 /* ---- a user slot in flash (eng_sample.c's layout): zones of a ramp-ish signal, ADPCM by the firmware's decoder rule */
@@ -127,38 +126,26 @@ static void ref_state(const smp_zone_t *z, uint32_t pos, int32_t *pred, int32_t 
 /* ---------------------------------------------------------------- labels */
 static void t_labels(void)
 {
-    static const char *const L[5] = {"SET", "SLOT", "LEVEL", "TUNE", "DECAY"};
     static const char *const S[8] = {"TUNE", "DECAY", "TONE", "DRIVE", "SET", "SLOT", "START", "END"};
     uint32_t i, ok = 1, w = 1;
-    for (i = 0; i < 5u; i++)
-        ok &= !strcmp(TP[P_LSET + i].label, L[i]);
-    check("LAYER: SET SLOT LEVEL TUNE DECAY", ok);
-    for (ok = 1, i = 0; i < 8u; i++) {
+    for (i = 0; i < 8u; i++) {
         ok &= !strcmp(DMODELS[DM_SMPL].edit[i].label, S[i]);
         w &= str_len(DMODELS[DM_SMPL].edit[i].label) <= 5u;
     }
-    for (i = 0; i < 5u; i++)
-        w &= str_len(TP[P_LSET + i].label) <= 5u;
     check("SAMPLE: TUNE DECAY TONE DRIVE / SET SLOT START END", ok);
     check("labels fit the 5-character columns", w);
     {
         char b[16];
         ui.ml.act = 0;
         ui.ml.trk = 2;
-        ui.ml.id = P_LKEY;
-        ml_name(b);
-        ok = !strcmp(b, "T3 L.SLOT");
-        ui.ml.id = P_LLEVEL;
-        ml_name(b);
-        ok &= !strcmp(b, "T3 L.LEVEL");
         old_set_model(&trk[2], DM_SMPL);
         ui.ml.id = P_E5;
         ml_name(b);
-        ok &= !strcmp(b, "T3 SLOT");
+        ok = !strcmp(b, "T3 SLOT");
         ui.ml.id = P_E6;
         ml_name(b);
         ok &= !strcmp(b, "T3 START");
-        check("MIDI LEARN names: T3 L.SLOT, T3 L.LEVEL (the LAYER's), T3 SLOT, T3 START", ok);
+        check("MIDI LEARN names: T3 SLOT, T3 START", ok);
     }
     check("START and END are learnable SOUND knobs (no longer '-')",
           ml_knob_real(&DMODELS[DM_SMPL].edit[6]) && ml_knob_real(&DMODELS[DM_SMPL].edit[7]) && motion_param(P_E6) &&
@@ -208,43 +195,56 @@ static void t_slot_text(void)
     TSEL->p[P_E4] = SMP_NSETS;                      /* USR1, empty */
     param_format(&DMODELS[DM_SMPL].edit[5], SMP_SLOT_V(0), v, &u);
     check("SLOT text of an empty user slot: --", !strcmp(v, "--"));
-    TSEL->p[P_LSET] = 0;
-    param_format(&TP[P_LKEY], SMP_SLOT_V(15), v, &u);
-    check("the LAYER's SLOT reads the LAYER's SET: 16/16", !strcmp(v, "16/16"));
+    TSEL->p[P_E4] = 0;
+    param_format(&DMODELS[DM_SMPL].edit[5], SMP_SLOT_V(15), v, &u);
+    check("SLOT reads the model's SET: 16/16", !strcmp(v, "16/16"));
+}
+/* the SOUND page and column holding knob id of the selected track (EDIT), the page left open on it */
+static uint32_t snd_col(uint32_t id)
+{
+    uint32_t i, c;
+    for (i = 0; i < NPAGES; i++)
+        for (c = 0; c < 4u; c++)
+            if (PAGES[i].fam == FAM_SND && !page_hidden(i) && page_id(&PAGES[i], c) == id) {
+                ui.home = 0;
+                ui.page = (uint8_t)i;
+                ui.force = 1;
+                ui_frame();
+                return c;
+            }
+    return 0;
 }
 static void t_slot_knob(void)
 {
-    uint32_t i, ok = 1;
+    uint32_t i, ok = 1, c;
     char v[16];
     const char *u;
     ui_host_init();
-    old_set_model(TSEL, DM_K909);
-    TSEL->p[P_LSET] = 0;
-    TSEL->p[P_LKEY] = SMP_SLOT_V(0);
-    ui.home = 0;
-    ui.page = (uint8_t)page_first(FAM_LAY);
-    ui.force = 1;
-    ui_frame();
+    old_set_model(TSEL, DM_SMPL);
+    TSEL->p[P_E4] = 0;
+    TSEL->p[P_E5] = SMP_SLOT_V(0);
+    c = snd_col(P_E5);
     for (i = 1; i < 16u; i++) {
-        turn(EN_K2, 1);
+        turn(EN_K1 + c, 1);
         ui_frame();
-        ok &= TSEL->p[P_LKEY] == SMP_SLOT_V(i);
+        ok &= TSEL->p[P_E5] == SMP_SLOT_V(i);
     }
-    turn(EN_K2, 1);
+    turn(EN_K1 + c, 1);
     ui_frame();
-    check("LAYER SLOT: a detent a sample, 1 .. 16, stops at 16", ok && TSEL->p[P_LKEY] == SMP_SLOT_V(15));
-    TSEL->p[P_LKEY] = 50;                           /* a note from before SLOT (tom 47..50) */
-    turn(EN_K2, 1);
+    check("SAMPLE SLOT: a detent a sample, 1 .. 16, stops at 16", ok && TSEL->p[P_E5] == SMP_SLOT_V(15));
+    TSEL->p[P_E5] = 50;                             /* a note from before SLOT (tom 47..50) */
+    turn(EN_K1 + c, 1);
     ui_frame();
-    param_format(&TP[P_LKEY], TSEL->p[P_LKEY], v, &u);
-    check("a detent on a note from before SLOT: from its sample on", TSEL->p[P_LKEY] < 0 &&
-                                                                          TSEL->p[P_LKEY] == smp_slot_of(0, 50) + 1 - 16);
+    param_format(&DMODELS[DM_SMPL].edit[5], TSEL->p[P_E5], v, &u);
+    check("a detent on a note from before SLOT: from its sample on", TSEL->p[P_E5] < 0 &&
+                                                                          TSEL->p[P_E5] == smp_slot_of(0, 50) + 1 - 16);
     user_slot(0, &(uz_t){4000, 0, 127, 60}, 1);
-    TSEL->p[P_LKEY] = SMP_SLOT_V(9);
-    turn(EN_K1, 1);                                 /* SET: PERC -> USR1 */
+    TSEL->p[P_E5] = SMP_SLOT_V(9);
+    c = snd_col(P_E4);
+    turn(EN_K1 + c, 1);                             /* SET: PERC -> USR1 */
     ui_frame();
     check("SET changed: SLOT clamped to the new set's samples (1/1)",
-          TSEL->p[P_LSET] == SMP_NSETS && TSEL->p[P_LKEY] == SMP_SLOT_V(0));
+          TSEL->p[P_E4] == SMP_NSETS && TSEL->p[P_E5] == SMP_SLOT_V(0));
     old_set_model(TSEL, DM_SMPL);
     TSEL->p[P_E4] = 0;
     TSEL->p[P_E5] = SMP_SLOT_V(12);
@@ -290,24 +290,6 @@ static void t_slot_play(void)
         smpl_raw(b);
         hit(wb, SECS(0.5));
         check("TUNE pitches a SLOT as it pitched a KEY (+5)", !memcmp(wa, wb, sizeof(int32_t) * SECS(0.5)));
-    }
-    {
-        static int32_t la[SECS_MS(500)];
-        host_init();
-        old_set_model(&trk[0], DM_K909);
-        trk[0].p[P_LLEVEL] = 100;
-        trk[0].p[P_LSET] = 0;
-        trk[0].p[P_LKEY] = 38;
-        trk[0].p[P_LTUNE] = 3;
-        hit(la, SECS(0.5));
-        host_init();
-        old_set_model(&trk[0], DM_K909);
-        trk[0].p[P_LLEVEL] = 100;
-        trk[0].p[P_LSET] = 0;
-        trk[0].p[P_LKEY] = (int16_t)SMP_SLOT_V(smp_slot_of(0, 38));
-        trk[0].p[P_LTUNE] = 3;
-        hit(wb, SECS(0.5));
-        check("LAYER: SLOT of the snare = the old LKEY 38, bit for bit", !memcmp(la, wb, sizeof la));
     }
     user_slot(1, (const uz_t[]){{3000, 0, 59, 48}, {2000, 60, 127, 72}}, 2);
     {
@@ -363,7 +345,6 @@ static void t_project(void)
         keep = trk[k];
         host_init();
         trk[0] = keep;
-        trk[0].p[P_LLEVEL] = 0;
         hit(a[k], SECS(0.5));
     }
     fresh();
@@ -373,11 +354,6 @@ static void t_project(void)
         for (i = 0; i < 8u; i++)
             trk[k].p[P_E0 + i] = K[k][i];
     }
-    trk[2].p[P_LSET] = 0;
-    trk[2].p[P_LKEY] = 38;
-    trk[2].p[P_LTUNE] = 0;
-    trk[3].p[P_LSET] = 0;
-    trk[3].p[P_LKEY] = 20;
     project_save(0);
     check("the old project saved as it was (KEY 50, END 0 in flash)", proj_slot[0].t[0].p[P_E5] == 50 &&
                                                                           proj_slot[0].t[0].p[P_E7] == 0);
@@ -387,8 +363,6 @@ static void t_project(void)
           trk[0].p[P_E5] == SMP_SLOT_V(smp_slot_of(0, 50)) && trk[0].p[P_E0] == 3 && trk[0].p[P_E7] == 127 &&
               trk[0].p[P_E6] == 0);
     check("loaded: KEY 50 with TUNE 23 kept as the note (no room for +2)", trk[1].p[P_E5] == 50 && trk[1].p[P_E0] == 23);
-    check("loaded: LAYER SLOT 38 -> the snare, 20 -> the nearest (the kick)",
-          trk[2].p[P_LKEY] == SMP_SLOT_V(smp_slot_of(0, 38)) && trk[3].p[P_LKEY] == SMP_SLOT_V(0));
     check("loaded: not marked as edited", !slot_dirty(0));
     {                                               /* a cue into the slot stages the same knobs (project.c) */
         static int16_t o[NTRK][P_COUNT];
@@ -396,8 +370,7 @@ static void t_project(void)
         static uint8_t pe[NTRK];
         cue_stage_knobs(&proj_slot[0], o, pre, pe);
         check("a cue's staged knobs: converted as a LOAD's", !memcmp(o[0], trk[0].p, sizeof o[0]) &&
-                                                               !memcmp(o[1], trk[1].p, sizeof o[1]) &&
-                                                               o[2][P_LKEY] == trk[2].p[P_LKEY]);
+                                                               !memcmp(o[1], trk[1].p, sizeof o[1]));
     }
     {
         static track_t loaded[2];
@@ -409,9 +382,8 @@ static void t_project(void)
         uint32_t i;
         host_init();
         trk[0] = keep;
-        trk[0].p[P_LLEVEL] = 0;
         for (i = 0; i < NDV; i++)
-            trk[0].v[i].active = trk[0].lv[i].active = 0;
+            trk[0].v[i].active = 0;
         drum_play(&trk[0], 127, 0);
         render_track(&trk[0], b, SECS(0.5));
         check(k ? "loaded track 2 plays as before, bit for bit" : "loaded track 1 plays as before, bit for bit",
@@ -442,7 +414,6 @@ static void t_presets(void)
         hit(wa, SECS(0.5));
         host_init();
         preset_apply(&trk[0], &pr, id);
-        trk[0].p[P_LLEVEL] = 0;
         hit(wb, SECS(0.5));
         ok &= !memcmp(wa, wb, sizeof(int32_t) * SECS(0.5)) && peak(wa, SECS(0.5)) > 0;
         n++;

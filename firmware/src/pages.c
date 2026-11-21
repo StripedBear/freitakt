@@ -3,7 +3,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Drum UI pages: a family per page button (pressing it again steps through its pages), and what
  * the four knobs edit on each page. */
-enum { FAM_HOME, FAM_SND, FAM_LAY, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_COUNT };
+enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_COUNT };
 enum { SC_TRACK, SC_GLOBAL, SC_GRID, SC_MIX };   /* knobs edit: the selected track, song.g, the STEP grid, the mixer */
 enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, GR_LFO, GR_MOTION, GR_FILTER,
        GR_LDEST, GR_INSERT, GR_DLY, GR_REV, GR_CHO };
@@ -30,8 +30,6 @@ static const page_t PAGES[] = {
      * second ARP's only (hidden on a drum: page_hidden) */
     {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_AMODE, P_ARATE, P_AGATE, P_AFADE}},
     {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_ADIR, P_ACHORD, P_ARANGE, 0xFF}},
-    {"LAYER", FAM_LAY, SC_TRACK, GR_NONE, {P_LSET, P_LKEY, P_LLEVEL, P_LTUNE}},
-    {"LAYER", FAM_LAY, SC_TRACK, GR_NONE, {P_LDEC, 0xFF, 0xFF, 0xFF}},
     {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FTYPE, P_FCUT, P_FRESO, P_FENV}},   /* filter.c */
     {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FDEC, 0xFF, 0xFF, 0xFF}},
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
@@ -70,9 +68,9 @@ static const page_t PAGES[] = {
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
 
-/* the button (and LED) of each family; the LAYER pages are EDIT's (OCT+ from SOUND), the COMP pages (HOME 2/3, 3/3)
+/* the button (and LED) of each family; the COMP pages (HOME 2/3, 3/3)
  * and TRACKS (HOME's TRACKS mode) HOME's; ENV and SCL are free */
-static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME};
+static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME};
 
 /* the EDIT list of track t: MODEL, its model's TUNE DECAY TONE and 4th knob, its extra knobs, then LVL PAN NOTE
  * CHOKE PRIO (at most 16: 14); the SAMPLE model's then PLAY CUT, and ATK SUS REL LOOP on a page of their own (the 5th:

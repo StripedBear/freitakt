@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments
  * Drum machine fork: 2026 DEADACTIVE */
-/* The 8 drum tracks: power-on kit, hits (voice choice, choke groups, sample layer), and the per-track
+/* The 8 drum tracks: power-on kit, hits (voice choice, choke groups), and the per-track
  * render fx.c mixes (track_render). A cut voice is not dropped: its last sample decays in dtail. */
 
 static uint32_t dvage;                                   /* hit counter: voice ages, noise seeds */
@@ -43,10 +43,8 @@ static void dv_cut(track_t *t, dvoice_t *v)
 static void drum_cut(track_t *t)                         /* every voice of t, with the declick tail */
 {
     uint32_t i;
-    for (i = 0; i < NDV; i++) {
+    for (i = 0; i < NDV; i++)
         dv_cut(t, &t->v[i]);
-        dv_cut(t, &t->lv[i]);
-    }
     t->gate_n = 0;                                       /* ACID: no gate left to close, nothing slides on */
     t->slide_in = 0;
 }
@@ -76,19 +74,19 @@ static void mlock_end(track_t *t)
 }
 
 #ifndef DRUM_MAXV
-#define DRUM_MAXV 8       /* voices sounding at once over all tracks, model + layer (user decision: realistic use fits the
+#define DRUM_MAXV 8       /* voices sounding at once over all tracks (user decision: realistic use fits the
                            * 1566 reference; the extreme case, ~2388, relies on the device's overload shedding, M1-B;
                            * a heavy model's voice counts 2 (M1-C, user decision) */
 #endif
 
-/* what a sounding voice counts toward DRUM_MAXV: a layer voice 1, a model voice its model's weight */
-static uint32_t dv_weight(const track_t *t, const dvoice_t *v)
+/* what a sounding voice counts toward DRUM_MAXV: its model's weight */
+static uint32_t dv_weight(const track_t *t)
 {
-    uint32_t w = v >= t->lv && v < t->lv + NDV ? 1u : DMODELS[t->model % NMODELS].weight;
+    uint32_t w = DMODELS[t->model % NMODELS].weight;
     return w ? w : 1u;
 }
 
-/* the voice to go first of any track (model or layer): *ot its track; returns the sounding weight. A gated model's
+/* the voice to go first of any track: *ot its track; returns the sounding weight. A gated model's
  * voice (ACID) with its gate open goes last: a TIE or a slide keeps the voice and its age, so a held note would be
  * the oldest and any drum hit would cut it; it is taken only when nothing else sounds. Then a LOW track's voice before
  * a HIGH one's (P_PRIO), then the oldest */
@@ -98,12 +96,12 @@ static uint32_t dv_oldest(track_t **ot, dvoice_t **ov)
     *ot = 0;
     *ov = 0;
     for (i = 0; i < NTRK; i++)
-        for (k = 0; k < 2u * NDV; k++) {
-            dvoice_t *v = k < NDV ? &trk[i].v[k] : &trk[i].lv[k - NDV];
+        for (k = 0; k < NDV; k++) {
+            dvoice_t *v = &trk[i].v[k];
             if (!v->active)
                 continue;
-            n += dv_weight(&trk[i], v);
-            key = (k < NDV && DMODELS[trk[i].model % NMODELS].gate && (v->x[2] & 1)) * 2u + !trk[i].p[P_PRIO];
+            n += dv_weight(&trk[i]);
+            key = (DMODELS[trk[i].model % NMODELS].gate && (v->x[2] & 1)) * 2u + !trk[i].p[P_PRIO];
             if (!*ov || key < best || (key == best && v->age < (*ov)->age)) {
                 *ov = v;
                 *ot = &trk[i];
@@ -196,17 +194,6 @@ static void drum_play(track_t *t, uint32_t vel, int32_t nt)
         dv_init(v, vel);
         m->trigger(t, v);
     }
-    if (t->p[P_LLEVEL]) {
-        int32_t o16;
-        uint32_t zi = smp_slot_zone((uint32_t)t->p[P_LSET], t->p[P_LKEY], &o16);   /* (dm_sample.c: SLOT, or a KEY) */
-        if (zi != 0xFFFFu && smp_zone(zi)->n) {
-            v = dv_alloc(t, t->lv, nv, 1u);
-            dv_init(v, vel);
-            smp_go(v, zi, o16, t->p[P_LTUNE] + clamp(t->nt, -24, 24), 0, 127);   /* as dm_tune; the whole sample */
-            v->env[0] = ENV1;
-            v->k[0] = dk(t->p[P_LDEC]);
-        }
-    }
 }
 
 static uint32_t hit_gate_len(const track_t *t);          /* seq.c */
@@ -261,7 +248,7 @@ static void drum_hit(track_t *t, uint32_t vel)
 }
 
 /* the engine view's rendered hit (ui_draw.c vg_step), on the UI thread: t's model, one voice (a two-voice model's one
- * hit; no sample layer, no FX, no LFO), struck on the scratch track vg_trk (dm_dsp.c) with t's knobs at C4,
+ * hit; no FX, no LFO), struck on the scratch track vg_trk (dm_dsp.c) with t's knobs at C4,
  * velocity vel. Nothing live is touched: no voice from the pool, no voice cap, no choke, no age or seed from dvage (age
  * 1 and its seed, as the first hit after power-on: the same knobs, the same sound), the metal bank and SKIN's body the
  * scratch's own. A SAMPLE with no sample: no voice */
@@ -313,11 +300,6 @@ static uint32_t track_render(track_t *t, int32_t *out, uint32_t n)
     for (i = 0; i < NDV; i++)
         if (t->v[i].active) {
             m->render(t, &t->v[i], out, n);
-            nr++;
-        }
-    for (i = 0; i < NDV; i++)
-        if (t->lv[i].active) {
-            smp_render(&t->lv[i], out, n, mulq15(t->p[P_LLEVEL] * 258, vel_gain(&t->lv[i])), 32767, 0, 0);
             nr++;
         }
     if (t->dtail) {

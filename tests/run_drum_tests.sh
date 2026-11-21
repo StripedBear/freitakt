@@ -193,7 +193,7 @@ else
 fi
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base,$NOBOUNDS -fno-sanitize-recover=all -Wall \
     -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/slot_test" \
-    tests/slot_test.c -lm   # (the SAMPLE / LAYER sample knobs: SLOT, START, END, old KEY values: ASan + UBSan; a user
+    tests/slot_test.c -lm   # (the SAMPLE model's sample knobs: SLOT, START, END, old KEY values: ASan + UBSan; a user
                             # slot's zones read through SMP_DATA rebased, as the firmware does: no array-bounds check)
 "$OUT/slot_test" > "$OUT/slot_test.txt" 2>&1 || { grep -v "^ok" "$OUT/slot_test.txt" | tail -30; exit 1; }
 tail -1 "$OUT/slot_test.txt"

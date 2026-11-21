@@ -63,12 +63,12 @@ int main(void)
     static char lfo[2][LF_N][16];
     static const char *const FMT[] = {"INT", "PCT", "BIPCT", "TIME", "LFOHZ", "CUTOFF", "DB", "SEMI", "ENUM", "BPM",
                                       "NOTE", "ONOFF", "OCT", "STEPS", "CTHR", "CRAT", "CATK", "CREL", "CMKUP",
-                                      "LRATE1", "LRATE2", "LDEST", "LPHASE", "FDEC", "SRR", "SLOT", "LSLOT"};
-    _Static_assert(sizeof FMT / sizeof FMT[0] == F_LSLOT + 1, "every F_ named");
+                                      "LRATE1", "LRATE2", "LDEST", "LPHASE", "FDEC", "SRR", "SLOT"};
+    _Static_assert(sizeof FMT / sizeof FMT[0] == F_SLOT + 1, "every F_ named");
     PNAME(MODEL); PNAME(E0); PNAME(E1); PNAME(E2); PNAME(E3); PNAME(E4); PNAME(E5); PNAME(E6); PNAME(E7);
     PNAME(LEVEL); PNAME(PAN); PNAME(MUTE); PNAME(CHOKE); PNAME(NOTE); PNAME(DIST); PNAME(CHOR); PNAME(DLY); PNAME(REV);
     PNAME(SLEN); PNAME(SDIV); PNAME(SSWING);
-    PNAME(LSET); PNAME(LKEY); PNAME(LLEVEL); PNAME(LTUNE); PNAME(LDEC); PNAME(DUCK);
+    PNAME(DUCK);
     PNAME(FTYPE); PNAME(FCUT); PNAME(FRESO); PNAME(FENV); PNAME(FDEC); PNAME(PRIO); PNAME(LSRC1); PNAME(LSRC2);
     PNAME(LS3SRC); PNAME(LS3DEST); PNAME(LS3DEPTH); PNAME(LS4SRC); PNAME(LS4DEST); PNAME(LS4DEPTH);
     PNAME(SRR); PNAME(ITYPE); PNAME(IA); PNAME(IB); PNAME(IC); PNAME(IMIX);
@@ -115,7 +115,7 @@ int main(void)
     printf("],\n");
     printf("\"nameSet\": "), str(NAME_SET), printf(",\n");
     printf("\"fmt\": [");
-    for (i = 0; i <= F_LSLOT; i++)
+    for (i = 0; i <= F_SLOT; i++)
         printf(i ? ", " : ""), str(FMT[i]);
     printf("],\n\"P\": [");
     for (i = 0; i < P_COUNT; i++)

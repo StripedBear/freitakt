@@ -116,7 +116,7 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 ### How to learn a control
 
 1. **Turn it on:** tap [[SAVE]] to its **COPY** page (3/3) and turn [[KNOB 4]] (**LEARN**) to `ON`: `MIDI LEARN ON` in the top bar. Go to the page you want; the footer's first row shows `LEARN: TURN OR PRESS`.
-2. **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND, LAYER), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the footer says `T3 DECAY: SEND A CC`.
+2. **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the footer says `T3 DECAY: SEND A CC`.
 3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of doing their job. The footer says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
 4. **Move the controller's knob, or press its button or pad.** The first CC (or, for an action, note) that arrives on any channel is learned: `CC74 -> T3 DECAY`, `NOTE36 -> PLAY`, `CC20 -> FX FILTER`. Then pick the next one. An already learned one shows `T3 DECAY = CC74`; sending another replaces it.
 5. **Finish:** [[OCT+]] ends LEARN (`LEARN DONE`), as turning COPY's LEARN knob back to `OFF` does.
@@ -125,7 +125,7 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 
 - **The binding is to that track:** CC74 moves track 3's DECAY whichever track is selected later.
 - **One control, one thing:** learning again moves it to the new pick. `LEARN FULL` after 32. CC 0 and 32 (bank select) and 120 to 127 (channel mode) are never learned (`CC NOT LEARNABLE`). MODEL cannot be learned (`NOT LEARNABLE`).
-- **While LEARN is on, [[OCT-]] clears** the pick's CC or note (`T3 DECAY CC CLEARED`, `PLAY CLEARED`); with nothing picked it asks `CLEAR ALL LEARNED?` ([[OCT+]] yes, [[OCT-]] no). So pick the page first (LAYER, the step bank, a DEST slot), then turn LEARN on. The menu, a confirm, or NAME also end it. EDIT held does nothing during LEARN. It is always off at power-on.
+- **While LEARN is on, [[OCT-]] clears** the pick's CC or note (`T3 DECAY CC CLEARED`, `PLAY CLEARED`); with nothing picked it asks `CLEAR ALL LEARNED?` ([[OCT+]] yes, [[OCT-]] no). So pick the page first (the step bank, a DEST slot), then turn LEARN on. The menu, a confirm, or NAME also end it. EDIT held does nothing during LEARN. It is always off at power-on.
 - **What a CC does on a knob:** 0 to 127 spans the knob's whole range; a centred knob (PAN, an LFO's DEPTH, FILTER ENV) is 0 at 64; a list (FILTER TYPE, DIV, WAVE) steps through it in order. A model's knob follows the track's model. An LFO on the same knob keeps moving it around the new value. CC moves are not recorded as motion.
 - **Buttons:** a CC of 64 or more is a press, under 64 a release (only the change counts); a note on is a press, its note off (or velocity 0) the release. A learned note plays no drum. Learned names read like `T3 I.DRIVE`, `T3 SRR`, `T3 L1.RATE`, `T3 L.SLOT`.
 - Learned CCs and notes act whether LEARN is on or off, on every input except Bluetooth in SMC DAW mode. PLAY, REC and track buttons act where the FM-1's own would (not in the menu or a confirm).

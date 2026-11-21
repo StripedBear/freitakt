@@ -39,7 +39,6 @@ static int motion_param(uint32_t id)
     if (id >= P_LSRC1 && id <= P_LS4DEPTH)
         return id == P_LS3DEPTH || id == P_LS4DEPTH;
     return (id >= P_E0 && id <= P_E7) || id == P_LEVEL || id == P_PAN || (id >= P_DIST && id <= P_REV) ||
-           (id >= P_LLEVEL && id <= P_LDEC) ||
            (id >= P_FCUT && id <= P_FDEC) ||                  /* the FILTER's knobs, not its TYPE */
            id == P_SRR || (id >= P_IA && id <= P_IMIX) ||   /* SRR; the INSERT's A B C MIX, not its TYPE */
            (id >= P_SATK && id <= P_SPLAY) ||              /* the SAMPLE model's ATK SUS REL LOOP (SOUND 5/5), PLAY */

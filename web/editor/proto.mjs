@@ -58,7 +58,7 @@ export const LONG = new Set([CMD.SAVE, CMD.SMP_BEGIN, CMD.SMP_DATA, CMD.SMP_END,
 export const SCOPE = { TRACK: 0, GLOBAL: 1, MODEL: 2 };
 /** the core.h ids the page names (protocol 1: ids are the firmware's enums, §2.2; test_editor.mjs checks them against
  * device_data.json): P_MODEL P_ITYPE (scope 0); G_SYNC (scope 1). Everything else comes from PAGES / DESC */
-export const ID = { MODEL: 0, ITYPE: 58, SYNC: 12 };
+export const ID = { MODEL: 0, ITYPE: 53, SYNC: 12 };
 export const GR = { LFO: 8 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
 export const DF = { SPLIT: 0x01, ORDER: 0x02, LOCK: 0x04, RO: 0x08, CONTEXT: 0x10 };
 export const SF = { RESTORING: 0x01, NOFLASH: 0x04 }; // 0x02 reserved (was SONG)
@@ -81,10 +81,10 @@ export const isFullRecord = (m) => m === MAGIC.PROJ;
 export const OLD_PROJECTS = new Map();
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 6, nstep: 64, pcount: 76, gcount: 39, pStored: 57, gStored: 31,
-  // a record keeps the places of the removed Grids, RESON and SLICER (FREITAKT; project.c PR_G / PR_P): [first id
-  // after the gap, its count], written 0
-  gGap: [22, 10], sGap: [18, 4], pGap: [26, 1], rGap: [43, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
+  ntrk: 6, nstep: 64, pcount: 71, gcount: 39, pStored: 52, gStored: 31,
+  // a record keeps the places of the removed Grids, RESON, SLICER and the sample LAYER (FREITAKT; project.c PR_G /
+  // PR_P): [first id after the gap, its count], written 0 (pGap: the LAYER's 5 and Grids' SRC, before DUCK)
+  gGap: [22, 10], sGap: [18, 4], pGap: [21, 6], rGap: [38, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
   xpN: 7, xpAt: 1, // xp: 7 B a track, the parameters from byte 1 (byte 0: RESON KEYF's, 0)
   xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp)
   xp2Def: [0, 0, 40, 0], // P_SATK P_SSUS P_SREL P_SLOOP (the SAMPLE model's ATK SUS REL LOOP): xp2; 0 in every record before them
@@ -104,7 +104,7 @@ export const LAYOUT = {
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
   // the FX a user preset holds (presets.c UPR_FX), in the record's order, their bytes in a slot's 23 FX bytes (upr_fb:
   // RESON's 4..11 between, 0) and their power-on values (a voice-only slot's)
-  uprFx: [14, 15, 16, 17, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62, 57],
+  uprFx: [14, 15, 16, 17, 38, 39, 40, 41, 42, 53, 54, 55, 56, 57, 52],
   uprFb: [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22], uprNfb: 23,
   uprFxDef: [0, 0, 0, 0, 0, 127, 0, 0, 40, 0, 64, 96, 96, 127, 0],
   preNone: 0xffff, preRecUser: 0x8000,

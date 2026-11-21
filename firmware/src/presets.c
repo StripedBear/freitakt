@@ -3,7 +3,7 @@
 /* Presets (spec docs/superpowers/specs/2026-10-19-presets-design.md): a factory preset is a voice, MODEL + the 8 SOUND
  * knobs P_E0..P_E7, nothing else (loading one leaves the track's FX, LFOs, LEVEL, PAN, NOTE, CHOKE, steps as they are).
  * A user preset (user decision 2026-11-01) is the voice and the track's FX: UPR_FX (sends, FILTER,
- * INSERT, SRR); not the LAYER, LFOs / DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO, steps. One id for every
+ * INSERT, SRR); not the LFOs / DEST slots, LEVEL, PAN, NOTE, CHOKE, PRIO, steps. One id for every
  * preset: the factory banks in order (MACHINEDRUM, MODERN, CLASSIC: const tables, preset_bank.h), then the 96 USER
  * slots (PRE_NFACT + slot). A track remembers the id it was loaded from (track_t.pre, PRE_NONE none) and whether a knob
  * the preset holds moved since (pre_ed: preset_marks, preset_touch); projects store both (project.c, FDRD: the
@@ -268,7 +268,7 @@ static int32_t smp_slot_conv(uint32_t set, int32_t v, int32_t *tune)
 /* a stored knob value v of d, into its range; a SLOT's KEY note kept for smp_slot_conv, the SAMPLE END's 0 -> 127 */
 static int32_t knob_in(const param_desc_t *d, int32_t v)
 {
-    if ((d->fmt == F_SLOT || d->fmt == F_LSLOT) && v >= 0)
+    if (d->fmt == F_SLOT && v >= 0)
         return v > 127 ? 127 : v;
     if (d == &DMODELS[DM_SMPL].edit[7] && v <= 0)
         return d->max;
@@ -283,23 +283,16 @@ static void smpl_knobs_conv(int16_t *e, uint32_t m)
     e[5] = (int16_t)smp_slot_conv((uint32_t)e[4], e[5], &tu);
     e[0] = (int16_t)tu;
 }
-static void layer_knobs_conv(int16_t *p)            /* a track's LAYER: its SLOT's KEY note, LAYER TUNE its pitch */
-{
-    int32_t tu = p[P_LTUNE];
-    p[P_LKEY] = (int16_t)smp_slot_conv((uint32_t)p[P_LSET], p[P_LKEY], &tu);
-    p[P_LTUNE] = (int16_t)tu;
-}
 
-/* knob id of t just set: a SET (the SAMPLE model's, the LAYER's) keeps its SLOT inside the new set's samples (a KEY
+/* knob id of t just set: the SAMPLE model's SET keeps its SLOT inside the new set's samples (a KEY
  * note: its sample in the new set). The IRQ off, or the ISR */
 static void smp_set_moved(track_t *t, uint32_t id)
 {
-    uint32_t set = id == P_LSET ? (uint32_t)t->p[P_LSET] : (uint32_t)t->p[P_E4], sl = id == P_LSET ? P_LKEY : P_E5;
     int32_t i;
-    if (id != P_LSET && (id != P_E4 || (uint32_t)t->p[P_MODEL] % NMODELS != DM_SMPL))
+    if (id != P_E4 || (uint32_t)t->p[P_MODEL] % NMODELS != DM_SMPL)
         return;
-    i = smp_slot_of(set, t->p[sl]);
-    t->p[sl] = (int16_t)SMP_SLOT_V(i < 0 ? 0 : i);
+    i = smp_slot_of((uint32_t)t->p[P_E4], t->p[P_E5]);
+    t->p[P_E5] = (int16_t)SMP_SLOT_V(i < 0 ? 0 : i);
 }
 
 /* id is a preset t may load: not empty, not a third ACID track */

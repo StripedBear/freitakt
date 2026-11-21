@@ -697,10 +697,6 @@ static void graph_model(const track_t *t, uint16_t c)
         y += 16;
         md_text(4, y, &MD_F3, 2, b, C_INK);
     }
-    if (t->p[P_LLEVEL]) {
-        y += 16;
-        md_text(4, y, &MD_F3, 2, "+ LAYER", C_INK);
-    }
     if (vg_model(mi))
         graph_wave(t);                               /* the rendered hit */
     if (mi == DM_FM) {                                 /* FM: the ratio, the carrier and its sidebands f +- k r f */

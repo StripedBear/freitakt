@@ -3,7 +3,7 @@
 /* A sample set the web editor made (several slots), read and played by the firmware itself (tests/sample_xcheck.mjs
  * drives it): the slot image (header + data, as a .fsmp file holds it) goes into USR1's place, eng_sample.c's
  * smp_user_scan reads it (its header checks) and dm_sample.c's SLOT list is made (smp_slots_sync: the set's samples
- * in key order, as the SAMPLE model's and the LAYER's SLOT knob step through them); then each SLOT 1..N's zone
+ * in key order, as the SAMPLE model's SLOT knob steps through them); then each SLOT 1..N's zone
  * (smp_slot_zone) is decoded by sample_next from its start, as a voice plays it. Writes int32 little endian: N, then per
  * SLOT its zone index in the set, its samples n, its pitch from the root (1/16 semitones) and the n samples; exit 2 when
  * the firmware refuses the slot, 3 when a slot's START state (the page's table, a set of several) is not the one the

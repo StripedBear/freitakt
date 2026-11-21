@@ -7,8 +7,8 @@
  * midi_block). The map: an entry {num, trk, code, src}: src ML_CC / ML_NOTE, num the CC / the note; code = the
  * parameter's P_* id + 1 (0 = empty): Hortator's P_* ids never move (projects store parameters by id, new ones are
  * appended; FREITAKT removed Grids' SRC: the ids after it one lower, then RESON's 7 knobs from 47 and its KEYF: the
- * ids after them 7 / 8 lower; then the SLICER's 4 knobs from 18: every id after them 4
- * lower), ml_ids_pinned holds them; or an action (ML_A_*, from 0x80: spec §7). A parameter or a
+ * ids after them 7 / 8 lower; then the SLICER's 4 knobs from 18: every id after them 4 lower; then the sample
+ * LAYER's 5 knobs from 21: every id after them 5 lower), ml_ids_pinned holds them; or an action (ML_A_*, from 0x80: spec §7). A parameter or a
  * PERFORM macro takes a CC; a button action (PLAY REC NEXT / PREV TRACK, a PERFORM effect or mute) a CC (press >= 64, let go < 64:
  * edges only) or a note (on: press, off / velocity 0: let go). The UI (ui_learn.c) writes entries with the
  * interrupts off; ml_arm / ml_heard hand it a source heard while something is picked; ml_q hands it the presses of
@@ -27,8 +27,8 @@
 #define ML_A_MAC 0xB0u                             /* + 0..3: a PERFORM macro FILTER CRUSH THROW DEPTH */
 typedef struct { uint8_t num, trk, code, src; } ml_ent_t;
 typedef char ml_ent_size[sizeof(ml_ent_t) == 4u ? 1 : -1];
-typedef char ml_ids_pinned[P_E0 == 1 && P_LEVEL == 9 && P_SLEN == 18 && P_LFO1 == 27 && P_FTYPE == 43 &&
-                           P_PRIO == 48 && P_LSRC1 == 49 && P_LS3SRC == 51 && P_LS4DEPTH == 56 &&
+typedef char ml_ids_pinned[P_E0 == 1 && P_LEVEL == 9 && P_SLEN == 18 && P_LFO1 == 22 && P_FTYPE == 38 &&
+                           P_PRIO == 43 && P_LSRC1 == 44 && P_LS3SRC == 46 && P_LS4DEPTH == 51 &&
                            P_COUNT < 0x80 ? 1 : -1];
 typedef char ml_pf_pinned[PF_R8 == 0 && PF_REV == 3 && PF_LPF == 4 && PF_TAPE == 6 && PF_OUP == 8 && PF_ODN == 9 &&
                           PF_T1 == 10 && PF_N == 16 && ML_A_FX + PF_N <= ML_A_MAC && ML_N <= 32u ? 1 : -1];

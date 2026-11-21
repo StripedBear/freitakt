@@ -101,12 +101,12 @@ static void persist_note_show(void)                 /* every frame: with no mess
     }
 }
 /* fixes 2026-10-21 item 2: the keys show the selected track (its white key lit, as the keys select it there) on the
- * HOME screen and every page of the EDIT (SOUND, LAYER), FX and LFO families; not under KEYS (the keyboard's), the
+ * HOME screen and every page of the EDIT (SOUND), FX and LFO families; not under KEYS (the keyboard's), the
  * menu, NAME, the PRESETS list or PERFORM (ui_leds tests those first) */
 static int track_keys(void)
 {
     uint32_t f = cur_fam();
-    return !ui.menu && !keys_mode() && (ui.home || f == FAM_SND || f == FAM_LAY || f == FAM_FX || f == FAM_LFO);
+    return !ui.menu && !keys_mode() && (ui.home || f == FAM_SND || f == FAM_FX || f == FAM_LFO);
 }
 
 #include "ui_name.c"                               /* NAME: naming a project */
@@ -118,8 +118,7 @@ static int track_keys(void)
  * NAME: OCT- cancels, OCT+ writes; the PRESETS list: OCT+ LOAD, OCT- DELETE where it would (a used user slot); a
  * dialog: OCT- NO, OCT+ YES; the menu and the Bluetooth page: OCT- BACK, OCT+ OK (ABOUT: OCT- back alone); MIDI LEARN:
  * OCT- CLEAR, OCT+ DONE; KEYS: lit off octave 0, as before (where it is); the steps: each breathes while there is a
- * bank that way, OCT+ lit while held (its accent: item 1); SOUND: OCT+ (LAYER); LAYER: OCT- (back to SOUND); the LFO
- * pages: OCT+ (a RATE MODE) */
+ * bank that way, OCT+ lit while held (its accent: item 1); the LFO pages: OCT+ (a RATE MODE) */
 #define OCT_LIT_DN 1u
 #define OCT_LIT_UP 2u
 #define OCT_BR_UP 4u
@@ -148,11 +147,7 @@ static uint32_t oct_leds(void)
                (acc_oct ? OCT_LIT_UP : ui.bank + 1u < bank_count() ? OCT_BR_UP : 0u);
     {
         uint32_t r = 0;
-        if (!ui.home && cur_fam() == FAM_SND)
-            r = OCT_BR_UP;
-        else if (!ui.home && cur_fam() == FAM_LAY)
-            r = OCT_LIT_DN;
-        else if (!ui.home && cur_fam() == FAM_LFO)    /* LFO: OCT+ the RATE MODE of the LFO turned last (item 3); */
+        if (!ui.home && cur_fam() == FAM_LFO)    /* LFO: OCT+ the RATE MODE of the LFO turned last (item 3); */
             r = OCT_BR_UP;                            /* OCT- does nothing there */
         if (env_steps() && acc_oct)                   /* STEPS: OCT+ held (its accent) lit, as on the SEQ pages */
             r = (r & ~OCT_BR_UP) | OCT_LIT_UP;
@@ -230,8 +225,7 @@ static void ui_leds(void)
         led_pos_init();
         ready = 1;
     }
-    led_put(nl, panel.btn[FAM_BTN[fam]],                /* LAYER: EDIT blinks, 250 ms on / off */
-            fam != FAM_LAY || ((fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u));
+    led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     led_put(nl, panel.btn[B_PLAY], song.playing && ((song.tick / 64u) & 1u) == 0u);   /* blinks: intended */
     led_put(nl, panel.btn[B_REC], song.rec != 0u || ui.srec);
     led_put(nl, panel.btn[B_SCL], ui.keys);           /* KEYS (spec §5) */
@@ -552,10 +546,9 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     }
     v = knob_turn(EN_K1 + slot, d, *vp, steps);
-    if ((d->fmt == F_SLOT || d->fmt == F_LSLOT) && pg->scope == SC_TRACK) {   /* SLOT: its set's samples 1..N (a KEY
+    if (d->fmt == F_SLOT && pg->scope == SC_TRACK) {   /* SLOT: its set's samples 1..N (a KEY
                                                                                 * note from before SLOT: from its own) */
-        int32_t i = smp_slot_of((uint32_t)TSEL->p[d->fmt == F_SLOT ? P_E4 : P_LSET], *vp),
-                n = (int32_t)smp_slot_count((uint32_t)TSEL->p[d->fmt == F_SLOT ? P_E4 : P_LSET]);
+        int32_t i = smp_slot_of((uint32_t)TSEL->p[P_E4], *vp), n = (int32_t)smp_slot_count((uint32_t)TSEL->p[P_E4]);
         v = SMP_SLOT_V(clamp((i < 0 ? 0 : i) + steps, 0, n > 0 ? n - 1 : 0));   /* (no acceleration: <= 16) */
     }
     if (pg->scope == SC_TRACK && vp >= TSEL->p && vp < TSEL->p + P_COUNT && preset_marks(TSEL, (uint32_t)(vp - TSEL->p)) &&
@@ -1117,14 +1110,10 @@ static void srec_knob(uint32_t k, int32_t s)
 /* fixes 2026-10-21 item 1: OCT+ let go where it was pressed on the steps: alone (no step key accented with it), and the
  * keys still the steps, the next bank; anything else (an accent, another page, the menu, a dialog, TOOLS or
  * PERFORM up while it was held: acc_oct 2, ui_input) nothing */
-/* OCT+'s page job (SOUND: LAYER 1/2; an LFO page: the RATE MODE of the LFO turned last); OCT-'s (LAYER: back to its
- * SOUND page) */
+/* OCT+'s page job (an LFO page: the RATE MODE of the LFO turned last) */
 static void oct_up_job(void)
 {
-    if (!ui.home && cur_fam() == FAM_SND) {
-        ui.fam_last[FAM_LAY] = 0;                       /* LAYER 1/2 */
-        open_family(FAM_LAY);
-    } else if (!ui.home && cur_fam() == FAM_LFO) {      /* the LFO turned last (DEST: the slot's source): SYNC -> Hz
+    if (!ui.home && cur_fam() == FAM_LFO) {      /* the LFO turned last (DEST: the slot's source): SYNC -> Hz
                                                          * -> TIME */
         uint32_t l = cur_page()->graph == GR_LDEST ? (TSEL->p[LS_ID[song.lslot & 3u][LS_SRC]] ? 1u : 0u)
                                                    : ui.lfo_l & 1u;
@@ -1132,11 +1121,6 @@ static void oct_up_job(void)
         *mp = (int16_t)((clamp(*mp, 0, 2) + 1) % 3);
         ui.force = 1;
     }
-}
-static void oct_dn_job(void)
-{
-    if (!ui.home && cur_fam() == FAM_LAY)
-        open_family(FAM_SND);                           /* the SOUND page it came from */
 }
 static void acc_oct_poll(void)
 {
@@ -1439,7 +1423,7 @@ static void ui_input(void)
         case B_HOME:                                    /* tap / hold: above */
             break;
         case B_OCTDN:
-        case B_OCTUP:                                   /* the STEP grid's bank; EDIT: into / out of the layer */
+        case B_OCTUP:                                   /* the STEP grid's bank; an LFO page: OCT+ its RATE MODE */
             if (ui.ml.on) {                             /* MIDI LEARN: OCT- clear, OCT+ done (the page's wait) */
                 ml_oct(b == B_OCTUP);
             } else if (keys_mode()) {
@@ -1462,23 +1446,19 @@ static void ui_input(void)
                 else
                     bank_set((int32_t)ui.bank - 1);
             } else if (env_steps()) {                   /* STEPS elsewhere: OCT+ held + a step key its accent, let go
-                                                         * alone the page's job; OCT- the page's at once */
+                                                         * alone the page's job */
                 if (b == B_OCTUP)
                     acc_oct = 1;
-                else
-                    oct_dn_job();
             } else if (b == B_OCTUP) {
                 oct_up_job();
-            } else {
-                oct_dn_job();
             }
             break;
         default: {
             uint32_t f;
             for (f = FAM_HOME + 1u; f < FAM_COUNT; f++)
-                if (FAM_BTN[f] == b && f != FAM_LAY && b != B_FX && b != B_GLO && b != B_SAVE && b != B_SEQ)
+                if (FAM_BTN[f] == b && b != B_FX && b != B_GLO && b != B_SAVE && b != B_SEQ)
                                                         /* (FX, GLO, SAVE, SEQ: on the release) */
-                    open_family(f == FAM_SND && cur_fam() == FAM_LAY ? FAM_LAY : f);   /* in the layer: its pages */
+                    open_family(f);
             break;
         }
         }
