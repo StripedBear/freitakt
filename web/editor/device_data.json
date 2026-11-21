@@ -1,11 +1,11 @@
 {
 "generated": "tests/editor_ids.c (tools/gen_editor_data.sh): do not edit",
-"consts": {"NTRK": 6, "NSTEP": 64, "P_COUNT": 69, "G_COUNT": 32, "P_NSTORED": 57, "G_NSTORED": 31, "NMODELS": 45, "PRE_NFACT": 151, "PRE_NUSER": 96, "COND_MAX": 58, "NT_MIN": -60, "NT_MAX": 67, "LK_MAX": 1024, "VAR_BYTES": 3584, "VAR_N": 8, "NAME_LEN": 12, "ACID": 23, "ACID_MAXTRK": 2, "MICRO_MAX": 50, "UPR_NOLD": 128, "UPR_NFX": 15, "UPR_NFB": 23, "UPR_USED": 1, "UPR_VOICE": 2, "DM_SMPL": 14, "UPR_FENV": 15, "SND_N": 20, "PR_GR": 22, "PR_NG": 41, "PR_SL": 18, "PR_SRC": 26, "PR_RSN": 43, "PR_NP": 69, "PROJ_XP": 7, "LD_MAX": 21},
+"consts": {"NTRK": 6, "NSTEP": 64, "P_COUNT": 76, "G_COUNT": 32, "P_NSTORED": 57, "G_NSTORED": 31, "NMODELS": 45, "PRE_NFACT": 151, "PRE_NUSER": 96, "COND_MAX": 58, "NT_MIN": -60, "NT_MAX": 67, "LK_MAX": 1024, "VAR_BYTES": 3584, "VAR_N": 8, "NAME_LEN": 12, "ACID": 23, "ACID_MAXTRK": 2, "MICRO_MAX": 50, "UPR_NOLD": 128, "UPR_NFX": 15, "UPR_NFB": 23, "UPR_USED": 1, "UPR_VOICE": 2, "DM_SMPL": 14, "UPR_FENV": 15, "SND_N": 20, "PR_GR": 22, "PR_NG": 41, "PR_SL": 18, "PR_SRC": 26, "PR_RSN": 43, "PR_NP": 69, "PROJ_XP": 7, "LD_MAX": 21},
 "uprFx": [14, 15, 16, 17, 43, 44, 45, 46, 47, 58, 59, 60, 61, 62, 57],
 "uprFb": [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
 "nameSet": " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._/#+",
 "fmt": ["INT", "PCT", "BIPCT", "TIME", "LFOHZ", "CUTOFF", "DB", "SEMI", "ENUM", "BPM", "NOTE", "ONOFF", "OCT", "STEPS", "CTHR", "CRAT", "CATK", "CREL", "CMKUP", "LRATE1", "LRATE2", "LDEST", "LPHASE", "FDEC", "SRR", "SLOT", "LSLOT"],
-"P": ["MODEL", "E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "LEVEL", "PAN", "MUTE", "CHOKE", "NOTE", "DIST", "CHOR", "DLY", "REV", "SLEN", "SDIV", "SSWING", "LSET", "LKEY", "LLEVEL", "LTUNE", "LDEC", "DUCK", "LFO1_WAVE", "LFO1_MODE", "LFO1_RATE", "LFO1_MORPH", "LFO1_DEPTH", "LFO1_DEST", "LFO1_TRIG", "LFO1_PHASE", "LFO2_WAVE", "LFO2_MODE", "LFO2_RATE", "LFO2_MORPH", "LFO2_DEPTH", "LFO2_DEST", "LFO2_TRIG", "LFO2_PHASE", "FTYPE", "FCUT", "FRESO", "FENV", "FDEC", "PRIO", "LSRC1", "LSRC2", "LS3SRC", "LS3DEST", "LS3DEPTH", "LS4SRC", "LS4DEST", "LS4DEPTH", "SRR", "ITYPE", "IA", "IB", "IC", "IMIX", "SATK", "SSUS", "SREL", "SLOOP", "SPLAY", "SCUT"],
+"P": ["MODEL", "E0", "E1", "E2", "E3", "E4", "E5", "E6", "E7", "LEVEL", "PAN", "MUTE", "CHOKE", "NOTE", "DIST", "CHOR", "DLY", "REV", "SLEN", "SDIV", "SSWING", "LSET", "LKEY", "LLEVEL", "LTUNE", "LDEC", "DUCK", "LFO1_WAVE", "LFO1_MODE", "LFO1_RATE", "LFO1_MORPH", "LFO1_DEPTH", "LFO1_DEST", "LFO1_TRIG", "LFO1_PHASE", "LFO2_WAVE", "LFO2_MODE", "LFO2_RATE", "LFO2_MORPH", "LFO2_DEPTH", "LFO2_DEST", "LFO2_TRIG", "LFO2_PHASE", "FTYPE", "FCUT", "FRESO", "FENV", "FDEC", "PRIO", "LSRC1", "LSRC2", "LS3SRC", "LS3DEST", "LS3DEPTH", "LS4SRC", "LS4DEST", "LS4DEPTH", "SRR", "ITYPE", "IA", "IB", "IC", "IMIX", "SATK", "SSUS", "SREL", "SLOOP", "SPLAY", "SCUT", "AMODE", "ARATE", "AGATE", "AFADE", "ADIR", "ACHORD", "ARANGE"],
 "G": ["BPM", "SWING", "CLOCK", "DTIME", "DFDBK", "DCOLOR", "DMIX", "RSIZE", "RDAMP", "CRATE", "CDEPTH", "MIDI", "SYNC", "ROUTE", "INFO", "SLOT", "NAME", "LOAD", "SAVE", "CLRSEQ", "INITSND", "DRCH", "CSRC", "CTHR", "CRAT", "CREL", "CATK", "CKNEE", "CMKUP", "CGHOST", "RTYPE", "DMODE"],
 "tp": [
  {"label": "MODEL", "fmt": 8, "min": 0, "max": 44, "def": 0, "names": ["K808", "K909", "S808", "S909", "C808", "C909", "HATC", "HATO", "CYMB", "COWB", "TOM", "CONGA", "RIM", "CLAVE", "SAMPL", "BOOM", "PUNCH", "SNAP", "CRACK", "METAL", "HISS", "SKIN", "FM", "ACID", "BDTRX", "SDTRX", "TMTRX", "CGTRX", "CPTRX", "RSTRX", "CBTRX", "CHTRX", "OHTRX", "CYTRX", "SHTRX", "CLTRX", "B2TRX", "BDEFM", "SDEFM", "TMEFM", "CPEFM", "RSEFM", "CBEFM", "HHEFM", "CYEFM"], "lock": 1},
@@ -76,7 +76,14 @@
  {"label": "REL", "fmt": 0, "min": 0, "max": 127, "def": 40, "lock": 1},
  {"label": "LOOP", "fmt": 8, "min": 0, "max": 4, "def": 0, "names": ["OFF", "FWD", "PING", "LOOPI", "ONE"], "lock": 1},
  {"label": "PLAY", "fmt": 8, "min": 0, "max": 1, "def": 0, "names": ["KEY", "CHOP"], "lock": 1},
- {"label": "CUT", "fmt": 8, "min": 0, "max": 1, "def": 0, "names": ["OFF", "ON"], "lock": 0}],
+ {"label": "CUT", "fmt": 8, "min": 0, "max": 1, "def": 0, "names": ["OFF", "ON"], "lock": 0},
+ {"label": "MODE", "fmt": 8, "min": 0, "max": 2, "def": 0, "names": ["OFF", "RTRG", "ARP"], "lock": 1},
+ {"label": "RATE", "fmt": 8, "min": 0, "max": 6, "def": 4, "names": ["1/4", "4T", "1/8", "8T", "1/16", "16T", "1/32"], "lock": 1},
+ {"label": "GATE", "fmt": 1, "min": 0, "max": 100, "def": 50, "lock": 1},
+ {"label": "FADE", "fmt": 2, "min": -64, "max": 63, "def": 0, "lock": 1},
+ {"label": "DIR", "fmt": 8, "min": 0, "max": 3, "def": 0, "names": ["UP", "DOWN", "UPDN", "RND"], "lock": 1},
+ {"label": "CHORD", "fmt": 8, "min": 0, "max": 7, "def": 0, "names": ["OCT", "5TH", "MAJ", "MIN", "SUS4", "MAJ7", "MIN7", "DOM7"], "lock": 1},
+ {"label": "RANGE", "fmt": 0, "min": 1, "max": 4, "def": 1, "lock": 1}],
 "gp": [
  {"label": "BPM", "fmt": 9, "min": 40, "max": 240, "def": 120},
  {"label": "SWG", "fmt": 1, "min": 0, "max": 100, "def": 0},
@@ -319,6 +326,8 @@
  {"title": "SOUND", "fam": 1, "scope": 0, "graph": 1, "id": [200, 201, 202, 203]},
  {"title": "SOUND", "fam": 1, "scope": 0, "graph": 1, "id": [204, 205, 206, 207]},
  {"title": "SOUND", "fam": 1, "scope": 0, "graph": 1, "id": [208, 209, 210, 211]},
+ {"title": "ARP", "fam": 1, "scope": 0, "graph": 0, "id": [69, 70, 71, 72]},
+ {"title": "ARP", "fam": 1, "scope": 0, "graph": 0, "id": [73, 74, 75, 255]},
  {"title": "LAYER", "fam": 2, "scope": 0, "graph": 0, "id": [21, 22, 23, 24]},
  {"title": "LAYER", "fam": 2, "scope": 0, "graph": 0, "id": [25, 255, 255, 255]},
  {"title": "FILTER", "fam": 3, "scope": 0, "graph": 10, "id": [43, 44, 45, 46]},
@@ -352,7 +361,7 @@
 "magic": {"PROJ": 911495750, "LK": 826428236, "VAR": 911360342, "UPR": 844255317, "UPR1": 827478101, "ST": 1431061830},
 "oldProjects": [],
 "layout": {
- "project": {"size": 3044, "magic": 0, "sizeField": 4, "g": 8, "sel": 90, "rsv": 91, "t": 94, "trk": 394, "trkP": 0, "trkStep": 138, "lk_n": 2458, "lk_link": 2460, "var_link": 2464, "var_len": 2468, "xp": 2470, "xp2": 2512, "xp3": 2536, "rsv_mo": 2548, "rsv_song": 2974, "name": 3010, "pre": 3022, "pre_ed": 3034, "sum": 3040},
+ "project": {"size": 3044, "magic": 0, "sizeField": 4, "g": 8, "sel": 90, "rsv": 91, "t": 94, "trk": 394, "trkP": 0, "trkStep": 138, "lk_n": 2458, "lk_link": 2460, "var_link": 2464, "var_len": 2468, "xp": 2470, "xp2": 2512, "xp3": 2536, "xp4": 2548, "rsv_mo": 2590, "rsv_song": 2974, "name": 3010, "pre": 3022, "pre_ed": 3034, "sum": 3040},
  "locks": {"size": 3208, "magic": 0, "slot": 4, "on": 5, "count": 6, "key": 8, "val": 2056, "lock": 3080},
  "vars": {"size": 3584, "magic": 0, "slot": 4, "used": 6, "d": 8},
  "presets": {"size": 3204, "slot": 33, "fx": 10, "mv": 3172, "sizeV1": 1284}

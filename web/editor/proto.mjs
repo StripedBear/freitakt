@@ -81,7 +81,7 @@ export const isFullRecord = (m) => m === MAGIC.PROJ;
 export const OLD_PROJECTS = new Map();
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 6, nstep: 64, pcount: 69, gcount: 32, pStored: 57, gStored: 31,
+  ntrk: 6, nstep: 64, pcount: 76, gcount: 32, pStored: 57, gStored: 31,
   // a record keeps the places of the removed Grids, RESON and SLICER (FREITAKT; project.c PR_G / PR_P): [first id
   // after the gap, its count], written 0
   gGap: [22, 10], sGap: [18, 4], pGap: [26, 1], rGap: [43, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
@@ -89,6 +89,8 @@ export const LAYOUT = {
   xpDef: [0, 0, 64, 96, 96, 127], // P_SRR P_ITYPE P_IA P_IB P_IC P_IMIX: their power-on values (xp)
   xp2Def: [0, 0, 40, 0], // P_SATK P_SSUS P_SREL P_SLOOP (the SAMPLE model's ATK SUS REL LOOP): xp2; 0 in every record before them
   xp3Def: [0, 0], // P_SPLAY P_SCUT (the SAMPLE model's PLAY: KEY 0, CHOP 1; CUT OFF 0, ON 1): xp3; 0 before them
+  xp4Def: [0, 4, 50, 0, 0, 0, 1], // P_AMODE .. P_ARANGE (ARP / RTRG: MODE OFF, RATE 1/16, GATE 50, FADE 0, DIR UP, CHORD OCT,
+  // RANGE 1): xp4; 0 before them
   envDef: [0, 0, 40, 0, 0, 0], // a SAMPLE user preset's ATK SUS REL LOOP PLAY CUT: their power-on values
   envMax: [127, 127, 127, 4, 1, 1], // .. their ranges (from 0; LOOP OFF FWD PING LOOPI ONE)
   uprKbit: [3, 1, 2], // the SOUND knobs (DRIVE DECAY TONE) whose bytes' top bits are a SAMPLE preset's bits 23..25
@@ -96,7 +98,7 @@ export const LAYOUT = {
   uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
   timing: [18, 19, 20], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
   project: { size: 3044, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 2458, lk_link: 2460, var_link: 2464,
-    var_len: 2468, xp: 2470, xp2: 2512, xp3: 2536, rsv_song: 2974, name: 3010, pre: 3022, pre_ed: 3034, sum: 3040 },
+    var_len: 2468, xp: 2470, xp2: 2512, xp3: 2536, xp4: 2548, rsv_song: 2974, name: 3010, pre: 3022, pre_ed: 3034, sum: 3040 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
   vars: { slot: 4, used: 6, d: 8 },
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
@@ -591,6 +593,7 @@ export function decodeProject(b) {
     for (let j = 0; j < nx; j++) p.push(LAYOUT.xpDef[j] + v.getInt8(recX(k, j))); // proj_xp_get
     for (let j = 0; j < n2; j++) p.push(LAYOUT.xp2Def[j] + v.getInt8(L.xp2 + n2 * k + j)); // .. xp2
     LAYOUT.xp3Def.forEach((d, j) => p.push(d + v.getInt8(L.xp3 + LAYOUT.xp3Def.length * k + j))); // .. xp3
+    LAYOUT.xp4Def.forEach((d, j) => p.push(d + v.getInt8(L.xp4 + LAYOUT.xp4Def.length * k + j))); // .. xp4
     for (let i = 0; i < LAYOUT.nstep; i++) {
       const s = o + L.trkStep + 4 * i;
       steps.push({ flags: b[s] & 0x3f, cond: b[s + 1], note: v.getInt8(s + 2) + STEP.NT_OFFSET,
@@ -605,7 +608,7 @@ export function decodeProject(b) {
     lk_n: v.getUint16(L.lk_n, true), lk_link: v.getUint32(L.lk_link, true), var_link: v.getUint32(L.var_link, true),
     var_len: v.getUint16(L.var_len, true), sum: v.getUint32(L.sum, true) };
 }
-/** p: { g[32], sel, tracks[6] { p[73], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, lk_n,
+/** p: { g[32], sel, tracks[6] { p[76], steps[64] (micro: NUDGE), pre (stored reference), preEd }, name, lk_n,
  * lk_link, var_link, var_len } -> an "FRT6" record (3044 B) with its sum */
 export function encodeProject(p) {
   const b = new Uint8Array(SZ.PROJECT), v = dv(b), L = LAYOUT.project, nx = LAYOUT.xpDef.length;
@@ -630,6 +633,8 @@ export function encodeProject(p) {
     for (let j = 0; j < n2; j++) // .. xp2
       b[L.xp2 + n2 * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + j] ?? LAYOUT.xp2Def[j])) - LAYOUT.xp2Def[j]) & 255;
     LAYOUT.xp3Def.forEach((d, j) => { b[L.xp3 + LAYOUT.xp3Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + j] ?? d)) - d) & 255; });
+    const n3 = LAYOUT.xp3Def.length;
+    LAYOUT.xp4Def.forEach((d, j) => { b[L.xp4 + LAYOUT.xp4Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + n3 + j] ?? d)) - d) & 255; });
     v.setUint16(L.pre + 2 * k, t.pre, true);
     b[L.pre_ed + k] = t.preEd ? 1 : 0;
   });
