@@ -205,8 +205,9 @@ static void add(const uint8_t a[6], uint32_t kind, const char *name)
 static void test_menu_row(void)
 {
     fresh();
-    check("menu: BLUETOOTH is the row before ABOUT; eleven rows (BACKLIGHT, spec 2026-10-11-fixes §12)",
-          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_ABOUT && MI_COUNT == 11 &&
+    check("menu: BLUETOOTH is the row before ABOUT; twenty rows (BACKLIGHT, spec 2026-10-11-fixes §12; FREITAKT: "
+          "the nine device settings of the old GLOBAL / SYSTEM pages)",
+          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_ABOUT && MI_COUNT == 20 &&
           str_eq(MI_NAME[MI_BACKLIGHT], "BACKLIGHT"));
     {   /* MENU > USB AUDIO 10 CH removed in FREITAKT: no row, stereo always */
         uint32_t k, none = 1;
@@ -678,12 +679,13 @@ static void test_head_icon(void)
     bs.state = BLE_ST_IDLE;
     ui_frame();
     b = head_hash();
-    check("on, nothing linked: struck (1), drawn (the head redrawn)", bt_head_icon() == 1u && b != a);
+    check("on, nothing linked: struck (1); FREITAKT: the top bar shows the battery alone (head unchanged)",
+          bt_head_icon() == 1u && b == a);
     shot("build/ui_shots/bt/17_head_struck.ppm");
     link_slot(1, A_FM1);
     ui_frame();
     c = head_hash();
-    check("a link up: lit (2), the strike gone", bt_head_icon() == 2u && c != b && c != a);
+    check("a link up: lit (2), the strike gone; the top bar unchanged", bt_head_icon() == 2u && c == a);
     shot("build/ui_shots/bt/18_head_lit.ppm");
     link_slot(1, 0);
     bs.state = BLE_ST_RECEIVING;

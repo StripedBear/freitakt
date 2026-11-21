@@ -59,7 +59,7 @@ export const SCOPE = { TRACK: 0, GLOBAL: 1, MODEL: 2 };
 /** the core.h ids the page names (protocol 1: ids are the firmware's enums, §2.2; test_editor.mjs checks them against
  * device_data.json): P_MODEL P_ITYPE (scope 0); G_SYNC (scope 1). Everything else comes from PAGES / DESC */
 export const ID = { MODEL: 0, ITYPE: 53, SYNC: 12 };
-export const GR = { LFO: 8 }; // PAGES graph: the LFO pages (columns 1-2 LFO 1, 3-4 LFO 2)
+export const GR = { LFO: 8 }; // PAGES graph: LFO 1/3 (its wave; one LFO on the FM-1)
 export const DF = { SPLIT: 0x01, ORDER: 0x02, LOCK: 0x04, RO: 0x08, CONTEXT: 0x10 };
 export const SF = { RESTORING: 0x01, NOFLASH: 0x04 }; // 0x02 reserved (was SONG)
 export const STEP = { ON: 0x01, ACC: 0x02, SLIDE: 0x04, TIE: 0x08, RAT_SHIFT: 4, NT_OFFSET: 60, MICRO_OFFSET: 64, MICRO_MAX: 50 };

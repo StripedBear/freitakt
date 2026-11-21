@@ -564,7 +564,7 @@ int main(void)
     check("TRACKS playing: SMC knob clicks and the message's end never repaint everything", !s.full);
     same_as_full("TRACKS after the SMC message (playing)");
 
-    /* HOME stopped: knob 1 (the model's first knob), a value a frame */
+    /* HOME stopped: knob 1 (FREITAKT: the BPM, its text box), a value a frame */
     start(1, 0);
     memset(&s, 0, sizeof s);
     for (i = 0; i < 30u; i++) {

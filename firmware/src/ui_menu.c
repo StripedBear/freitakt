@@ -2,11 +2,22 @@
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
 /* Felucca menu (HOME held): COLOR, SPEAKER EQ (FLAT LOWCUT BASS+), USB LEVEL (MASTER FIXED), PERFORM (HOLD PAGE), ZOOM, KNOB ACCEL, BACKLIGHT (OFF DIM LO DIM HI INV INV LO INV HI), HARDWARE CALIBRATION, (BLE build: BLUETOOTH,) ABOUT. */
 /* ------------------------------------------------------------ menu --- */
+/* the device settings the GLOBAL / SYSTEM pages had (FREITAKT redesign: those pages went; BPM and SWING are HOME's
+ * knobs, CPU HOME's top line): a row each, KNOB 1 turns it, OCT+ steps it (wrapping); USB MIDI only shows the USB
+ * state. Their values where they always were (song.g, the device settings: pages.c glob_desc, ui_input.c glob_set) */
+#define MI_SETTINGS_ROWS MI_CLOCK, MI_SYNC, MI_DRCH, MI_ROUTE, MI_USBMIDI, MI_METRO, MI_MUTE, MI_THRU, MI_QUANT
+#define MI_SETTINGS_NAMES "CLOCK", "MIDI SYNC", "MIDI CHANNEL", "MIDI ROUTE", "USB MIDI", "METRONOME", "MUTE MODE", \
+                          "MIDI THRU", "REC QUANT"
+static const uint8_t MI_GLOB[9] = {G_CLOCK, G_SYNC, G_DRCH, G_ROUTE, G_MIDI, G_METRO, G_MUTEBAR, G_THRU, G_QUANT};
+static int glob_set(uint32_t id, int32_t v);        /* ui_input.c */
+static int32_t knob_turn(uint32_t role, const param_desc_t *d, int32_t v, int32_t s);
 #if FELUCCA_BLE                                     /* the Bluetooth page's row (bt_page.c) before ABOUT */
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_PANEL, MI_BT, MI_ABOUT, MI_BACK, MI_COUNT };
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_BT, MI_ABOUT,
+       MI_BACK, MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ZOOM", "ACCEL",
-                                              "BACKLIGHT", "HARDWARE CALIBRATION", "BLUETOOTH", "ABOUT", "BACK"};
-#define MENU_DY 14u                                 /* eleven rows above the hints (screen y) */
+                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "BLUETOOTH",
+                                              "ABOUT", "BACK"};
+#define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
 #define MENU_HY 196u
 static void bt_page_open(void);                     /* bt_page.c (after ble/ble_core.h): ui.menu 3 */
 static void bt_page_close(void);
@@ -14,18 +25,50 @@ static void bt_page_draw(void);
 static void bt_page_input(uint32_t pressed);
 static void bt_autostart(void);                     /* AUTOSTART: once, 5 s after power-on (ui_input only, gate 3) */
 #else
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_PANEL, MI_ABOUT, MI_BACK, MI_COUNT };
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_ABOUT,
+       MI_BACK, MI_COUNT };
 static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ZOOM", "ACCEL",
-                                              "BACKLIGHT", "HARDWARE CALIBRATION", "ABOUT", "BACK"};
-#define MENU_DY 14u                                 /* ten rows above the hints (screen y) */
+                                              "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "ABOUT", "BACK"};
+#define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
 #define MENU_HY 196u
 #endif
 #define MENU_Y0 40u                                 /* the first row (screen y), inside the MENU window */
+#define MENU_ROWS ((MENU_HY - MENU_Y0) / MENU_DY)   /* the rows shown at once (11) */
 static const char *const SPK_EQ[3] = {"FLAT", "LOWCUT", "BASS+"};   /* settings.lowcut (fx_lowcut) */
 static uint32_t *menu_onoff(uint32_t i)            /* an ON / OFF row's setting, 0 if none */
 {
     return i == MI_USB ? &settings.usbfix : i == MI_PERF ? &settings.perfpage : i == MI_ZOOM ? &settings.zoom :
            i == MI_ACCEL ? &settings.accel : 0;
+}
+static uint32_t menu_glob(uint32_t i)               /* a settings row's global id, 0xFF if none */
+{
+    return i >= MI_CLOCK && i <= MI_QUANT ? MI_GLOB[i - MI_CLOCK] : 0xFFu;
+}
+static void menu_glob_text(uint32_t id, char *b)    /* its value as the row shows it (b: 16 bytes) */
+{
+    int16_t *vp;
+    const param_desc_t *d;
+    const char *unit = "";
+    if (id == G_MIDI) {                             /* (as SYSTEM's USB showed it) */
+        str_cpy(b, !usb.up ? "OFF" : usb.config ? "MIDI" : usb.setups ? "ENUM" : usb.sof_seen ? "BUS" : "WAIT", 16);
+        return;
+    }
+    d = glob_desc(id, &vp);
+    param_format(d, *vp, b, &unit);
+    if (unit[0] && str_len(b) + str_len(unit) + 2u <= 16u) {
+        str_cpy(b + str_len(b), " ", 2);
+        str_cpy(b + str_len(b), unit, 16 - str_len(b));
+    }
+}
+static uint32_t menu_glob_sig(void)                 /* what the settings rows show */
+{
+    uint32_t i, h = 2166136261u;
+    char b[16];
+    for (i = 0; i < 9u; i++) {
+        menu_glob_text(MI_GLOB[i], b);
+        h = str_hash(h, b) * 31u + i;
+    }
+    return h;
 }
 
 /* ABOUT (owner 2026-10-22): the credits under the fixed logo, one string a credit, wrapped at its spaces to the text's
@@ -130,7 +173,8 @@ static void draw_menu(void)
     uint32_t i, pass, fr = fm1_ms / 66u,
                       sig = ui.menu * 7u + ui.menu_sel * 131u + settings.palette * 1009u + settings.lowcut * 7919u +
                             settings.zoom * 104729u + settings.accel * 15485863u + settings.usbfix * 32452843u +
-                            settings.perfpage * 49979687u + backlight * 67867967u + ui.about_top * 86028121u;
+                            settings.perfpage * 49979687u + backlight * 67867967u + ui.about_top * 86028121u +
+                            (ui.menu == 1 ? menu_glob_sig() : 0u);
 #if FELUCCA_BLE
     if (ui.menu == 3u) {                            /* the Bluetooth page: its own drawing and signature */
         bt_page_draw();
@@ -169,11 +213,23 @@ static void draw_menu(void)
             }
             draw_about();
         } else {                                    /* MENU: a window, the cursor an inverted bar */
+            uint32_t top = ui.menu_sel >= MENU_ROWS ? ui.menu_sel + 1u - MENU_ROWS : 0u;   /* (scrolled: the cursor's
+                                                                                    * row the last shown) */
+            char gb[16];
             cv_popup(6, 30, 228, 184, "MENU", C_INK, C_BG);
-            for (i = 0; i < MI_COUNT; i++) {
-                int32_t y = (int32_t)(MENU_Y0 + i * MENU_DY);
+            if (top)                                /* more above / below: a small arrow at the right edge */
+                cv_rect(226, 36, 3, 2, C_INK), cv_rect(227, 35, 1, 1, C_INK);
+            if (top + MENU_ROWS < MI_COUNT)
+                cv_rect(226, (int32_t)(MENU_Y0 + MENU_ROWS * MENU_DY) - 4, 3, 2, C_INK),
+                    cv_rect(227, (int32_t)(MENU_Y0 + MENU_ROWS * MENU_DY) - 2, 1, 1, C_INK);
+            for (i = top; i < MI_COUNT && i < top + MENU_ROWS; i++) {
+                int32_t y = (int32_t)(MENU_Y0 + (i - top) * MENU_DY);
                 int sel = i == ui.menu_sel;
                 const char *v = 0;
+                if (menu_glob(i) != 0xFFu) {
+                    menu_glob_text(menu_glob(i), gb);
+                    v = gb;
+                }
                 if (menu_onoff(i))
                     v = i == MI_USB ? (*menu_onoff(i) ? "FIXED" : "MASTER") : i == MI_PERF ? (*menu_onoff(i) ? "PAGE" : "HOLD") :
                         *menu_onoff(i) ? "ON" : "OFF";
@@ -399,6 +455,19 @@ static void menu_input(uint32_t pressed)
          * wraps (as SPEAKER EQ) */
         backlight = s > 0 ? (backlight + 1u < BL_COUNT ? backlight + 1u : BL_COUNT - 1u)
                   : s < 0 ? (backlight ? backlight - 1u : 0u) : (backlight + 1u) % BL_COUNT;
+        ok = 0;
+        s = 0;
+    }
+    if ((s != 0 || ok) && ui.menu == 1 && menu_glob(ui.menu_sel) != 0xFFu) {
+        /* a settings row: KNOB 1 turns it, OCT+ steps it and wraps; USB MIDI: only shown */
+        uint32_t g = menu_glob(ui.menu_sel);
+        if (g != G_MIDI) {
+            int16_t *vp;
+            const param_desc_t *d = glob_desc(g, &vp);
+            int32_t v = s ? knob_turn(EN_K1, d, *vp, s) : *vp >= d->max ? d->min : *vp + 1;
+            *vp = (int16_t)v;
+            glob_set(g, v);
+        }
         ok = 0;
         s = 0;
     }

@@ -4,7 +4,7 @@
 // (new pages and knobs in the firmware appear here by themselves), each value with the device's own text, edited
 // live both ways: SET from the page, CHANGED / STATE pushes from the device (web/EDITOR_PROTOCOL.md §2.2, §4 rule 5).
 // SoundModel holds no DOM (node tests drive it against the mock device); mountSound draws it.
-import { CAP, CMD, DF, GR, ID, NONE, SCOPE, U14_NONE } from "./proto.mjs";
+import { CAP, CMD, DF, ID, NONE, SCOPE, U14_NONE } from "./proto.mjs";
 import { esc } from "./ui.mjs";
 
 export { ID }; // (proto.mjs: the core.h ids the page names, checked against device_data.json)
@@ -81,12 +81,7 @@ export class SoundModel {
       if (g && g.title === title && g.scope === scope) g.ids.push(...ids);
       else groups.push({ title, scope, ids });
     };
-    for (const p of pages) {
-      if (p.graph === GR.LFO) { // the device draws an LFO page in two halves: LFO 1's two knobs, then LFO 2's
-        add(`${p.title} 1`, p.scope, p.ids.slice(0, 2), true);
-        add(`${p.title} 2`, p.scope, p.ids.slice(2), true);
-      } else add(p.title, p.scope, p.ids, false);
-    }
+    for (const p of pages) add(p.title, p.scope, p.ids, false); // (one LFO on the FM-1 since FREITAKT's redesign)
     this.groups = groups;
   }
   async readDescs(all) {

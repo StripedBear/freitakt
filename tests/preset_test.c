@@ -587,15 +587,19 @@ static void test_edit_marks(void)
     transport_req = 2;
     render_mix(0, 0, CTL * 4);
     check("an LFO on DECAY: not edited", !t->pre_ed && t->pre == id);
-    turn(EN_K1 + 1, 3);                              /* HOME: knob 2 = DECAY */
+    open_family(FAM_SND);                            /* (FREITAKT: HOME's knobs BPM SWING; SOUND 1: knob 3 = DECAY) */
     frames(1);
-    check("a SOUND knob turned on HOME: edited", t->pre_ed && t->pre == id);
+    turn(EN_K1 + 2, 3);
+    frames(1);
+    check("a SOUND knob turned (DECAY): edited", t->pre_ed && t->pre == id);
     preset_load(t, id);
     t->p[P_E1] = (int16_t)track_desc(t, P_E1)->max;
-    turn(EN_K1 + 1, 3);                              /* at its limit: nothing changes */
+    turn(EN_K1 + 2, 3);                              /* at its limit: nothing changes */
     frames(1);
-    check("HOME: a knob turned on at its limit (nothing changed): not edited", !t->pre_ed &&
+    check("SOUND: a knob turned on at its limit (nothing changed): not edited", !t->pre_ed &&
           t->p[P_E1] == track_desc(t, P_E1)->max);
+    home_screen();                                   /* (back on HOME: EDIT below opens SOUND 1) */
+    frames(1);
     preset_load(t, id);
     check("loaded again: not edited", !t->pre_ed);
     ml_set(t, P_LEVEL, 10);

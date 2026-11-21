@@ -261,15 +261,15 @@ export async function runPageTests(log = console.log, mods = {}) {
     const labelOf = (scope, id) => snd.descOf(scope, id)?.label;
     const valuesMatch = () => m.tracks[m.sel].p.every((v, id) => snd.value(SCOPE.TRACK, id)?.value === v)
       && m.g.every((v, id) => snd.value(SCOPE.GLOBAL, id)?.value === v);
-    ok(["SOUND", "FILTER", "FX", "INSERT", "LFO 1", "LFO 2", "DEST 1", "DLY", "GLOBAL"].every((t) => titles.includes(t))
+    ok(["SOUND", "FILTER", "FX", "INSERT", "COMP", "LFO", "DEST 1", "DLY", "GLOBAL"].every((t) => titles.includes(t))
       && !titles.includes("SONG") && byTitle("SOUND").ids.length > 8, `pages from PAGES, merged by title (${titles.length}: ${titles.join(" ")})`);
     ok(byTitle("INSERT").ids.includes(m.P.SRR) && labelOf(SCOPE.TRACK, m.P.SRR) === "SRR" && byTitle("INSERT").ids.includes(m.P.ITYPE)
       && byTitle("DLY").scope === SCOPE.GLOBAL && byTitle("DLY").ids.includes(m.G.DMODE)
       && snd.descOf(SCOPE.GLOBAL, m.G.DMODE).names.join() === "NORM,PING", "SRR, INSERT and DLY MODE appear by themselves");
-    const lfo = (n) => byTitle(`LFO ${n}`).ids, lfoNames = (n) => lfo(n).map((id) => data.P[id]).join();
-    ok(!titles.includes("LFO") && lfoNames(1) === "LFO1_WAVE,LFO1_RATE,LFO1_MORPH,LFO1_PHASE,LFO1_TRIG,LFO1_MODE"
-      && lfoNames(2) === lfoNames(1).replaceAll("LFO1", "LFO2") && P.GR.LFO === data.gr.LFO
-      && new Set(lfo(1).map((id) => labelOf(SCOPE.TRACK, id))).size === 6, "LFO: two groups, LFO 1 and LFO 2, each knob once");
+    const lfo = byTitle("LFO").ids, lfoNames = lfo.map((id) => data.P[id]).join();
+    ok(!titles.includes("LFO 2") && lfoNames === "LFO1_WAVE,LFO1_RATE,LFO1_MORPH,LFO1_PHASE,LFO1_TRIG,LFO1_MODE"
+      && P.GR.LFO === data.gr.LFO && new Set(lfo.map((id) => labelOf(SCOPE.TRACK, id))).size === 6,
+      "LFO: one group (LFO 1; LFO 2 is not on the FM-1's pages), each knob once");
     ok(ID.MODEL === m.P.MODEL && ID.ITYPE === m.P.ITYPE,
       "the ids the page names = core.h (device_data.json)");
     const md = snd.descOf(SCOPE.TRACK, ID.MODEL);

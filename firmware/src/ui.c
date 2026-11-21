@@ -108,7 +108,7 @@ static struct {
     uint8_t enc_c[NE];           /* knob acceleration: the turn's carried sixteenths of a step (ui_input.c accel) */
     char col[4][32];
     char focus_l[8], focus_v[8], focus_u[8];
-    uint32_t graph_sig, head_sig, foot_sig, msg_sig, tempo_sig, col_sig, frame;
+    uint32_t graph_sig, head_sig, msg_sig, tempo_sig, col_sig, frame;
     uint8_t graph_top;
     int16_t tr[2][LTR_N];        /* LFO pages, random waves: each LFO's trail (a ring, newest at tr_h - 1) */
     uint8_t tr_h[2], tr_n[2];
@@ -116,8 +116,6 @@ static struct {
                                                * were fed */
     uint8_t lfo_l;               /* LFO pages: the LFO whose knob was turned last (OCT+ cycles its RATE MODE) */
     uint8_t persist_pending;     /* a settings save asked for while playing: written once stopped (project.c) */
-    uint8_t cpu_on;              /* the top bar's CPU icon: since cpu_ms, after song.sheds moved past sheds (2 s) */
-    uint32_t sheds, cpu_ms;
     uint32_t fx_t0;              /* PERFORM: FX's press time | FX_DOWN / FX_OPEN / FX_DEAD (ui_input.c fx_layer) */
     uint8_t layer;               /* PERFORM: the layer's map shows (FX held open, or a layer key still held) */
     uint8_t pg_open, pg_page, pg_home;   /* PERFORM PAGE: the screen open; the page / HOME under it when it opened */
@@ -347,8 +345,7 @@ static void open_family(uint32_t fam)
 }
 
 /* HOME (spec §3): two modes, 1 TRACKS (the TRACKS page: the mixer, TRACK LEVEL LEN PAN, the keys as on TRACKS) and 2
- * HOME (the HOME screen: the scope, the selected track's macros; SELECT on to COMP 2/3, 3/3). ui.hmode: the one last
- * shown */
+ * HOME (the HOME screen: the status line, the BPM; KNOB 1 BPM, KNOB 2 SWING). ui.hmode: the one last shown */
 static void home_screen(void)                         /* HOME's second mode */
 {
     ui.srec = 0;                                       /* step record ends (leaving the page, another track) */
@@ -385,19 +382,13 @@ static void home_tap(void)                            /* on HOME: TRACKS <-> HOM
         go_home();
 }
 
-/* SELECT: the current section's next / previous page (its empty pages skipped), stopping at the ends; HOME 1/3 (the
- * HOME screen) is the HOME section's first page (then COMP 2/3, 3/3). (HOME's TRACKS mode: BPM, ui_input.c) */
+/* SELECT: the current section's next / previous page (its empty pages skipped), stopping at the ends; HOME: nothing.
+ * (HOME's TRACKS mode: BPM, ui_input.c) */
 static void page_turn(int32_t dir)
 {
     uint32_t fam, i;
-    if (ui.home) {
-        if (dir > 0) {                                /* HOME 1/3 -> COMP 2/3 */
-            ui.page = (uint8_t)page_first(FAM_HOME);
-            ui.home = 0;
-            page_entered();
-        }
+    if (ui.home)                                      /* HOME: no pages of its own (COMP is FX's now) */
         return;
-    }
     fam = cur_page()->fam;
     i = ui.page;
     do
@@ -407,8 +398,6 @@ static void page_turn(int32_t dir)
         ui.page = (uint8_t)i;
         ui.fam_last[fam] = ui.page;
         page_entered();
-    } else if (dir < 0 && fam == FAM_HOME) {
-        home_screen();                                /* COMP 2/3 back to HOME 1/3 */
     }
 }
 
@@ -711,8 +700,15 @@ static void model_step(int32_t dir)
 /* HOME: KNOB k edits the selected model's macro k (TUNE DECAY TONE CHAR) */
 static const param_desc_t *home_param(uint32_t k, int16_t **vp)
 {
-    *vp = &TSEL->p[P_E0 + (k & 3u)];
-    return track_desc(TSEL, P_E0 + (k & 3u));
+    static const param_desc_t NONE_DESC;             /* KNOB 3, 4: nothing (no label: no ZOOM, no turn) */
+    static int16_t none;
+    k &= 3u;
+    if (k < 2u) {                                     /* FREITAKT redesign: KNOB 1 BPM, KNOB 2 the global SWING */
+        *vp = &song.g[k ? G_SWING : G_BPM];
+        return &GP[k ? G_SWING : G_BPM];
+    }
+    *vp = &none;
+    return &NONE_DESC;
 }
 
 /* ---- parameter locks (spec 2026-10-24): in STEPS, off the SEQ pages, a held step + a recordable knob locks it */

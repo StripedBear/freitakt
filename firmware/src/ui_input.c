@@ -225,7 +225,8 @@ static void ui_leds(void)
         led_pos_init();
         ready = 1;
     }
-    led_put(nl, panel.btn[FAM_BTN[fam]], 1);
+    if (FAM_BTN[fam] != 0xFFu)                        /* (FAM_EDT: the editor's own pages, no button) */
+        led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     led_put(nl, panel.btn[B_PLAY], song.playing && ((song.tick / 64u) & 1u) == 0u);   /* blinks: intended */
     led_put(nl, panel.btn[B_REC], song.rec != 0u || ui.srec);
     led_put(nl, panel.btn[B_SCL], ui.keys);           /* KEYS (spec §5) */
@@ -502,6 +503,54 @@ static void motion_page_edit(uint32_t slot, int32_t steps)
     }
 }
 
+/* a device setting's side of a global set to v (the MIDI OUT page; MENU's settings rows: ui_menu.c): 1 when id is one
+ * (MUTE METRO THRU LEARN KBD LOCL QUANT), its job done */
+static int glob_set(uint32_t id, int32_t v)
+{
+    if (id == G_MUTEBAR) {
+        mute_bar_set((uint32_t)v);
+        return 1;
+    }
+    if (id == G_METRO) {                              /* METRO: the device setting (fx.c's click), saved */
+        fx_metro = (uint8_t)v;
+        settings_save();
+        return 1;
+    }
+    if (id == G_THRU) {                               /* THRU: the device setting (midi_out.c), saved */
+        midi_thru = (uint8_t)v;
+        settings_save();
+        return 1;
+    }
+    if (id == G_LEARN) {                              /* LEARN (the COPY page's KNOB 4): MIDI LEARN on / off */
+        if ((uint32_t)v != ui.ml.on)
+            ml_toggle();
+        return 1;
+    }
+    if (id == G_KBD) {                                /* KBD: the MIDI KEYBOARD's channel (midi_out.c mkb_*), saved;
+                                                       * turned on: KEYS on too, OFF: KEYS' own octaves again */
+        if (v && !mkb_kbd && !ui.keys)
+            keys_toggle();
+        mkb_kbd = (uint8_t)v;
+        if (!v)
+            keys_octave(0);
+        ui_message(v ? "MIDI KEYBOARD" : "MIDI KEYBOARD OFF");
+        settings_save();
+        return 1;
+    }
+    if (id == G_LOCAL) {                              /* LOCL: the MIDI KEYBOARD's keys sound here too (OFF: MIDI
+                                                       * only), saved */
+        mkb_local_off = (uint8_t)!v;
+        settings_save();
+        return 1;
+    }
+    if (id == G_QUANT) {                              /* QUANT: the device setting (seq.c rec_hit), saved */
+        rec_quant = (uint8_t)v;
+        settings_save();
+        return 1;
+    }
+    return 0;
+}
+
 static void edit_param(uint32_t slot, int32_t steps)
 {
     int16_t *vp;
@@ -523,7 +572,7 @@ static void edit_param(uint32_t slot, int32_t steps)
         return;
     }
     if (pg->graph == GR_LFO)
-        ui.lfo_l = (uint8_t)(slot >> 1);              /* OCT+: this LFO's RATE MODE */
+        ui.lfo_l = 0;                                 /* OCT+: its RATE MODE (one LFO on the FM-1: LFO 1) */
     if (pg->scope == SC_MIX) {
         tracks_edit(slot, steps);
         return;
@@ -562,47 +611,8 @@ static void edit_param(uint32_t slot, int32_t steps)
         motion_capture(TSEL, (uint32_t)(vp - TSEL->p));   /* motion.c: recorded when armed and playing */
         ml_knob(song.sel, (uint32_t)(vp - TSEL->p));      /* (MIDI LEARN: picked) */
     }
-    if (pg->scope == SC_GLOBAL && id == G_MUTEBAR) {
-        mute_bar_set((uint32_t)v);
+    if (pg->scope == SC_GLOBAL && glob_set(id, v))
         return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_METRO) {    /* METRO: the device setting (fx.c's click), saved */
-        fx_metro = (uint8_t)v;
-        settings_save();
-        return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_THRU) {     /* THRU: the device setting (midi_out.c), saved */
-        midi_thru = (uint8_t)v;
-        settings_save();
-        return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_LEARN) {    /* LEARN (the COPY page's KNOB 4): MIDI LEARN on / off */
-        if ((uint32_t)v != ui.ml.on)
-            ml_toggle();
-        return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_KBD) {      /* KBD: the MIDI KEYBOARD's channel (midi_out.c mkb_*), saved;
-                                                       * turned on: KEYS on too, OFF: KEYS' own octaves again */
-        if (v && !mkb_kbd && !ui.keys)
-            keys_toggle();
-        mkb_kbd = (uint8_t)v;
-        if (!v)
-            keys_octave(0);
-        ui_message(v ? "MIDI KEYBOARD" : "MIDI KEYBOARD OFF");
-        settings_save();
-        return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_LOCAL) {    /* LOCL: the MIDI KEYBOARD's keys sound here too (OFF: MIDI
-                                                       * only), saved */
-        mkb_local_off = (uint8_t)!v;
-        settings_save();
-        return;
-    }
-    if (pg->scope == SC_GLOBAL && id == G_QUANT) {    /* QUANT: the device setting (seq.c rec_hit), saved */
-        rec_quant = (uint8_t)v;
-        settings_save();
-        return;
-    }
     if (!v || pg->scope != SC_GLOBAL)
         return;
     if ((id == G_LOAD || id == G_SAVE || id == G_CLRSEQ || id == G_INITSND || id == G_CLRALL || id == G_INITALL ||
@@ -1549,22 +1559,16 @@ static void ui_input(void)
             lock_knob(k, s);
             continue;
         }
-        if (ui.home || pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_LDEST ||
-            page_desc(pg, k, &hv))
+        if ((ui.home && k < 2u) || (!ui.home && (pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_LDEST ||
+                                                 page_desc(pg, k, &hv))))
             hot_touch(k);
-        if (ui.home) {
+        if (ui.home) {                                  /* HOME: KNOB 1 BPM, KNOB 2 SWING (the song's), 3 4 nothing */
             int16_t *vp;
             const param_desc_t *d = home_param(k, &vp);
-            if (d->max > d->min) {
-                int32_t v = knob_turn(EN_K1 + k, d, *vp, s);
-                if (v != *vp)
-                    preset_touch(TSEL);                 /* (TUNE DECAY TONE CHAR: the voice edited; not at a limit) */
-                *vp = (int16_t)v;
-                if (vp >= TSEL->p && vp < TSEL->p + P_COUNT) {
-                    motion_capture(TSEL, (uint32_t)(vp - TSEL->p));
-                    ml_knob(song.sel, (uint32_t)(vp - TSEL->p));   /* (MIDI LEARN: picked) */
-                }
-            }
+            if (k == 0u && song.g[G_CLOCK])             /* following a clock: its tempo, not the knob */
+                ui_say("CLK ", N_CLOCK[song.g[G_CLOCK]]);
+            else if (d->max > d->min)
+                *vp = (int16_t)knob_turn(EN_K1 + k, d, *vp, s);
         } else {
             edit_param(k, s);
         }

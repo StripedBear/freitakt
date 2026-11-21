@@ -59,6 +59,27 @@ static void learn_toggle(void)                       /* SAVE > COPY, KNOB 4 (LEA
 }
 static void knob(uint32_t k, int32_t s)
 {
+    if (ui.home && k < 4u) {                         /* FREITAKT: HOME's knobs are BPM / SWING; the old HOME knob k (the
+                                                      * model's macro P_E0 + k) turned where it is now, a SOUND page */
+        uint32_t p, j;
+        for (p = page_first(FAM_SND); p < NPAGES && PAGES[p].fam == FAM_SND; p++)
+            for (j = 0; j < 4u; j++)
+                if (page_id(&PAGES[p], j) == P_E0 + k)
+                    goto found;
+        check("(the macro knob on a SOUND page)", 0);
+        return;
+    found:
+        ui.home = 0;
+        ui.page = (uint8_t)p;
+        page_entered();
+        ui_frame();
+        turn(EN_K1 + j, s);
+        ui_frame();
+        ui.home = 1;
+        page_entered();
+        ui_frame();
+        return;
+    }
     turn(EN_K1 + k, s);
     ui_frame();
 }
@@ -320,12 +341,22 @@ static void test_ends(void)
     hold(B_REC);
     check("REC held on SEQ while learning: REC picked (no CLEAR TRACK?)", !ui.confirm && ui.ml.on &&
           ui.ml.act == ML_A_REC);
-    lk_put(&mo.b, lk_key(0, 4, P_PAN), 40, 0);       /* (a motion event: MOTION's CLEAR asks) */
-    for (k = 0; k < 6u && cur_page()->graph != GR_MOTION; k++)
-        tap(B_SEQ);
-    knob(3, 1);
-    frames(1);
-    check("another confirm (MOTION's CLEAR MOTION T1?): LEARN off", ui.confirm == 2u && !ui.ml.on);
+    trk[0].step[0].on = 1;                           /* (FREITAKT: no MOTION page; TOOLS' CLEAR asks instead) */
+    release_all();
+    press(B_SEQ);                                    /* SEQ held: TOOLS */
+    for (k = 0; k < 450u; k++) {
+        fm1_in.buttons |= 1u << panel.btn[B_SEQ];
+        ui_frame();
+    }
+    keys(1u << 22);                                  /* D#5: CLEAR */
+    for (k = 0; k < 2u; k++) {
+        fm1_in.buttons |= 1u << panel.btn[B_SEQ];
+        ui_frame();
+    }
+    keys(0);
+    release_all();
+    frames(2);
+    check("another confirm (TOOLS' CLEAR TRACK 1?): LEARN off", ui.confirm == 1u && !ui.ml.on);
     oct(B_OCTDN);
     project_save(0);                                 /* (slot A used: NAME renames it) */
     learn_toggle();
@@ -379,13 +410,12 @@ static void test_pages(void)
     track_select(2);
     tap(B_LFO);
     learn_toggle();
-    knob(3, 1);
-    ok &= ui.ml.pick && ui.ml.trk == 2u && ui.ml.id == P_LFO2 + LF_RATE;
-    check("LFO 1/4: KNOB 4 is LFO 2's RATE, of the selected track (T3)", ok);
+    knob(1, 1);
+    ok &= ui.ml.pick && ui.ml.trk == 2u && ui.ml.id == P_LFO1 + LF_RATE;
+    check("LFO 1/3: KNOB 2 is the LFO's RATE, of the selected track (T3) (FREITAKT: one LFO)", ok);
     oct(B_OCTUP);
     tap(B_LFO);
-    tap(B_LFO);
-    tap(B_LFO);                                      /* DEST */
+    tap(B_LFO);                                      /* DEST (LFO 3/3) */
     learn_toggle();
     knob(3, 1);
     check("DEST, slot 1: its DEPTH (LFO 1's own DEPTH id)", ui.ml.pick && ui.ml.id == P_LFO1 + LF_DEPTH);
@@ -1284,10 +1314,9 @@ static void test_screens(void)
     ui.msg_t = 0;
     snap("tracks_learned_line");
     oct(B_OCTUP);
-    tap(B_LFO);
-    tap(B_LFO);                                      /* LFO 2/4: MORPH PHASE of LFO 1, of LFO 2 */
+    tap(B_LFO);                                      /* LFO 1/3: WAVE RATE MORPH PHASE (FREITAKT) */
     learn_toggle();
-    knob(1, 1);
+    knob(3, 1);
     {
         char ln[32];
         ml_line(ln);
