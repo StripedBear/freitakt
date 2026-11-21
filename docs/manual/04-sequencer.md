@@ -79,8 +79,8 @@ Up to **1024 events** per project are shared by all tracks and by parameter lock
 
 ## Tempo, swing, clock
 
-- **BPM** 40 to 240 (default 120): on TRACKS [[SELECT]] sets it (a `TEMPO` popup shows); on GLOBAL 1/7 [[KNOB 1]] sets it on any page.
-- **SWG** (GLOBAL 1/7) is global swing, 0 to 100 %; each track adds its own.
+- **BPM** 40 to 240 (default 120): on TRACKS [[SELECT]] sets it (a `TEMPO` popup shows); on GLOBAL 1/8 [[KNOB 1]] sets it on any page.
+- **SWG** (GLOBAL 1/8) is global swing, 0 to 100 %; each track adds its own.
 - When the clock is external, the tempo controls say `CLK USB`, `CLK TRS`, `CLK BLE` or `CLK LINK` instead.
 - HOME's status line shows the pattern (1 to 4: A to D), the playing variation (1 to 8), the selected track and its step page (`P1 V2 T6 L1`).
 
@@ -105,7 +105,7 @@ On a step page hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hit move
 
 ## QUANT: where live recording lands
 
-GLOBAL 3/7 [[KNOB 4]] **QUANT** decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer; step record is not affected). It is a device setting, kept over power-off.
+GLOBAL 3/8 [[KNOB 4]] **QUANT** decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer; step record is not affected). It is a device setting, kept over power-off.
 
 | QUANT | The hit goes to |
 | --- | --- |

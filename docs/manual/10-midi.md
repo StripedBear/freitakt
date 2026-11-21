@@ -11,16 +11,18 @@
 
 | Setting | Where |
 | --- | --- |
-| **CH** (drum channel, 10 by default) | GLOBAL 1/7 |
-| **CLK** (INT / USB / TRS, BLE, LINK) | GLOBAL 1/7 |
-| **SYNC** (clock out) | SYSTEM 2/7 |
-| **ROUT** (note routing) | SYSTEM 2/7 |
-| **MUTE** (NOW / NEXT BAR) | GLOBAL 3/7 |
-| **METRO** | GLOBAL 3/7 |
-| **THRU** | GLOBAL 3/7 |
-| **QUANT** (live-record grid) | GLOBAL 3/7 |
+| **CH** (drum channel, 10 by default) | GLOBAL 1/8 |
+| **CLK** (INT / USB / TRS, BLE, LINK) | GLOBAL 1/8 |
+| **SYNC** (clock out) | SYSTEM 2/8 |
+| **ROUT** (note routing) | SYSTEM 2/8 |
+| **MUTE** (NOW / NEXT BAR) | GLOBAL 3/8 |
+| **METRO** | GLOBAL 3/8 |
+| **THRU** | GLOBAL 3/8 |
+| **QUANT** (live-record grid) | GLOBAL 3/8 |
+| **OUT** (the sequencer's notes out) | MIDI OUT 4/8 |
+| **TnCH** (a track's MIDI OUT channel) | MIDI OUT 4/8 |
 
-SYNC and ROUT are saved with each project; projects saved before them load SYNC OFF and ROUT NOTE. THRU is a setting of the FM-1 itself, kept over power-off, OFF until you turn it on.
+SYNC, ROUT, OUT and the tracks' channels are saved with each project; projects saved before them load SYNC OFF, ROUT NOTE, OUT USB and track n on channel n. THRU is a setting of the FM-1 itself, kept over power-off, OFF until you turn it on.
 
 ## ROUT: how MIDI notes in play the tracks
 
@@ -49,9 +51,29 @@ Set SYNC to OFF or USB (and BLE or BOTH in the Bluetooth version).
 - **Timing**: within a quarter of a millisecond with a light kit; a busy kit adds up to half the render time (about 1.5 ms when the CPU shows 50 %). Bluetooth MIDI is much looser: use it for tempo, not tight sync.
 - If the computer does not read the FM-1's MIDI port, the clock waits no more than 8 messages deep. During a firmware update (and 3 s after) nothing is sent.
 
+## MIDI OUT: the sequencer's notes
+
+Tap [[GLO]] until **MIDI OUT 4/8**. While playing, every track sends its hits as Note On / Note Off, track n on its own channel, so a DAW can record the pattern or play other instruments with it.
+
+| Knob | Label | Values (default) |
+| --- | --- | --- |
+| **KNOB 1** | OUT | OFF, USB (default); BLE and BOTH in the Bluetooth version |
+| **KNOB 2** | T1CH .. T6CH | the selected track's channel: OFF or 1 to 16 (track n on channel n) |
+
+KNOB 2 sets the channel of the selected track (selected as on any page); OFF silences that track's notes only.
+
+- **What is sent**: the sequencer's hits, as the sound engine plays them: every step, RATCH, NUDGE, swing, FIT and MASTER LENGTH, and ARP / RTRG's repeats. The keys' notes go out as before (see *ROUT*); REPEAT STEP, MIDI in and THRU are not sent again as MIDI OUT notes.
+- **The note**: an ACID, SAMPL, FM or SKIN track sends the note it plays (the step's NOTE, with ARP's chord and octaves). A drum track sends its **NOTE** knob, the kit's GM note (36 kick, 38 snare, 39 clap, 42 closed hat ...).
+- **Velocity**: 127 on an accented step, else 96; ARP / RTRG's FADE lowers its repeats.
+- **Note Off**: ACID when its gate closes (a SLIDE plays legato: the new note before the old one's Off); other tracks after the step (or the RATCH / repeat). One note a track at a time.
+- **No hanging notes**: STOP, PLAY again, muting a track or soloing another sends the Note Offs at once; if a Note Off was lost, STOP also sends All Notes Off (CC 123) on the channels played.
+- **Timing** is the SYNC clock's (see above): each note leaves when it is heard. If the computer does not read the port, notes are dropped (and counted), never delayed; the clock and Note Offs keep their room. During a firmware update (and 3 s after) nothing is sent; notes cut by it get All Notes Off afterwards.
+
+The web editor can also write a pattern or a chain as a MIDI file (*Web editor*, Patterns, **Export MIDI…**).
+
 ## THRU
 
-GLOBAL 3/7 **THRU ON** passes notes and CCs from each MIDI input to the other outputs (the TRS jack to USB; Bluetooth and USB to each other in the Bluetooth version), never back to the input.
+GLOBAL 3/8 **THRU ON** passes notes and CCs from each MIDI input to the other outputs (the TRS jack to USB; Bluetooth and USB to each other in the Bluetooth version), never back to the input.
 
 ## MIDI LEARN
 

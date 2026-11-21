@@ -64,7 +64,7 @@ Black keys 1 to 6 (F#3 G#3 A#3 C#4 D#4 F#4) are tracks 1 to 6. Hold a button and
 | [[SCL]] (SEL) + black 1 to 6 | select track 1 to 6 (its key lit while SEL is held) |
 
 - A SEQ hold that began with a black key opens no TOOLS screen and turns no page; once TOOLS is up (SEQ held 0.4 s, or a white key pressed first) the black keys are its tools.
-- GLOBAL 3/7 **MUTE** sets `NOW` or `NEXT BAR`: with NEXT BAR a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
+- GLOBAL 3/8 **MUTE** sets `NOW` or `NEXT BAR`: with NEXT BAR a mute made while playing blinks, then lands on the next downbeat. It also works while following an external clock. A muted COMP source fades out just before the bar's first hit.
 - Solo itself is not saved (INIT and power-on clear it); mutes stay as they are under a solo. It is the same solo state the SMC-Mixer uses. HOME's TRACKS mode shows the mutes.
 - The keys pressed with the button play nothing, send no MIDI and record nothing.
 

@@ -3,24 +3,26 @@
 
 ## GLO pages
 
-Tap [[GLO]] for seven pages: **GLOBAL 1/7**, **SYSTEM 2/7**, **GLOBAL 3/7**, then **DLY 4/7**, **DLY 5/7**, **REVERB 6/7** and **CHORUS 7/7** (the last four are described under *Effects*).
+Tap [[GLO]] for eight pages: **GLOBAL 1/8**, **SYSTEM 2/8**, **GLOBAL 3/8**, **MIDI OUT 4/8**, then **DLY 5/8**, **DLY 6/8**, **REVERB 7/8** and **CHORUS 8/8** (the last four are described under *Effects*).
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| GLOBAL 1/7 | **KNOB 1** | BPM | 40 to 240 (120); `CLK <source>` while following an outside clock |
-| GLOBAL 1/7 | **KNOB 2** | SWG | global swing 0 to 100 % (0) |
-| GLOBAL 1/7 | **KNOB 3** | CLK | INT (default), USB, TRS; BLE and LINK in the Bluetooth version |
-| GLOBAL 1/7 | **KNOB 4** | CH | the drum MIDI channel, 1 to 16 (10) |
-| SYSTEM 2/7 | **KNOB 1** | USB | read-only status: OFF, WAIT, BUS, ENUM, MIDI |
-| SYSTEM 2/7 | **KNOB 2** | SYNC | MIDI clock out: OFF (default), USB; BLE and BOTH in the Bluetooth version |
-| SYSTEM 2/7 | **KNOB 3** | ROUT | MIDI-in routing: NOTE (default), SEL, TRACK |
-| SYSTEM 2/7 | **KNOB 4** | CPU | read-only load, in % |
-| GLOBAL 3/7 | **KNOB 1** | MUTE | NOW or BAR (NEXT BAR): when mutes land |
-| GLOBAL 3/7 | **KNOB 2** | METRO | OFF, LOW, MID, HIGH |
-| GLOBAL 3/7 | **KNOB 3** | THRU | OFF (default), ON |
-| GLOBAL 3/7 | **KNOB 4** | QUANT | 1/16 (default), 1/8, 1/32, OFF: where live recording puts a hit (see Sequencer) |
+| GLOBAL 1/8 | **KNOB 1** | BPM | 40 to 240 (120); `CLK <source>` while following an outside clock |
+| GLOBAL 1/8 | **KNOB 2** | SWG | global swing 0 to 100 % (0) |
+| GLOBAL 1/8 | **KNOB 3** | CLK | INT (default), USB, TRS; BLE and LINK in the Bluetooth version |
+| GLOBAL 1/8 | **KNOB 4** | CH | the drum MIDI channel, 1 to 16 (10) |
+| SYSTEM 2/8 | **KNOB 1** | USB | read-only status: OFF, WAIT, BUS, ENUM, MIDI |
+| SYSTEM 2/8 | **KNOB 2** | SYNC | MIDI clock out: OFF (default), USB; BLE and BOTH in the Bluetooth version |
+| SYSTEM 2/8 | **KNOB 3** | ROUT | MIDI-in routing: NOTE (default), SEL, TRACK |
+| SYSTEM 2/8 | **KNOB 4** | CPU | read-only load, in % |
+| GLOBAL 3/8 | **KNOB 1** | MUTE | NOW or BAR (NEXT BAR): when mutes land |
+| GLOBAL 3/8 | **KNOB 2** | METRO | OFF, LOW, MID, HIGH |
+| GLOBAL 3/8 | **KNOB 3** | THRU | OFF (default), ON |
+| GLOBAL 3/8 | **KNOB 4** | QUANT | 1/16 (default), 1/8, 1/32, OFF: where live recording puts a hit (see Sequencer) |
+| MIDI OUT 4/8 | **KNOB 1** | OUT | the sequencer's notes out: OFF, USB (default); BLE and BOTH in the Bluetooth version |
+| MIDI OUT 4/8 | **KNOB 2** | TnCH | the selected track's channel: OFF, 1 to 16 (track n on n) |
 
-**METRO** is a click on every quarter note while playing, the bar's first higher, on the FM-1's clock or following one. It comes after the PERFORM effects and follows MASTER, on the speaker, headphones and USB audio. METRO, THRU, MUTE, QUANT and the solo mode are device settings; SYNC and ROUT are saved with each project. See *MIDI* for how they work.
+**METRO** is a click on every quarter note while playing, the bar's first higher, on the FM-1's clock or following one. It comes after the PERFORM effects and follows MASTER, on the speaker, headphones and USB audio. METRO, THRU, MUTE, QUANT and the solo mode are device settings; SYNC, ROUT, OUT and the tracks' channels are saved with each project. See *MIDI* for how they work.
 
 ## The menu
 
@@ -63,7 +65,7 @@ Credits everyone whose work is in the firmware: Felucca, Mutable Instruments, Da
 
 ## CPU and PRIO
 
-When an audio block takes more than 85 % of its time (95 % before 1.0.0, so a sudden peak no longer runs past the deadline), the FM-1 stops one sounding voice to catch up and the top bar shows a red CPU icon for 2 s. A track with **PRIO LOW** loses its voices before a **PRIO HIGH** one, the oldest first; a held ACID note goes last. The same order picks the voice to stop when too many play at once. PRIO is on the track's last EDIT (SOUND) page, after CHOKE: HIGH by default, saved in the project. SYSTEM 2/7 CPU shows the load.
+When an audio block takes more than 85 % of its time (95 % before 1.0.0, so a sudden peak no longer runs past the deadline), the FM-1 stops one sounding voice to catch up and the top bar shows a red CPU icon for 2 s. A track with **PRIO LOW** loses its voices before a **PRIO HIGH** one, the oldest first; a held ACID note goes last. The same order picks the voice to stop when too many play at once. PRIO is on the track's last EDIT (SOUND) page, after CHOKE: HIGH by default, saved in the project. SYSTEM 2/8 CPU shows the load.
 
 ## Start screen
 

@@ -39,6 +39,7 @@
 | **SRC** | an LFO slot's source, or COMP's key track. |
 | **STEPS / TRACKS** | ENV mode: the keys are steps, or play tracks. |
 | **SYNC** | MIDI clock out. |
+| **MIDI OUT** | the sequencer's notes out, track n on its channel (GLO MIDI OUT 4/8: OUT, TnCH). |
 | **THRU** | pass MIDI from each input to the other outputs. |
 | **THROW** | PERFORM macro that sends the dry mix into the delay and reverb. |
 | **USR1 to USR3** | user sample slots, each a set of up to 16 samples. |
@@ -53,7 +54,7 @@
 | **NUDGE** | a step's hit moved early or late, -50 to +50 hundredths of a step. |
 | **PERC** | the built-in sample set: 16 drum and percussion samples. |
 | **PLAY** | SAMPLE: KEY (the keys play one sample up and down) or CHOP. |
-| **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/7 KNOB 4). |
+| **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/8 KNOB 4). |
 | **REPEAT STEP** | PERFORM: a held white key (F3 to D4) repeats that track's step; D5 to G5 pick the rate. |
 | **SET / SLOT** | SAMPLE and LAYER: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
 | **SOLO** | ARP + black keys 1 to 6; TOGGLE or MOMENTARY mode (ARP + F#5). |

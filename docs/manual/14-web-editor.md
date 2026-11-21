@@ -77,6 +77,8 @@ The Patterns tab edits the sequence of the **loaded slot**.
 - **Save on FM-1** is the FM-1's SAVE for the loaded slot (stopped only).
 - **Copy variation...** copies a variation into a variation of the **loaded** slot, from the FM-1 (another slot and variation) or from a project or backup file. Tick the box to replace the loaded slot's locks with the source's too. Every step's NUDGE comes along. From a file, MOTION events are not copied (the editor writes locks only). Locks the FM-1 cannot hold are refused before anything changes. To copy into another slot, cue that slot first.
 
+- **Export MIDI…** writes a Standard MIDI File (type 1: a tempo track, then one track per FM-1 track) of the variation shown, or of a **Chain** typed as `A1 A2 B3` (slot letter, variation 1 to 8, played in order, each marked). It follows the FM-1's timing (LEN, DIV and FIT, swing, NUDGE, RATCH, PROB, ARP / RTRG) and MIDI OUT's notes and channels (a track set to OFF uses channel n). MASTER LENGTH is not read from the FM-1: type it (0 is OFF). **Times** repeats the whole. Locks are not rendered (each track uses its knobs as they are now), PROB and ARP RND roll their own dice.
+
 ## Samples
 
 The Samples tab loads your own sounds into **USR1, USR2 and USR3**. Each slot holds a **set of up to 16 samples**; the SAMPLE model's and the LAYER's SET knob picks USR1 to USR3, and SLOT picks one of the set's samples in the order the page lists them (`2/5`).

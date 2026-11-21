@@ -54,21 +54,21 @@ An effect on every track, after DIST and before LEVEL, PAN and the sends.
 
 It samples and holds the track's sound after the FILTER and before DIST, aliasing on purpose, for the gritty sound of the classic drum machines. OFF at 0, down to 347 Hz at 127; the screen shows the rate.
 
-## Delay (GLO DLY 4/7 and 5/7)
+## Delay (GLO DLY 5/8 and 6/8)
 
 Tap [[GLO]] and step to the delay pages. The page draws the echoes after a hit: their spacing, how fast FDBK lets them fade, COLR dulling the later ones, and in PING the echoes left and right in turn, with TIME's length in milliseconds.
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 4/7 | **KNOB 1** | TIME | 4BAR 2BAR 1/1 1/2 1/4D 1/4 1/8D 4T 1/8 1/16D 8T 1/16 16T 1/32 32T, tempo-synced (D dotted, T triplet), 1/8 by default. A time longer than the delay holds is cut to 1.49 s |
-| 4/7 | **KNOB 2** | FDBK | feedback, 0 to 100 % (50 %) |
-| 4/7 | **KNOB 3** | COLR | the repeats' colour, % (55 %) |
-| 4/7 | **KNOB 4** | MIX | the return level, % (71 %) |
-| 5/7 | **KNOB 1** | MODE | **NORM** (default) or **PING** (ping-pong) |
+| 5/8 | **KNOB 1** | TIME | 4BAR 2BAR 1/1 1/2 1/4D 1/4 1/8D 4T 1/8 1/16D 8T 1/16 16T 1/32 32T, tempo-synced (D dotted, T triplet), 1/8 by default. A time longer than the delay holds is cut to 1.49 s |
+| 5/8 | **KNOB 2** | FDBK | feedback, 0 to 100 % (50 %) |
+| 5/8 | **KNOB 3** | COLR | the repeats' colour, % (55 %) |
+| 5/8 | **KNOB 4** | MIX | the return level, % (71 %) |
+| 6/8 | **KNOB 1** | MODE | **NORM** (default) or **PING** (ping-pong) |
 
 In PING the echoes alternate between left and right (the first on the left), with FDBK, COLR and the longest time working as in NORM; they are a little softer in the top end. Changing MODE clears the delay. MODE is saved with the project; older projects load NORM.
 
-## Reverb (GLO REVERB 6/7)
+## Reverb (GLO REVERB 7/8)
 
 | Knob | Label | Values (default) |
 | --- | --- | --- |
@@ -78,7 +78,7 @@ In PING the echoes alternate between left and right (the first on the left), wit
 
 **HALL** is a smooth, dense reverb in stereo; its tail is wide on headphones and fades to exact silence. SIZE sets its length (from about half a second to several seconds), DAMP how soon its top end fades. Switching TYPE fades the old tail out without a click. TYPE is saved with the project; older projects keep their ROOM or SPRNG. The ROOM tail also fades to true silence now. The page draws the tail over 4 seconds and its decay time (RT), with DAMP's faster-fading top end and the spring's drips.
 
-## Chorus (GLO CHORUS 7/7)
+## Chorus (GLO CHORUS 8/8)
 
 | Knob | Label | Values (default) |
 | --- | --- | --- |
