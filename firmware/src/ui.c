@@ -22,6 +22,7 @@ static void cue_poll(void);                /* .. a cue's switch finished (the IS
 static int cue_slot(uint32_t s);           /* .. queue slot s / variation v (SAVE + a white key / a black key) */
 static int cue_var(uint32_t v);
 static int chain_set(const uint8_t *slots, uint32_t n);   /* .. the pattern chain (GLO + 2 or more white keys) */
+static uint8_t chain_ent(uint32_t s);      /* .. a chain entry: pattern s, its default variation */
 static int cue_led(uint32_t n);            /* .. the cue map's key n (1..4 slots, 5..12 variations): CM_* */
 static int32_t proj_loaded(void);          /* .. the slot loaded, -1 none */
 static void project_copy(uint32_t s);      /* .. COPY / PASTE of a slot (the COPY page) */

@@ -1401,10 +1401,11 @@ static int cue_var(uint32_t v)
     return cue_queue(cue.q_slot, v + 1u);
 }
 
-/* ---- the chain (FREITAKT, Elektron's; cue.c chain): the slots given played in turn, each for one pattern (its end:
- * cue.c cue_tick, MASTER LENGTH's boundary if set; every one restarts the tracks, the same slot again too), then from
- * the first again. The next entry is queued through the cue (staged, the 5 ms fade) as soon as the one before plays;
- * an empty slot's entries are skipped. Stopped: the first entry at once, the next queued on PLAY. STOP, LOAD, a slot's
+/* ---- the chain (FREITAKT, Elektron's; cue.c chain): the entries given (a pattern and its variation each: chain.s)
+ * played in turn, each for one pattern length (its end: cue.c cue_tick, MASTER LENGTH's boundary if set; every one
+ * restarts the tracks, the same entry again too), then from the first again. The next entry is queued through the cue
+ * (staged, the 5 ms fade; the playing pattern's: a variation cue, none if it plays already) as soon as the one before
+ * plays; an empty slot's entries are skipped. Stopped: the first entry at once, the next queued on PLAY. STOP, LOAD, a slot's
  * or a variation's cue key end it; a refused cue (SAVE A FIRST ..) too. RAM only */
 static uint32_t chain_next(uint32_t from)          /* the entry after from (CH_NONE: the first) with a project; CH_NONE:
                                                      * none has */
@@ -1416,6 +1417,13 @@ static uint32_t chain_next(uint32_t from)          /* the entry after from (CH_N
             return j;
     }
     return CH_NONE;
+}
+/* the chain entry of pattern s (0..3) with its default variation: the playing one if s plays, else its last-played
+ * (as a plain cue of s plays it) */
+static uint8_t chain_ent(uint32_t s)
+{
+    s &= 3u;
+    return (uint8_t)(s | ((int32_t)s == proj_loaded() ? var_cur : cue.last[s]) << 2);
 }
 static void chain_clear(void)
 {
@@ -1433,7 +1441,7 @@ static void chain_clear(void)
 static void chain_poll(void)
 {
     uint8_t e = cue.ends;
-    uint32_t s;
+    uint32_t s, v;
     int r;
     if (!chain.n)
         return;
@@ -1457,7 +1465,8 @@ static void chain_poll(void)
         return;                                     /* (stopped: the next one queued on PLAY) */
     chain.qd = 1;
     s = chain.s[chain.nx] & 3u;
-    r = (int32_t)s == proj_loaded() ? 0 : cue_queue(s + 1u, 0);
+    v = (chain.s[chain.nx] >> 2) & 7u;
+    r = cue_queue((int32_t)s == proj_loaded() ? 0u : s + 1u, v + 1u);   /* (the one playing: 0, none queued) */
     if (r) {
         chain_clear();                              /* (refused, said) */
         return;
@@ -1468,8 +1477,9 @@ static void chain_poll(void)
         chain.qd = 0;
     }
 }
-/* the chain: n (2..CHAIN_N) slots, in order (repeats allowed); fewer than 2: none (a chain ends). The first entry is
- * queued (stopped: plays at once). 0, or a refusal (said) */
+/* the chain: n (2..CHAIN_N) entries (bits 0..1 the pattern, 2..4 the variation: chain_ent), in order (repeats
+ * allowed); fewer than 2: none (a chain ends). The first entry is queued (stopped: plays at once). 0, or a refusal
+ * (said) */
 static int chain_set(const uint8_t *slots, uint32_t n)
 {
     uint32_t i;
@@ -1483,7 +1493,7 @@ static int chain_set(const uint8_t *slots, uint32_t n)
     if (n > CHAIN_N)
         n = CHAIN_N;
     for (i = 0; i < n; i++)
-        chain.s[i] = (uint8_t)(slots[i] & 3u);
+        chain.s[i] = (uint8_t)(slots[i] & 0x1Fu);
     chain.n = (uint8_t)n;
     chain.pos = CH_NONE;
     chain.nx = (uint8_t)chain_next(CH_NONE);

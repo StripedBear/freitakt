@@ -2299,7 +2299,7 @@ static const char *abbr4(const char *l, char *b)
     return b;
 }
 
-/* HOME (FREITAKT, Model:Cycles style): only the status line "P1 V2 T6 L1" (the pattern slot playing, its variation,
+/* HOME (FREITAKT, Model:Cycles style): only the status line "P1 V2 T6 L1" (the pattern playing (1..4: A..D), its variation,
  * the selected track, the track's step page) large, the CPU load and the battery small, the chain's line while a
  * pattern chain runs; ZOOM: a knob turned, its value large in the status line's place. Bands: CPU (0..23, x 0..149),
  * battery (x 150..239), a plain ground (24..71), the status line (72..167), the chain (168..207), a plain ground
@@ -2414,12 +2414,13 @@ static void draw_home(void)
         }
         cv_blit(0, HM_Y_MID);
     }
-    sig = 0;                                          /* the chain: up to 8 entries from the one before the one
-                                                       * playing; that one inverted, the next underlined */
+    sig = 0;                                          /* the chain: up to 6 entries ("A1 B3": the pattern, its
+                                                       * variation) from the one before the one playing; that one
+                                                       * inverted, the next underlined */
     if (chain.n > 1u) {
         uint32_t p = chain.pos == CH_NONE ? 0u : chain.pos;
-        cn = chain.n < 8u ? chain.n : 8u;
-        cf = chain.n <= 8u ? 0u : (p + chain.n - 1u) % chain.n;
+        cn = chain.n < 6u ? chain.n : 6u;
+        cf = chain.n <= 6u ? 0u : (p + chain.n - 1u) % chain.n;
         sig = 1u + cn * 7u + cf * 31u + (chain.pos + 1u) * 7919u + (chain.nx + 1u) * 104729u;
         for (i = 0; i < cn; i++)
             sig = sig * 16777619u ^ chain.s[(cf + i) % chain.n];
@@ -2428,10 +2429,10 @@ static void draw_home(void)
         rg_win(i, HM_Y_CH, C_BG);
         if (cn) {
             uint32_t c;
-            x = md_text(120 - (md_text_w(&MD_F3, 3, "CH") + 6 + (int32_t)cn * 21) / 2, 12, &MD_F3, 3, "CH", C_INK) + 9;
-            for (c = 0; c < cn; c++, x += 21) {
+            x = md_text(120 - (md_text_w(&MD_F3, 3, "CH") + 6 + (int32_t)cn * 33) / 2, 12, &MD_F3, 3, "CH", C_INK) + 12;
+            for (c = 0; c < cn; c++, x += 33) {
                 uint32_t e = (cf + c) % chain.n;
-                char d[2] = {(char)('1' + (chain.s[e] & 3u)), 0};
+                char d[3] = {(char)('A' + (chain.s[e] & 3u)), (char)('1' + ((chain.s[e] >> 2) & 7u)), 0};
                 w = md_text_w(&MD_F3, 3, d);
                 if (e == chain.pos) {
                     cv_rect(x - 3, 9, w + 6, 21, C_INK);

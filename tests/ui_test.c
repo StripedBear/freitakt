@@ -1492,7 +1492,7 @@ static void test_quick_mute(void)
 }
 
 /* FREITAKT combos (Elektron Model:Cycles style): hold a button, press a key. GLO tapped (let go within 0.4 s, no key
- * meanwhile): the GLOBAL pages, on the release; GLO + white n: pattern slot n, + C#5 / D#5 variation 1 / 2 (cue_test);
+ * meanwhile): the GLOBAL pages, on the release; GLO + white n: pattern n, + black n (1..8) variation n (cue_test);
  * SEL + black 1..6: select; SEQ + black 1..6: mute; ARP + black 1..6: solo, + F#5 the SOLO mode. The keys pressed
  * with one of them play nothing, record nothing, toggle no step */
 static uint32_t glo_bit(void) { return 1u << panel.btn[B_GLO]; }
@@ -1756,6 +1756,81 @@ static void test_seq_mute(void)
 }
 /* GLO: a tap opens GLOBAL; held alone or with a key: no page; the keys with GLO never play or record or edit a step;
  * GLO let go with a key held leaves nothing stuck */
+/* GLO + black n (1..8): variation n of the playing pattern queued; C#5 / D#5 (black 9 / 10) nothing; a black key with
+ * no white before it: no chain. GLO held: black 1..8 the playing variation lit, a queued one blinking, a used one dim
+ * (the mid layer, BACKLIGHT OFF too), an unused one dark (cue_test: the timing, the chain's entries, A1 B3 A2 played) */
+static uint32_t gv_lay(uint32_t key)                  /* 0 dark, 1 lit, 2 dim */
+{
+    uint8_t q = led_pos[14u + key];
+    if (q == 0xFF)
+        return 0;
+    if (!led_dim_on)
+        return (fm1_led[q >> 3] >> (q & 7u)) & 1u;
+    return (led_lay[q >> 3] >> (q & 7u)) & 1u ? 1u : (led_lay[q >> 3] >> (8u + (q & 7u))) & 1u ? 2u : 0u;
+}
+static int home_line_is(const char *s);
+static void test_glo_vars(void)
+{
+    static const uint8_t BK8[8] = {1, 3, 5, 8, 10, 13, 15, 17};
+    static step_t vs[NTRK][NSTEP];
+    static int16_t vt[NTRK][4];
+    const step_t *vp[NTRK];
+    uint32_t k, j, i, on = 0, off = 0;
+    int ok = 1;
+    ui_host_init();
+    backlight = BL_OFF;
+    trk[0].step[0].on = 1;
+    project_save(0);
+    project_save(1);
+    project_load(0);
+    for (k = 0; k < NTRK; k++) {                     /* variation 4 of A: used */
+        memcpy(vs[k], trk[k].step, sizeof vs[k]);
+        for (j = 0; j < PAT_NT; j++)
+            vt[k][j] = trk[k].p[PAT_TIMING[j]];
+        vp[k] = vs[k];
+    }
+    vs[0][5].on = 1;
+    OK0(var_put(&var_buf[var_play], 3, vp, vt) == 0);
+    ui.home = 1;
+    transport_req = 1;
+    seq_play_to(0, 2);
+    press(B_GLO);
+    glo_hold_frames(2);
+    OK0(gv_lay(BK8[0]) == 1u && gv_lay(BK8[3]) == 2u && gv_lay(BK8[1]) == 0u && gv_lay(BK8[7]) == 0u);
+    OK0(led_lit(14u + STEP_KEY[0]) && !led_lit(14u + STEP_KEY[1]));
+    check("GLO held: black 1 (the playing variation) lit, black 4 (used) dim, the unused ones dark; white 1 (A) lit",
+          ok);
+    ok = 1;
+    glo_key(22u);                                     /* D#5, C#5: nothing */
+    glo_key(20u);
+    OK0(!cue.q_var && !cue.q_slot && var_cur == 0u);
+    glo_key(BK8[5]);                                  /* black 6: variation 6 queued */
+    OK0(cue.q_var == 6u && !cue.q_slot);
+    for (i = 0; i < 12u; i++) {                       /* .. its key blinks, black 1 stays lit, black 4 dim */
+        host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+        glo_hold_frames(1);
+        on += gv_lay(BK8[5]) == 1u;
+        off += gv_lay(BK8[5]) == 0u;
+        OK0(gv_lay(BK8[0]) == 1u && gv_lay(BK8[3]) == 2u);
+    }
+    OK0(on && off);
+    release_all();
+    ui_frame();
+    ui_frame();
+    OK0(!chain.n && cue.q_var == 6u && ui.home);
+    OK0(gv_lay(BK8[3]) == 0u && gv_lay(BK8[5]) == 0u);   /* GLO let go: not shown */
+    check("GLO + C#5 / D#5: nothing; GLO + black 6: variation 6 queued (its key blinking), no chain, no GLOBAL page",
+          ok);
+    ok = 1;
+    for (k = 0; k < 4000u && cue.q_var; k++)
+        ui_frame();
+    OK0(var_cur == 5u);
+    ui_frame();
+    check("HOME: the queued variation plays at the pattern end, V6 on the status line", ok && home_line_is("P1 V6 T1 L1"));
+    transport_req = 2;
+    ui_frame();
+    ui_frame();
+}
 static void test_glo_keys(void)
 {
     uint32_t a, sel, n, k;
@@ -4059,9 +4134,10 @@ static void test_home_strip(void)
     var_cur = 0;
     song.cpu_q8 = 0;
     ui_frame();
-    {                                                /* a chain A A C B: its line under the status line */
-        static const uint8_t CH[4] = {0, 0, 2, 1};
+    {                                                /* a chain A1 A3 C2 B1: its line under the status line */
+        static const uint8_t CH[4] = {0, 0 | 2u << 2, 2 | 1u << 2, 1};
         uint32_t k;
+        int32_t x0;
         for (k = 0; k < 3u; k++)
             project_save(k);
         project_load(0);
@@ -4073,9 +4149,13 @@ static void test_home_strip(void)
         chain_set(CH, 4);
         ui_frame();
         shot("build/ui_shots/fixes/home_chain.ppm");
-        check("HOME: a chain runs: CH and its entries under the status line, the one playing inverted",
-              region_is_text(120 - (md_text_w(&MD_F3, 3, "CH") + 6 + 4 * 21) / 2, HM_Y_CH + 12, 3, "CH") &&
-              fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) > 300u);
+        x0 = 120 - (md_text_w(&MD_F3, 3, "CH") + 6 + 4 * 33) / 2;
+        check("HOME: a chain runs: CH and its entries (pattern and variation: A1 A3 C2 B1) under the status line, the "
+              "one playing inverted",
+              region_is_text(x0, HM_Y_CH + 12, 3, "CH") && fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) > 300u &&
+              region_is_text(x0 + md_text_w(&MD_F3, 3, "CH") + 15 + 33, HM_Y_CH + 12, 3, "A3") &&
+              region_is_text(x0 + md_text_w(&MD_F3, 3, "CH") + 15 + 66, HM_Y_CH + 12, 3, "C2") &&
+              region_is_text(x0 + md_text_w(&MD_F3, 3, "CH") + 15 + 99, HM_Y_CH + 12, 3, "B1"));
         chain_clear();
         ui_frame();
         check("HOME: the chain cleared, its line gone", fb_count(0, HM_Y_CH, 240, HM_H_CH, C_INK) == 0u);
@@ -10290,6 +10370,7 @@ int main(void)
     test_rec_everywhere();
     test_quick_mute();
     test_glo_keys();
+    test_glo_vars();
     test_arp_solo();
     test_arp_edit_page();
     test_sel_select();

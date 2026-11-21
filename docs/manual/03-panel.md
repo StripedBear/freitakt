@@ -28,7 +28,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **LFO** | The track's two LFOs side by side, then DEST. |
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | Labelled SEL. A tap (on the release, no key pressed while held): KEYS, the keys play the selected track chromatically. **SEL + black key 1 to 6**: select track 1 to 6. |
-| **GLO** | A tap (on the release, within 0.4 s, no key pressed): GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + C#5 / D#5**: variation 1 / 2 (see *Combos*). |
+| **GLO** | A tap (on the release, within 0.4 s, no key pressed): GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
 | **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
@@ -37,7 +37,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 ### HOME in detail
 
-HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern slot playing (1 to 4 for A to D; `P-` before a slot is loaded), **V** its variation, **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH 1 1 3 2`, the entry playing inverted, the next underlined) shows under the status line. The four knobs edit the selected track's first four sound knobs; turning one shows its value large in place of the status line (ZOOM, see Settings) until 3 s after the last turn. HOME has no top bar, knob row or breadcrumb: the screen only redraws when something on it changes. [[SELECT]] on HOME goes on to the compressor's pages (see Modulation and compressor).
+HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern playing (1 to 4 for A to D; `P-` before a pattern is loaded), **V** its playing variation (1 to 8), **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH A1 B3 A2`: each entry's pattern and variation, up to 6 shown, the entry playing inverted, the next underlined) shows under the status line. The four knobs edit the selected track's first four sound knobs; turning one shows its value large in place of the status line (ZOOM, see Settings) until 3 s after the last turn. HOME has no top bar, knob row or breadcrumb: the screen only redraws when something on it changes. [[SELECT]] on HOME goes on to the compressor's pages (see Modulation and compressor).
 
 ### EDIT, FX, LFO and the selected track
 
@@ -60,9 +60,9 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 | **ARP + EDIT** | The selected track's ARP page 1 (MODE RATE GATE FADE); pressed again (ARP still held), page 2 (DIR CHORD RANGE; hidden on a drum). The pages are also the last of EDIT's cycle. See *Sequencer, ARP and RETRIG*. | as usual |
 | **ARP + black 1 to 6** | Solo track 1 to 6: TOGGLE (a press on / off) or MOMENTARY (while the key is held). | The soloed tracks' black keys |
 | **ARP + F#5** (black 11) | SOLO TOGGLE / MOMENTARY (saved). | F#5 lit while MOMENTARY |
-| **GLO + white n** | Queue pattern slot n (A to D: white 1 to 4; whites 5 to 16 do nothing), as the cue map does. | The playing slot's white key; a queued one blinks |
-| **GLO + 2 or more whites** | On GLO's release: the pattern chain of those slots, in the order pressed (repeats allowed, up to 16). One white alone is a plain cue and ends a chain. | as above |
-| **GLO + C#5 / D#5** (black 9 / 10) | Queue variation 1 / 2 of the playing slot (the engine has 8; the others are on the SAVE cue map). | The playing variation's key; a queued one blinks |
+| **GLO + white n** | Queue pattern n (A to D: white 1 to 4; whites 5 to 16 do nothing), as the cue map does. A black key after it (still the only white of the hold) queues that pattern's variation too. | The playing pattern's white key; a queued one blinks |
+| **GLO + black n** (1 to 8) | Queue variation n of the playing pattern (of the queued one, if one is queued), at the pattern end, as the cue map does. Black 9 / 10 (C#5 / D#5) do nothing with GLO. | Black 1 to 8: the playing variation lit, a queued one blinks, used ones dim, unused dark |
+| **GLO + 2 or more whites** | On GLO's release: the pattern chain, one entry per white key in the order pressed (repeats allowed, up to 16). A black key right after a white sets that entry's variation (GLO + A, black 1, B, black 3, A, black 2 = `A1 B3 A2`); without one the entry takes the pattern's current variation (playing, else last played). One white alone (with or without a black) is a plain cue and ends a chain; a black key before any white is a plain variation cue (and ends a chain). | as above |
 
 ## Screens and the top bar
 

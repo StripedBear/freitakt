@@ -99,8 +99,9 @@ static struct {
     volatile uint8_t ends;                 /* ISR -> main: pattern ends taken while it ran (counts, wraps) */
     int16_t stg_mlen, out_mlen;            /* MASTER LENGTH: the staged slot's, the outgoing one's (project.c) */
 } cue;
-/* the chain (Elektron's; project.c chain_*: the main loop's): up to CHAIN_N slots played in turn, a pattern each, then
- * from the first again; RAM only. pos: the entry playing (CH_NONE: none yet), nx: the one after it (an empty slot's
+/* the chain (Elektron's; project.c chain_*: the main loop's): up to CHAIN_N entries played in turn, a pattern length
+ * each, then from the first again; RAM only. s: an entry a byte, bits 0..1 the pattern (A..D), 2..4 its variation
+ * (1..8 as 0..7). pos: the entry playing (CH_NONE: none yet), nx: the one after it (an empty slot's
  * entries skipped), qd: nx queued (or tried), run: seen playing (STOP ends the chain), ends: cue.ends taken */
 #define CHAIN_N 16u
 #define CH_NONE 0xFFu

@@ -35,11 +35,9 @@ static uint32_t cur_fam(void) { return ui.home ? FAM_HOME : cur_page()->fam; }
  * accented with it (let go: nothing); 0 not held there (ui_input acc_oct_poll) */
 static uint8_t acc_oct;
 /* the black keys (key index from F3): black 1..8 F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 queue variations 1..8 with SAVE held
- * (the cue map, every page it opens on: of the queued slot if one is, cue_keys); black 1..6 are tracks 1..6 for the
- * combos (SEL select, SEQ mute, ARP solo: mod_input, ui_tools.c) */
+ * (the cue map, every page it opens on: of the queued pattern if one is, cue_keys) or GLO held (mod_keys); black 1..6
+ * are tracks 1..6 for the combos (SEL select, SEQ mute, ARP solo: mod_input, ui_tools.c) */
 static const uint8_t CUE_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
-#define KEY_VAR1 20u                                /* C#5 (black 9): GLO + it queues variation 1 */
-#define KEY_VAR2 22u                                /* D#5 (black 10): .. variation 2 */
 #define KEY_SOLO_MODE 25u                           /* F#5 (black 11): ARP + it, SOLO TOGGLE / MOMENTARY */
 #define BLACK_MASK 0x252A52Au                       /* the 11 black keys' bits */
 /* the combo buttons' state (GLO, SEL, ARP: mod_input; ui.glo_t0 ..): the press time | these */
@@ -170,14 +168,15 @@ static uint32_t oct_leds(void)
  * frames of 20, the glow's pulse (led_dim.c) */
 static const uint32_t BL_MID_PH[BL_COUNT] = {0u, LED_PH_25, 0x22489u, 0u, 0x401u, LED_PH_25};   /* 25 30 - 10 25 % */
 static const uint32_t BL_GLOW_W[BL_COUNT] = {0u, LED_GLOW_LO, LED_GLOW_HI, 0u, 0u, 0u};       /* the glow's pulse */
-static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats)
+static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats, uint32_t dimk)   /* dimk: keys dim (unlit: the
+                                                       * mid layer in every mode; GLO held, the used variations) */
 {
     uint32_t lay[FM1_NCOL] = {0}, k, c, br = 0, m = backlight < BL_COUNT ? backlight : BL_OFF;
     for (c = 0; c < FM1_NCOL; c++) {
         nl[c] &= (uint8_t)~nb[c];
         br |= nb[c];
     }
-    if (m == BL_OFF && !br) {
+    if (m == BL_OFF && !br && !dimk) {
         led_dim_on = 0;                               /* (before fm1_led: the hook stops composing) */
         led_br_on = 0;
         for (c = 0; c < FM1_NCOL; c++)
@@ -193,6 +192,8 @@ static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats)
         lit = nl[q >> 3] & bit;
         if (nb[q >> 3] & bit)
             lay[q >> 3] |= bit << 24;                 /* breathing */
+        else if (!lit && k >= 14u && ((dimk >> (k - 14u)) & 1u))
+            lay[q >> 3] |= bit << 8;                  /* dim */
         else if (m == BL_DIM_LO || m == BL_DIM_HI)
             lay[q >> 3] |= lit ? bit : k >= 14u && ((beats >> (k - 14u)) & 1u) ? bit << 8 : bit << 16;
         else if (m == BL_INV)
@@ -202,7 +203,7 @@ static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats)
         else
             lay[q >> 3] |= lit;
     }
-    led_mid_ph = BL_MID_PH[m];
+    led_mid_ph = !BL_MID_PH[m] && dimk ? LED_PH_25 : BL_MID_PH[m];
     led_glow_w = BL_GLOW_W[m];
     led_br_on = br != 0u;
     for (c = 0; c < FM1_NCOL; c++)
@@ -213,7 +214,8 @@ static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats)
 static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
-    uint32_t k, fam = cur_fam(), beats = 0;           /* beats: the keys of steps 1 5 9 13 (step keys) */
+    uint32_t k, fam = cur_fam(), beats = 0, dimk = 0; /* beats: the keys of steps 1 5 9 13 (step keys); dimk: the
+                                                       * keys dim (leds_out) */
     static uint8_t ready;
     if (safe_start) {                                 /* safe start: LEDs off */
         uint32_t c0;
@@ -246,15 +248,21 @@ static void ui_leds(void)
         led_put(nl, panel.btn[B_SAVE], 1);
     } else if (ui.tools) {                            /* TOOLS screen (SEQ held): ui_tools.c */
         tools_leds(nl);
-    } else if (mod_live(ui.glo_t0)) {                 /* GLO held: the playing slot's white key lit, a queued one
-                                                       * blinking; C#5 / D#5 the playing variation 1 / 2 (as well) */
+    } else if (mod_live(ui.glo_t0)) {                 /* GLO held: the playing pattern's white key lit, a queued
+                                                       * one blinking; black 1..8 the variations (project.c cue_led:
+                                                       * of the queued pattern if one is): the playing one lit, a
+                                                       * queued one blinking, the other used ones dim, unused dark */
         int blink = (int)((fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u);
         int32_t ld = proj_loaded();
         for (k = 0; k < GLO_SLOTS; k++)
             led_put(nl, 14u + STEP_KEY[k], cue.q_slot == k + 1u ? blink : (int32_t)k == ld);
-        for (k = 0; k < 2u; k++)
-            led_put(nl, 14u + (k ? KEY_VAR2 : KEY_VAR1),
-                    cue.q_var == k + 1u ? blink : !cue.q_slot && k == var_cur && ld >= 0);
+        cue_map_refresh();
+        for (k = 0; k < 8u; k++) {
+            int c = cue_led(5u + k);
+            led_put(nl, 14u + CUE_BK[k], c == CM_WINK || (c == CM_BLINK && blink));
+            if (c == CM_ON)
+                dimk |= 1u << CUE_BK[k];
+        }
     } else if (mod_live(ui.arp_t0) || mod_live(ui.sel_t0) || (ui.seq_t0 && !(ui.seq_t0 & (TL_DEAD | TL_PLAIN)))) {
         int blink = (int)((fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u);   /* (SEQ: before TOOLS opens) */
         for (k = 0; k < NTRK; k++)                    /* ARP: the soloed tracks; SEL: the selected one; SEQ: the
@@ -311,7 +319,7 @@ static void ui_leds(void)
     led_put(nl, panel.btn[B_OCTUP], (k & OCT_LIT_UP) != 0u);
     led_put(nb, panel.btn[B_OCTUP], (k & OCT_BR_UP) != 0u);
     led_put(nb, panel.btn[B_OCTDN], (k & OCT_BR_DN) != 0u);
-    leds_out(nl, nb, beats);
+    leds_out(nl, nb, beats, dimk);
 }
 
 /* ---------------------------------------------------------- input --- */
@@ -724,13 +732,17 @@ static void fx_layer(uint32_t now, int home_tap)
  * the menu, a confirm, NAME, the PRESETS list or TOOLS: dead until let go; with the PERFORM layer up or FX held: a plain
  * button. Two held: GLO's keys, then ARP's, then SEL's.
  * GLO: a tap (let go within GLO_HOLD_MS, no key pressed meanwhile) = the GLOBAL pages, on the release; + white key n
- * queues pattern slot n (the first of a hold, at once: cue_slot; whites past GLO_SLOTS: nothing); 2 or more whites: on
- * the release, the chain of their slots in press order (chain_set; repeats allowed, CHAIN_N at most); + C#5 / D#5
- * (black 9 / 10) variation 1 / 2 (cue_var). SEL: + black 1..6 selects track 1..6; let go with no key pressed: KEYS on /
+ * queues pattern n (A..D; the first of a hold, at once: cue_slot; whites past GLO_SLOTS: nothing); + black key n (1..8)
+ * queues variation n (cue_var: of the queued pattern if one is, else the playing one). 2 or more whites: on the
+ * release, the chain of their entries in press order (chain_set; repeats allowed, CHAIN_N at most): each white an
+ * entry, its pattern and that pattern's last-played variation (chain_ent), a black key after it that entry's
+ * variation. A black key before any white of the hold: a plain variation cue; after the first white (still one): its
+ * variation, cued too (a plain cue so far); black 9 / 10 (C#5 / D#5): nothing. SEL: + black 1..6 selects track 1..6; let go with no key pressed: KEYS on /
  * off. ARP: + black 1..6 SOLO of tracks 1..6 (TOGGLE, or MOMENTARY: while the key is held), + F#5 the SOLO mode.
  * SEQ + black 1..6 (mutes): ui_tools.c tools_input */
 #define GLO_HOLD_MS 400u
-static uint8_t glo_ch[CHAIN_N], glo_chn;               /* GLO held: the slots its white keys picked, in press order */
+static uint8_t glo_ch[CHAIN_N], glo_chn, glo_wh;       /* GLO held: the chain entries its white keys picked, in press
+                                                        * order (project.c chain.s); glo_wh the whites pressed */
 static uint8_t solo_held;                              /* the tracks an ARP black key soloed, the key still down
                                                         * (mute_ups) */
 static int mod_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.tools; }
@@ -770,17 +782,23 @@ static void mod_keys(uint32_t hits)                    /* the keys the ISR gave 
     if (mod_live(ui.glo_t0)) {
         if (ui_locked())
             return;
-        for (k = 0; k < 16u; k++)                       /* white key k + 1: pattern slot k */
-            if (((hits >> STEP_KEY[k]) & 1u) && k < GLO_SLOTS) {
-                if (!glo_chn)
+        for (k = 0; k < GLO_SLOTS; k++)                 /* white key k + 1: pattern k */
+            if ((hits >> STEP_KEY[k]) & 1u) {
+                uint8_t e = chain_ent(k);               /* (before the cue: its default variation) */
+                if (!glo_wh)
                     (void)cue_slot(k);                  /* (a chain ends) */
+                if (glo_wh < 255u)
+                    glo_wh++;
                 if (glo_chn < CHAIN_N)
-                    glo_ch[glo_chn++] = (uint8_t)k;
+                    glo_ch[glo_chn++] = e;
             }
-        if ((hits >> KEY_VAR1) & 1u)
-            (void)cue_var(0);
-        if ((hits >> KEY_VAR2) & 1u)
-            (void)cue_var(1);
+        for (k = 0; k < 8u; k++)                        /* black key k + 1: variation k */
+            if ((hits >> CUE_BK[k]) & 1u) {
+                if (glo_wh && glo_wh == glo_chn)        /* (an entry past CHAIN_N: none to set) */
+                    glo_ch[glo_chn - 1u] = (uint8_t)((glo_ch[glo_chn - 1u] & 3u) | k << 2);
+                if (glo_wh <= 1u)
+                    (void)cue_var(k);                   /* none yet, or the plain cue's */
+            }
         return;
     }
     for (k = 0; k < NTRK; k++) {
@@ -857,7 +875,7 @@ static void mod_input(uint32_t now, uint32_t notes)
         else if (!(f & (MOD_KEY | MOD_DEAD)) && !mod_dead() &&
                  ((f & MOD_PLAIN) || now - (f & ~15u) < GLO_HOLD_MS * 1000u * FM1_TICKS_PER_US))
             open_family(FAM_GLO);                       /* a tap: the GLOBAL pages */
-        glo_chn = 0;
+        glo_chn = glo_wh = 0;
     }
     (void)mod_up(B_ARP, &ui.arp_t0);
     f = mod_up(B_SCL, &ui.sel_t0);

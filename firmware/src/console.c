@@ -301,7 +301,8 @@ static void con_fml(void)                              /* FM-Link: what the engi
     con_kv("bt store writes failed", bt_st.fails);
 }
 #endif
-/* chain [1..4 ...]: the chain (project.c chain_set), its slots' numbers in order; none: no chain. mlen [N]: MASTER
+/* chain [1..4 | 11..48 ...]: the chain (project.c chain_set), its patterns' numbers in order (two digits: the pattern
+ * and its variation, 23 = B3); none: no chain. mlen [N]: MASTER
  * LENGTH (cue.c), N 1/16 steps (2..1024; 0 / none: OFF) */
 static uint32_t con_nums(const char *p, uint8_t *v, uint32_t max)   /* decimal numbers -> v; how many */
 {
@@ -321,12 +322,14 @@ static void con_chain(const char *p)
 {
     uint8_t v[CHAIN_N];
     uint32_t n = con_nums(p, v, CHAIN_N), i;
-    for (i = 0; i < n; i++) {
-        if (v[i] < 1u || v[i] > 4u) {
-            con_puts("chain: slots 1..4\r\n");
+    for (i = 0; i < n; i++) {                       /* 1..4: a pattern (its default variation); 11..48: pattern
+                                                     * and variation (23: B3) */
+        uint32_t p = v[i] > 9u ? v[i] / 10u : v[i], q = v[i] > 9u ? v[i] % 10u : 0u;
+        if (p < 1u || p > 4u || (v[i] > 9u && (q < 1u || q > 8u))) {
+            con_puts("chain: patterns 1..4 or 11..48 (pattern, variation)\r\n");
             return;
         }
-        v[i]--;
+        v[i] = q ? (uint8_t)((p - 1u) | (q - 1u) << 2) : chain_ent(p - 1u);
     }
     if (chain_set(v, n) == 0)
         con_puts(n >= 2u ? "chain set\r\n" : "chain cleared\r\n");
@@ -346,7 +349,7 @@ static void con_exec(const char *p)
 {
     if (con_word(&p, "help") || con_word(&p, "?")) {
         con_puts("status  dbg  crash  params  memr ADDR [LEN]  flr OFF [LEN]  bench yes  uboot yes\r\n"
-                 "chain [1..4 ...]  mlen [STEPS]\r\n");
+                 "chain [1..4 | 11..48 ...]  mlen [STEPS]\r\n");
 #if FELUCCA_BLE && BLE_CONSOLE
         con_puts("ble [start | scan | list | stop]: Bluetooth status and tests (the page: MENU > BLUETOOTH)  "
                  "fml: FM-Link\r\n");
