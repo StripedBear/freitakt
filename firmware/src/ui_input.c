@@ -228,7 +228,7 @@ static void ui_leds(void)
     if (FAM_BTN[fam] != 0xFFu)                        /* (FAM_EDT: the editor's own pages, no button) */
         led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     led_put(nl, panel.btn[B_PLAY], song.playing && ((song.tick / 64u) & 1u) == 0u);   /* blinks: intended */
-    led_put(nl, panel.btn[B_REC], song.rec != 0u || ui.srec);
+    led_put(nl, panel.btn[B_REC], song.rec != 0u);
     led_put(nl, panel.btn[B_SCL], ui.keys);           /* KEYS (spec §5) */
     led_put(nl, panel.btn[B_ENV], ui.env);            /* STEPS (spec 2026-10-24) */
     if (ui.cue_map) {                                 /* SAVE held: the cue map (project.c cue_led): white keys
@@ -447,7 +447,7 @@ static void track_rec_toggle(uint32_t k)               /* arm / disarm track k (
 
 /* REC (owner, 2026-10-22): on TRACKS a tap arms / disarms the selected track ("T3 REC ARMED" / "T3 REC OFF"); on every
  * other page it turns REC ALL on or off. REC ALL: every track armed, so each white key that plays its track records it
- * (seq.c input_hit: HOME, the SOUND / FX pages, TRACKS ...; KEYS, step record and motion stay the selected track's);
+ * (seq.c input_hit: HOME, the SOUND / FX pages, TRACKS ...; KEYS and motion stay the selected track's);
  * off: the arm state from before it back. On TRACKS during REC ALL: it ends, the arm state from before it plus the
  * selected track. REC never starts play. Never stored */
 #define REC_ALL_MASK ((uint8_t)((1u << NTRK) - 1u))
@@ -489,18 +489,6 @@ static void rec_tap(void)                              /* a REC tap (the button,
     ui.rec_all = 1;
     song.rec = REC_ALL_MASK;                           /* (no play started) */
     ui_message("REC ALL");
-}
-
-/* MOTION page: KNOB 1 PLAY (right ON, left OFF), KNOB 4 CLEAR (a turn right asks: "CLEAR MOTION T<n>?") */
-static void motion_page_edit(uint32_t slot, int32_t steps)
-{
-    if (slot == 0u) {
-        motion_set_play(song.sel, steps > 0);
-    } else if (slot == 3u && steps > 0 && motion_count(song.sel)) {
-        ui.confirm = 2;
-        ui.confirm_trk = song.sel;
-        ui.force = 1;
-    }
 }
 
 /* a device setting's side of a global set to v (the MIDI OUT page; MENU's settings rows: ui_menu.c): 1 when id is one
@@ -558,15 +546,6 @@ static void edit_param(uint32_t slot, int32_t steps)
     const param_desc_t *d;
     uint32_t id = page_id(pg, slot);
     int32_t v;
-    if (pg->scope == SC_GRID) {
-        if (slot == 0u)
-            bank_set((int32_t)ui.bank + (steps > 0 ? 1 : -1));
-        return;
-    }
-    if (pg->graph == GR_MOTION) {                     /* the MOTION page's own knobs */
-        motion_page_edit(slot, steps);
-        return;
-    }
     if (pg->graph == GR_LDEST && slot == 0u) {        /* LFO DEST: KNOB 1 the slot */
         song.lslot = (uint8_t)clamp((int32_t)(song.lslot & 3u) + steps, 0, (int32_t)LS_N - 1);
         return;
@@ -1009,110 +988,15 @@ static void cue_input(uint32_t now, uint32_t notes)
                 (!(*t0 & (CUE_DEAD | CUE_PLAIN)) && !cue_dead() && !ui.layer && !ui.fx_t0 ? bit : 0u);
 }
 
-/* PLAY: start / stop; step record ends */
+/* PLAY: start / stop */
 static void play_press(void)
 {
-    ui.srec = 0;
     if (song.playing)
         transport_req = 2;
     else if (ui_locked())
         return;                                     /* (a web editor restore: no start) */
     else
         transport_req = 1;
-}
-
-/* --------------------------------------------------- step record (spec §6) --- */
-/* KEYS on the STEP page, stopped: a REC tap starts it at the bank's first step (top bar STEP REC nn). A key writes its
- * note to the cursor step (ON, NOTE; TIME = NOTE; ACC / SLIDE as FLAG left them) and the cursor moves on when it is
- * let go; a key pressed while the cursor's key is still held: SLIDE on that step, its note on the next one. KNOB 1 the
- * cursor, 2 NOTE, 3 TIME (NOTE / TIE / REST), 4 FLAG (- / ACC / SLD / A+S); an EDIT tap: a rest, the cursor on. A REC
- * tap, PLAY, leaving the page, KEYS off, another track, the transport starting, the menu, NAME or PERFORM's layer
- * (FX held) end it. The ISR sounds the keys. */
-static int srec_ok(void)
-{
-    return keys_mode() && !mkb_kbd && !ui.home && !ui.layer && cur_page()->scope == SC_GRID && !song.playing;
-}
-static void srec_start(void)
-{
-    uint32_t len = view_len(TSEL);
-    ui.srec = 1;
-    ui.sr_cur = (uint8_t)(ui.bank * 16u < len ? ui.bank * 16u : len - 1u);
-    ui.sr_key = 0;
-    grid_drop_holds();
-}
-static void srec_next(void)                            /* the cursor on (LEN wraps), its bank shown */
-{
-    ui.sr_cur = (uint8_t)((ui.sr_cur + 1u) % view_len(TSEL));
-    ui.bank = (uint8_t)(ui.sr_cur / 16u);
-    ui.sr_key = 0;
-}
-static void srec_note(uint32_t key)                    /* a key pressed: its note on the cursor step */
-{
-    track_t *t = TSEL;
-    step_t *s;
-    int32_t nt;
-    if (!keys_note(t, key, &nt))
-        return;                                        /* (a black key on a CHOP track: nothing) */
-    if (ui.sr_key) {                                   /* the cursor's key still held: its step slides into this one */
-        t->step[ui.sr_cur].slide = 1;
-        srec_next();
-    }
-    s = &t->step[ui.sr_cur];
-    s->on = 1;
-    s->tie = 0;
-    s->micro = 0;                                      /* (step record has no timing: on the step) */
-    s->nt = (int8_t)nt;                                /* (a CHOP track: the key's chop, + 0..15) */
-    t->key_nt = s->nt;
-    ui.sr_key = (uint8_t)(key + 1u);
-}
-static void srec_keys(uint32_t notes)                  /* the frame's key edges: one key, the highest (the ISR's
-                                                        * keyboard_block sounds that one of a frame's chord) */
-{
-    uint32_t k;
-    if (ui.sr_key && !((fm1_in.notes >> (ui.sr_key - 1u)) & 1u))
-        srec_next();                                   /* the cursor's key let go */
-    for (k = 27u; k-- > 0u;)
-        if ((notes >> k) & 1u) {
-            srec_note(k);
-            break;
-        }
-}
-static void srec_rest(void)                            /* EDIT: the cursor step a plain rest (no PROB RATCH ACC SLIDE
-                                                        * MICRO left for a later note), the cursor on */
-{
-    step_t *s = &TSEL->step[ui.sr_cur];
-    s->on = 0;
-    s->micro = 0;
-    s->tie = 0;
-    s->cond = 0;
-    s->rat = 0;
-    s->acc = 0;
-    s->slide = 0;
-    srec_next();
-}
-static void srec_knob(uint32_t k, int32_t s)
-{
-    track_t *t = TSEL;
-    step_t *st;
-    int32_t d = s > 0 ? 1 : -1, v, len = (int32_t)view_len(t);
-    if (k == 0u) {
-        ui.sr_cur = (uint8_t)clamp((int32_t)ui.sr_cur + accel(EN_K1, s, len), 0, len - 1);
-        ui.bank = (uint8_t)(ui.sr_cur / 16u);
-        ui.sr_key = 0;                                 /* a key still held moves nothing on its release */
-        return;
-    }
-    st = &t->step[ui.sr_cur];
-    if (k == 1u) {
-        st->nt = (int8_t)clamp(st->nt + accel(EN_K2, s, NT_MAX - NT_MIN), NT_MIN, NT_MAX);
-    } else if (k == 2u) {
-        v = clamp((int32_t)srec_time(st) + d, 0, 2);
-        st->on = v == 0;
-        st->tie = v == 1;
-    } else {
-        v = clamp((int32_t)(st->acc | st->slide << 1) + d, 0, 3);
-        st->acc = (uint8_t)(v & 1);
-        st->slide = (uint8_t)(v >> 1);
-    }
 }
 
 #include "ui_preset.c"                             /* PRESETS: the encoder's popup, the list on a long EDIT */
@@ -1186,6 +1070,171 @@ static void lock_knob(uint32_t c, int32_t s)
         lock_set(song.sel, st, id, knob_turn(EN_K1 + c, track_desc(TSEL, id), cur, s));
     hot_touch(c);
 }
+/* ---- the knob popup's sessions (ui.c kp, ui_draw.c draw_kpop) */
+typedef struct {
+    uint8_t kind, trk, st;
+    uint16_t id, gid;
+    int16_t *vp;
+    const param_desc_t *d;
+} kp_aim_t;
+/* what a turn of KNOB c edits now, as the knob loop in ui_input decides it (a held step's field, a step's lock, HOME's
+ * BPM SWING, TRACKS' LEVEL LEN PAN, MODEL, a LIST page's parameter): 0 nothing for the popup (TRACKS' TRACK, LFO DEST's
+ * SLOT, an empty row, HOME's BPM following a clock, the SAVE pages' and PERFORM's cells) */
+static int kp_aim(uint32_t c, kp_aim_t *a)
+{
+    const page_t *pg = cur_page();
+    uint32_t id;
+    a->kind = KP_NONE;
+    a->trk = song.sel;
+    a->st = 0;
+    a->id = a->gid = 0xFFFFu;
+    a->vp = 0;
+    a->d = 0;
+    if (c > 3u || ui.menu || ui.confirm || name_on() || pl_on() || pp_on() || ui.tools || ui.layer || fx_knobs ||
+        (!ui.home && !list_on()))
+        return 0;                                     /* (a screen over the page: no popup) */
+    if (step_edit_page() && ui.held < 16u && ui.step_t0[ui.held]) {   /* step_edit */
+        if (ui.step_si[ui.held] >= (uint32_t)TSEL->p[P_SLEN])
+            return 0;
+        a->kind = KP_STEP;
+        a->st = (uint8_t)ui.step_si[ui.held];
+        a->id = (uint16_t)c;
+        return 1;
+    }
+    if (lock_step() < NSTEP) {                        /* lock_knob */
+        id = lock_id(c);
+        if (id >= P_COUNT)
+            return 0;
+        a->kind = KP_LOCK;
+        a->st = (uint8_t)lock_step();
+        a->id = (uint16_t)id;
+        a->d = track_desc(TSEL, id);
+        return 1;
+    }
+    a->kind = KP_PAR;
+    if (ui.home) {                                    /* KNOB 1 BPM (a clock followed: its message), 2 SWING */
+        if (c >= 2u || (c == 0u && song.g[G_CLOCK]))
+            return 0;
+        a->d = home_param(c, &a->vp);
+        a->gid = c ? G_SWING : G_BPM;
+        return 1;
+    }
+    if (pg->scope == SC_MIX) {                        /* tracks_edit: KNOB 1 the track (no popup) */
+        if (c == 0u)
+            return 0;
+        a->id = (uint16_t)(c == 1u ? P_LEVEL : c == 2u ? P_SLEN : P_PAN);
+        a->vp = &TSEL->p[a->id];
+        a->d = &TP[a->id];
+        return 1;
+    }
+    if (pg->graph == GR_LDEST && c == 0u)
+        return 0;
+    id = page_id(pg, c);
+    if (pg->scope == SC_TRACK && id == P_MODEL) {
+        a->kind = KP_MODEL;
+        a->id = P_MODEL;
+        return 1;
+    }
+    a->d = page_desc(pg, c, &a->vp);
+    if (!a->d || !a->vp || a->d->max == a->d->min || !a->d->label || a->d->label[0] == '-')
+        return 0;
+    if (pg->scope == SC_GLOBAL) {
+        if (id == G_BPM && song.g[G_CLOCK])
+            return 0;
+        a->gid = (uint16_t)id;
+    } else if (a->vp >= TSEL->p && a->vp < TSEL->p + P_COUNT) {
+        a->id = (uint16_t)(a->vp - TSEL->p);
+    }
+    return 1;
+}
+/* a session's start: what the thing aimed at is now (OCT- puts it back) */
+static void kp_snap(uint32_t c, const kp_aim_t *a)
+{
+    track_t *t = &trk[a->trk % NTRK];
+    uint32_t i;
+    kp.col = (uint8_t)c;
+    kp.kind = a->kind;
+    kp.trk = a->trk;
+    kp.st = a->st;
+    kp.id = a->id;
+    kp.gid = a->gid;
+    kp.vp = a->vp;
+    kp.d = a->d;
+    if (a->kind == KP_STEP || a->kind == KP_LOCK) {
+        kp.step = t->step[a->st % NSTEP];
+        if (a->kind == KP_LOCK)
+            kp.had = (uint8_t)lock_get(a->trk, a->st, a->id, &kp.v);
+    } else if (a->kind == KP_MODEL) {                  /* (as the PRESETS audition keeps the track's own sound) */
+        kp.model = (uint8_t)t->p[P_MODEL];
+        for (i = 0; i < 8u; i++)
+            kp.k[i] = motion_rest(a->trk, P_E0 + i);
+        for (i = 0; i < SENV_N; i++)
+            kp.k[8u + i] = motion_rest(a->trk, P_SATK + i);
+        kp.pre = t->pre;
+        kp.ed = t->pre_ed;
+    } else {
+        kp.v = *a->vp;
+        kp.ed = t->pre_ed;
+        kp.mute = (uint8_t)t->p[P_MUTE];
+        kp.v2 = t->p[P_E5];
+    }
+}
+/* KNOB c turned (before its edit): the same knob on the same thing goes on with its session, else a new one; nothing
+ * for the popup: the popup goes */
+static void kp_turn(uint32_t c)
+{
+    kp_aim_t a;
+    if (!kp_aim(c, &a)) {
+        kp_close();
+        return;
+    }
+    if (!kp.on || kp.col != c || kp.kind != a.kind || kp.trk != a.trk || kp.st != a.st || kp.id != a.id ||
+        kp.vp != a.vp)
+        kp_snap(c, &a);
+    kp.undone = 0;
+    if (!kp.on)
+        kp.on = 1;
+    kp.t0 = ui.pr.now;
+}
+/* OCT- with the popup up: the session's thing as it was before its first turn, through the knob's own path (a track's
+ * parameter: its preset mark and MUTE back, motion's capture as a turn's; a global: the device setting; MODEL: the
+ * sound, as the PRESETS audition puts it back; a lock: the step and its lock, or none). Once; the popup stays (its 3 s
+ * again) and shows the value back */
+static void kp_undo(void)
+{
+    track_t *t = &trk[kp.trk % NTRK];
+    kp.t0 = ui.pr.now;
+    ui.hot_t0 = ui.pr.now;
+    if (kp.undone || ui_locked())
+        return;
+    kp.undone = 1;
+    if (kp.kind == KP_STEP) {
+        t->step[kp.st % NSTEP] = kp.step;
+    } else if (kp.kind == KP_LOCK) {
+        t->step[kp.st % NSTEP] = kp.step;
+        if (kp.had) {
+            lock_set(kp.trk, kp.st, kp.id, kp.v);
+        } else {
+            uint32_t ids[MO_W] = {0};
+            ids[kp.id >> 5] = 1u << (kp.id & 31u);
+            lock_clear_step(kp.trk, kp.st, ids);
+        }
+    } else if (kp.kind == KP_MODEL) {
+        preset_put(t, kp.model, kp.k, kp.pre, kp.ed, 0);
+    } else if (kp.kind == KP_PAR) {
+        *kp.vp = kp.v;
+        if (kp.id < P_COUNT) {
+            t->pre_ed = kp.ed;
+            t->p[P_MUTE] = (int16_t)kp.mute;          /* (TRACKS' LEVEL: a muted track's first turn unmuted it) */
+            if (kp.id == P_E4)
+                t->p[P_E5] = kp.v2;                   /* (a SAMPLE's SET moved its SLOT inside the set) */
+            motion_capture(t, kp.id);
+        } else if (kp.gid != 0xFFFFu) {
+            glob_set(kp.gid, kp.v);
+        }
+    }
+}
+
 /* OCT- pressed with a step held (ui.ocd_t0): let go before LOCK_CLR_MS, that step's locks on this page's knobs go;
  * held LOCK_CLR_MS, all its locks at once (its release then nothing) */
 static void lock_clear_say(const char *what)
@@ -1267,6 +1316,11 @@ static void ui_input(void)
         splash_input(pressed, notes);
         return;
     }
+    if (kp_live() && ((pressed >> panel.btn[B_OCTDN]) & 1u)) {   /* the knob popup up: OCT- undoes the session's
+                                                                 * turns, and nothing else */
+        pressed &= ~(1u << panel.btn[B_OCTDN]);
+        kp_undo();
+    }
     acc_oct_poll();                                     /* OCT+ let go on the steps: the next bank (item 1) */
     env_poll(now, pressed);                             /* ENV: STEPS / TRACKS */
     pre_frame(now);                                     /* PRESETS: EDIT's hold, the popup's time (ui_preset.c) */
@@ -1316,12 +1370,10 @@ static void ui_input(void)
         notes = 0;
     notes &= ~kb_layer;
     if (name_on()) {                                  /* NAME owns the panel: OCT+ / OCT- / HOME / PLAY, the keys, K1 K2 */
-        ui.srec = 0;                                    /* (step record ends) */
         name_input(pressed, notes, now, home);
         return;
     }
     if (pl_on()) {                                    /* the PRESETS list owns the panel (ui_preset.c) */
-        ui.srec = 0;
         preset_list_input(pressed, notes, home);
         return;
     }
@@ -1330,7 +1382,6 @@ static void ui_input(void)
             menu_close();
         } else {
             ui.menu = 1;
-            ui.srec = 0;                                /* step record ends */
             ui.menu_sel = 0;
             ui.confirm = 0;
             ui.force = 1;
@@ -1349,13 +1400,7 @@ static void ui_input(void)
         ui.confirm_trk = song.sel;
         ui.force = 1;
     } else if (rec == BT_TAP && !ui.confirm) {          /* spec §4: REC arms on every screen */
-        if (ui.srec) {
-            ui.srec = 0;                                /* step record ends */
-        } else if (srec_ok()) {
-            srec_start();                               /* KEYS, STEP, stopped: step record */
-        } else {
-            rec_tap();                                  /* TRACKS: the selected track armed / disarmed; else REC ALL */
-        }
+        rec_tap();                                      /* TRACKS: the selected track armed / disarmed; else REC ALL */
     }
     if (ui.confirm) {                                   /* OCT- cancels (NO), OCT+ clears (YES); nothing else reacts */
         if ((pressed >> panel.btn[B_OCTUP]) & 1u) {
@@ -1376,9 +1421,6 @@ static void ui_input(void)
             } else if (ui.confirm == ML_CONFIRM) {      /* MIDI LEARN: CLEAR ALL LEARNED? (LEARN stays on) */
                 ml_clear_all();
                 ui_message("LEARN CLEARED");
-            } else if (ui.confirm == 2u) {              /* the MOTION page's CLEAR */
-                motion_clear(ui.confirm_trk % NTRK);
-                ui_message("MOTION CLEARED");
             } else {
                 track_clear(&trk[ui.confirm_trk % NTRK]);
                 ui_say("TRACK ", m);
@@ -1414,13 +1456,8 @@ static void ui_input(void)
         if (!((pressed >> id) & 1u))
             continue;
         b = panel_btn_of(id);
-        if (b == B_EDIT && arp_edit()) {                /* ARP held: the ARP page (no step record rest, no PRESETS) */
+        if (b == B_EDIT && arp_edit()) {                /* ARP held: the ARP page (no PRESETS) */
             ui.pr.e_st = 2;
-            continue;
-        }
-        if (ui.srec && b == B_EDIT) {                   /* step record: a rest, the cursor on */
-            srec_rest();
-            ui.pr.e_st = 2;                             /* (held: no PRESETS list) */
             continue;
         }
         if (b == B_EDIT)
@@ -1478,11 +1515,7 @@ static void ui_input(void)
     if (pl_on())
         return;
     song.seq_mode = seq_mode_now();                   /* seq.c: whose the keys are (KEYS may have changed) */
-    if (ui.srec && !srec_ok())
-        ui.srec = 0;                                    /* KEYS off, another page, the transport started */
-    if (ui.srec) {
-        srec_keys(notes);
-    } else if (step_keys()) {
+    if (step_keys()) {
         for (k = 0; k < 16u; k++) {                     /* steps on the white keys (seq.c STEP_KEY): a short press */
             uint32_t *t0 = &ui.step_t0[k];               /* toggles the step on its release, a hold edits it (owner
                                                          * 2026-10-23); with OCT+ held, its accent at the press */
@@ -1541,6 +1574,7 @@ static void ui_input(void)
         else {
             song.g[G_BPM] = (int16_t)clamp(song.g[G_BPM] + accel(EN_SELECT, s, 200), GP[G_BPM].min, GP[G_BPM].max);
             ui.bpm_t = 40;
+            kp_close();                                 /* (TEMPO's popup, not the knob's) */
         }
     }
     for (k = 0; k < 4u && !fx_knobs; k++) {            /* (PERFORM's: fx_layer's alone, item 7) */
@@ -1548,18 +1582,14 @@ static void ui_input(void)
         int16_t *hv;
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
-        if (ui.srec) {                                  /* step record: STEP NOTE TIME FLAG */
-            srec_knob(k, s);
-            hot_touch(k);
-            continue;
-        }
+        kp_turn(k);                                     /* the knob popup: its session (before the edit) */
         if (step_edit_page() && step_edit(k, s))
             continue;
         if (lock_step() < NSTEP) {                      /* STEPS, a step held: a lock (or nothing) */
             lock_knob(k, s);
             continue;
         }
-        if ((ui.home && k < 2u) || (!ui.home && (pg->scope == SC_GRID || pg->scope == SC_MIX || pg->graph == GR_LDEST ||
+        if ((ui.home && k < 2u) || (!ui.home && (pg->scope == SC_MIX || pg->graph == GR_LDEST ||
                                                  page_desc(pg, k, &hv))))
             hot_touch(k);
         if (ui.home) {                                  /* HOME: KNOB 1 BPM, KNOB 2 SWING (the song's), 3 4 nothing */

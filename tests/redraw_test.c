@@ -119,7 +119,8 @@ static void same_as_full(const char *what)
     release_all();
     keys(0);
     settle(120);
-    for (i = 0; i < 4000u && (ui.pr.pop || ui.msg_t || ui.bpm_t || ui.hot_t); i++)   /* (PRESETS' popup: 1.5 s) */
+    for (i = 0; i < 4000u && (ui.pr.pop || ui.msg_t || ui.bpm_t || ui.hot_t || kp.on); i++)   /* (PRESETS' popup:
+                                                                                            * 1.5 s; the knob's 3 s) */
         frame();
     settle(60);
     vs_full(what);
@@ -192,7 +193,7 @@ static void popup_strip(void)
 }
 
 /* random use (knobs, SELECT, the preset knob, buttons, keys, SMC knob clicks, messages, start / stop, FX held:
- * PERFORM, GLO held: MUTE, ZOOM, the theme, TEMPO), then stopped and run out: the screen must be a full repaint's (a
+ * PERFORM, GLO held: MUTE, a full repaint asked, the theme, TEMPO), then stopped and run out: the screen must be a full repaint's (a
  * region left stale shows here) */
 static uint32_t rnd_s;
 static uint32_t rnd(uint32_t n)
@@ -248,11 +249,9 @@ static void fuzz(uint32_t seed, uint32_t steps)
                 hold = rnd(40) + 1u;
             }
             break;
-        case 10:                                      /* ZOOM (the menu's) */
-            if (!rnd(6)) {
-                settings.zoom ^= 1u;
+        case 10:                                      /* a full repaint asked (main.c: after an update session) */
+            if (!rnd(6))
                 ui.force = 1;
-            }
             break;
         case 11:                                      /* the theme (the menu's COLOR) */
             if (!rnd(10)) {
@@ -334,7 +333,6 @@ static void sentinel(void)
                             ui.page = (uint8_t)p;
                             ui.home = (uint8_t)h;
                             ui.layer = (uint8_t)l;
-                            settings.zoom = z;
                             ui.hot_t = z ? 10 : 0;
                             ui.hot_col = 1;
                             ui.msg_t = x & 1u ? 20 : 0;
@@ -343,11 +341,11 @@ static void sentinel(void)
                             ui.bpm_t = x & 2u ? 20 : 0;
                             ui.pr.pop = (uint8_t)(x >> 2 & 1u);
                             ui.pr.pop_id = (uint16_t)preset_of(TSEL);
-                            snprintf(b, sizeof b, "theme %u page %u home %u layer %u zoom %u popups %u", (unsigned)th,
+                            snprintf(b, sizeof b, "theme %u page %u home %u layer %u hot %u popups %u", (unsigned)th,
                                      (unsigned)p, (unsigned)h, (unsigned)l, (unsigned)z, (unsigned)x);
                             no_holes(b);
                         }
-    ui.msg_t = ui.bpm_t = 0, ui.layer = 0, ui.home = 0, ui.pr.pop = 0, settings.zoom = 0;
+    ui.msg_t = ui.bpm_t = 0, ui.layer = 0, ui.home = 0, ui.pr.pop = 0, ui.hot_t = 0;
     settings.palette = THEME_TAG | 0u;
     theme_set(settings.palette);
     for (p = 0; p < NPAGES; p++)
@@ -368,7 +366,7 @@ static void sentinel(void)
     name_open(NK_RENAME, 0);
     no_holes("NAME");
     name_close();
-    snprintf(b, sizeof b, "a full repaint draws every pixel (%u pages x home x PERFORM x ZOOM x popups x %u themes, "
+    snprintf(b, sizeof b, "a full repaint draws every pixel (%u pages x home x PERFORM x a touched knob x popups x %u themes, "
              "MUTE, confirms, lists)", (unsigned)NPAGES, (unsigned)NTHEMES);
     check(b, fails == f0);
 }
@@ -522,15 +520,19 @@ int main(void)
     report("TRACKS playing, idle, 8 meters moving", &s);
     check("TRACKS playing idle, the meters moving: <= 4000 px a frame on average", s.sum / s.n <= 4000u);
 
-    /* TRACKS stopped: an FM-1 knob (KNOB 2: LEVEL), a value a frame */
+    /* TRACKS stopped: an FM-1 knob (KNOB 2: LEVEL), a value a frame (the knob popup: its first frame the screen, then
+     * its value's row) */
     start(0, 0);
+    turn(EN_K1 + 1, 1);
+    frame();
     memset(&s, 0, sizeof s);
-    for (i = 0; i < 30u; i++) {
+    for (i = 1; i < 30u; i++) {
         turn(EN_K1 + 1, (i & 8u) ? -1 : 1);
         add(&s, frame());
     }
     report("TRACKS stopped, FM-1 knob 2 (LEVEL) a value a frame", &s);
-    check("TRACKS: an FM-1 knob value <= 7000 px", s.max <= 7000u);
+    check("TRACKS: an FM-1 knob value <= its popup's value row (240 x 80), never a full repaint", s.max <= 240u * KP_VH &&
+          !s.full);
     same_as_full("TRACKS after the FM-1 knob");
 
     /* TRACKS stopped: the SMC-Mixer's knob 1 (a message per click: "T1 TUNE 64"), a click a frame, then the
@@ -564,31 +566,22 @@ int main(void)
     check("TRACKS playing: SMC knob clicks and the message's end never repaint everything", !s.full);
     same_as_full("TRACKS after the SMC message (playing)");
 
-    /* HOME stopped: knob 1 (FREITAKT: the BPM, its text box), a value a frame */
+    /* HOME stopped: knob 1 (FREITAKT: the BPM) opens the knob popup: the screen once, then its value's row a turn */
     start(1, 0);
-    memset(&s, 0, sizeof s);
-    for (i = 0; i < 30u; i++) {
-        turn(EN_K1, (i & 8u) ? -1 : 1);
-        add(&s, frame());
-    }
-    report("HOME stopped, knob 1 a value a frame", &s);
-    check("HOME: a knob value <= 5000 px (ZOOM off: FREITAKT's HOME shows no cells)", s.max <= 5000u);
-    same_as_full("HOME after knob 1");
-    start(1, 0);                                     /* .. ZOOM on (a new device's): the value's rows in its popup */
-    settings.zoom = 1;
     memset(&s, 0, sizeof s);
     turn(EN_K1, 1);
     add(&s, frame());
-    report("HOME stopped, ZOOM on, the popup's first frame", &s);
+    report("HOME stopped, knob 1: the popup's first frame", &s);
+    check("HOME knob 1: the knob popup's first frame is the one full repaint", kp.on && s.full == 1u);
     memset(&s, 0, sizeof s);
     for (i = 1; i < 30u; i++) {
         turn(EN_K1, (i & 8u) ? -1 : 1);
         add(&s, frame());
     }
-    report("HOME stopped, ZOOM on, knob 1 a value a frame", &s);
-    check("HOME, ZOOM on: a knob value <= 12000 px after the popup's first frame (its value's rows)", s.max <= 12000u);
-    same_as_full("HOME after knob 1, ZOOM on");
-    settings.zoom = 0;
+    report("HOME stopped, knob 1 a value a frame (popup)", &s);
+    check("HOME knob 1, popup up: a value a frame <= its value's row (240 x 80), never a full repaint",
+          s.max <= 240u * KP_VH && !s.full);
+    same_as_full("HOME after knob 1 (the popup gone)");
 
     /* HOME idle: nothing sent (FREITAKT: no scope) */
     start(1, 0);

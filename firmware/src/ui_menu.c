@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments */
-/* Felucca menu (HOME held): COLOR, SPEAKER EQ (FLAT LOWCUT BASS+), USB LEVEL (MASTER FIXED), PERFORM (HOLD PAGE), ZOOM, KNOB ACCEL, BACKLIGHT (OFF DIM LO DIM HI INV INV LO INV HI), HARDWARE CALIBRATION, (BLE build: BLUETOOTH,) ABOUT. */
+/* Felucca menu (HOME held): COLOR, SPEAKER EQ (FLAT LOWCUT BASS+), USB LEVEL (MASTER FIXED), PERFORM (HOLD PAGE), KNOB ACCEL, BACKLIGHT (OFF DIM LO DIM HI INV INV LO INV HI), HARDWARE CALIBRATION, (BLE build: BLUETOOTH,) ABOUT. */
 /* ------------------------------------------------------------ menu --- */
 /* the device settings the GLOBAL / SYSTEM pages had (FREITAKT redesign: those pages went; BPM and SWING are HOME's
  * knobs, CPU HOME's top line): a row each, KNOB 1 turns it, OCT+ steps it (wrapping); USB MIDI only shows the USB
@@ -12,9 +12,9 @@ static const uint8_t MI_GLOB[9] = {G_CLOCK, G_SYNC, G_DRCH, G_ROUTE, G_MIDI, G_M
 static int glob_set(uint32_t id, int32_t v);        /* ui_input.c */
 static int32_t knob_turn(uint32_t role, const param_desc_t *d, int32_t v, int32_t s);
 #if FELUCCA_BLE                                     /* the Bluetooth page's row (bt_page.c) before ABOUT */
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_BT, MI_ABOUT,
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_BT, MI_ABOUT,
        MI_BACK, MI_COUNT };
-static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ZOOM", "ACCEL",
+static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ACCEL",
                                               "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "BLUETOOTH",
                                               "ABOUT", "BACK"};
 #define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
@@ -25,9 +25,9 @@ static void bt_page_draw(void);
 static void bt_page_input(uint32_t pressed);
 static void bt_autostart(void);                     /* AUTOSTART: once, 5 s after power-on (ui_input only, gate 3) */
 #else
-enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ZOOM, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_ABOUT,
+enum { MI_COLOR, MI_SPKEQ, MI_USB, MI_PERF, MI_ACCEL, MI_BACKLIGHT, MI_SETTINGS_ROWS, MI_PANEL, MI_ABOUT,
        MI_BACK, MI_COUNT };
-static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ZOOM", "ACCEL",
+static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL", "PERFORM", "ACCEL",
                                               "BACKLIGHT", MI_SETTINGS_NAMES, "HARDWARE CALIBRATION", "ABOUT", "BACK"};
 #define MENU_DY 14u                                 /* eleven rows shown above the hints (screen y), scrolled */
 #define MENU_HY 196u
@@ -37,7 +37,7 @@ static const char *const MI_NAME[MI_COUNT] = {"COLOR", "SPEAKER EQ", "USB LEVEL"
 static const char *const SPK_EQ[3] = {"FLAT", "LOWCUT", "BASS+"};   /* settings.lowcut (fx_lowcut) */
 static uint32_t *menu_onoff(uint32_t i)            /* an ON / OFF row's setting, 0 if none */
 {
-    return i == MI_USB ? &settings.usbfix : i == MI_PERF ? &settings.perfpage : i == MI_ZOOM ? &settings.zoom :
+    return i == MI_USB ? &settings.usbfix : i == MI_PERF ? &settings.perfpage :
            i == MI_ACCEL ? &settings.accel : 0;
 }
 static uint32_t menu_glob(uint32_t i)               /* a settings row's global id, 0xFF if none */
@@ -172,7 +172,7 @@ static void draw_menu(void)
     static uint32_t pf;                             /* the logo's frame shown */
     uint32_t i, pass, fr = fm1_ms / 66u,
                       sig = ui.menu * 7u + ui.menu_sel * 131u + settings.palette * 1009u + settings.lowcut * 7919u +
-                            settings.zoom * 104729u + settings.accel * 15485863u + settings.usbfix * 32452843u +
+                            settings.accel * 15485863u + settings.usbfix * 32452843u +
                             settings.perfpage * 49979687u + backlight * 67867967u + ui.about_top * 86028121u +
                             (ui.menu == 1 ? menu_glob_sig() : 0u);
 #if FELUCCA_BLE

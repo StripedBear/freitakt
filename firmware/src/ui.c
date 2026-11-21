@@ -77,7 +77,7 @@ static struct {
     uint8_t page;                /* index into PAGES */
     uint8_t fam_last[FAM_COUNT]; /* last page used per family */
     uint8_t bank;                /* STEP grid: 16-step bank shown on the keys */
-    uint8_t hot_col, hot_t;      /* column whose knob was just turned (drawn white; ZOOM): hot_t on */
+    uint8_t hot_col, hot_t;      /* column whose knob was just turned (its value inverted): hot_t on */
     uint32_t hot_t0;             /* .. the last turn (fm1_ticks: HOT_MS after it, off) */
     uint8_t menu;                /* 0 off, 1 list, 2 about (HOME held), 3 Bluetooth (BLE build: bt_page.c) */
     uint8_t splash;              /* the boot splash (ui_menu.c): 0 off, 1 to start, 2 running, 3 skipped (the keys
@@ -98,7 +98,7 @@ static struct {
                                   * STEP_HOLD_MS, edited, accented or let go of: grid_drop_holds), bit 2: edited */
     uint16_t step_si[16];        /* the step it pressed, 0xFFFF none */
     uint8_t held;                /* the grid key pressed last (valid while step_t0[held] is set) */
-    uint8_t confirm;             /* 1 "CLEAR TRACK n?", 2 CLEAR MOTION, (3, 4: the removed SONG's), 5 the last project
+    uint8_t confirm;             /* 1 "CLEAR TRACK n?", (2: the removed MOTION page's, 3, 4: the removed SONG's), 5 the last project
                                   * failed to load (START NEW PROJECT?; confirm_trk its slot), 6 CLEAR ALL LEARNED?
                                   * (MIDI LEARN: ui_learn.c), 7 DISCARD EDITS? (a LOAD of slot confirm_trk with unsaved
                                   * edits: CONFIRM_DISCARD), 8 OVERWRITE B*? (a SAVE onto it: CONFIRM_OVERWRITE) */
@@ -107,7 +107,6 @@ static struct {
     uint32_t enc_t[NE];
     uint8_t enc_c[NE];           /* knob acceleration: the turn's carried sixteenths of a step (ui_input.c accel) */
     char col[4][32];
-    char focus_l[8], focus_v[8], focus_u[8];
     uint32_t graph_sig, head_sig, msg_sig, tempo_sig, col_sig, frame;
     uint8_t graph_top;
     int16_t tr[2][LTR_N];        /* LFO pages, random waves: each LFO's trail (a ring, newest at tr_h - 1) */
@@ -132,7 +131,6 @@ static struct {
                                   * release toggles nothing */
     uint32_t ocd_t0;             /* locks: OCT- pressed with a step held: its time | 1; bit 1: the 0.6 s clear done */
     uint8_t ocd_si;              /* .. the step held then */
-    uint8_t srec, sr_cur, sr_key;   /* step record (spec §6): on; its cursor; the key whose note is on it + 1 */
     struct {                     /* MIDI LEARN (ui_learn.c; GLO + G4): never stored */
         uint8_t on;              /* LEARN is on */
         uint8_t pick, trk, id;   /* something picked: track trk's P_* id (a CC is awaited: midi_learn.c ml_arm) .. */
@@ -157,8 +155,8 @@ static struct {
         uint8_t pv_fx;
     } pr;
 } ui;
-/* a knob turned on column c: its cell inverted, ZOOM's popup up, the breadcrumb's value, until HOT_MS after the last
- * turn (real time, not frames: ui_draw) */
+/* a knob turned on column c: its value inverted (a cell, a LIST row) until HOT_MS after the last turn (real time, not
+ * frames: ui_draw) */
 #define HOT_MS 3000u
 #define HOT_TICKS (HOT_MS * 1000u * FM1_TICKS_PER_US)
 static void hot_touch(uint32_t c)
@@ -166,6 +164,36 @@ static void hot_touch(uint32_t c)
     ui.hot_col = (uint8_t)c;
     ui.hot_t = 1;
     ui.hot_t0 = ui.pr.now;
+}
+/* the knob popup (FREITAKT redesign, rule 5; it replaces ZOOM): a parameter knob turned on a LIST page, TRACKS (LEVEL
+ * LEN PAN) or HOME (BPM SWING): the screen cleared to the parameter's name and value, large (ui_draw.c draw_kpop),
+ * until HOT_MS after the last turn; then the screen under it whole, once. A session is one knob's turns on one thing
+ * (a parameter, MODEL, a held step's lock or its PROB RATCH ACC NUDGE): what it was before the first turn is kept here
+ * (kp_snap), and OCT- while the popup is up puts it back (kp_undo, ui_input.c) instead of its own job */
+enum { KP_NONE, KP_PAR, KP_MODEL, KP_LOCK, KP_STEP };
+static struct {
+    uint8_t on;                  /* 0 off, 1 up (the screen still to clear), 2 up and drawn */
+    uint8_t kind, col;           /* KP_*; the knob */
+    uint8_t trk, st;             /* the track; KP_LOCK KP_STEP: the step */
+    uint8_t had;                 /* KP_LOCK: the step locked the knob before (at v) */
+    uint8_t ed, mute;            /* KP_PAR (a track's), KP_MODEL: the preset's edited mark, MUTE before */
+    uint8_t model, undone;       /* KP_MODEL: the model before; OCT- done (again: nothing, until another turn) */
+    uint16_t id, gid;            /* KP_PAR: the P_* id (P_COUNT none: a global, MLEN); KP_LOCK: the P_*; KP_STEP: the
+                                  * field (0 PROB, 1 RATCH, 2 ACC, 3 NUDGE); gid: a global's G_* (0xFFFF none) */
+    uint16_t pre;                /* KP_MODEL: the preset before */
+    int16_t v, v2;               /* the value before (KP_LOCK: the lock's); P_E4 (a SAMPLE's SET): its SLOT before */
+    int16_t *vp;                 /* KP_PAR: the value */
+    const param_desc_t *d;       /* KP_PAR KP_LOCK: its description (the name, the format) */
+    step_t step;                 /* KP_STEP KP_LOCK: the step before */
+    int16_t k[8u + SENV_N];      /* KP_MODEL: the SOUND knobs before (as the PRESETS audition keeps them) */
+    uint32_t t0;                 /* the last turn (or OCT-), as hot_t0 */
+    uint32_t nsig, vsig, msig;   /* the name's, the value's and the message's rows shown */
+} kp;
+static void kp_close(void)                           /* the popup gone: the screen under it whole */
+{
+    if (kp.on)
+        ui.force = 1;
+    kp.on = 0;
 }
 
 static const page_t *cur_page(void) { return &PAGES[ui.page]; }
@@ -209,7 +237,6 @@ static int ui_locked(void)
 }
 
 
-static int grid_mode(void) { return !ui.home && !ui.menu && cur_page()->scope == SC_GRID; }
 static int mix_mode(void) { return !ui.home && !ui.menu && cur_page()->scope == SC_MIX; }   /* HOME's TRACKS mode */
 static int comp_mode(void) { return !ui.home && !ui.menu && cur_page()->graph == GR_COMP; }   /* COMP: keys DUCK */
 /* KEYS (spec §5): the keys a chromatic keyboard of the selected track on every page but TRACKS and COMP (their step /
@@ -254,10 +281,10 @@ static void grid_drop_holds(void)
 
 static void page_entered(void)
 {
-    ui.srec = 0;                                       /* step record ends (leaving the page, another track) */
     grid_drop_holds();
     song.seq_mode = seq_mode_now();                    /* seq.c: whose the keys are */
     ui.hot_t = 0;
+    kp.on = 0;                                         /* (the knob popup gone) */
     ui.force = 1;
 }
 
@@ -297,8 +324,6 @@ static void note_text(char *b, int32_t n)
     str_cpy(b, N_NOTE[n % 12], 4);
     fmt_int(b + str_len(b), n / 12 - 1);
 }
-/* step record's TIME of a step: 0 NOTE (ON), 1 TIE, 2 REST */
-static uint32_t srec_time(const step_t *s) { return s->tie ? 1u : s->on ? 0u : 2u; }
 
 /* a page with nothing to edit for the selected track: an EDIT page past the end of its engine's sound list */
 static int page_hidden(uint32_t i)
@@ -348,10 +373,10 @@ static void open_family(uint32_t fam)
  * HOME (the HOME screen: the status line, the BPM; KNOB 1 BPM, KNOB 2 SWING). ui.hmode: the one last shown */
 static void home_screen(void)                         /* HOME's second mode */
 {
-    ui.srec = 0;                                       /* step record ends (leaving the page, another track) */
     ui.home = 1;
     ui.hmode = 1;
     ui.hot_t = 0;
+    kp.on = 0;
     song.seq_mode = seq_mode_now();
     ui.force = 1;
 }
@@ -438,7 +463,7 @@ static uint32_t lk_view_mask(void)
 }
 
 /* the NOTE of a step the grid keys turn on (spec §2, user 2026-10-10): a gated (ACID) track's last KEYS / recorded
- * note; a drum's C4 (its steps transposed only by KEYS record, step record's NOTE or the roll) */
+ * note; a drum's C4 (its steps transposed only by KEYS record) */
 static int8_t new_step_nt(const track_t *t) { return trk_model_own(t)->gate ? t->key_nt : 0; }
 
 /* a step key down this long is a hold, not a tap (owner 2026-10-23: holding a step is for editing it, never toggles
@@ -625,10 +650,10 @@ static void track_select(uint32_t i)
 {
     if (i >= NTRK || i == song.sel)
         return;
-    ui.srec = 0;                                       /* step record ends (leaving the page, another track) */
     song.sel = (uint8_t)i;
     grid_drop_holds();
     ui.bank = 0;
+    kp.on = 0;                                         /* (the knob popup was the other track's) */
     ui.force = 1;
 }
 
@@ -692,15 +717,13 @@ static void model_step(int32_t dir)
     fm1_irq_on();
     if (capped)
         ui_message("ACID: 2 TRACKS MAX");
-    else
-        ui_say("MODEL ", N_MODEL[m]);
-    ui.force = 1;
+    /* (the knob popup shows the model; it repaints the page whole when it goes) */
 }
 
 /* HOME: KNOB k edits the selected model's macro k (TUNE DECAY TONE CHAR) */
 static const param_desc_t *home_param(uint32_t k, int16_t **vp)
 {
-    static const param_desc_t NONE_DESC;             /* KNOB 3, 4: nothing (no label: no ZOOM, no turn) */
+    static const param_desc_t NONE_DESC;             /* KNOB 3, 4: nothing (no label: no popup, no turn) */
     static int16_t none;
     k &= 3u;
     if (k < 2u) {                                     /* FREITAKT redesign: KNOB 1 BPM, KNOB 2 the global SWING */
@@ -719,7 +742,7 @@ static uint32_t held_step(void);
 /* a step held on a page whose white keys are the steps (TRACKS unarmed, STEP, PATTERN, MOTION; owner
  * 2026-11-01): KNOB 1-4 are its PROB RATCH ACC NUDGE (ui_input.c step_edit), the page's own knobs rest; not where
  * the held step takes locks (ENV's STEPS on TRACKS: lock_step) */
-static int step_edit_page(void) { return (grid_mode() || seq_keys()) && lock_step() >= NSTEP; }   /* HOME TRACKS SOUND
+static int step_edit_page(void) { return seq_keys() && lock_step() >= NSTEP; }   /* HOME TRACKS SOUND
                                                                                                 * FX LFO COMP */
 /* the step of the last-pressed key still down (from the press: a turn right after it locks), NSTEP none (not a lock
  * page, no key, outside LEN) */

@@ -112,8 +112,6 @@ static void ui_host_init(void)
     panel = PANEL_DEFAULT;
     settings.magic = 0;
     settings_init();
-    settings.zoom = 0;                               /* (a new device's ZOOM is on: its popup over the graph; the
-                                                      * tests that look at it turn it on) */
     host_ticks += 1000u * 1000u * FM1_TICKS_PER_US;   /* 1 s idle: the first turn of a test is not accelerated */
     ui.home = 1;                                     /* HOME's second mode (the HOME screen; power-on: TRACKS) */
     ui.hmode = 1;

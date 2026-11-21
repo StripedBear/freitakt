@@ -736,17 +736,6 @@ static void t_play(void)
                 got = (uint32_t)(trk[0].step[i].nt + 100);
         check("CHOP: a key recorded live stores its chop (the step's note + 2: chop 3)", got == 102u);
     }
-    ui_host_init();
-    play_on(1);
-    ui.sr_cur = 0;
-    srec_note(4u);
-    check("CHOP: step record stores the key's chop (+ 2)", trk[0].step[0].on && trk[0].step[0].nt == 2);
-    ui.sr_key = 0;
-    trk[0].step[1].nt = 0;
-    trk[0].step[1].on = 0;
-    ui.sr_cur = 1;
-    srec_note(1u);
-    check("CHOP: step record: a black key writes nothing", !trk[0].step[1].on);
     song.seq_mode = 0;
 }
 

@@ -367,7 +367,6 @@ static void test_steps(void)
     run_ms(20);
     song.rec = 0;
     tap_b(B_SEQ);                                    /* a SEQ page */
-    check("STEP REC not available (REC on the STEP page)", !srec_ok());
     press(B_SEQ);
     for (k = 0; k < 20u; k++) {
         host_ticks += 50u * 1000u * FM1_TICKS_PER_US;

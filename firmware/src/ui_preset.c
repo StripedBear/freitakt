@@ -158,7 +158,6 @@ static void preset_list_open(void)
     ui.pr.pv = 0;
     pl_cursor(c < PRE_NID ? (int32_t)c : 0);
     ui.pr.sig = 0;
-    ui.srec = 0;                                       /* (step record ends) */
     grid_drop_holds();                                 /* a grid key held edits nothing under it */
     song.seq_mode = 0;                                 /* the keys play (seq_mode_now) */
     ui.msg_t = 0;

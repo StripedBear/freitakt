@@ -190,7 +190,6 @@ static void smc_button(uint32_t n)
     switch (n) {
     case 0x5Eu:                                       /* PLAY: stopped -> play */
         if (!song.playing) {
-            ui.srec = 0;
             transport_req = 1;
         }
         break;

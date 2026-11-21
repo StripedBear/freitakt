@@ -5,9 +5,10 @@
  * the four knobs edit on each page. */
 enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_EDT, FAM_COUNT };
 /* FAM_EDT: no button, never shown on the FM-1: the web editor's own pages (editor.c ed_pages: GLOBAL, SYSTEM) */
-enum { SC_TRACK, SC_GLOBAL, SC_GRID, SC_MIX };   /* knobs edit: the selected track, song.g, the STEP grid, the mixer */
+enum { SC_TRACK, SC_GLOBAL, SC_MIX };   /* knobs edit: the selected track, song.g, the mixer */
 enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, GR_LFO, GR_MOTION, GR_FILTER,
-       GR_LDEST, GR_INSERT, GR_DLY, GR_REV, GR_CHO };
+       GR_LDEST, GR_INSERT, GR_DLY, GR_REV, GR_CHO };   /* (the editor's PAGES reply sends these: GR_GRID, the
+                                                          * removed STEP page's, keeps its number) */
 
 #define SND_SLOT 0xC0u                            /* EDIT page ids: SND_SLOT + n = the track's n-th sound knob */
 #define SND_N 20u                                 /* .. at most: 5 SOUND pages (the fifth the SAMPLE model's only) */
@@ -131,7 +132,7 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
 {
     uint32_t id = page_id(pg, slot);
     *valp = 0;
-    if (id == 0xFFu || pg->scope == SC_GRID || pg->scope == SC_MIX)
+    if (id == 0xFFu || pg->scope == SC_MIX)
         return 0;
     if (pg->scope == SC_GLOBAL)
         return glob_desc(id, valp);

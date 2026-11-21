@@ -205,9 +205,9 @@ static void add(const uint8_t a[6], uint32_t kind, const char *name)
 static void test_menu_row(void)
 {
     fresh();
-    check("menu: BLUETOOTH is the row before ABOUT; twenty rows (BACKLIGHT, spec 2026-10-11-fixes §12; FREITAKT: "
-          "the nine device settings of the old GLOBAL / SYSTEM pages)",
-          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_ABOUT && MI_COUNT == 20 &&
+    check("menu: BLUETOOTH is the row before ABOUT; nineteen rows (BACKLIGHT, spec 2026-10-11-fixes §12; FREITAKT: "
+          "the nine device settings of the old GLOBAL / SYSTEM pages, no ZOOM since the knob popup)",
+          str_eq(MI_NAME[MI_BT], "BLUETOOTH") && MI_BT + 1 == MI_ABOUT && MI_COUNT == 19 &&
           str_eq(MI_NAME[MI_BACKLIGHT], "BACKLIGHT"));
     {   /* MENU > USB AUDIO 10 CH removed in FREITAKT: no row, stereo always */
         uint32_t k, none = 1;

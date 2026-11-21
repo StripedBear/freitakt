@@ -13,8 +13,8 @@ static int check(const char *what, int ok)
 static void snap_page(const char *name);
 static void seq_play_to(uint32_t ti, uint32_t step);
 static void seq_open(const char *title);
-static void srec_open(void);
 static uint32_t fb_lit(uint32_t y0, uint32_t y1);
+static int list_rows_drawn(void);
 static uint32_t fb_count(uint32_t x0, uint32_t y0, uint32_t w, uint32_t h, uint16_t c);
 static void tap(uint32_t b);
 #define OK0(e) do { if (!(e)) { printf("     (line %d)\n", __LINE__); ok = 0; } } while (0)
@@ -567,7 +567,6 @@ static void test_step_hold(void)
 static void test_step_hold_on_acc(void)
 {
     step_t *s = &trk[0].step[5];
-    char b[40];
     ui_host_init();
     open_step_page();
     memset(s, 0, sizeof *s);
@@ -589,11 +588,8 @@ static void test_step_hold_on_acc(void)
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
     check("held: KNOB 3 right: ACC on; PROB / RATCH kept", s->on && s->acc && s->cond == cond_store(19) && s->rat == 1);
-    check("held-step line: STEP 6 .. RATCH 2  ACC", held_text(b) == 5u && strstr(b, "STEP 6") && strstr(b, "RATCH 2") &&
-          strstr(b, "ACC"));
+    check("held: step 6 (the popup: ACC ON)", held_step() == 5u && kp.on && kp.kind == KP_STEP && kp.id == 2u);
     snap_page("seq/24_step_held_acc");
-    check("the longest held-step line fits the screen (STEP 64  1-SHOT  RATCH 4  ACC)",
-          4 + md_text_w(&MD_F3, 2, "STEP 64  1-SHOT  RATCH 4  ACC") <= 240);
     turn(EN_K3, 3);
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
@@ -601,8 +597,7 @@ static void test_step_hold_on_acc(void)
     turn(EN_K3, -1);
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
-    check("held: KNOB 3 left: ACC off, still on; the line without ACC", s->on && !s->acc && held_text(b) == 5u &&
-          !strstr(b, "ACC"));
+    check("held: KNOB 3 left: ACC off, still on", s->on && !s->acc && held_step() == 5u);
     turn(EN_K4, 2);
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
@@ -2871,7 +2866,7 @@ static void test_step_hold_every_seq_page(void)
         ui_frame();
         turn(EN_K4, 7);
         ui_frame();
-        cols = col_has(0, "PROB") && col_has(1, "RATCH") && col_has(2, "ACC") && col_has(3, "NUDGE");
+        cols = kp.on && kp.kind == KP_STEP && kp.id == 3u && kp.st == 3u;   /* (the knob popup: the step's NUDGE) */
         grid_up(WHITE[3]);
         ui_frame();
         ok = st->on && st->cond != 0 && st->rat == 1u && st->acc && st->micro == 7 &&
@@ -2882,7 +2877,7 @@ static void test_step_hold_every_seq_page(void)
                 sizeof what - str_len(what));
         check(what, ok && (i == 0u || str_eq(cur_page()->title, PG[i])));
         str_cpy(what, PG[i], sizeof what);
-        str_cpy(what + str_len(what), ": the knob columns show PROB RATCH ACC NUDGE while held", sizeof what - str_len(what));
+        str_cpy(what + str_len(what), ": the knob popup shows the held step's field (KNOB 4: NUDGE)", sizeof what - str_len(what));
         check(what, cols);
     }
 }
@@ -3709,48 +3704,6 @@ static void test_graph_slots_cursor(void)
           fb_count(2, Y_GRAPH + 20u + ((r + 1u) % 4u) * 16u, 236, 14, C_INK) < 236u * 14u * 3u / 10u);
 }
 
-/* spec 2026-10-19-md-ui §8: TRACKS keeps every item of its rows (number, arm, model, the bank's 16 steps, the level
- * over a dithered box, the live peak); MUTE's boxes; PERFORM's buttons */
-static void test_tracks_row_items(void)
-{
-    uint32_t y, box, inner;
-    ui_host_init();
-    open_tracks();
-    memset(trk[0].step, 0, sizeof trk[0].step);
-    trk[0].step[0].on = 1;
-    trk[0].p[P_LEVEL] = 64;
-    ui.force = 1;
-    ui_frame();
-    y = MX_ROW_Y(0);
-    box = fb_count(MX_LX, y + 1u, MX_LW, 11, C_INK);
-    inner = fb_count(MX_LX + (uint32_t)MX_LW / 2u + 4u, y + 3u, 8, 7, C_INK);   /* past the level: the dither */
-    check("TRACKS row: the number + model in ink (x 2..60)", fb_count(2, y, 58, MX_RH, C_INK) > 30u);
-    check("TRACKS row: step 1 a cell, steps 2..16 baselines", fb_count(MX_CELL_X(0), y + 4u, 6, 7, C_INK) == 42u &&
-          fb_count(MX_CELL_X(1), y + 4u, 6, 6, C_INK) == 0u && fb_count(MX_CELL_X(1), y + 10u, 6, 1, C_INK) == 6u);
-    check("TRACKS row: the level a solid bar over a dithered box", box > 60u && inner > 20u && inner < 40u);
-}
-
-static void test_tracks_peak_tick(void)
-{
-    uint32_t y, x, r, d = 0;
-    uint16_t a[11][MX_LW];
-    ui_host_init();
-    open_tracks();
-    trk[0].p[P_LEVEL] = 30;
-    ui.force = 1;
-    ui_frame();
-    y = MX_ROW_Y(0) + 1u;                            /* the level box's 11 rows */
-    for (r = 0; r < 11u; r++)
-        for (x = 0; x < (uint32_t)MX_LW; x++)
-            a[r][x] = fb[(y + r) * 240u + MX_LX + x];
-    trk[0].peak = 20000;
-    ui_frame();
-    for (r = 0; r < 11u; r++)
-        for (x = 0; x < (uint32_t)MX_LW; x++)
-            d += fb[(y + r) * 240u + MX_LX + x] != a[r][x];
-    check("TRACKS: a loud track's live peak marks its level box", d >= 4u);
-}
-
 static void test_perform_buttons(void)
 {
     uint32_t x = 4u + 47u, y = Y_GRAPH + 3u, on, off;
@@ -4016,69 +3969,204 @@ static void test_theme_sheet(void)
  * not let the graph under them redraw */
 static void test_fix_value_4_glyphs(void)
 {
-    uint32_t x, y, x0 = 999, x1 = 0;
+    char l[16], v[16];
+    const char *u;
     ui_host_init();
     open_tracks();
     TSEL->p[P_PAN] = -64;                            /* PAN fully left: -100 */
-    ui.force = 1;
+    turn(EN_K4, -1);                                 /* (at its end: stays) */
     ui_frame();
-    for (y = Y_KNOB + 24u; y < Y_KNOB + 34u; y++)
-        for (x = 207u; x < 239u; x++)
-            if (fb[y * 240u + x] == C_INK) {
-                x0 = x < x0 ? x : x0;
-                x1 = x > x1 ? x : x1;
-            }
-    check("cell: PAN fully left shows -100 whole (4 glyphs, 30 px), not -10", x1 - x0 + 1u == 30u);
+    kp_text(l, v, &u);
+    check("popup: PAN fully left shows -100 whole (4 glyphs), not -10", kp.on && str_eq(l, "PAN") && str_eq(v, "-100") &&
+          fb_count(0, KP_VY, 240, KP_VH, C_INK) > 0u);
     TSEL->p[P_PAN] = 0;
 }
 
-static void test_fix_zoom_home(void)
+/* the knob popup (FREITAKT redesign, rule 5; ui.c kp): a parameter knob's first turn clears the screen to its name
+ * and value, large (the top bar gone too) */
+static void test_kpop_first_turn(void)
 {
     ui_host_init();
-    settings.zoom = 1;
+    tap(B_EDIT);                                     /* SOUND 1/n: MODEL, then the machine's knobs */
     ui.force = 1;
     ui_frame();
-    turn(EN_K1, 1);                                  /* KNOB 1, the BPM (FREITAKT): large already, no ZOOM */
+    check("popup: none before a turn", !kp.on && list_rows_drawn());
+    turn(EN_K2, 1);
     ui_frame();
-    check("ZOOM on HOME: KNOB 1 (BPM, shown large) opens no popup, the status line stays", home_line_is("P- V1 T1 L1"));
-    turn(EN_K1 + 1, 1);                              /* KNOB 2, SWING: ZOOM */
-    ui_frame();
-    shot("build/ui_shots/fixes/zoom_home.ppm");
-    check("ZOOM on HOME: the touched knob's value large in a popup in the status line's place (its shadow edge at x "
-          "230..231)", ui.home && ui.hot_t && ui.focus_l[0] && fb[120u * 240u + 230u] == C_INK &&
-          fb[120u * 240u + 231u] == C_INK && fb[120u * 240u + 232u] == C_BG && !home_line_is("P- V1 T1 L1"));
-    ui.hot_t = 0;
-    ui_frame();
-    check("ZOOM on HOME: gone, the status line back", home_line_is("P- V1 T1 L1"));
+    check("popup: up on the first turn of a parameter knob (KNOB 2: the SOUND page's second row)",
+          kp.on == 2u && kp.kind == KP_PAR && kp.col == 1u && kp.vp == &TSEL->p[page_id(cur_page(), 1)]);
+    check("popup: the screen cleared (no top bar, no rows), the name and the value large",
+          fb_count(0, 0, 240, KP_NY, C_INK) == 0u && fb_count(0, KP_NY, 240, KP_NH, C_INK) > 100u &&
+          fb_count(0, KP_VY, 240, KP_VH, C_INK) > 600u && fb_count(0, KP_VY + KP_VH, 240, 240 - KP_VY - KP_VH, C_INK) == 0u);
+    shot("build/ui_shots/popup.ppm");
 }
 
-/* ZOOM (FREITAKT): on in a new device; the popup lasts HOT_MS (3 s) of real time after the last turn, frames or not */
-static void test_zoom_time(void)
+/* the popup's later turns send its value's row only (no fill, one blit of 240 x KP_VH) */
+static void test_kpop_value_row_only(void)
+{
+    ui_host_init();
+    tap(B_EDIT);
+    ui_frame();
+    turn(EN_K2, 1);
+    ui_frame();
+    ui_frame();
+    host_fill_px = host_blit_px = host_wins = 0;
+    ui_frame();
+    check("popup: an idle frame sends nothing", host_fill_px == 0u && host_blit_px == 0u);
+    host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+    turn(EN_K2, 1);
+    ui_frame();
+    check("popup: a later turn sends its value's row only (one window, 240 x 80, no fill)",
+          host_fill_px == 0u && host_wins == 1u && host_blit_px == 240u * KP_VH);
+}
+
+/* the popup goes HOT_MS (3 s) of real time after the last turn, frames or not; each turn starts the 3 s again; then the
+ * page under it whole once */
+static void test_kpop_time(void)
 {
     uint32_t t0, ms, k, at2;
     ui_host_init();
-    settings.magic = 0;
-    settings_init();
-    check("ZOOM: a new device has it on", settings.zoom == 1u);
     tap(B_EDIT);
     ui_frame();
-    turn(EN_K1, 1);
+    turn(EN_K2, 1);
     ui_frame();
     t0 = host_ticks;
-    for (k = 0; k < 400u && ui.hot_t; k++)
+    for (k = 0; k < 400u && kp.on; k++)
         grid_wait(50);
     ms = (host_ticks - t0) / (1000u * FM1_TICKS_PER_US);
-    check("ZOOM: gone 3 s after the turn (real time)", !ui.hot_t && ms >= 2950u && ms <= 3150u);
+    check("popup: gone 3 s after the turn (real time)", !kp.on && ms >= 2950u && ms <= 3150u);
+    check("popup: gone, the page whole again (its rows)", list_rows_drawn() && fb_count(0, KP_VY, 240, KP_VH, C_INK) > 0u);
+    turn(EN_K2, 1);
+    ui_frame();
+    grid_wait(2000);
+    turn(EN_K2, 1);                                  /* another turn 2 s on: 3 s from this one */
+    ui_frame();
+    grid_wait(2000);
+    at2 = kp.on;
+    grid_wait(1200);
+    check("popup: each turn starts the 3 s again", at2 && !kp.on);
+}
+
+/* OCT- while the popup is up: the parameter back to its value before the session's first turn, the popup stays and
+ * shows it; OCT-'s own job (KEYS: the octave down) not done. A second OCT-: nothing more */
+static void test_kpop_undo(void)
+{
+    int16_t v0, *vp;
+    char l[16], v[16], w[16];
+    const char *u;
+    ui_host_init();
+    tap(B_SCL);                                      /* KEYS: OCT- would be the keyboard's octave down */
+    tap(B_EDIT);
+    ui_frame();
+    vp = &TSEL->p[page_id(cur_page(), 1)];
+    v0 = *vp;
+    turn(EN_K2, 1);
+    ui_frame();
+    host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+    turn(EN_K2, 2);
+    ui_frame();
+    check("undo: the turns moved the value", *vp != v0 && kp.on);
+    tap(B_OCTDN);
+    check("undo: OCT- puts the value back as before the session", *vp == v0);
+    check("undo: OCT-'s own job not done (KEYS' octave unchanged)", song.octave == 0 && ui.keys);
+    kp_text(l, v, &u);
+    param_format(track_desc(TSEL, page_id(cur_page(), 1)), v0, w, &u);
+    check("undo: the popup stays, showing the value back", kp.on && str_eq(v, w));
+    *vp = (int16_t)(v0 + 1);
+    tap(B_OCTDN);
+    check("undo: once (a second OCT- puts nothing back)", *vp == v0 + 1 && song.octave == 0);
+    *vp = v0;
+    grid_wait(3200);
+    tap(B_OCTDN);
+    check("undo: the popup gone, OCT- is OCT- again (the octave down)", !kp.on && song.octave == -1);
+    tap(B_OCTUP);
+    tap(B_SCL);
+}
+
+/* undo of a session on TRACKS (a muted track's LEVEL: the first turn unmutes; OCT-: LEVEL and MUTE back), MODEL (the
+ * sound back), HOME's BPM; TRACKS' TRACK and an unassigned HOME knob open no popup */
+static void test_kpop_undo_kinds(void)
+{
+    track_t *t;
+    int16_t lvl, bpm;
+    uint32_t m0, pre0;
+    ui_host_init();
+    open_tracks();
+    t = TSEL;
+    t->p[P_MUTE] = 1;
+    lvl = t->p[P_LEVEL];
+    turn(EN_K2, 3);
+    ui_frame();
+    check("TRACKS LEVEL: popup up, the first turn unmuted", kp.on && !t->p[P_MUTE]);
+    tap(B_OCTDN);
+    check("TRACKS LEVEL: OCT- mutes again, LEVEL as before", t->p[P_MUTE] == 1 && t->p[P_LEVEL] == lvl);
+    t->p[P_MUTE] = 0;
+    grid_wait(3200);
     turn(EN_K1, 1);
     ui_frame();
-    grid_wait(2000);
-    turn(EN_K1, 1);                                  /* another turn 2 s on: 3 s from this one */
+    check("TRACKS TRACK: no popup, the next track", !kp.on && song.sel == 1u);
+    track_select(0);
     ui_frame();
-    grid_wait(2000);
-    at2 = ui.hot_t;
-    grid_wait(1200);
-    check("ZOOM: each turn starts the 3 s again", at2 && !ui.hot_t);
-    settings.zoom = 0;
+    tap(B_EDIT);
+    ui_frame();
+    m0 = (uint32_t)TSEL->p[P_MODEL];
+    pre0 = TSEL->pre;
+    turn(EN_K1, 1);
+    ui_frame();
+    check("MODEL: popup up, another machine", kp.on && kp.kind == KP_MODEL && (uint32_t)TSEL->p[P_MODEL] != m0);
+    tap(B_OCTDN);
+    check("MODEL: OCT- the machine and its preset back", (uint32_t)TSEL->p[P_MODEL] == m0 && TSEL->pre == pre0);
+    grid_wait(3200);
+    tap(B_HOME);
+    while (!ui.home)
+        tap(B_HOME);
+    bpm = song.g[G_BPM];
+    turn(EN_K1, 4);
+    ui_frame();
+    check("HOME BPM: popup up (BPM)", kp.on && kp.vp == &song.g[G_BPM] && song.g[G_BPM] != bpm);
+    shot("build/ui_shots/popup_home_bpm.ppm");
+    tap(B_OCTDN);
+    check("HOME BPM: OCT- the tempo back", song.g[G_BPM] == bpm);
+    grid_wait(3200);
+    turn(EN_K3, 1);
+    ui_frame();
+    check("HOME KNOB 3 (nothing): no popup", !kp.on);
+}
+
+/* ENV STEPS, a step held: a knob's turn locks it (the popup shows the lock, inverted); OCT- takes the lock away (none
+ * before) or puts the old one back, and does not clear the step's locks (OCT-'s job with a step held) */
+static void test_kpop_undo_lock(void)
+{
+    int16_t v;
+    uint32_t id;
+    ui_host_init();
+    tap(B_EDIT);
+    tap(B_ENV);                                      /* STEPS */
+    ui_frame();
+    id = lock_id(1);
+    check("lock undo: KNOB 2 here can lock", id < P_COUNT && env_steps());
+    lock_set(song.sel, 3, P_PAN, 10);                /* (another lock on the step: OCT- would clear it) */
+    keys(1u << STEP_KEY[3]);
+    ui_frame();
+    turn(EN_K2, 2);
+    ui_frame();
+    check("lock undo: the turn locked step 4, the popup a lock's", lock_get(song.sel, 3, id, &v) && kp.on &&
+          kp.kind == KP_LOCK);
+    shot("build/ui_shots/popup_lock.ppm");
+    tap(B_OCTDN);
+    check("lock undo: OCT- takes the new lock away, the step's other lock kept", !lock_get(song.sel, 3, id, &v) &&
+          lock_get(song.sel, 3, P_PAN, &v) && v == 10);
+    grid_wait(3200);                                 /* (the popup gone: the next turn a new session) */
+    lock_set(song.sel, 3, id, 20);
+    turn(EN_K2, 3);
+    ui_frame();
+    check("lock undo: a new session from the old lock (20)", lock_get(song.sel, 3, id, &v) && v != 20);
+    tap(B_OCTDN);
+    check("lock undo: OCT- the old lock back", lock_get(song.sel, 3, id, &v) && v == 20);
+    keys(0);
+    ui_frame();
+    lock_clear_track(song.sel);
+    tap(B_ENV);
 }
 
 static void test_fix_msg_shrink(void)
@@ -4161,18 +4249,36 @@ static void kit_session(void)
 }
 
 /* TRACKS: one row per track; a step's cell is lit exactly when the step is on */
+/* TRACKS (FREITAKT redesign): the 6 tracks a list, a row each (number, machine); a muted track's row inverted, the
+ * selected one a pointer at the left */
 static void test_tracks_rows(void)
 {
-    uint32_t r, k, ok = 1;
+    uint32_t r, ok = 1;
     ui_host_init();
     kit_session();
     open_tracks();
     for (r = 0; r < NTRK; r++)
-        for (k = 0; k < 16; k++)
-            ok &= (fb[(MX_ROW_Y(r) + 7u) * 240u + MX_CELL_X(k) + 2u] == C_INK ||
-                   fb[(MX_ROW_Y(r) + 7u) * 240u + MX_CELL_X(k) + 3u] == C_INK) == trk[r].step[k].on;   /* (a muted
-                                                      * track's steps dithered: one of two neighbours inked) */
-    check("TRACKS: NTRK (6) rows, each shows its track's 16 steps", ok);
+        trk[r].p[P_MUTE] = 0;
+    trk[2].p[P_MUTE] = 1;
+    track_select(1);
+    ui.force = 1;
+    ui_frame();
+    for (r = 0; r < NTRK; r++) {
+        uint32_t y = TK_Y0 + r * TK_H, ink = fb_count(0, y, 240, TK_H - 1u, C_INK);
+        if (r == 2u)
+            ok &= ink > 240u * (TK_H - 1u) * 7u / 10u;   /* muted: inverted */
+        else
+            ok &= ink > 60u && ink < 240u * (TK_H - 1u) * 3u / 10u;
+        ok &= (fb_count(3, y + 9u, 7, 13, r == 2u ? C_BG : C_INK) > 40u) == (r == 1u);   /* the pointer: the
+                                                                                    * selected track's */
+    }
+    check("TRACKS: 6 rows (number + machine), the muted one inverted, the selected one pointed at", ok);
+    snap_page("tracks_muted");
+    turn(EN_K1, 1);
+    ui_frame();
+    check("TRACKS: KNOB 1 moves the pointer (no popup)", !kp.on && song.sel == 2u &&
+          fb_count(3, TK_Y0 + 2u * TK_H + 9u, 7, 13, C_BG) > 40u);
+    trk[2].p[P_MUTE] = 0;
 }
 
 static void hold(uint32_t label)                    /* a button held 0.8 s (1 ms per tick), then let go */
@@ -6497,17 +6603,8 @@ static void test_rec_hit_drum_note(void)
     ui_frame();
 }
 
-/* ---- ACID plan B: step record (spec §6) */
-static void srec_open(void)                          /* ACID on track 1, KEYS, STEP, stopped; a REC tap: step record */
-{
-    ui_host_init();
-    old_set_model(TSEL, DM_ACID);
-    memset(TSEL->step, 0, sizeof TSEL->step);
-    tap(B_SCL);
-    seq_open("STEP");
-    tap(B_REC);
-}
-static void srec_turn(uint32_t knob, int32_t d)      /* one detent, 0.1 s after the last (no acceleration) */
+static void srec_turn(uint32_t knob, int32_t d)      /* one detent, 0.1 s after the last (no acceleration; the name
+                                                     * from the removed step record's tests) */
 {
     turn(EN_K1 + knob, d);
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
@@ -6549,15 +6646,6 @@ static void roll_notes(track_t *t, const int8_t *nt, uint32_t n)   /* steps 1..n
         t->step[i].nt = (int8_t)(nt[i] < 99 ? nt[i] : 0);
     }
 }
-static void roll_open(track_t *t)                    /* STEP on an ACID track, the view chosen afresh */
-{
-    proll.trk = 0;
-    seq_open("STEP");
-    ui.force = 1;
-    ui_frame();
-    (void)t;
-}
-
 static int32_t acid_peak_x(void)                    /* the leftmost lit x (100..235) above the 0 dB line; -1 none */
 {
     uint32_t x, y;
@@ -6580,16 +6668,6 @@ static uint32_t acid_hi(uint32_t y0, uint32_t y1)   /* the curve's pixels at x 1
 }
 
 /* ---- ACID plan B: the final review's fixes */
-static uint32_t pr_bar_lit(int32_t x, int32_t y)    /* a plain bar's pixels lit (of its 9 x 2: graph_roll's pr_bar) */
-{
-    uint32_t n = 0;
-    int32_t xx, yy;
-    for (yy = y + 1; yy < y + PR_RH - 1; yy++)
-        for (xx = x; xx < x + 9; xx++)
-            n += gpx(xx, yy) == C_INK;
-    return n;
-}
-
 /* final review 2: KEYS off, armed: a hit recorded onto a TIE step plays (on, no TIE: acid_step reads TIE first) */
 static void test_rec_hit_on_tie(void)
 {
@@ -7123,7 +7201,7 @@ static void test_edit_hold_in_learn(void)
     tap(B_EDIT);
 }
 
-/* the track's preset on its SOUND page ("PRESET K909", "*" once a SOUND knob moved) and in TRACKS' footer */
+/* the track's preset on its SOUND page ("PRESET K909", "*" once a SOUND knob moved) and on its TRACKS row */
 static void test_name_and_edited_mark(void)
 {
     uint32_t a, b;
@@ -7137,8 +7215,8 @@ static void test_name_and_edited_mark(void)
     host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
     turn(EN_K2, 1);                                     /* TUNE */
     ui_frame();
-    host_ticks += 2000u * 1000u * FM1_TICKS_PER_US;
-    for (b = 0; b < 50u; b++)                           /* (the knob's readout gone) */
+    host_ticks += 3100u * 1000u * FM1_TICKS_PER_US;
+    for (b = 0; b < 50u; b++)                           /* (the knob popup gone) */
         ui_frame();
     snap_page("presets/12_sound_edited");
     b = 0;
@@ -7397,20 +7475,6 @@ static void test_popups_keep_their_margins(void)
         ui_frame();
 }
 
-static void test_crumb_unassigned_knob(void)
-{
-    ui_host_init();                                  /* RSTRX: HOME knob 4 has no parameter */
-    TSEL->p[P_MODEL] = DM_RSTRX;
-    ui.hot_col = 0;
-    ui.hot_t = 40;
-    ui.force = 1;
-    ui_frame();
-    ui.hot_col = 3;
-    ui.hot_t = 40;
-    ui_frame();
-    check("an unassigned knob touched: the breadcrumb does not keep the last knob's value", !ui.focus_l[0]);
-}
-
 static void test_about_moves_only_the_logo(void)
 {
     uint32_t k, px;
@@ -7627,7 +7691,8 @@ static void test_model_names(void)
         {DM_KTRX, "BDTRX"}, {DM_XTTRX, "TMTRX"}, {DM_MATRX, "SHTRX"}, {DM_XTEFM, "TMEFM"},
         {DM_KBOOM, "BOOM"}, {DM_SCRAK, "CRACK"}, {DM_HNOIS, "HISS"}, {DM_MEMB, "SKIN"}, {DM_SMPL, "SAMPL"}};
     uint32_t i, ok = 1, oks = 1, okl = 1;
-    char want[16];
+    char want[16], wv[16];
+    const char *wu;
     for (i = 0; i < NMODELS; i++) {
         size_t n = strlen(N_MODEL[i]);
         okl &= n >= 1u && n <= 5u && str_eq(DMODELS[i].name, N_MODEL[i]);
@@ -7638,14 +7703,17 @@ static void test_model_names(void)
         ui_host_init();
         song.sel = 0;
         old_set_model(TSEL, model_list_next(C[i].m, -1));
-        model_step(1);
-        snprintf(want, sizeof want, "MODEL %s", C[i].s);
-        ok &= TSEL->p[P_MODEL] == (int16_t)C[i].m && str_eq(ui.msg, want);
+        tap(B_EDIT);
+        ui_frame();
+        turn(EN_K1, 1);                              /* MODEL: the knob popup "MODEL" + the machine */
+        ui_frame();
+        kp_text(want, wv, &wu);
+        ok &= TSEL->p[P_MODEL] == (int16_t)C[i].m && str_eq(want, "MODEL") && str_eq(wv, C[i].s);
         oks &= str_eq(N_MODEL[C[i].m], C[i].s);
-        if (!str_eq(ui.msg, want))
-            printf("      %s: message %s\n", C[i].s, ui.msg);
+        if (!str_eq(wv, C[i].s))
+            printf("      %s: popup %s %s\n", C[i].s, want, wv);
     }
-    check("renamed engines: the MODEL message says BDTRX TMTRX SHTRX TMEFM BOOM CRACK HISS SKIN SAMPL", ok);
+    check("renamed engines: the MODEL popup says BDTRX TMTRX SHTRX TMEFM BOOM CRACK HISS SKIN SAMPL", ok);
     check("renamed engines: N_MODEL has the new names", oks);
     check("every engine's name: 1..5 characters, the engine view's title (DMODELS) = N_MODEL", okl);
 }
@@ -8653,7 +8721,7 @@ static void test_lock_cells(void)
           "knobs' values", ok);
 }
 /* while playing (Model:Cycles: locks are entered with the pattern running): the held step + a knob locks it, the
- * held step's cells show the lock, and the step plays it on the next pass (the knob's own value on the others) */
+ * knob popup shows the lock, and the step plays it on the next pass (the knob's own value on the others) */
 static void test_lock_while_playing(void)
 {
     char want[16], val[12];
@@ -8675,8 +8743,12 @@ static void test_lock_while_playing(void)
     ui_frame();
     ok = song.playing && id < P_COUNT && lock_get(0, 4, id, &lv) && lv != own;
     param_format(track_desc(TSEL, id), lv, val, &unit);
-    snprintf(want, sizeof want, "|%sB", val);
-    ok &= strstr(ui.col[1], want) != 0;                /* the held step's cell: the lock, inverted */
+    {                                                  /* the knob popup: the lock (inverted) */
+        char l[16], v[16];
+        kp_text(l, v, &unit);
+        ok &= kp.on && kp.kind == KP_LOCK && kp.st == 4u && strncmp(v, val, strlen(v)) == 0;
+    }
+    (void)want;
     grid_up(WHITE[4]);
     seq_play_to(0, 4);
     ok &= trk[0].seq_idx == 4u && trk[0].p[id] == lv;  /* step 5 plays its lock */
@@ -8684,7 +8756,7 @@ static void test_lock_while_playing(void)
     ok &= trk[0].p[id] == own;                         /* the next step the knob's own value */
     transport_req = 2;
     ui_frame();
-    check("locks while playing: a held step + KNOB 2 locks it, the held cell shows the lock, step 5 plays it and "
+    check("locks while playing: a held step + KNOB 2 locks it, the popup shows the lock, step 5 plays it and "
           "step 6 the knob's own value", ok);
 }
 static void test_lock_full(void)
@@ -9269,8 +9341,6 @@ int main(void)
     test_msg_popup();
     test_graph_model_name();
     test_graph_slots_cursor();
-    test_tracks_row_items();
-    test_tracks_peak_tick();
     test_perform_buttons();
     test_home_strip();
     test_confirm_popup();
@@ -9279,8 +9349,12 @@ int main(void)
     test_name_block_cursor();
     test_theme_sheet();
     test_fix_value_4_glyphs();
-    test_fix_zoom_home();
-    test_zoom_time();
+    test_kpop_first_turn();
+    test_kpop_value_row_only();
+    test_kpop_time();
+    test_kpop_undo();
+    test_kpop_undo_kinds();
+    test_kpop_undo_lock();
     test_fix_msg_shrink();
     test_fix_popup_holds_graph();
     test_popup_shows_and_loads();
@@ -9296,7 +9370,6 @@ int main(void)
     test_list_save_saves_real_sound();
     test_list_seven_rows();
     test_popups_keep_their_margins();
-    test_crumb_unassigned_knob();
     test_about_moves_only_the_logo();
     test_about_credits_scroll();
     test_model_list_order();
