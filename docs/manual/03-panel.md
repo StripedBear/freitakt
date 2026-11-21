@@ -29,7 +29,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | Labelled SEL. A tap (on the release, no key pressed while held): KEYS, the keys play the selected track chromatically. **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): GLOBAL, SYSTEM, GLOBAL, then DLY, DLY, REVERB and CHORUS (7 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + C#5 / D#5**: variation 1 / 2 (see *Combos*). |
-| **ARP** | **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
+| **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s off the SEQ pages: a fill. Hold 0.7 s on a SEQ page: CLEAR TRACK. See *Playing and recording*. |
@@ -57,6 +57,7 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 | --- | --- | --- |
 | **SEL + black 1 to 6** | Select track 1 to 6. A SEL tap with no key pressed still turns KEYS on / off, on its release. | The selected track's black key |
 | **SEQ + black 1 to 6** | Mute / unmute track 1 to 6, at once or on the next bar (GLOBAL's MUTE). No TOOLS screen and no page turn for that hold. Once the TOOLS screen is up (SEQ held 0.4 s, or a white key pressed first), the black keys are its tools again. | The audible tracks' black keys; a mute waiting for the bar blinks |
+| **ARP + EDIT** | The selected track's ARP page 1 (MODE RATE GATE FADE); pressed again (ARP still held), page 2 (DIR CHORD RANGE; hidden on a drum). The pages are also the last of EDIT's cycle. See *Sequencer, ARP and RETRIG*. | as usual |
 | **ARP + black 1 to 6** | Solo track 1 to 6: TOGGLE (a press on / off) or MOMENTARY (while the key is held). | The soloed tracks' black keys |
 | **ARP + F#5** (black 11) | SOLO TOGGLE / MOMENTARY (saved). | F#5 lit while MOMENTARY |
 | **GLO + white n** | Queue pattern slot n (A to D: white 1 to 4; whites 5 to 16 do nothing), as the cue map does. | The playing slot's white key; a queued one blinks |

@@ -15,7 +15,7 @@ Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]]
 | Knob | Sets | Values |
 | --- | --- | --- |
 | **KNOB 1** | PROB, the chance the step plays | 0 %, 5 % to 100 % in 5 % steps; **1-SHOT** (plays once after PLAY); **1/2 ... 8/8** (plays on loop A of every B: 1/2 is every other loop, 3/4 three loops of four, and so on); **FILL** (only during a fill); **!FILL** (only outside a fill) |
-| **KNOB 2** | RATCH, ratchet repeats inside the step | 1 to 4 |
+| **KNOB 2** | RATCH, ratchet repeats inside the step (ignored while the track's ARP / RTRG MODE is on) | 1 to 4 |
 | **KNOB 3** | ACC, accent | turn right: on, left: off |
 | **KNOB 4** | NUDGE | -50 to +50 hundredths of a step |
 
@@ -24,6 +24,26 @@ Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]]
 - **Piano roll:** on an ACID track the STEP page is a piano roll; notes, SLIDE and TIE are described under *Playing and recording*.
 - **Clear:** hold [[REC]] 0.7 s on a SEQ page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
 - **Where the held-step knobs work:** STEP, PATTERN, MOTION and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
+
+## ARP and RETRIG
+
+Each track has a MODE: **OFF**, **RTRG** (retrig) or **ARP**, one at a time. Open its page with [[ARP]] + [[EDIT]] (hold ARP, press EDIT; press EDIT again for page 2), or turn EDIT's pages to the end: page 1 is MODE, RATE, GATE, FADE; page 2 is DIR, CHORD, RANGE.
+
+| Knob | What it does | Values |
+| --- | --- | --- |
+| **MODE** | OFF, RTRG or ARP. A drum model offers OFF / RTRG only | OFF RTRG ARP |
+| **RATE** | the time between repeats | 1/4 4T 1/8 8T 1/16 16T 1/32 (T: triplet) |
+| **GATE** | a repeat's length, for the models with a gate (ACID, SAMPLE with SUS) | 0 to 100 % |
+| **FADE** | each repeat's velocity: below 0 fades down (to silence at -64), above 0 rises from quiet to the hit's, 0 flat | -64 to +63 |
+| **DIR** | ARP's order | UP DOWN UPDN RND |
+| **CHORD** | ARP's notes above the step's note | OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 |
+| **RANGE** | ARP's octaves | 1 to 4 |
+
+- **RTRG** repeats each hit of the track at RATE from the hit until its step ends (on through TIE steps after it) or the next hit, whichever comes first. A rest, a skipped step, REPEAT STEP or a restart ends it.
+- **ARP** plays the step's note spread by CHORD over RANGE octaves in DIR's order, one note every RATE, for as long as RTRG would. RND picks at random, the same notes after every PLAY. ARP is for the models that play notes: ACID, SAMPLE, FM and SKIN. On the drums MODE stops at RTRG, and an ARP that a drum inherits (a model change, a lock) plays as RTRG. Only sequenced steps are arpeggiated; notes played live in KEYS are not.
+- The repeats stay on the step's grid. With swing, a long step's repeats are spread over it and a short step's are squeezed. With FIT divisions they follow the step's own length, so nothing drifts at any tempo or clock.
+- While MODE is on, a step's RATCH is ignored: the roll replaces the ratchet. With MODE OFF, RATCH works as before.
+- All seven are track parameters, so a step can **lock** them: in STEPS mode hold a step and turn the knob. MODE can be locked too, so one step can roll while the rest of the track stays OFF (or the other way around). They are saved with the project.
 
 ## Fills
 
