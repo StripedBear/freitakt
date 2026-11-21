@@ -2767,13 +2767,6 @@ static void test_global_metro_setting(void)
 }
 
 static int col_has(uint32_t c, const char *t) { return strstr(ui.col[c], t) != 0; }   /* KNOB c+1's column shows t */
-static int grid_mark(uint32_t i, int side)           /* STEP: a mark beside step i's box (bank 1): left -1, right +1 */
-{
-    int32_t x = 4 + (int32_t)i * 14 + (int32_t)(i / 4u) * 2 + (side < 0 ? -1 : 11), y, n = 0;
-    for (y = 30; y < 30 + 48; y++)
-        n += fb[(uint32_t)(Y_GRAPH + G_OY + y) * 240u + (uint32_t)x] == C_INK;
-    return n > 0;
-}
 /* (owner 2026-11-01) a step held on any page whose white keys are the steps (TRACKS unarmed, STEP, PATTERN, MOTION):
  * KNOB 1-4 its PROB RATCH ACC NUDGE, shown in the knob columns, and the page's own values untouched */
 static void test_step_hold_every_seq_page(void)
@@ -3625,15 +3618,6 @@ static void test_msg_popup(void)
     }
 }
 
-/* spec 2026-10-19-md-ui §5 knob cell c: its canvas x c*60+1, the knob at (c*60+17, Y_KNOB+28) r 8, the value right
- * of it (right edge x c*60+55, rows Y_KNOB+24..33); a discrete parameter: its text centred, no knob */
-static void open_filter(void)
-{
-    ui_host_init();
-    tap(B_FX);
-    ui.force = 1;
-    ui_frame();
-}
 
 /* spec 2026-10-19-md-ui §8, graphs I (two tones): the model's name in F3 4x, left (owner 2026-10-22: every engine
  * view as FM's); STEP's bars; PROJECT's cursor rows inverted */
@@ -4714,18 +4698,6 @@ static void test_speaker_eq(void)
 }
 
 
-/* sound pack: REV/CHO split into REVERB (TYPE SIZE DAMP) and CHORUS (RATE DEPTH); FX reaches both, TYPE turns
- * ROOM / SPRING; screens for the user */
-static void fx_open(const char *title)              /* FX until the page shows */
-{
-    uint32_t k;
-    for (k = 0; k < NPAGES && (!str_eq(cur_page()->title, title) || ui.home); k++) {
-        press(B_FX);
-        ui_frame();
-        release_all();
-        ui_frame();
-    }
-}
 static void glo_open(const char *title)             /* GLO until the page shows */
 {
     uint32_t k;
@@ -4760,24 +4732,6 @@ static void test_bus_pages_on_glo(void)
     for (k = 0, seen = 0; k < NPAGES; k++)
         seen += PAGES[k].fam == FAM_GLO;
     check("GLO: 5 pages", seen == 5u);
-}
-/* GLO > DLY / REVERB: their graphs (the echo train; the tail), redrawn when their values change; screens for the user */
-static uint32_t graph_ink(void)                      /* ink pixels in the graph's area (the frame's edges aside) */
-{
-    uint32_t x, y, n = 0;
-    for (y = Y_GRAPH + 2u; y < Y_GRAPH + H_GRAPH - 2u; y++)
-        for (x = 2; x < 238u; x++)
-            n += fb[y * 240u + x] == C_INK;
-    return n;
-}
-static uint32_t graph_top(void)                      /* the highest ink row right of the text (x 101 .. 234) */
-{
-    uint32_t x, y;
-    for (y = Y_GRAPH + 2u; y < Y_GRAPH + H_GRAPH - 2u; y++)
-        for (x = 101; x < 235u; x++)
-            if (fb[y * 240u + x] == C_INK)
-                return y;
-    return Y_GRAPH + H_GRAPH;
 }
 static void test_reverb_pages(void)
 {
@@ -5834,22 +5788,6 @@ static uint32_t fm_graph_area(uint32_t y0, uint32_t y1)   /* lit pixels at x 100
     return n;
 }
 
-static uint32_t fm_sidebands_lit(void)               /* lit pixels above the graph's baseline, outside the carrier */
-{
-    uint32_t y, x, yb = 0, n = 0;
-    for (y = Y_GRAPH; y < 240u && !yb; y++) {         /* the baseline: a row lit across x 100..235 */
-        uint32_t c = 0;
-        for (x = 100u; x < 236u; x++)
-            c += fb[y * 240u + x] == C_INK;
-        if (c >= 130u)
-            yb = y;
-    }
-    for (y = yb > 60u ? yb - 60u : 0u; y < yb; y++)
-        for (x = 100u; x < 236u; x++)
-            if (x != 117u && x != 118u)
-                n += fb[y * 240u + x] == C_INK;
-    return yb ? n : 0xFFFFFFFFu;
-}
 
 static void test_fm_screens(void)
 {
@@ -6516,11 +6454,6 @@ static void srec_turn(uint32_t knob, int32_t d)      /* one detent, 0.1 s after 
     ui_frame();
 }
 
-/* ---- ACID plan B: the display (spec §7) */
-static uint16_t gpx(int32_t x, int32_t gy)          /* the screen pixel at x, graph row gy */
-{
-    return fb[(uint32_t)(Y_GRAPH + G_OY + gy) * 240u + (uint32_t)x];
-}
 static void acid_line(track_t *t)                    /* C4 ACC, D4 SLIDE, E4, TIE, G4 RATCH 2, a rest */
 {
     memset(t->step, 0, sizeof t->step);
@@ -6535,41 +6468,6 @@ static void acid_line(track_t *t)                    /* C4 ACC, D4 SLIDE, E4, TI
     t->step[4].on = 1;
     t->step[4].nt = 7;
     t->step[4].rat = 1;
-}
-
-/* fix round 1: the roll's view (the coordinator's ruling): the 24-row window holding the most of the bank's sounding
- * notes (a TIE counts its source's), the lowest of equals, kept while it holds as many as the best; step record
- * shifts it only as far as the cursor's sounding note needs (a rest: nothing); neither the playhead nor a KEYS key
- * moves it (a key outside: the strip's edge row lit) */
-static void roll_notes(track_t *t, const int8_t *nt, uint32_t n)   /* steps 1..n ON at C4 + nt; 99: a TIE, 100: a rest */
-{
-    uint32_t i;
-    memset(t->step, 0, sizeof t->step);
-    for (i = 0; i < n; i++) {
-        t->step[i].tie = nt[i] == 99;
-        t->step[i].on = nt[i] < 99;
-        t->step[i].nt = (int8_t)(nt[i] < 99 ? nt[i] : 0);
-    }
-}
-static int32_t acid_peak_x(void)                    /* the leftmost lit x (100..235) above the 0 dB line; -1 none */
-{
-    uint32_t x, y;
-    for (x = 100u; x < 236u; x++)
-        for (y = Y_GRAPH + G_OY + 2u; y < Y_GRAPH + G_OY + ACID_GY; y++)
-            if (fb[y * 240u + x] == C_INK)
-                return (int32_t)x;
-    return -1;
-}
-static uint32_t acid_hi(uint32_t y0, uint32_t y1)   /* the curve's pixels at x 110..235 (past the first 10 px) of
-                                                     * graph rows y0..y1: ink with an ink neighbour (dotted lines'
-                                                     * pixels have none) */
-{
-    uint32_t n = 0, x, y;
-    for (y = Y_GRAPH + G_OY + y0; y < Y_GRAPH + G_OY + y1; y++)
-        for (x = 110u; x < 236u; x++)
-            n += fb[y * 240u + x] == C_INK && (fb[y * 240u + x - 1u] == C_INK || fb[y * 240u + x + 1u] == C_INK ||
-                                              fb[(y - 1u) * 240u + x] == C_INK || fb[(y + 1u) * 240u + x] == C_INK);
-    return n;
 }
 
 /* ---- ACID plan B: the final review's fixes */
@@ -6628,17 +6526,6 @@ static void test_keys_live_rec_len_cut(void)
     ui_frame();
 }
 
-/* final review 6: KEYS, STEP, a drum track: "REC: STEP RECORD" only where a REC tap starts it (stopped); playing (a REC
- * tap arms the track): KEYS alone */
-static uint32_t hint_lit(int32_t x0)               /* the STEP grid's hint row (graph y 84..95) lit from x0 */
-{
-    uint32_t n = 0;
-    int32_t x, y;
-    for (y = 84; y < 96; y++)
-        for (x = x0; x < 239; x++)                   /* (x 239: the frame's edge) */
-            n += gpx(x, y) == C_INK;
-    return n;
-}
 
 /* final review 8 (plan rulings: the sequencer and a key on one ACID voice): rests leave a key's gate open; an ON step
  * takes the voice over (its gate counts); the sequencer's gate closes while the key is still held; the release then
@@ -6805,14 +6692,6 @@ static void test_prio_sound_list(void)
     check("PRIO: ... and HIGH again", TSEL->p[P_PRIO] == 0);
 }
 
-static uint32_t head_alert(int32_t x0, int32_t x1)   /* the CPU chip's pixels (BG on the ink bar), rows 3..11 */
-{
-    uint32_t x, y, n = 0;
-    for (y = 3; y < 12u; y++)
-        for (x = (uint32_t)x0; x <= (uint32_t)x1; x++)
-            n += fb[y * 240u + x] == C_BG;
-    return n;
-}
 
 /* ---- PRESETS (plan 2026-10-19-presets Task 3): the encoder's popup, the list on a long EDIT, the preset's name and
  * the edited mark; the screens in build/ui_shots/presets/ */
@@ -7438,50 +7317,12 @@ static void test_model_names(void)
     check("every engine's name: 1..5 characters, the engine view's title (DMODELS) = N_MODEL", okl);
 }
 
-/* s in F3 at 2x somewhere in the graph's area (the preset's band included), whole and 2 px clear of any other ink */
-static int graph_has_text(const char *s)
-{
-    uint32_t w = (uint32_t)md_text_w(&MD_F3, 2, s) + 4u, h = 14u, x0, y0, x, y;
-    int ok;
-    cv_begin(w, h, C_BG);
-    md_text(2, 2, &MD_F3, 2, s, C_INK);
-    for (y0 = Y_GRAPH; y0 + h <= Y_GRAPH + H_GRAPH; y0++)
-        for (x0 = 0; x0 + w <= 240u; x0++) {
-            for (ok = 1, y = 0; y < h && ok; y++)
-                for (x = 0; x < w && ok; x++)
-                    ok = (fb[(y0 + y) * 240u + x0 + x] == C_INK) == (cv_px[y * w + x] == swap16(C_INK));
-            if (ok)
-                return 1;
-        }
-    return 0;
-}
 
 /* ------------------------------------------------------------------ voicegraph (owner 2026-10-22) --- */
 /* every engine view as FM's / ACID's / BDTRX's: the name left (F3 4x), "#NN/45" under it, VOICES / CHOKE under
  * that, the graph right (x 100..235); a model with no graph of its own draws its rendered hit (ui_draw.c vg_step): the
  * voice's real sound, offline, on a scratch track, as min / max columns */
 
-/* s in F3 at scale sc in the graph's area, whole and 2 px clear of any other ink: 1, its top-left in *px, *py (the
- * first such place, top to bottom) */
-static int graph_text_at(const char *s, uint32_t sc, uint32_t *px, uint32_t *py)
-{
-    uint32_t w = (uint32_t)md_text_w(&MD_F3, sc, s) + 4u, h = MD_F3.h * sc + 4u, x0, y0, x, y;
-    int ok;
-    cv_begin(w, h, C_BG);
-    md_text(2, 2, &MD_F3, sc, s, C_INK);
-    for (y0 = Y_GRAPH; y0 + h <= Y_GRAPH + H_GRAPH; y0++)
-        for (x0 = 0; x0 + w <= 240u; x0++) {
-            for (ok = 1, y = 0; y < h && ok; y++)
-                for (x = 0; x < w && ok; x++)
-                    ok = (fb[(y0 + y) * 240u + x0 + x] == C_INK) == (cv_px[y * w + x] == swap16(C_INK));
-            if (ok) {
-                *px = x0 + 2u;
-                *py = y0 + 2u;
-                return 1;
-            }
-        }
-    return 0;
-}
 
 static int vg_drawn(uint32_t mi) { return mi != DM_FM && mi != DM_ACID && mi != DM_KTRX; }   /* (the rendered hit's) */
 
@@ -7503,7 +7344,6 @@ static void engine_view_ready(void)                  /* a frame (the render star
     ui_frame();
 }
 
-static void vg_label(char *b, size_t n) { snprintf(b, n, "HIT / %u MS", (unsigned)vg.span); }
 
 static void graph_copy(uint16_t *d) { memcpy(d, fb + Y_GRAPH * 240u, 240u * H_GRAPH * sizeof fb[0]); }
 
@@ -8567,16 +8407,7 @@ static void test_lock_step_page(void)
           s->on && s->cond == cond_store(19) && s->rat == 1u && s->acc && mo.b.count == 0u);
 }
 
-/* ---- locks shown (spec 2026-10-24): the footer's underline under a locked step in STEPS; MOTION's counts */
-static uint32_t trig_x(uint32_t i) { return 6u + i * 14u + i / 4u * 2u; }   /* (draw_foot: cv_trigs at x 6, y 5) */
-static int lock_mark(uint32_t i)                     /* the underline under trig box i (bank-relative) */
-{
-    uint16_t ink = fb[(Y_TRIG + 5u) * 240u + trig_x(i)];   /* (the box's top-left: ink) */
-    uint32_t x, n = 0;
-    for (x = 0; x < 10u; x++)
-        n += fb[(Y_TRIG + 17u) * 240u + trig_x(i) + x] == ink;
-    return n == 10u;
-}
+   /* (draw_foot: cv_trigs at x 6, y 5) */
 
 /* device test 2026-10-25 ("ENV acts only from the second push"): the FM-1's tick counter has any low bits at a press
  * (the host's advance in steps of 24000: bit 1 always 0); ENV, and OCT- clearing a held step's locks, act on one

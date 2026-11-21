@@ -106,12 +106,6 @@ static void cv_begin_win(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_
 
 static void cv_blit(uint32_t x, uint32_t y) { lcd_blit(x + (uint32_t)cv_wx, y + (uint32_t)cv_wy, cv_w, cv_h, cv_px); }
 
-/* canvas rows r0 .. cv_h-1 only, to screen row y + r0 (a whole canvas) */
-static void cv_blit_from(uint32_t x, uint32_t y, uint32_t r0)
-{
-    if (r0 < cv_h)
-        lcd_blit(x, y + r0, cv_w, cv_h - r0, cv_px + r0 * cv_w);
-}
 
 static inline void cv_pset(int32_t x, int32_t y, uint16_t c)
 {
@@ -417,15 +411,6 @@ static void cv_trigs(int32_t x0, int32_t y, uint32_t n, uint32_t on16, uint32_t 
     }
 }
 
-/* parameter locks (spec 2026-10-24): under each of the first n trigs whose bit is set in mask16, a 10 x 1 px
- * underline at y + 12 (under the box, rows y..y+9, and the playhead's outline, to y+11; over the beat dot, y+14) */
-static void cv_lock_marks(int32_t x0, int32_t y, uint32_t n, uint32_t mask16, uint16_t ink)
-{
-    int32_t i;
-    for (i = 0; i < (int32_t)n && i < 16; i++)
-        if ((mask16 >> i) & 1u)
-            cv_rect(x0 + i * 14 + (i / 4) * 2, y + 12, 10, 1, ink);
-}
 
 /* one-shot text boxes keep the names the frozen main.c uses (crash, UBOOT; tools/check_untouched.py): FONT_S / FONT_L
  * are MD_F3 at 2x / 4x, C_BLACK / C_WHITE the frozen screens' colours (they stay black and white) */

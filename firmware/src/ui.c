@@ -48,27 +48,14 @@ static void preset_user_delete(uint32_t slot);
 enum { CV_NORM, CV_HOT, CV_DIM };              /* a knob cell's value: plain, touched (inverted), inactive (dithered) */
 #define HOT(c) ((c) == ui.hot_col && ui.hot_t ? CV_HOT : CV_NORM)
 #define RATIO(d, v) ((d)->max > (d)->min ? (enum_rank((d), (int32_t)(v)) - (d)->min) * 1000 / ((d)->max - (d)->min) : -1)
-/* layout A (spec 2026-10-19-md-ui §5): top bar 0..15, knob row 17..59, rule 60, graph 61..180 (a 20-row band over
- * the 100-row graph proper), trig strip 181..211 (dotted rule on its first row), breadcrumb 212..239 */
+/* layout A (spec 2026-10-19-md-ui §5), what is left of it since FREITAKT's LIST pages: top bar 0..15, the old knob
+ * row 17..59 (PERFORM's columns), the graph band 61..180 (PERFORM's map, the PRESETS popup) */
 #define Y_HEAD 0
 #define H_HEAD 16
 #define Y_KNOB 17
 #define H_KNOB 43
 #define Y_GRAPH 61
 #define H_GRAPH 120
-#define LTR_N 108u                     /* LFO pages: a half's wave / trail width (one cycle; ui_draw.c graph_lfo) */
-#define LG_X0 6u                       /* .. its x in the half */
-#define LG_CY 46                       /* .. the zero line (graph y) and the full swing */
-#define LG_A 30
-#define G_OY 20
-#define Y_TRIG 181
-#define H_TRIG 31
-#define Y_CRUMB 212
-#define H_CRUMB 28
-#define Y_LABEL Y_KNOB                 /* the old column's rows, until the knob cells (Task 5) */
-#define Y_VALUE (Y_KNOB + 18)
-#define Y_GAUGE (Y_KNOB + 38)
-#define Y_SEP_END (Y_KNOB + H_KNOB)
 
 static struct {
     uint8_t home;                /* HOME's second mode shown: the HOME screen (spec §3) */
@@ -107,11 +94,6 @@ static struct {
     uint8_t enc_c[NE];           /* knob acceleration: the turn's carried sixteenths of a step (ui_input.c accel) */
     char col[4][32];
     uint32_t graph_sig, head_sig, msg_sig, tempo_sig, col_sig, frame;
-    uint8_t graph_top;
-    int16_t tr[2][LTR_N];        /* LFO pages, random waves: each LFO's trail (a ring, newest at tr_h - 1) */
-    uint8_t tr_h[2], tr_n[2];
-    uint32_t tr_ph[2], tr_key[2], tr_frame;   /* the phase at the last point; what the trail is of; the frame they
-                                               * were fed */
     uint8_t lfo_l;               /* LFO pages: the LFO whose knob was turned last (OCT+ cycles its RATE MODE) */
     uint8_t persist_pending;     /* a settings save asked for while playing: written once stopped (project.c) */
     uint32_t fx_t0;              /* PERFORM: FX's press time | FX_DOWN / FX_OPEN / FX_DEAD (ui_input.c fx_layer) */
