@@ -26,6 +26,10 @@ static const page_t PAGES[] = {
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 12, SND_SLOT + 13, SND_SLOT + 14, SND_SLOT + 15}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 16, SND_SLOT + 17, SND_SLOT + 18, SND_SLOT + 19}},   /* SAMPLE:
                                                                                 * ATK SUS REL LOOP */
+    /* ARP / RTRG (seq.c roll_*): after the SOUND pages in EDIT's cycle (ARP + EDIT: here at once, ui_input.c); the
+     * second ARP's only (hidden on a drum: page_hidden) */
+    {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_AMODE, P_ARATE, P_AGATE, P_AFADE}},
+    {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_ADIR, P_ACHORD, P_ARANGE, 0xFF}},
     {"LAYER", FAM_LAY, SC_TRACK, GR_NONE, {P_LSET, P_LKEY, P_LLEVEL, P_LTUNE}},
     {"LAYER", FAM_LAY, SC_TRACK, GR_NONE, {P_LDEC, 0xFF, 0xFF, 0xFF}},
     {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FTYPE, P_FCUT, P_FRESO, P_FENV}},   /* filter.c */

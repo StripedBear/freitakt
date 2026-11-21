@@ -115,8 +115,8 @@ static void test_sound_pages(void)
     edit_next();
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
-    check("EDIT page 1 (C808): MODEL TUNE DECAY TONE; 3 pages",
-          n == 3u && k == 1u && page_id(pg, 0) == P_MODEL && page_id(pg, 1) == P_E0 && page_id(pg, 3) == P_E2);
+    check("EDIT page 1 (C808): MODEL TUNE DECAY TONE; 4 pages (FREITAKT: ARP's first, a drum's)",
+          n == 4u && k == 1u && page_id(pg, 0) == P_MODEL && page_id(pg, 1) == P_E0 && page_id(pg, 3) == P_E2);
     snap_page("engines/zz_c808_edit_1");
     edit_next();
     pg = cur_page();
@@ -127,8 +127,13 @@ static void test_sound_pages(void)
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
     check("EDIT page 3: CHOKE PRIO, nothing else (no MUTE)", page_id(pg, 0) == P_CHOKE && page_id(pg, 1) == P_PRIO &&
-                                                               page_id(pg, 2) == 0xFFu && k == 3u && n == 3u);
+                                                               page_id(pg, 2) == 0xFFu && k == 3u && n == 4u);
     snap_page("engines/zz_c808_edit_3");
+    edit_next();
+    pg = cur_page();
+    n = fam_pages(FAM_SND, &k);
+    check("EDIT page 4 (FREITAKT): ARP MODE RATE GATE FADE (a drum: its DIR CHORD RANGE page hidden)",
+          str_eq(pg->title, "ARP") && page_id(pg, 0) == P_AMODE && page_id(pg, 3) == P_AFADE && k == 4u && n == 4u);
     edit_next();
     n = fam_pages(FAM_SND, &k);
     check("EDIT again: back to page 1", k == 1u);
@@ -137,6 +142,7 @@ static void test_sound_pages(void)
     pg = cur_page();
     check("K909 page 2: CLICK SWPT DRIVE LVL (its extras before LVL)",
           page_id(pg, 0) == P_E3 && page_id(pg, 1) == P_E4 && page_id(pg, 2) == P_E5 && page_id(pg, 3) == P_LEVEL);
+    edit_next();
     edit_next();
     edit_next();
     turn(EN_K1, 1);
@@ -231,8 +237,8 @@ static void test_select_pages(void)
     tap(B_EDIT);                                     /* SOUND 1/3 .. 3/3; page 4 is empty for every engine: skipped */
     for (k = 0; k < 6u; k++)
         sel(1);
-    check("SELECT on EDIT: stops on the engine's last SOUND page (empty pages skipped)",
-          str_eq(cur_page()->title, "SOUND") && fam_pages(FAM_SND, &pos) == pos && !page_hidden(ui.page));
+    check("SELECT on EDIT: stops on the family's last page, ARP (FREITAKT; empty SOUND pages skipped)",
+          str_eq(cur_page()->title, "ARP") && fam_pages(FAM_SND, &pos) == pos && !page_hidden(ui.page));
     tap(B_OCTUP);                                    /* the layer */
     sel(1);
     check("SELECT in the layer: LAYER 2/2", str_eq(cur_page()->title, "LAYER") && page_id(cur_page(), 0) == P_LDEC);
@@ -1569,6 +1575,58 @@ static void test_arp_solo(void)
     release_all();
     ui_frame();
     check("ARP let go: no page change", ui.home);
+}
+/* FREITAKT ARP + EDIT: ARP held, EDIT: the selected track's ARP page (MODE RATE GATE FADE), again: ARP 2/2 (DIR CHORD
+ * RANGE, a pitched model's), again: back to 1/2; a drum's stays on 1/2; the SOLO keys still work with it */
+static void test_arp_edit_page(void)
+{
+    const page_t *pg;
+    uint32_t k, n;
+    ui_host_init();
+    old_set_model(&trk[0], DM_ACID);
+    song.sel = 0;
+    press(B_ARP);
+    btn_hold_frames(B_ARP, 3);
+    press(B_EDIT);
+    fm1_in.buttons |= 1u << panel.btn[B_ARP];
+    ui_frame();
+    fm1_in.buttons = 1u << panel.btn[B_ARP];
+    ui_frame();
+    pg = cur_page();
+    check("ARP + EDIT: the ARP page (MODE RATE GATE FADE)", !ui.home && str_eq(pg->title, "ARP") &&
+          page_id(pg, 0) == P_AMODE && page_id(pg, 1) == P_ARATE && page_id(pg, 2) == P_AGATE && page_id(pg, 3) == P_AFADE);
+    press(B_EDIT);
+    fm1_in.buttons |= 1u << panel.btn[B_ARP];
+    ui_frame();
+    fm1_in.buttons = 1u << panel.btn[B_ARP];
+    ui_frame();
+    pg = cur_page();
+    n = fam_pages(FAM_SND, &k);
+    check("ARP + EDIT again (ACID): ARP 2/2, DIR CHORD RANGE", page_id(pg, 0) == P_ADIR && page_id(pg, 1) == P_ACHORD &&
+          page_id(pg, 2) == P_ARANGE && k == n);
+    btn_key(B_ARP, SOLO_BK[1]);
+    check("ARP + black key 2 on the ARP page: still SOLO (track 2), the page stays", song.solo == 1u << 1 &&
+          page_id(cur_page(), 0) == P_ADIR);
+    btn_key(B_ARP, SOLO_BK[1]);
+    release_all();
+    ui_frame();
+    ui_frame();
+    check("ARP let go after ARP + EDIT: the page stays, nothing soloed", page_id(cur_page(), 0) == P_ADIR && !song.solo);
+    turn(EN_K1, 2);
+    ui_frame();
+    check("ARP page KNOB 1 (DIR) turns the track's DIR", trk[0].p[P_ADIR] == 2);
+    old_set_model(&trk[0], DM_K808);
+    ui_frame();
+    check("a drum: ARP 2/2 hidden, the ARP page 1/2 shown", page_id(cur_page(), 0) == P_AMODE);
+    turn(EN_K1, 5);
+    ui_frame();
+    check("a drum: MODE goes OFF / RTRG only", trk[0].p[P_AMODE] == 1);
+    press(B_EDIT);
+    fm1_in.buttons |= 1u << panel.btn[B_ARP];
+    ui_frame();
+    release_all();
+    ui_frame();
+    check("ARP + EDIT on a drum: stays on ARP 1/2", page_id(cur_page(), 0) == P_AMODE);
 }
 /* SEL + black 1..6: track 1..6 selected (on every page), the selected one's black key lit while SEL is held; a SEL
  * tap with no key: KEYS on / off, on the release */
@@ -10233,6 +10291,7 @@ int main(void)
     test_quick_mute();
     test_glo_keys();
     test_arp_solo();
+    test_arp_edit_page();
     test_sel_select();
     test_seq_mute();
     test_combo_refused();

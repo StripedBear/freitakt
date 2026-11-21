@@ -799,6 +799,25 @@ static void mod_keys(uint32_t hits)                    /* the keys the ISR gave 
         ui_message(solo_mom ? "SOLO: MOMENTARY" : "SOLO: TOGGLE");
     }
 }
+/* ARP + EDIT (ARP held, its keys its own: not in the menu, a confirm, NAME, the PRESETS list, TOOLS, with the PERFORM
+ * layer up or FX held): the selected track's ARP page, again ARP 2/2 (a pitched model's) and back; returns 1 if so */
+static int arp_edit(void)
+{
+    uint32_t i = page_first(FAM_SND);
+    if (!((fm1_in.buttons >> panel.btn[B_ARP]) & 1u) || (ui.arp_t0 & (MOD_DEAD | MOD_PLAIN)) || mod_dead() ||
+        ui.layer || ui.fx_t0)
+        return 0;
+    while (i < NPAGES && PAGES[i].id[0] != P_AMODE)
+        i++;
+    if (!ui.home && ui.page == i && !page_hidden(i + 1u))
+        i++;
+    ui.arp_t0 |= ui.arp_t0 ? MOD_KEY : 0u;
+    ui.page = (uint8_t)i;
+    ui.fam_last[FAM_SND] = ui.page;
+    ui.home = 0;
+    page_entered();
+    return 1;
+}
 static void mute_ups(void)                             /* SOLO MOMENTARY: an ARP solo key let go (ARP held or not)
                                                         * unsolos */
 {
@@ -1346,6 +1365,10 @@ static void ui_input(void)
         if (!((pressed >> id) & 1u))
             continue;
         b = panel_btn_of(id);
+        if (b == B_EDIT && arp_edit()) {                /* ARP held: the ARP page (no step record rest, no PRESETS) */
+            ui.pr.e_st = 2;
+            continue;
+        }
         if (ui.srec && b == B_EDIT) {                   /* step record: a rest, the cursor on */
             srec_rest();
             ui.pr.e_st = 2;                             /* (held: no PRESETS list) */

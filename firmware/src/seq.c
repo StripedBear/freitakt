@@ -205,9 +205,11 @@ static uint32_t hit_gate_len(const track_t *t)
     return acid_gate_len(t, trk_period(t, 0));
 }
 
+static uint32_t ar_glen;   /* ARP / RTRG: a roll's hit being played, its gate (samples): smpl_gate_len, ACID; 0 none */
 /* dm_sample.c: a SAMPLE hit's gate, one step of the track at the tempo now (a block more: a TIE step at the step's end
  * finds it open) */
-static uint32_t smpl_gate_len(const track_t *t) { return trk_period(t, 0) + CTL; }
+static uint32_t smpl_gate_len(const track_t *t) { return ar_glen ? ar_glen : trk_period(t, 0) + CTL; }   /* (a roll's
+                                                                                * hit: GATE of its repeat) */
 
 /* the gate of the voice the track's model started closes now (its release); gate_n 0 */
 static void acid_gate_off(track_t *t)
@@ -240,6 +242,7 @@ static __attribute__((noinline)) void rep_take(track_t *t, uint32_t k)
     rp.nt[k] = (int8_t)(on ? clamp(s->nt, NT_MIN, NT_MAX) : t->nt);
     rp.vel[k] = (uint8_t)(on && s->acc ? 127u : 96u);
     t->rat_n = 0;
+    t->ar_on = 0;
     if (t->gate_n == GATE_HELD)
         acid_gate_off(t);
 }
@@ -299,6 +302,124 @@ static __attribute__((noinline)) void acid_gates_close(void)
     }
 }
 
+/* ARP / RTRG (spec 2026-11-20 "Arp / Retrig"): a track's MODE (P_AMODE; a step's lock too, MODE included) turns a step's
+ * hit into a roll: RTRG repeats it, ARP plays the step's note spread by CHORD over RANGE octaves in DIR's order, a
+ * repeat every RATE (a whole note / ARATE_D) of the step as it plays: its swing's long / short steps stretch and squeeze
+ * the repeats with them (FIT, any division: RATE's share of the step's own num / den beats), so they stay on the step's
+ * grid at any tempo and clock. It runs from the hit until the step ends, through the TIE steps after it, or until the
+ * next hit (a rest, a skipped step, REPEAT STEP, a restart: over). FADE ramps each repeat's velocity (- down to
+ * silence, + up from quiet to the hit's), GATE a repeat's length for the gated models (ACID's gate, a SAMPL note with
+ * SUS). Its knobs as they were at the hit (a locked step's own). The track's voices, as RATCH (which a roll replaces:
+ * its RATCH plays one hit). ARP: a pitched model's only (arp_model; a drum's ARP plays RTRG) */
+static const uint8_t ARATE_D[7] = {4, 6, 8, 12, 16, 24, 32};   /* N_ARATE: RATE's repeats a whole note */
+static const uint8_t ARP_CHORD[8][4] = {{0}, {0, 7}, {0, 4, 7}, {0, 3, 7}, {0, 5, 7}, {0, 4, 7, 11}, {0, 3, 7, 10},
+                                        {0, 4, 7, 10}};   /* N_ACHORD: OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 */
+static const uint8_t ARP_CN[8] = {1, 2, 3, 3, 3, 4, 4, 4};   /* .. their notes */
+
+/* MODE of the hit to play (its step's locks applied): 0 OFF, 1 RTRG, 2 ARP (the hit's model a drum: RTRG) */
+static uint32_t roll_mode(const track_t *t)
+{
+    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 2);
+    return m == 2u && !arp_model(voice_model(t)) ? 1u : m;
+}
+/* the next repeat's place: RATE's share of the playing step (cur_len samples, swung), its remainder carried (ar_fr) */
+static void roll_next(track_t *t, uint32_t cur_len)
+{
+    uint32_t den, num = trk_num_den(t, &den), b = (uint32_t)ARATE_D[t->ar_rate % 7u] * num, q, iv;
+    if (t->ar_fr >= b)
+        t->ar_fr = 0;                                /* (DIV or LEN changed meanwhile) */
+    q = cur_len * 4u * den + t->ar_fr;
+    iv = q / b;
+    t->ar_fr = q % b;
+    t->ar_at += (int32_t)(iv ? iv : 1u);
+}
+/* the roll's next note: RTRG the step's; ARP the note at its place ar_i (UP, DOWN, UPDN: up and down, the ends once;
+ * RND: any), ar_i moved on */
+static int32_t roll_note(track_t *t)
+{
+    uint32_t c = t->ar_chord & 7u, cn = ARP_CN[c], n = cn * t->ar_range, per, p, i;
+    if (!t->ar_arp)
+        return t->ar_nt;
+    per = t->ar_dir == 2u && n > 1u ? 2u * n - 2u : n;
+    p = t->ar_i % per;
+    t->ar_i = (uint8_t)((p + 1u) % per);
+    if (t->ar_dir == 3u) {
+        t->ar_rng = t->ar_rng * 1664525u + 1013904223u;
+        i = ((t->ar_rng >> 16) * n) >> 16;
+    } else {
+        i = t->ar_dir == 1u ? n - 1u - p : p < n ? p : per - p;
+    }
+    return t->ar_nt + ARP_CHORD[c][i % cn] + 12 * (int32_t)(i / cn);
+}
+/* FADE: the velocity of the roll's hit ar_k (0: the step's own), below 1 not played */
+static int32_t roll_vel(const track_t *t)
+{
+    int32_t v = t->ar_vel, f = t->ar_fade, k = t->ar_k, u;
+    if (f >= 0) {
+        u = v - v * f / 64 + k * f / 4;
+        return u < v ? u : v;
+    }
+    return v + k * f / 4;
+}
+/* GATE: a hit's length for the gated models, of the time to the next (iv samples), a block at least */
+static uint32_t roll_gate(const track_t *t, uint32_t iv)
+{
+    uint32_t g = iv / 100u * t->ar_gate;
+    return g > CTL ? g : CTL;
+}
+/* the step's hit is about to play (note nt, velocity *vel): its MODE starts its roll, or none; returns the hit's note
+ * (ARP's first), *vel FADE's first; ar_glen its gate (the caller clears it) */
+static int32_t roll_begin(track_t *t, int32_t nt, uint32_t *vel)
+{
+    uint32_t m = roll_mode(t);
+    int32_t v;
+    t->ar_on = 0;
+    if (!m)
+        return nt;
+    t->ar_on = 1;
+    t->ar_arp = (uint8_t)(m == 2u);
+    t->ar_nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
+    t->ar_vel = (uint8_t)*vel;
+    t->ar_fade = (int8_t)clamp(t->p[P_AFADE], -64, 63);
+    t->ar_rate = (uint8_t)clamp(t->p[P_ARATE], 0, 6);
+    t->ar_gate = (uint8_t)clamp(t->p[P_AGATE], 1, 100);
+    t->ar_dir = (uint8_t)clamp(t->p[P_ADIR], 0, 3);
+    t->ar_chord = (uint8_t)clamp(t->p[P_ACHORD], 0, 7);
+    t->ar_range = (uint8_t)clamp(t->p[P_ARANGE], 1, 4);
+    t->ar_k = 0;
+    t->ar_i = 0;
+    t->ar_at = 0;
+    t->ar_fr = 0;
+    v = roll_vel(t);
+    *vel = (uint32_t)(v < 1 ? 1 : v);
+    t->ar_k = 1;
+    roll_next(t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));
+    ar_glen = roll_gate(t, (uint32_t)t->ar_at);
+    return roll_note(t);
+}
+/* the roll's hits whose time has come (cur_len: the playing step's length); one due past the step's end waits for the
+ * next step (a TIE goes on with it) */
+static __attribute__((noinline)) void roll_due(track_t *t, uint32_t cur_len)
+{
+    while (t->ar_on && t->seq_pos < 0x7FFFFFFFu && t->ar_at <= (int32_t)t->seq_pos && t->ar_at < (int32_t)cur_len) {
+        int32_t at = t->ar_at, v = roll_vel(t), nt = roll_note(t);
+        roll_next(t, cur_len);
+        if (t->ar_k < 255u)
+            t->ar_k++;
+        if (v < 1) {                                 /* FADE: faded out (down: for good) */
+            t->ar_on = (uint8_t)(t->ar_fade > 0);
+            continue;
+        }
+        ar_glen = roll_gate(t, (uint32_t)(t->ar_at - at));
+        drum_play(t, (uint32_t)v, nt);
+        if (trk_model(t)->gate) {
+            t->gate_n = ar_glen;                     /* ACID: each its gate */
+            t->slide_in = 0;
+        }
+        ar_glen = 0;
+    }
+}
+
 /* the step after the playing one (LEN wraps) */
 static const step_t *seq_next(const track_t *t)
 {
@@ -323,7 +444,8 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
 {
     const dmodel_t *m = trk_model(t);
     dvoice_t *v = &t->v[0];
-    uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, held;
+    uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u, held, vel;
+    int32_t nt;
     int plays;
     model_follow(t);                                   /* a model changed this block: not its old voice's gate */
     held = v->active && (v->x[2] & 1);
@@ -344,20 +466,25 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
         t->slide_in = 0;
         return;
     }
-    t->rat_vel = (uint8_t)(s->acc ? 127u : 96u);
+    vel = s->acc ? 127u : 96u;
+    nt = roll_begin(t, s->nt, &vel);                   /* ARP / RTRG: its roll (ARP's first note, FADE's velocity) */
+    t->rat_vel = (uint8_t)vel;
     if (held && t->slide_in) {
-        t->nt = (int8_t)clamp(s->nt, NT_MIN, NT_MAX);
+        t->nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
         v->vel = t->rat_vel;                           /* glide reads it: the slid-to step's accent */
         m->glide(t, v);
     } else {
-        drum_play(t, t->rat_vel, s->nt);
+        drum_play(t, t->rat_vel, nt);
     }
     t->rat_nt = t->nt;                                 /* the roll's note (rat_due) */
     t->slide_in = s->slide;
-    t->rat_n = (uint8_t)(s->rat < 3u ? s->rat + 1u : 4u);
+    t->rat_n = (uint8_t)(t->ar_on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
     t->rat_k = 1;
     t->rat_len = len_s;
     acid_gate_set(t, next);
+    if (t->ar_on)
+        t->gate_n = ar_glen;                           /* a roll's hit: GATE of its repeat, never held */
+    ar_glen = 0;
 }
 
 /* the step that came up: decided once (step_plays), then RATCH hits spread over its length len_s, the first
@@ -366,9 +493,14 @@ static void step_fire(track_t *t, uint32_t len_s)
 {
     const step_t *s = &t->step[t->seq_idx];
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
+    uint32_t vel;
+    int32_t nt;
     t->rat_off = 0;                                 /* (a nudged hit's roll: its callers set where it began) */
+    if (!s->tie)
+        t->ar_on = 0;                               /* ARP / RTRG: a roll goes on through TIE steps only */
     if ((rp.on >> trk_index(t)) & 1u) {             /* REPEAT STEP holds the track: its steps paused */
         t->rat_n = 0;
+        t->ar_on = 0;
         return;
     }
     if (trk_model(t)->gate) {
@@ -376,14 +508,17 @@ static void step_fire(track_t *t, uint32_t len_s)
         return;
     }
     t->rat_n = 0;
-    if (s->tie)
-        smpl_tie(t, len_s);                         /* (a SAMPLE note with SUS: held through it) */
+    if (s->tie && !t->ar_on)
+        smpl_tie(t, len_s);                         /* (a SAMPLE note with SUS: held through it; a roll's not) */
     if (!s->on || s->tie || !step_plays(t, s, len))
         return;
-    t->rat_vel = (uint8_t)(s->acc ? 127u : 96u);
-    drum_play(t, t->rat_vel, s->nt);
+    vel = s->acc ? 127u : 96u;
+    nt = roll_begin(t, s->nt, &vel);                /* ARP / RTRG: its roll (ARP's first note, FADE's velocity) */
+    t->rat_vel = (uint8_t)vel;
+    drum_play(t, vel, nt);
+    ar_glen = 0;
     t->rat_nt = t->nt;
-    t->rat_n = (uint8_t)(s->rat < 3u ? s->rat + 1u : 4u);
+    t->rat_n = (uint8_t)(t->ar_on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
     t->rat_k = 1;
     t->rat_len = len_s;
 }
@@ -798,7 +933,9 @@ static void seq_start(void)
         t->seq_par = 0;
         t->rskip = 0;
         t->rat_n = 0;
+        t->ar_on = 0;
         t->rng = 0x9E3779B9u * (i + 1u);           /* PROB: the same variations after every PLAY */
+        t->ar_rng = 0x2545F491u * (i + 1u);        /* ARP RND: the same notes after every PLAY */
     }
     gclk.pos = 0x7FFFFFFF;                          /* the first 1/16 on the first block too */
     gclk.cnt = 0xFFFFFFFFu;
@@ -860,6 +997,7 @@ static __attribute__((noinline)) void mic_due(track_t *t, uint32_t cur)
     motion_step(t, t->seq_idx, MS_LOCK);
     step_fire(t, cur - at);
     t->rat_off = (int32_t)at;
+    t->ar_at += (int32_t)at;                        /* (its roll from the hit) */
 }
 
 /* MICRO: the next step nudged early: its hit (100 + micro) / 100 into the playing step (cur long; -50 halfway), played
@@ -885,6 +1023,7 @@ static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
     t->seq_idx = (uint16_t)idx;
     t->seq_cnt = cnt - 1u;
     t->rat_off = (int32_t)at;
+    t->ar_at += (int32_t)at;                        /* (its roll from the hit, in the playing step's samples) */
 }
 
 /* MICRO: t entered the step whose early hit played (prev: the step before's length): its motion (its locks hold since
@@ -916,6 +1055,8 @@ static void seq_tick(track_t *t, uint32_t n)
         if (t->mic & MIC_DUE)
             mic_due(t, cur_len);                    /* MICRO: the step's late hit */
         rat_due(t, cur_len);
+        if (t->ar_on)
+            roll_due(t, cur_len);                   /* ARP / RTRG: the roll's repeats */
         if (t->seq_pos < cur_len && t->seq_pos != 0x7FFFFFFFu + n) {
             if (t->seq_pos >= cur_len / 2u && !(t->mic & MIC_EARLY))
                 mic_early(t, cur_len);              /* MICRO: the next step's early hit (-50: halfway) */
@@ -928,6 +1069,7 @@ static void seq_tick(track_t *t, uint32_t n)
                                                      * block's rest after it, as the clock's) */
         } else {
             t->seq_pos -= cur_len;
+            t->ar_at -= (int32_t)cur_len;           /* (the roll's next repeat: in the next step's samples) */
             t->seq_rem = (uint8_t)trk_rem_next(t, t->seq_rem);
         }
         t->seq_cnt++;                               /* the step: steps since PLAY mod LEN, so a LEN change keeps
@@ -938,6 +1080,8 @@ static void seq_tick(track_t *t, uint32_t n)
             continue;
         }
         t->mic = 0;
+        if (!t->step[t->seq_idx].tie)
+            t->ar_on = 0;                           /* ARP / RTRG: the roll's step ended (a TIE: it goes on) */
         late = t->step[t->seq_idx].micro > 0 && !(t->rskip && t->rskip_idx == t->seq_idx);
         motion_step(t, t->seq_idx, late ? MS_REL | MS_MOT : MS_ALL);   /* motion.c: its knobs at this step (before
                                                      * the hit; a late hit's locks at the hit) */

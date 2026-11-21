@@ -44,6 +44,13 @@ cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-re
     -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/micro_test" tests/micro_test.c -lm   # (microtiming, record quantize: ASan + UBSan)
 "$OUT/micro_test"
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/arp_test" tests/arp_test.c -lm   # (ARP / RTRG: ASan + UBSan)
+"$OUT/arp_test"
+cc -O2 -DARP_COST -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src \
+    -o "$OUT/arp_cost" tests/arp_test.c -lm   # (.. its CPU cost: host instructions)
+"$OUT/arp_cost" > "$OUT/arp_cost.txt" 2>&1 || { grep -v "^ok" "$OUT/arp_cost.txt"; exit 1; }
+tail -6 "$OUT/arp_cost.txt"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
     -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/var_test" tests/var_test.c -lm   # (variations: ASan + UBSan)
 "$OUT/var_test"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/phys_test" tests/phys_test.c -lm

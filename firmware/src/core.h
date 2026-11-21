@@ -65,6 +65,9 @@ enum {                          /* per-track parameters */
     P_SPLAY,                     /* the SAMPLE model's PLAY (dm_sample.c): 0 KEY (as before), 1 CHOP (a hit's note picks
                                   * the set's sample); SOUND 4/5. project.c xp3 */
     P_SCUT,                      /* .. CUT: 0 OFF (as before: hits overlap), 1 ON (a hit cuts the sounding one); xp3 */
+    P_AMODE,                     /* ARP / RTRG (seq.c roll_*): MODE 0 OFF, 1 RTRG, 2 ARP (a pitched model's only: arp_model) */
+    P_ARATE, P_AGATE, P_AFADE,   /* .. RATE (N_ARATE: 1/4 .. 1/32), GATE (% of a repeat: ACID, a SAMPL with SUS), FADE */
+    P_ADIR, P_ACHORD, P_ARANGE,  /* .. ARP's DIR (UP DOWN UPDN RND), CHORD (N_ACHORD), RANGE 1..4 octaves; project.c xp4 */
     P_COUNT
 };
 #define P_NSTORED P_SRR          /* the parameters in a project's block (FDRE: P_MODEL .. P_LS4DEPTH) */
@@ -187,6 +190,15 @@ typedef struct track {
                                   * an early hit's < 0 once its own step plays) */
     uint8_t mic, mic_idx;        /* MICRO (seq.c): MIC_DUE the playing step's late hit is to come, MIC_EARLY step
                                   * mic_idx's early hit has played (the step before it playing) */
+    uint8_t ar_on, ar_arp;       /* ARP / RTRG (seq.c roll_*): a roll runs (its step's hit played: until the step ends,
+                                  * TIE steps after it too, or the next hit); it is an ARP (else RTRG) */
+    uint8_t ar_vel, ar_k, ar_i;  /* its first hit's velocity, the hits played (FADE; 255 at most), ARP's place */
+    int8_t ar_nt, ar_fade;       /* the step's note (ARP's root), FADE as at the hit */
+    uint8_t ar_rate, ar_gate;    /* RATE, GATE as at the hit */
+    uint8_t ar_dir, ar_chord, ar_range;   /* ARP's DIR CHORD RANGE as at the hit */
+    int32_t ar_at;               /* the next repeat: samples into the playing step (as rat_off) */
+    uint32_t ar_fr;              /* .. its remainder (repeats spaced exactly: roll_next) */
+    uint32_t ar_rng;             /* ARP RND's random sequence, reseeded at PLAY */
     uint16_t gfade;              /* M3 ghost key: how silenced the COMP source's sound is (0 heard .. 32767 muted) */
     lfo_state_t lfo[2];          /* LFO 1 / 2 runtime (lfo.c) */
     uint32_t lrng;               /* random generator of S&H / WANDER / RWALK, reseeded at PLAY */

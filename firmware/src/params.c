@@ -47,6 +47,12 @@ static const char *const N_PRIO[] = {"HIGH", "LOW"};                 /* P_PRIO *
 static const char *const N_SLOOP[] = {"OFF", "FWD", "PING", "LOOPI", "ONE"};   /* P_SLOOP: the SAMPLE model's LOOP
                                                                      * (dm_sample.c; stored: append only) */
 static const char *const N_SPLAY[] = {"KEY", "CHOP"};                /* P_SPLAY: the SAMPLE model's PLAY (dm_sample.c) */
+/* ARP / RTRG (seq.c roll_*; stored: append only): MODE; RATE, a repeat's length in the order of their length (whole
+ * note / ARATE_D); ARP's DIR and CHORD (ARP_CHORD's notes) */
+static const char *const N_AMODE[] = {"OFF", "RTRG", "ARP"};
+static const char *const N_ARATE[] = {"1/4", "4T", "1/8", "8T", "1/16", "16T", "1/32"};
+static const char *const N_ADIR[] = {"UP", "DOWN", "UPDN", "RND"};
+static const char *const N_ACHORD[] = {"OCT", "5TH", "MAJ", "MIN", "SUS4", "MAJ7", "MIN7", "DOM7"};
 static const char *const N_LSRC[] = {"LFO1", "LFO2"};                /* an LFO DEST slot's SRC */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR"};   /* INSERT
                                                                      * TYPE (IT_; insert.c) */
@@ -106,7 +112,18 @@ static const param_desc_t TP[P_COUNT] = {
                                                     * never released); ONE (to END whatever the gate) */
     [P_SPLAY] = PE("PLAY", N_SPLAY, 0),            /* KEY as before; CHOP: a hit's note picks the sample (chop) */
     [P_SCUT] = PE("CUT", N_ONOFF, 0),              /* OFF as before (hits overlap); ON: a hit cuts the one sounding */
+    [P_AMODE] = PE("MODE", N_AMODE, 0),            /* ARP / RTRG: OFF as before; a drum's OFF RTRG (AMODE_DRUM) */
+    [P_ARATE] = PE("RATE", N_ARATE, 4),            /* 1/16 */
+    [P_AGATE] = PD("GATE", F_PCT, 0, 100, 50),
+    [P_AFADE] = PD("FADE", F_BIPCT, -64, 63, 0),   /* each repeat's velocity: - down, + up to the hit's, 0 flat */
+    [P_ADIR] = PE("DIR", N_ADIR, 0),
+    [P_ACHORD] = PE("CHORD", N_ACHORD, 0),
+    [P_ARANGE] = PD("RANGE", F_INT, 1, 4, 1),      /* octaves */
 };
+/* MODE on a model that plays no notes (arp_model): OFF or RTRG (a stored ARP plays and shows as RTRG) */
+static const param_desc_t AMODE_DRUM = {"MODE", F_ENUM, 0, 1, 0, N_AMODE, 0};
+/* the models ARP plays (pitched: ACID, SAMPL, FM, SKIN); the drums RTRG only */
+static int arp_model(uint32_t m) { return m == DM_ACID || m == DM_SMPL || m == DM_FM || m == DM_MEMB; }
 
 /* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */
 static const param_desc_t MLEN_DESC = PD("MLEN", F_MLEN, 1, 1024, 1);
@@ -178,6 +195,8 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
         return ins_desc(t->p[P_ITYPE], id - P_IA);
     if (id >= P_E0 && id <= P_E7)
         return &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS].edit[id - P_E0];
+    if (id == P_AMODE && !arp_model((uint32_t)t->p[P_MODEL] % NMODELS))
+        return &AMODE_DRUM;
     return &TP[id];
 }
 

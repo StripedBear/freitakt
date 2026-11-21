@@ -28,7 +28,7 @@ static struct {
     uint8_t lfull;                   /* a lock found the bank full (the UI says so) */
 } mo;
 
-/* the knobs motion records: the sound (not the model, mute, choke, note, routing, timing, the LFOs' shapes); an LFO's
+/* the knobs motion records: the sound and ARP / RTRG (not the model, mute, choke, note, routing, timing, the LFOs' shapes); an LFO's
  * RATE and MORPH, a DEST slot's DEPTH (not its SRC / DEST: routing) */
 static int motion_param(uint32_t id)
 {
@@ -42,7 +42,8 @@ static int motion_param(uint32_t id)
            (id >= P_LLEVEL && id <= P_LDEC) ||
            (id >= P_FCUT && id <= P_FDEC) ||                  /* the FILTER's knobs, not its TYPE */
            id == P_SRR || (id >= P_IA && id <= P_IMIX) ||   /* SRR; the INSERT's A B C MIX, not its TYPE */
-           (id >= P_SATK && id <= P_SPLAY);                /* the SAMPLE model's ATK SUS REL LOOP (SOUND 5/5), PLAY */
+           (id >= P_SATK && id <= P_SPLAY) ||              /* the SAMPLE model's ATK SUS REL LOOP (SOUND 5/5), PLAY */
+           (id >= P_AMODE && id <= P_ARANGE);              /* ARP / RTRG: MODE too (a step's own repeats) */
 }
 /* the knobs a step can lock: the ones motion records, and MODEL (a machine lock: the step's hit plays that model with
  * the track's knobs, drum_core.c voice_model; motion never records it). ACID is no machine lock's (ACID_MAXTRK, its

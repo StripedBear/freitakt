@@ -298,6 +298,8 @@ static uint32_t srec_time(const step_t *s) { return s->tie ? 1u : s->on ? 0u : 2
 static int page_hidden(uint32_t i)
 {
     uint8_t ids[SND_N];
+    if (i < NPAGES && PAGES[i].id[0] == P_ADIR)        /* ARP's DIR CHORD RANGE: a pitched model's only */
+        return !arp_model((uint32_t)TSEL->p[P_MODEL] % NMODELS);
     if (i >= NPAGES || PAGES[i].fam != FAM_SND || PAGES[i].id[0] < SND_SLOT)
         return 0;
     return PAGES[i].id[0] - SND_SLOT >= snd_list(TSEL, ids);
