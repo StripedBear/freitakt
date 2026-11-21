@@ -343,6 +343,7 @@ await editorSite();
 await (async () => { const r = await (await import("./editor/test_tab_projects.mjs")).runProjectsTests((s) => console.log(s)); ok(!r.failed, `editor: Projects tab against the mock device (${r.passed} checks)`); })();
 await import("./editor/test_tab_presets.mjs").then(async (t) => { const r = await t.runPresetsTests((s) => console.log(s)); ok(!r.failed, `editor: Presets tab against the mock device (${r.passed} checks)`); });
 { const r = await (await import("./editor/test_tab_patterns.mjs")).runPatternTests((x) => console.log(x)); ok(!r.failed, `editor: Patterns tab against the mock device (${r.passed} checks)`); }
+{ const r = await (await import("./editor/test_midi_export.mjs")).runMidiExportTests((x) => console.log(x)); ok(!r.failed, `editor: Export MIDI, the Standard MIDI File (${r.passed} checks)`); }
 { const r = await (await import("./editor/test_tab_samples.mjs")).runSamplesTests((x) => console.log(x)); ok(!r.failed, `editor: Samples tab against the mock device (${r.passed} checks)`); }
 await packages();
 await updater();

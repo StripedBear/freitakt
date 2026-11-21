@@ -17,6 +17,7 @@ import {
 import { DeviceError } from "./link.mjs";
 import { clockGuard } from "./session.mjs";
 import { SLOTS, chooser, esc } from "./ui.mjs";
+import { buildSmf } from "./midi_export.mjs";
 
 const NTRK = LAYOUT.ntrk, NSTEP = 64, RATCH_MASK = 3 << STEP.RAT_SHIFT;
 /** the PROB codes in the knob's order on the device (device_data.json `conds`: the tests compare) */
@@ -223,6 +224,40 @@ export class PatternsModel {
     return this.reload(ALL, slotMoved ? ALL : []);
   }
   followNow() { return this.state ? this.setView(this.state.slot, this.state.var) : null; }
+  /** Export MIDI (midi_export.mjs): the .mid of the variation shown, or of a chain ("A1 A2 B3": slot letter, variation
+   * 1..8, played in order); the tracks' knobs (MODEL, NOTE, ACID's GATE, ARP / RTRG) and the globals (BPM, SWING, the
+   * MIDI OUT channels) as DUMP reports them now. MASTER LENGTH is not in the protocol: mlen (1/16s, 0 OFF) is asked.
+   * Returns { bytes, name, parts } */
+  async exportMidi({ chain = "", mlen = 0, loops = 1 } = {}) {
+    const ents = [];
+    for (const w of String(chain).toUpperCase().split(/[\s,]+/).filter(Boolean)) {
+      const mm = /^([A-D])([1-8])$/.exec(w);
+      if (!mm) throw new Error(`"${w}" is not a chain entry: a slot A..D and a variation 1..8 (A1, B3, ...)`);
+      ents.push({ slot: "ABCD".indexOf(mm[1]), var: Number(mm[2]) - 1 });
+    }
+    if (!ents.length) {
+      if (this.view.slot === NONE) throw new Error("No slot shown: nothing to export");
+      ents.push({ ...this.view });
+    }
+    const dumps = [];
+    for (let k = 0; k < NTRK; k++) dumps.push(await this.s.request(CMD.DUMP, { track: k }));
+    const g = dumps[0].g, P_ = { MODEL: 0, E7: 8, NOTE: 13, AMODE: 69 }, G_ = { BPM: 0, SWING: 1, MCH1: 33 };
+    const song = { bpm: g[G_.BPM], swing: g[G_.SWING], mlen: mlen | 0, name: ents.map((e) => `${SLOTS[e.slot]}${e.var + 1}`).join(" "),
+      tracks: dumps.map((d, k) => ({ model: d.p[P_.MODEL], note: d.p[P_.NOTE], gate: d.p[P_.E7], ch: g[G_.MCH1 + k] ?? k + 1,
+        arp: { mode: d.p[P_.AMODE], rate: d.p[P_.AMODE + 1], gate: d.p[P_.AMODE + 2], fade: d.p[P_.AMODE + 3], dir: d.p[P_.AMODE + 4],
+          chord: d.p[P_.AMODE + 5], range: d.p[P_.AMODE + 6] } })) };
+    const parts = [];
+    for (const e of ents) {
+      const tracks = [];
+      for (let k = 0; k < NTRK; k++) {
+        const r = await this.readSteps(e.slot, e.var, k);
+        tracks.push({ len: r.timing[0], div: r.timing[1], swing: r.timing[2], steps: r.steps });
+      }
+      parts.push({ label: `${SLOTS[e.slot]}${e.var + 1}`, tracks });
+    }
+    const r = buildSmf(song, parts, { loops });
+    return { bytes: r.bytes, notes: r.notes, name: `freitakt-${song.name.replace(/ /g, "-")}.mid`, parts };
+  }
 
   /* ---------------------------------------------------------- the device's side --- */
   stateChanged(st, prev) {
@@ -530,9 +565,14 @@ export function mountPatterns(el, ctx) {
   el.innerHTML = `<div class="pt-head"><h2>Patterns</h2>
       <button type="button" class="pt-btn main" data-act="save" title="The FM-1's SAVE of the loaded slot (stopped only)">Save on FM-1</button>
       <button type="button" class="pt-btn" data-act="copy">Copy variation…</button>
+      <button type="button" class="pt-btn" data-act="midi" title="A Standard MIDI File of the variation shown, or of a chain">Export MIDI…</button>
       <span class="pt-load pt-empty" hidden>Reading the FM-1…</span></div>
     <div class="pt-note" role="status"></div>
     <div class="pt-copy" hidden></div>
+    <div class="pt-copy pt-midi" hidden><label>Chain <input type="text" class="pt-mchain" size="16" placeholder="the shown variation" aria-label="Chain: A1 A2 B3 ..."></label>
+      <label>MASTER LENGTH <input type="number" class="pt-mlen" min="0" max="1024" value="0" aria-label="MASTER LENGTH in 1/16 steps, 0 OFF"></label>
+      <label>Times <input type="number" class="pt-mloops" min="1" max="64" value="1"></label>
+      <button type="button" class="pt-btn main" data-act="domidi">Download .mid</button><button type="button" class="pt-btn" data-act="nomidi">Cancel</button></div>
     <div class="pt-row"><span class="lbl">CUE</span><div class="pt-keys pt-cs" role="group" aria-label="Cue a slot"></div>
       <div class="pt-keys pt-cv" role="group" aria-label="Cue a variation"></div></div>
     <div class="pt-row"><span class="lbl">SHOW</span><div class="pt-keys pt-ss" role="group" aria-label="Show a slot"></div>
@@ -742,6 +782,17 @@ export function mountPatterns(el, ctx) {
     else if (act === "follow") { m.followNow(); drawKeys(); }
     else if (act === "copy") { if (copyEl.hidden) openCopy(); else copyEl.hidden = true; }
     else if (act === "nocopy") copyEl.hidden = true;
+    else if (act === "midi") { const e = q(".pt-midi"); e.hidden = !e.hidden; }
+    else if (act === "nomidi") q(".pt-midi").hidden = true;
+    else if (act === "domidi") {
+      try {
+        const r = await m.exportMidi({ chain: q(".pt-mchain").value, mlen: Number(q(".pt-mlen").value) || 0, loops: Number(q(".pt-mloops").value) || 1 });
+        const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(new Blob([r.bytes], { type: "audio/midi" })), download: r.name });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        m.say(`Exported ${r.name}: ${r.parts.length} part${r.parts.length > 1 ? "s" : ""}, ${r.notes.reduce((n, x) => n + x.length, 0)} notes.`);
+      } catch (e) { m.say(e instanceof DeviceError ? plain(e) : String(e.message ?? e)); }
+    }
     else if (act === "docopy") doCopy();
     else if (act === "pickfile") pickFile();
     else if (act === "clrstep" && (await ctx.confirm(`Clear the LOCKs of track ${m.sel.track + 1}, step ${m.sel.step + 1}?`))) m.lockClearStep(m.sel.track, m.sel.step);
