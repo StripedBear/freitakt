@@ -5,9 +5,9 @@
 
 Each of the six tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
 
-Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]] again or turning [[SELECT]]: **STEP 1/3**, **PATTERN 2/3** and **MOTION 3/3**. On every SEQ page (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
+Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
 
-## STEP: tapping in a pattern
+## Steps: tapping in a pattern
 
 - **Tap** a white key: the step toggles on or off, on the release.
 - **Hold** a step (0.3 s): an off step turns on at once and the step can be edited; an on step stays on. While held:
@@ -21,10 +21,9 @@ Press [[SEQ]] for the sequencer. It has three pages, reached by pressing [[SEQ]]
 
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
 - **The keys' lights:** a trig lit, a step with a parameter or machine lock blinking; while playing the selected track's step (the running cursor) toggles its key; black 1 to 6 light the selected track and breathe for armed ones (see *Panel, Step LEDs*).
-- **Banks:** [[KNOB 1]] on STEP shows `BANK n/m`. [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
-- **Piano roll:** on an ACID track the STEP page is a piano roll; notes, SLIDE and TIE are described under *Playing and recording*.
-- **Clear:** hold [[REC]] 0.7 s on a SEQ page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
-- **Where the held-step knobs work:** STEP, PATTERN, MOTION and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
+- **Banks:** [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
+- **Clear:** hold [[REC]] 0.7 s on SEQ's page to be asked `CLEAR TRACK n?` ([[OCT+]] yes). It and TOOLS **CLRSQ** clear the track's steps, its MOTION events and its parameter locks. An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
+- **Where the held-step knobs work:** PATTERN and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
 
 ## ARP and RETRIG
 
@@ -56,7 +55,7 @@ A step with PROB **FILL** plays only while a fill is active; **!FILL** plays onl
 | --- | --- | --- |
 | **KNOB 1** | LEN | 1 to 64 steps (default 16) |
 | **KNOB 2** | DIV | 4BAR, 2BAR, 1/1, 1/2, 1/4, 1/8, 8T, 1/16 (default), 16T, 1/32, then FIT: F4BR, F2BR, FBAR, F1/2 |
-| **KNOB 3** | SWG | 0 to 100 %. The effective swing is this plus GLOBAL SWG, capped at 100 |
+| **KNOB 3** | SWG | 0 to 100 %. The effective swing is this plus the global SWING (HOME's [[KNOB 2]]), capped at 100 |
 | **KNOB 4** | MLEN | MASTER LENGTH: OFF (default) or 2 to 1024 sixteenths, the slot's (not a track's) |
 
 TRACKS' LEN knob is the same length.
@@ -64,23 +63,16 @@ TRACKS' LEN knob is the same length.
 - **FIT** divisions spread the track's LEN steps evenly over a fixed span: F4BR 16 beats, F2BR 8, FBAR 4, F1/2 2. LEN 5 on FBAR plays 5 steps in exactly one bar, with no drift against the other tracks; changing LEN while it plays keeps it fitted.
 - **MLEN** restarts every track at its first step every MLEN sixteenths since PLAY, whatever its LEN, so polymeters line up again (64 = every 4 bars). A cue that ends on the same boundary makes a single restart.
 
-## MOTION: recorded knob turns
+## Motion: recorded knob turns
 
-MOTION records knob turns per step while a track is armed and playing, and plays them back with the pattern.
+Knob turns are recorded per step while a track is armed and playing, and play back with the pattern. Motion has no page of its own and no PLAY switch on the panel; CLEAR TRACK (hold [[REC]] 0.7 s on SEQ's page, or TOOLS) clears it together with the track's steps and locks. There is no separate CLEAR MOTION.
 
-| Knob | Label | Behaviour |
-| --- | --- | --- |
-| **KNOB 1** | PLAY | right: ON, left: OFF |
-| **KNOB 2** | MOTION | the recorded event count (read-only) |
-| **KNOB 3** | LOCKS | the parameter-lock count (read-only) |
-| **KNOB 4** | CLEAR | a right turn asks `CLEAR MOTION T<n>?`; [[OCT+]] confirms. Clears motion only, not locks |
-
-Up to **1024 events** per project are shared by all tracks and by parameter locks (`MOTION FULL`, `LOCKS FULL`). The graph shows the track's steps with event marks: solid when PLAY is on, dithered when off. Fader and knob moves from the SMC-Mixer and MIDI LEARN are recorded as motion only where stated in their sections. LFO RATE, MORPH and DEPTH knobs are recordable; SRC and DEST are not.
+Up to **1024 events** per project are shared by all tracks and by parameter locks (`MOTION FULL`, `LOCKS FULL`). Fader and knob moves from the SMC-Mixer and MIDI LEARN are recorded as motion only where stated in their sections. LFO RATE, MORPH and DEPTH knobs are recordable; SRC and DEST are not.
 
 ## Tempo, swing, clock
 
-- **BPM** 40 to 240 (default 120): on TRACKS [[SELECT]] sets it (a `TEMPO` popup shows); on GLOBAL 1/8 [[KNOB 1]] sets it on any page.
-- **SWG** (GLOBAL 1/8) is global swing, 0 to 100 %; each track adds its own.
+- **BPM** 40 to 240 (default 120): on TRACKS [[SELECT]] sets it (a `TEMPO` popup shows); on HOME [[KNOB 1]] sets it (shown large as `BPM 120`).
+- **SWING** (HOME's [[KNOB 2]]) is global swing, 0 to 100 %; each track adds its own.
 - When the clock is external, the tempo controls say `CLK USB`, `CLK TRS`, `CLK BLE` or `CLK LINK` instead.
 - HOME's status line shows the pattern (1 to 4: A to D), the playing variation (1 to 8), the selected track and its step page (`P1 V2 T6 L1`).
 
@@ -97,15 +89,15 @@ While a pattern plays you can queue the next pattern (A to D) or another variati
 
 ## NUDGE: a step early or late
 
-On a step page hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hit moved by that many hundredths of a step (+50 is halfway to the next step, -50 halfway to the previous one, 0 on the step). It follows the track's division and swing (+25 is a quarter of the step as it plays).
+On PATTERN or TRACKS hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hit moved by that many hundredths of a step (+50 is halfway to the next step, -50 halfway to the previous one, 0 on the step). It follows the track's division and swing (+25 is a quarter of the step as it plays).
 
 - A late hit keeps its PROB, RATCH and locks (its ratchet hits spread over what is left of the step). An early hit plays in the step before, its locks from the hit to the end of its own step.
-- A nudged step has a mark beside its box in the grid: on the left if early, on the right if late. A tap that turns a step off makes it plain again.
+- A tap that turns a step off makes it plain again.
 - NUDGE is part of the step: copied, saved and played everywhere (variations, live cue, slot COPY / PASTE). Step record writes NUDGE 0. All steps start at 0 and play exactly as before.
 
 ## QUANT: where live recording lands
 
-GLOBAL 3/8 [[KNOB 4]] **QUANT** decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer; step record is not affected). It is a device setting, kept over power-off.
+**REC QUANT** in the device menu (hold [[HOME]]) decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer; step record is not affected). It is a device setting, kept over power-off.
 
 | QUANT | The hit goes to |
 | --- | --- |
@@ -116,7 +108,7 @@ GLOBAL 3/8 [[KNOB 4]] **QUANT** decides where a live-recorded hit goes (keys, MI
 
 ## Step tools: hold SEQ
 
-Hold [[SEQ]] (0.4 s, or press a white key with it) for the **TOOLS** screen for the selected track. A quick SEQ tap still turns the SEQ pages, now on its release. A black key pressed with SEQ before the screen is up mutes a track instead (black 1 to 6: tracks 1 to 6; see *The panel*, Combos): that hold opens no TOOLS and turns no page. The white keys are the bank's 16 steps, [[OCT-]] / [[OCT+]] the bank, and the black keys are the tools:
+Hold [[SEQ]] (0.4 s, or press a white key with it) for the **TOOLS** screen for the selected track. A quick SEQ tap still opens PATTERN, on its release. A black key pressed with SEQ before the screen is up mutes a track instead (black 1 to 6: tracks 1 to 6; see *The panel*, Combos): that hold opens neither TOOLS nor PATTERN. The white keys are the bank's 16 steps, [[OCT-]] / [[OCT+]] the bank, and the black keys are the tools:
 
 | Key | Tool |
 | --- | --- |

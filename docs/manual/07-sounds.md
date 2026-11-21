@@ -3,9 +3,9 @@
 
 ## How a track's sound works
 
-Press [[EDIT]] to open the selected track's sound. [[KNOB 1]] picks the **MODEL**; the SOUND page then shows the model's knobs, four per page, followed by LEVEL, PAN, NOTE, CHOKE and PRIO (SAMPL adds PLAY and CUT, and a fifth page with ATK SUS REL LOOP). Every model has **TUNE** (-24 to +24 semitones), **DECAY**, and then its own knobs (all 0 to 127 unless stated). The first four knobs are the ones on HOME.
+Press [[EDIT]] to open the selected track's sound. **SOUND 1**'s [[KNOB 1]] picks the **MODEL**; the SOUND pages then show the model's knobs, four per page (SOUND 1: MODEL and the first three; pages with nothing on them are skipped), followed by LEVEL, PAN, NOTE, CHOKE and PRIO (SAMPL adds PLAY and CUT, and a fifth page with ATK SUS REL LOOP). Every model has **TUNE** (-24 to +24 semitones), **DECAY**, and then its own knobs (all 0 to 127 unless stated). K909, for one: TUNE DECAY SWEEP, then CLICK SWPT DRIVE LVL, then PAN NOTE CHOKE PRIO. ARP follows in EDIT's cycle.
 
-The SOUND page shows the model's name, its place in the list (`#NN/45`), VOICES and CHOKE, and on the right a graph. Models without a graph of their own show *the hit*: the voice's real sound (one hit at velocity 100, played silently in the background) as a waveform, labelled e.g. `HIT / 300 MS`; it redraws a few frames after MODEL or a knob changes. SAMPL shows its sample. The page also shows the track's preset, with `*` once a SOUND knob has moved.
+The SOUND pages are lists, one row per knob. The MODEL row shows the track's preset or model name, with `*` once a SOUND knob has moved. At the top each SOUND page shows *the hit*: a small waveform of the voice's real sound (one hit at velocity 100, played silently in the background); it redraws a few frames after MODEL or a knob changes.
 
 Per-track extras on the SOUND pages:
 
@@ -64,7 +64,7 @@ Integer ports of Mutable Instruments Plaits drum algorithms (MIT), DaisySP physi
 | 26 | METAL | 808-like metallic hat: six square oscillators and a resonant band-pass. Was HMETL. | TUNE DECAY TONE NOISE | 1 |
 | 27 | HISS | Noisy trashy hat: ring-modulated square and saw pairs. Was HNOIS. | TUNE DECAY TONE NOISE | 1 |
 | 28 | SKIN | A struck drum head (modal physical model): HEAD from ideal to loaded (toms and timpani to tabla), POS centre to rim, BEND, STICK (heavy). Was MEMB. | TUNE DECAY TONE HEAD / POS BEND STICK | 1 |
-| 29 | FM | Two-operator FM percussion: a carrier phase-modulated by a sine at RATIO x pitch. MDEC the FM envelope decay, SWEEP a pitch rise, FBK modulator feedback, VEL velocity into INDEX. Bells, metallic toms, woodblocks, zaps, FM kicks. The graph shows the ratio's sidebands. | TUNE DECAY INDEX RATIO / MDEC SWEEP FBK VEL | 2 |
+| 29 | FM | Two-operator FM percussion: a carrier phase-modulated by a sine at RATIO x pitch. MDEC the FM envelope decay, SWEEP a pitch rise, FBK modulator feedback, VEL velocity into INDEX. Bells, metallic toms, woodblocks, zaps, FM kicks. | TUNE DECAY INDEX RATIO / MDEC SWEEP FBK VEL | 2 |
 | 30 | ACID | 303-style mono bass: saw or square into a 24 dB ladder filter, with accent, slide and tie from the steps. Max two ACID tracks. | TUNE DECAY CUTOF RESO / ENVMD ACCNT WAVE GATE | 1 |
 | 31 | SAMPL | Sample player: one sample of a set, with start / end, envelope, loop and chop (see Samples). Was SMPL. | TUNE DECAY TONE DRIVE / SET SLOT START END (+ PLAY CUT, ATK SUS REL LOOP) | 2 |
 

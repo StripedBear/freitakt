@@ -11,14 +11,14 @@
 | `STOP TO EDIT` / `STOP TO LOAD` / `STOP TO SAVE` / `STOP TO PASTE` | The transport is running. Stop first. |
 | A step does not toggle | It toggles on a short tap only: held 0.3 s or with a knob turned it does not toggle off. |
 | Knobs do nothing but the PERFORM macros | The PERFORM screen is up (FX held, or PAGE mode). Press a page button or [[HOME]]. |
-| A knob effect is stuck on | PERFORM FILTER, CRUSH, THROW or DEPTH stay on until turned to 0 (amber `FX` in the top bar). TOOLS `INIT*` switches them off. |
+| A knob effect is stuck on | PERFORM FILTER, CRUSH, THROW or DEPTH stay on until turned to 0 on the PERFORM screen. TOOLS `INIT*` switches them off. |
 | LFO or lock seems to ignore a knob | MODEL, FILTER TYPE, INSERT TYPE, WAVE, DEST and SRC cannot be locked, recorded or learned (CUT cannot be locked either). |
 | `ACID: 2 TRACKS MAX` | At most two ACID tracks. |
-| Red CPU icon | An audio block took over 85 %; a voice was stopped. Set less important tracks to PRIO LOW, reduce heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
+| A voice stops short in a busy pattern | An audio block took over 85 %; a voice was stopped (HOME shows the CPU load). Set less important tracks to PRIO LOW, reduce heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
 | Sound stutters with Bluetooth on | A saved device that is not connected is searched for again and again: FORGET it or switch BLUETOOTH OFF. |
 | No `Hortator` in the DAW | A computer that knew an older firmware's Hortator 8ch may list it beside Hortator: choose Hortator. |
-| MIDI notes play nothing | Check GLO CH (10 by default) and ROUT (NOTE needs the track's NOTE to match; SEL plays the selected track; TRACK uses channels 1 to 6). |
-| The FM-1 follows no tempo | GLO CLK is INT; set USB, TRS or BLE to follow a clock. |
+| MIDI notes play nothing | Check the menu's MIDI CHANNEL (10 by default) and MIDI ROUTE (NOTE needs the track's NOTE to match; SEL plays the selected track; TRACK uses channels 1 to 6). |
+| The FM-1 follows no tempo | The menu's CLOCK is INT; set USB, TRS or BLE to follow a clock. |
 | A project says `LOAD FAILED` at power-on | The last-saved slot is empty or unreadable: YES forgets it. Projects saved by 1.0.0 or later look empty on 0.26.0 and older. |
 | Hortator is unstable or crashes | Use a safe start (hold [[SEQ]] while powering on), then install the plain version or go back to stock. |
 | The FM-1 will not answer the installer | Try a safe start. If both the installer and M-UPGRADE fail, see *Install, update and recovery*. |

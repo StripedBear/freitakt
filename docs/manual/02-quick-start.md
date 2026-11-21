@@ -9,7 +9,7 @@ You do not need to remember button names yet: every section of the screen is rea
 
 ## Make a beat in eight steps
 
-1. Press [[SEQ]]. The 16 white keys are now the **steps** of the selected track (the track number is in the top bar, T1 to T6).
+1. Press [[SEQ]]. The 16 white keys are now the **steps** of the selected track (its black key, 1 to 6, is lit).
 2. Tap white keys to turn steps on and off. A lit key is an active step.
 3. Press [[PLAY]]. The sequencer runs; the playhead moves along the keys.
 4. Turn [[ALGORITHM]] to pick another track (T2, T3, ...) and tap in its steps.
@@ -20,8 +20,8 @@ You do not need to remember button names yet: every section of the screen is rea
 
 ## Ten things worth knowing in the first hour
 
-- **Pages:** each button has several pages. Press it again, or turn [[SELECT]], to reach the next page. The footer shows `n/m`.
-- **Tempo:** on HOME's TRACKS mode, [[SELECT]] sets the tempo. On any page, GLOBAL 1/8 [[KNOB 1]] does.
+- **Pages:** each button has several pages. Press it again, or turn [[SELECT]], to reach the next page.
+- **Tempo:** on HOME's TRACKS mode, [[SELECT]] sets the tempo. On HOME, [[KNOB 1]] does (`BPM 120`).
 - **Bank:** a track has up to 64 steps. [[OCT+]] / [[OCT-]] move between banks of 16.
 - **Mute, solo, select:** black keys 1 to 6 are tracks 1 to 6: hold [[SEQ]] and press one to mute it, hold [[ARP]] to solo it, hold [[SCL]] (SEL) to select it.
 - **Patterns:** hold [[GLO]] and press white key 1 to 4 to queue pattern A to D (several: a chain), or black key 1 to 8 to queue variation 1 to 8.

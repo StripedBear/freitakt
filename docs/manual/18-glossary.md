@@ -12,7 +12,7 @@
 | **BANK** | 16 steps; a track has up to four. |
 | **BDTRX... SHTRX** | the TRX models of the MD bank (see Sounds). |
 | **CHOKE** | choke group 1 to 4: hits cut others in the group. |
-| **CLK** | clock source: INT, USB, TRS, BLE, LINK. |
+| **CLK** | clock source: INT, USB, TRS, BLE, LINK (the menu's CLOCK). |
 | **COMP** | the compressor. **GHOST** is its handling of a muted source (MUTE, KEEP, HIDE). |
 | **DEST** | the LFO routing page: four slots of source, destination and depth. |
 | **DIV** | a track's step division. |
@@ -31,15 +31,15 @@
 | **PROB** | a step's probability. |
 | **RATCH** | a step's ratchet repeats (1 to 4). |
 | **RTRG** | retrig: a track (or locked step) MODE that repeats the hit at RATE; see ARP. |
-| **ROUT** | MIDI-in routing: NOTE, SEL, TRACK. |
+| **ROUT** | MIDI-in routing: NOTE, SEL, TRACK (the menu's MIDI ROUTE). |
 | **SCL** | the button labelled SEL: a tap KEYS; held + black key 1 to 6 selects a track. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
 | **SRC** | an LFO slot's source, or COMP's key track. |
 | **STEPS / TRACKS** | ENV mode: the keys are steps, or play tracks. |
-| **SYNC** | MIDI clock out. |
-| **MIDI OUT** | the sequencer's notes out, track n on its channel (GLO MIDI OUT 4/8: OUT, TnCH). |
-| **THRU** | pass MIDI from each input to the other outputs. |
+| **SYNC** | MIDI clock out (the menu's MIDI SYNC). |
+| **MIDI OUT** | the sequencer's notes out, track n on its channel (GLO MIDI OUT: OUT, TnCH). |
+| **THRU** | pass MIDI from each input to the other outputs (the menu's MIDI THRU). |
 | **THROW** | PERFORM macro that sends the dry mix into the delay and reverb. |
 | **USR1 to USR3** | user sample slots, each a set of up to 16 samples. |
 | **ATK / SUS / REL** | the SAMPLE model's envelope: fade-in, held level, release (SOUND 5/5). |
@@ -53,7 +53,7 @@
 | **NUDGE** | a step's hit moved early or late, -50 to +50 hundredths of a step. |
 | **PERC** | the built-in sample set: 16 drum and percussion samples. |
 | **PLAY** | SAMPLE: KEY (the keys play one sample up and down) or CHOP. |
-| **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (GLOBAL 3/8 KNOB 4). |
+| **QUANT** | where live recording puts a hit: 1/16, 1/8, 1/32 or OFF (the menu's REC QUANT). |
 | **REPEAT STEP** | PERFORM: a held white key (F3 to D4) repeats that track's step; D5 to G5 pick the rate. |
 | **SET / SLOT** | SAMPLE: SET picks PERC or USR1 to USR3, SLOT one of its samples (`3/16`). |
 | **SOLO** | ARP + black keys 1 to 6; TOGGLE or MOMENTARY mode (ARP + F#5). |

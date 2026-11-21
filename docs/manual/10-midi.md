@@ -7,22 +7,22 @@
 - **TRS jack**: MIDI in only. The FM-1's TRS jack is an input, so there is no TRS out.
 - **Bluetooth MIDI** in the Bluetooth version (see that section).
 
-## MIDI settings pages
+## MIDI settings
 
 | Setting | Where |
 | --- | --- |
-| **CH** (drum channel, 10 by default) | GLOBAL 1/8 |
-| **CLK** (INT / USB / TRS, BLE, LINK) | GLOBAL 1/8 |
-| **SYNC** (clock out) | SYSTEM 2/8 |
-| **ROUT** (note routing) | SYSTEM 2/8 |
-| **MUTE** (NOW / NEXT BAR) | GLOBAL 3/8 |
-| **METRO** | GLOBAL 3/8 |
-| **THRU** | GLOBAL 3/8 |
-| **QUANT** (live-record grid) | GLOBAL 3/8 |
-| **OUT** (the sequencer's notes out) | MIDI OUT 4/8 |
-| **TnCH** (a track's MIDI OUT channel) | MIDI OUT 4/8 |
-| **KBD** (the MIDI KEYBOARD: OFF, TRK, 1 to 16) | MIDI OUT 4/8 |
-| **LOCL** (the MIDI KEYBOARD's keys sound here too) | MIDI OUT 4/8 |
+| **CH** (drum channel, 10 by default) | menu (hold [[HOME]]): MIDI CHANNEL |
+| **CLK** (INT / USB / TRS, BLE, LINK) | menu: CLOCK |
+| **SYNC** (clock out) | menu: MIDI SYNC |
+| **ROUT** (note routing) | menu: MIDI ROUTE |
+| **MUTE** (NOW / NEXT BAR) | menu: MUTE MODE |
+| **METRO** | menu: METRONOME |
+| **THRU** | menu: MIDI THRU |
+| **QUANT** (live-record grid) | menu: REC QUANT |
+| **OUT** (the sequencer's notes out) | GLO: MIDI OUT |
+| **TnCH** (a track's MIDI OUT channel) | GLO: MIDI OUT |
+| **KBD** (the MIDI KEYBOARD: OFF, TRK, 1 to 16) | GLO: MIDI OUT |
+| **LOCL** (the MIDI KEYBOARD's keys sound here too) | GLO: MIDI OUT |
 
 SYNC, ROUT, OUT and the tracks' channels are saved with each project; projects saved before them load SYNC OFF, ROUT NOTE, OUT USB and track n on channel n. THRU is a setting of the FM-1 itself, kept over power-off, OFF until you turn it on.
 
@@ -55,7 +55,7 @@ Set SYNC to OFF or USB (and BLE or BOTH in the Bluetooth version).
 
 ## MIDI OUT: the sequencer's notes
 
-Tap [[GLO]] until **MIDI OUT 4/8**. While playing, every track sends its hits as Note On / Note Off, track n on its own channel, so a DAW can record the pattern or play other instruments with it.
+Tap [[GLO]] for **MIDI OUT**, its first page. While playing, every track sends its hits as Note On / Note Off, track n on its own channel, so a DAW can record the pattern or play other instruments with it.
 
 | Knob | Label | Values (default) |
 | --- | --- | --- |
@@ -82,9 +82,9 @@ The FM-1 as a plain MIDI keyboard for a DAW or a phone app: each of the 27 keys 
 | [[KNOB 3]] | KBD | OFF (default), TRK, 1 to 16 |
 | [[KNOB 4]] | LOCL | ON (default), OFF |
 
-Both are on **MIDI OUT 4/8** and saved with the device settings (not in projects).
+Both are on **MIDI OUT** and saved with the device settings (not in projects).
 
-- **On**: turn KBD away from OFF. KEYS turns on with it, and HOME's status line reads `MIDI KBD CH1 OCT+1` (channel and octave). On the step pages the top bar reads `MIDI KBD F3` instead of `KEYS F3`.
+- **On**: turn KBD away from OFF. KEYS turns on with it, and HOME's status line reads `MIDI KBD CH1 OCT+1` (channel and octave).
 - **Off**: KBD back to OFF, or turn KEYS off (a SEL tap with no key pressed, or ENV). With KEYS on again and KBD not OFF, it is the MIDI KEYBOARD again.
 - **Channel**: TRK sends on the selected track's MIDI OUT channel (T*n*CH; `CH-` on HOME and nothing sent if it is OFF), 1 to 16 a fixed channel.
 - **Notes**: F3 (the leftmost key) is note 53 at octave 0. [[OCT-]] / [[OCT+]] move the keys an octave down / up, -4 to +4 (notes above 127 are clamped). The OCT buttons light the way they do in KEYS.
@@ -97,7 +97,7 @@ Both are on **MIDI OUT 4/8** and saved with the device settings (not in projects
 
 ## THRU
 
-GLOBAL 3/8 **THRU ON** passes notes and CCs from each MIDI input to the other outputs (the TRS jack to USB; Bluetooth and USB to each other in the Bluetooth version), never back to the input.
+**MIDI THRU** ON (in the menu) passes notes and CCs from each MIDI input to the other outputs (the TRS jack to USB; Bluetooth and USB to each other in the Bluetooth version), never back to the input.
 
 ## MIDI LEARN
 
@@ -115,9 +115,9 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 
 ### How to learn a control
 
-1. **Turn it on:** tap [[SAVE]] to its **COPY** page (3/3) and turn [[KNOB 4]] (**LEARN**) to `ON`: `MIDI LEARN ON` in the top bar. Go to the page you want; the footer's first row shows `LEARN: TURN OR PRESS`.
-2. **Pick a knob:** turn a knob of the selected track on any page: HOME, EDIT (SOUND), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the footer says `T3 DECAY: SEND A CC`.
-3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of doing their job. The footer says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
+1. **Turn it on:** tap [[SAVE]] to its **COPY** page (3/3) and turn [[KNOB 4]] (**LEARN**) to `ON`: `MIDI LEARN ON` pops up. Go to the page you want; the top bar shows `LEARN: TURN OR PRESS`.
+2. **Pick a knob:** turn a knob of the selected track on any page: EDIT (SOUND), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the top bar says `T3 DECAY: SEND A CC`.
+3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of doing their job. The top bar says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
 4. **Move the controller's knob, or press its button or pad.** The first CC (or, for an action, note) that arrives on any channel is learned: `CC74 -> T3 DECAY`, `NOTE36 -> PLAY`, `CC20 -> FX FILTER`. Then pick the next one. An already learned one shows `T3 DECAY = CC74`; sending another replaces it.
 5. **Finish:** [[OCT+]] ends LEARN (`LEARN DONE`), as turning COPY's LEARN knob back to `OFF` does.
 

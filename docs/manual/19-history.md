@@ -3,6 +3,11 @@
 
 The full changelog is `CHANGELOG.md` in the repository. This is a feature map by version, newest first. The current version is shown on MENU, ABOUT.
 
+## After 1.0.1: FREITAKT redesign, phase A
+
+- **Screens**: parameter pages are lists (one row per knob, no dials or graphs); no step strip or breadcrumb; the top bar keeps the battery, the STEPS padlock and passing states; messages are popups. ORANGE is black on bright orange; the splash says `Form folgt Function`.
+- **Pages**: SEQ is PATTERN only (no STEP or MOTION page); COMP moved into FX's cycle; LFO shows one LFO (LFO 1/3, 2/3, DEST 3/3); GLO is MIDI OUT, DLY 1 and 2, REVERB and CHORUS. GLOBAL and SYSTEM's settings are menu rows (CLOCK to REC QUANT); BPM and SWING are HOME's [[KNOB 1]] and [[KNOB 2]].
+
 ## 1.0.1
 
 - **Newer FM-1s save again**: FM-1s sold recently carry a different flash chip of the same size. Hortator now recognises it, so projects, presets and settings are saved on these units.

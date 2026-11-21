@@ -9,7 +9,7 @@ Each release has a second version, **Hortator + Bluetooth MIDI** (experimental).
 
 | Feature | What you get |
 | --- | --- |
-| **MIDI over Bluetooth** | A BLE-MIDI controller plays and controls the FM-1 as USB MIDI does: notes play the tracks (GLO CH and ROUT), MIDI LEARN learns its CCs and notes, CLK BLE follows its clock. The FM-1's key hits go back to it, SYNC BLE / BOTH sends it the FM-1's clock, THRU passes notes between it and USB. |
+| **MIDI over Bluetooth** | A BLE-MIDI controller plays and controls the FM-1 as USB MIDI does: notes play the tracks (the menu's MIDI CHANNEL and MIDI ROUTE), MIDI LEARN learns its CCs and notes, CLK BLE follows its clock. The FM-1's key hits go back to it, SYNC BLE / BOTH sends it the FM-1's clock, THRU passes notes between it and USB. |
 | **ROLE HOST** | The FM-1 finds and connects devices itself: up to 8 saved, a controller and another FM-1 linked at once, reconnected by themselves. |
 | **ROLE DEVICE** | The FM-1 is itself a Bluetooth MIDI device, **Felucca FM-1**, for a computer, a tablet or another FM-1. |
 | **SMC-Mixer** | The M-VAVE SMC-Mixer becomes the FM-1's mixer. |
@@ -45,9 +45,9 @@ Up to 8, controllers and FM-1s, kept over power-off with their names. The FM-1 h
 
 ## MIDI mode
 
-Notes play the tracks as over USB and TRS (GLO CH and ROUT); MIDI LEARN learns the device's CCs and notes. GLO **CLK BLE** follows the device's MIDI clock (the tempo knobs then say `CLK BLE`). The FM-1's key hits go to the device. GLO SYNC **BLE** / **BOTH** sends it the MIDI clock. When the link drops, what the device held is released. SYNC BLE loads SYNC OFF and BOTH loads USB in the plain version. In SMC DAW mode nothing but the mixer's LEDs is sent; in FM-LINK mode no MIDI at all.
+Notes play the tracks as over USB and TRS (the menu's MIDI CHANNEL and MIDI ROUTE); MIDI LEARN learns the device's CCs and notes. The menu's CLOCK **BLE** follows the device's MIDI clock (the tempo knobs then say `CLK BLE`). The FM-1's key hits go to the device. MIDI SYNC **BLE** / **BOTH** sends it the MIDI clock. When the link drops, what the device held is released. SYNC BLE loads SYNC OFF and BOTH loads USB in the plain version. In SMC DAW mode nothing but the mixer's LEDs is sent; in FM-LINK mode no MIDI at all.
 
-As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MIDI OUT 4/8, KBD; see *MIDI*). Each key then sends its own Note On / Off to the device, as well as to USB. If the link drops while keys are held, their Offs are sent at once.
+As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MIDI OUT, KBD; see *MIDI*). Each key then sends its own Note On / Off to the device, as well as to USB. If the link drops while keys are held, their Offs are sent at once.
 
 ## Connecting, step by step
 
@@ -55,9 +55,9 @@ As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MID
 
 1. Switch the controller on and make it discoverable (most BLE-MIDI controllers are, as soon as they are on).
 2. On the FM-1: ROLE **HOST**, MODE **AUTO** (or **MIDI**), BLUETOOTH **ON**.
-3. SELECT to **+ ADD A DEVICE**, OCT+. After the 8 s scan, SELECT to the controller (it says `MIDI`), OCT+. It is saved and connects; the top bar shows `BT CONNECTED`.
-4. Play: notes on the drum channel (GLO CH, 10 at first) play the tracks whose NOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs use MIDI LEARN (SAVE's COPY page, KNOB 4 LEARN).
-5. To play in time with it: GLO CLK **BLE** follows its clock; GLO SYNC **BLE** (or BOTH, USB too) sends it the FM-1's.
+3. SELECT to **+ ADD A DEVICE**, OCT+. After the 8 s scan, SELECT to the controller (it says `MIDI`), OCT+. It is saved and connects; `BT CONNECTED` pops up.
+4. Play: notes on the drum channel (the menu's MIDI CHANNEL, 10 at first) play the tracks whose NOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs use MIDI LEARN (SAVE's COPY page, KNOB 4 LEARN).
+5. To play in time with it: the menu's CLOCK **BLE** follows its clock; MIDI SYNC **BLE** (or BOTH, USB too) sends it the FM-1's.
 6. Next time it connects by itself once BLUETOOTH is ON (or set AUTOSTART ON).
 
 ### The SMC-Mixer
@@ -73,14 +73,14 @@ As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MID
 2. Connect from the computer or tablet; no pairing is needed:
    **macOS**: Audio MIDI Setup > Window > Show MIDI Studio > the Bluetooth icon, then **Connect** next to `Felucca FM-1`. **iPad / iPhone**: in the app's Bluetooth MIDI screen (AUM, GarageBand, Logic Remote and others), tap `Felucca FM-1`. **Android / Windows**: an app that connects BLE-MIDI devices.
 3. The page says `CONNECTED` and the host's name. `Felucca FM-1` is now a MIDI port in the DAW or app.
-4. From the DAW: send notes on the drum channel (or use ROUT SEL / TRACK); to have the FM-1 follow the DAW's tempo and transport set GLO CLK **BLE** and turn on the DAW's MIDI clock out to `Felucca FM-1`.
-5. To the DAW: the FM-1's key hits come in as notes (record them); with GLO SYNC **BLE** the DAW can follow the FM-1's clock instead (one clock direction at a time).
+4. From the DAW: send notes on the drum channel (or use ROUT SEL / TRACK); to have the FM-1 follow the DAW's tempo and transport set the menu's CLOCK to **BLE** and turn on the DAW's MIDI clock out to `Felucca FM-1`.
+5. To the DAW: the FM-1's key hits come in as notes (record them); with MIDI SYNC **BLE** the DAW can follow the FM-1's clock instead (one clock direction at a time).
 
 ### Two FM-1s with FM-Link
 
 1. On FM-1 **B**: ROLE **DEVICE**, BLUETOOTH **ON**.
 2. On FM-1 **A**: ROLE **HOST**, BLUETOOTH **ON**, + ADD A DEVICE, pick `Felucca FM-1` (shown as `FM-1` and the last four digits of its address), OCT+.
-3. Choose the leader and follower: the leader's GLO CLK is **INT** (or USB / TRS / BLE to follow a DAW); the follower's GLO CLK is **LINK** (after BLE). Either FM-1 can lead. The screens say `FM-LINK: LEADING` and `FM-LINK: FOLLOWING`.
+3. Choose the leader and follower: the leader's CLOCK (menu) is **INT** (or USB / TRS / BLE to follow a DAW); the follower's CLOCK is **LINK** (after BLE). Either FM-1 can lead. The screens say `FM-LINK: LEADING` and `FM-LINK: FOLLOWING`.
 4. PLAY on the leader: both start together. The follower takes the leader's tempo; STOP on the leader stops both. With the leader following a DAW, the DAW's Start and Stop drive both.
 5. MODE **FM-LINK** keeps the link for FM-Link only; in MIDI or AUTO the same FM-1 can still have a MIDI controller linked.
 
@@ -96,7 +96,7 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 | --- | --- |
 | Fader 1–6 | track 1–6 LEVEL (strips 7 and 8 do nothing), with pickup; recorded as motion for the selected track while armed and playing |
 | Master fader | nothing |
-| Knob 1-4 | the selected track's first four knobs (TUNE DECAY TONE and the model's fourth; ACID: TUNE DECAY CUTOF RESO), one step a click; the top bar shows e.g. `T3 DECAY 64`; recorded as motion while armed and playing |
+| Knob 1-4 | the selected track's first four knobs (TUNE DECAY TONE and the model's fourth; ACID: TUNE DECAY CUTOF RESO), one step a click; a popup shows e.g. `T3 DECAY 64`; recorded as motion while armed and playing |
 | Knob 5-8 | MIDI LEARN's (CC 20-23): learned to a parameter, a click steps it by one value; while LEARN waits for a CC, turning one learns it; not learned: nothing |
 | MUTE 1–6 | mute / unmute the track, as SEQ + its black key does (MUTE: NEXT BAR applies) |
 | SOLO 1–6 | solo / unsolo the track |

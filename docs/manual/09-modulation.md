@@ -1,16 +1,15 @@
 # Modulation and compressor
-<!--blurb: Two LFOs per track with four destination slots and the ducking compressor.-->
+<!--blurb: An LFO per track with four destination slots and the ducking compressor.-->
 
 ## LFOs
 
-Every track has two LFOs. Press [[LFO]] for **LFO 1/4**, **LFO 2/4**, **LFO 3/4** and **DEST 4/4**. LFO 1 is always on [[KNOB 1]] and [[KNOB 2]], LFO 2 on [[KNOB 3]] and [[KNOB 4]].
+The panel shows one LFO per track, LFO 1; LFO 2 has no page (its settings stay stored). Press [[LFO]] for **LFO 1/3**, **LFO 2/3** and **DEST 3/3**: list pages, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom. LFO 1/3 shows a small schematic of one cycle of the wave at the top.
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
-| LFO 1/4 | LFO 1 WAVE | LFO 1 RATE | LFO 2 WAVE | LFO 2 RATE |
-| LFO 2/4 | LFO 1 MORPH | LFO 1 PHASE | LFO 2 MORPH | LFO 2 PHASE |
-| LFO 3/4 | LFO 1 TRIG | LFO 1 MODE | LFO 2 TRIG | LFO 2 MODE |
-| DEST 4/4 | SLOT (1 to 4) | SRC (LFO 1, LFO 2) | DEST | DEPTH |
+| LFO 1/3 | WAVE | RATE | MORPH | PHASE |
+| LFO 2/3 | TRIG | MODE | | |
+| DEST 3/3 | SLOT (1 to 4) | SRC | DEST | DEPTH |
 
 [[OCT+]] on an LFO page cycles the RATE MODE (SYNC, HZ, TIME) of the LFO turned last (on DEST, of the selected slot's source LFO); it needs KEYS off.
 
@@ -42,17 +41,17 @@ An LFO on a knob moves it around its set value. A locked step or a MIDI LEARN CC
 
 ## Compressor (COMP)
 
-The Streams compressor, keyed by any track, for ducking and pumping. Reach it from HOME: on the HOME screen [[SELECT]] goes on to **COMP 2/3** and **3/3**. On the COMP pages a white key toggles DUCK on its track: the tracks marked are ducked by the source.
+The Streams compressor, keyed by any track, for ducking and pumping. Its two pages, **COMP 1/2** and **COMP 2/2**, come after INSERT in [[FX]]'s cycle: list pages, with no curve or meter. On the COMP pages a white key toggles DUCK on its track: the tracks marked are ducked by the source.
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 2/3 | **KNOB 1** | SRC | OFF (default), T1 to T6 |
-| 2/3 | **KNOB 2** | THRSH | about -30 to 0 dB (26, about -24 dB) |
-| 2/3 | **KNOB 3** | RATIO | 1.0:1 to 25.6:1 (45, about 4:1) |
-| 2/3 | **KNOB 4** | REL | 59 ms to 5.8 s (26, about 131 ms) |
-| 3/3 | **KNOB 1** | ATK | 0.1 to 583 ms (2, about 1.1 ms) |
-| 3/3 | **KNOB 2** | KNEE | HARD, SOFT (default) |
-| 3/3 | **KNOB 3** | MKUP | makeup gain, 0 dB up; 127 shows LIMIT (brickwall) (0) |
-| 3/3 | **KNOB 4** | GHOST | MUTE, KEEP (default), HIDE |
+| 1/2 | **KNOB 1** | SRC | OFF (default), T1 to T6 |
+| 1/2 | **KNOB 2** | THRSH | about -30 to 0 dB (26, about -24 dB) |
+| 1/2 | **KNOB 3** | RATIO | 1.0:1 to 25.6:1 (45, about 4:1) |
+| 1/2 | **KNOB 4** | REL | 59 ms to 5.8 s (26, about 131 ms) |
+| 2/2 | **KNOB 1** | ATK | 0.1 to 583 ms (2, about 1.1 ms) |
+| 2/2 | **KNOB 2** | KNEE | HARD, SOFT (default) |
+| 2/2 | **KNOB 3** | MKUP | makeup gain, 0 dB up; 127 shows LIMIT (brickwall) (0) |
+| 2/2 | **KNOB 4** | GHOST | MUTE, KEEP (default), HIDE |
 
-**GHOST** decides what happens when the source track is muted: **MUTE**: the muted source is silent and does not key; **KEEP**: the muted source still keys the ducking (keep the pump with the kick muted); **HIDE**: the source is never heard but keys. The ducking is a gain on each ducked track, so the USB T channels and their sends are already ducked. A muted COMP source fades out just before the bar's first hit when MUTE is NEXT BAR.
+**GHOST** decides what happens when the source track is muted: **MUTE**: the muted source is silent and does not key; **KEEP**: the muted source still keys the ducking (keep the pump with the kick muted); **HIDE**: the source is never heard but keys. The ducking is a gain on each ducked track, so the USB T channels and their sends are already ducked. A muted COMP source fades out just before the bar's first hit when MUTE MODE is BAR.
