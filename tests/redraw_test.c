@@ -352,13 +352,16 @@ static void sentinel(void)
         for (h = 0; h < 2u; h++) {
             ui.page = (uint8_t)p;
             ui.home = (uint8_t)h;
-            ui.confirm = 1;
+            ui.confirm = 6;                           /* (CLEAR ALL LEARNED?) */
             ui.msg_t = 5;
             snprintf(b, sizeof b, "a confirm, page %u home %u", (unsigned)p, (unsigned)h);
             no_holes(b);
         }
     ui.confirm = 0;
     ui.msg_t = 0;
+    ui.clr = 3;                                       /* REC + SEL held: the clear's warning */
+    no_holes("the clear's warning");
+    ui.clr = 0;
     ui.pr.lst = 1;                                    /* PRESETS' list, NAME: their own screens */
     ui.pr.sig = 0;
     no_holes("the PRESETS list");
@@ -476,6 +479,36 @@ static void combos_redraw(void)
         }
 }
 
+/* phase C: REC + SEL held, the clear's warning: drawn whole once, then the digit's rows only when it changes (4 times
+ * in 4.5 s); let go: the screen under it whole again */
+static void clr_redraw(void)
+{
+    uint32_t i, drawn = 0, maxpx = 0, first, bits = 1u << panel.btn[B_REC] | 1u << panel.btn[B_SCL];
+    fr_t f;
+    char b[128];
+    ui_host_init();
+    pattern();
+    home_tracks();
+    settle(30);
+    press(B_REC);
+    press(B_SCL);
+    first = frame().px;
+    for (i = 0; i < 90u; i++) {
+        host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
+        fm1_in.buttons |= bits;
+        f = frame();
+        if (f.px) {
+            drawn++;
+            if (f.px > maxpx)
+                maxpx = f.px;
+        }
+    }
+    snprintf(b, sizeof b, "the clear's warning: the screen once (%u px), then the digit only when it changes (%u frames, "
+             "%u px at most)", (unsigned)first, (unsigned)drawn, (unsigned)maxpx);
+    check(b, ui.clr == 1u && first <= 58000u && first >= 240u * 240u && drawn == 4u && maxpx <= 240u * 100u);
+    same_as_full("the clear's warning let go");
+}
+
 int main(void)
 {
     st_t s;
@@ -484,6 +517,7 @@ int main(void)
 
     lock_turn_partial();
     lock_icon_partial();
+    clr_redraw();
 
     /* a full repaint (a page change): at most the screen once, plus the 1 px rules (nothing drawn twice) */
     ui_host_init();

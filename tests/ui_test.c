@@ -11,6 +11,7 @@ static int check(const char *what, int ok)
 }
 
 static void snap_page(const char *name);
+static void rec_hold_ms(uint32_t ms);
 static void seq_play_to(uint32_t ti, uint32_t step);
 static void seq_open(const char *title);
 static uint32_t fb_lit(uint32_t y0, uint32_t y1);
@@ -1185,11 +1186,9 @@ static void test_rec_everywhere(void)
     ui_host_init();
     trk[0].step[0].on = 1;
     seq_open("STEP");
-    hold(B_REC);                                     /* REC held on SEQ: CLEAR TRACK? */
-    tap(B_REC);
-    check("REC on the CLEAR TRACK dialog: nothing (the dialog stays)", ui.confirm == 1u && song.rec == 0u);
-    tap(B_OCTDN);
-    check("REC held on SEQ: the CLEAR TRACK dialog still (OCT- keeps the steps)", !ui.confirm && trk[0].step[0].on);
+    hold(B_REC);                                     /* REC held on SEQ: FILL (phase C: no CLEAR TRACK? dialog) */
+    check("REC held on SEQ: no dialog (the clear is REC + SEL since phase C), no tap, the steps kept", !ui.confirm &&
+          song.rec == 0u && !ui.rec_all && !fill_on && trk[0].step[0].on);
 }
 
 /* upstream 1.0 (project.c "STOP TO SAVE"): a flash erase silences the audio and stalls the sequencer, so no project
@@ -1523,6 +1522,7 @@ static void test_sel_select(void)
 static void test_seq_mute(void)
 {
     uint32_t a, k, ok, l1, l2;
+    step_t s0;
     ui_host_init();
     settings.mutebar = 0;
     kit_session();                                   /* track 6 muted */
@@ -1533,19 +1533,20 @@ static void test_seq_mute(void)
     ok = 1;
     for (k = 0; k < NTRK; k++)
         ok &= led_lit(14u + SOLO_BK[k]) == !trk[k].p[P_MUTE];
-    check("SEQ held: the audible tracks' black keys lit (track 6 muted: dark)", ok && !ui.tools);
+    check("SEQ held: the audible tracks' black keys lit (track 6 muted: dark)", ok);
     btn_key(B_SEQ, SOLO_BK[2]);
-    check("SEQ + black key 3 mutes track 3; no sound, no select, no TOOLS", trk[2].p[P_MUTE] == 1 &&
-          hit_age(&trk[2]) == a && song.sel == 0 && !ui.tools && !led_lit(14u + SOLO_BK[2]));
+    check("SEQ + black key 3 mutes track 3; no sound, no select", trk[2].p[P_MUTE] == 1 &&
+          hit_age(&trk[2]) == a && song.sel == 0 && !led_lit(14u + SOLO_BK[2]));
     btn_key(B_SEQ, SOLO_BK[5]);
     check("SEQ + black key 6 unmutes track 6", trk[5].p[P_MUTE] == 0 && led_lit(14u + SOLO_BK[5]));
     btn_hold_frames(B_SEQ, 600);
+    s0 = trk[0].step[0];
     btn_key(B_SEQ, STEP_KEY[0]);
-    check("SEQ held past 0.4 s after a black key: still no TOOLS (a white key neither)", !ui.tools &&
-          trk[0].p[P_MUTE] == 0);
+    check("SEQ held past 0.4 s after a black key, a white key: nothing (no step, no mute)",
+          !memcmp(&trk[0].step[0], &s0, sizeof s0) && trk[0].p[P_MUTE] == 0);
     release_all();
     ui_frame();
-    check("SEQ let go: no page turn (HOME still)", ui.home && !ui.tools);
+    check("SEQ let go: no page turn (HOME still)", ui.home);
     settings.mutebar = 1;                            /* NEXT BAR */
     transport_req = 1;
     seq_play_to(0, 2);
@@ -1578,18 +1579,28 @@ static void test_seq_mute(void)
     trk[1].p[P_MUTE] = 0;
     press(B_SEQ);
     btn_key(B_SEQ, STEP_KEY[0]);
-    check("SEQ + a white key: TOOLS, as before", ui.tools);
+    check("SEQ + a white key: nothing (no TOOLS screen since phase C, no step, no note)", ui.home &&
+          !memcmp(&trk[0].step[0], &s0, sizeof s0) && trk[0].p[P_MUTE] == 0);
     btn_key(B_SEQ, SOLO_BK[0]);
-    check("TOOLS up: black key 1 is COPY STEP's, no mute", ui.tools && trk[0].p[P_MUTE] == 0);
+    check("then black key 1 still mutes track 1", trk[0].p[P_MUTE] == 1);
     release_all();
     ui_frame();
+    check("SEQ let go after its keys: no page turn", ui.home);
+    trk[0].p[P_MUTE] = 0;
     press(B_SEQ);
     btn_hold_frames(B_SEQ, 500);
-    check("SEQ held 0.5 s alone: TOOLS", ui.tools);
+    check("SEQ held 0.5 s alone: nothing while held", ui.home);
     btn_key(B_SEQ, SOLO_BK[3]);
-    check("TOOLS up: black key 4 is a tool's, no mute", trk[3].p[P_MUTE] == 0);
+    check("SEQ held 0.5 s, then black key 4: track 4 muted", trk[3].p[P_MUTE] == 1);
     release_all();
     ui_frame();
+    trk[3].p[P_MUTE] = 0;
+    press(B_SEQ);
+    btn_hold_frames(B_SEQ, 800);
+    release_all();
+    ui_frame();
+    check("SEQ held 0.8 s alone, let go: the SEQ pages (the hold is a tap now)", !ui.home && cur_fam() == FAM_SEQ);
+    tap(B_HOME);
     tap(B_SEQ);
     check("a SEQ tap still turns the SEQ pages", !ui.home && cur_fam() == FAM_SEQ);
 }
@@ -1762,11 +1773,9 @@ static void test_glo_keys(void)
     check("STEP grid: ARP / SEL + key 2 toggle no step", TSEL->step[1].on == s0.on && !ui.keys);
 }
 
-/* ---- step tools (spec 2026-10-31 §3): SEQ held 0.4 s (or SEQ + a key) = the TOOLS screen while held; a SEQ tap still
- * turns the SEQ pages (on the release). The keys pressed with SEQ are the screen's until let go: no note, no MIDI,
- * nothing recorded. White keys: the bank's 16 steps (OCT- / OCT+ the bank); black keys: the tools */
-enum { TK_CPSTEP = 1, TK_PSTEP = 3, TK_CPPAGE = 5, TK_REPL = 8, TK_MERGE = 10, TK_FILL = 13, TK_CPSEL = 15,
-       TK_PSEL = 17, TK_DUP = 20, TK_CLEAR = 22 };
+/* ---- SEQ (FREITAKT phase C: the TOOLS screen gone): a tap or a hold turns the SEQ pages on the release; SEQ + black
+ * 1..6 the mutes (test_seq_mute); the keys pressed with SEQ are its own until let go: no note, no MIDI, nothing
+ * recorded, a white key nothing */
 static uint32_t seq_bit(void) { return 1u << panel.btn[B_SEQ]; }
 static void seq_hold_frames(uint32_t n)
 {
@@ -1776,40 +1785,59 @@ static void seq_hold_frames(uint32_t n)
         ui_frame();
     }
 }
-static void seq_down(uint32_t key) { keys(fm1_in.notes | 1u << key); seq_hold_frames(2); }   /* (the render hands the
-                                                      * key over after the UI's pass) */
-static void seq_up(uint32_t key) { keys(fm1_in.notes & ~(1u << key)); seq_hold_frames(1); }
-static void seq_key(uint32_t key) { seq_down(key); seq_up(key); }   /* a key tapped while SEQ is held */
-static void seq_with(uint32_t tool, uint32_t key)    /* a tool key held, a white key tapped, the tool let go */
+static void test_seq_button(void)
 {
-    seq_down(tool);
-    seq_key(key);
-    seq_up(tool);
-}
-static void tools_open(void)
-{
+    uint32_t a, mw, k, on = 0;
+    ui_host_init();
     press(B_SEQ);
-    seq_hold_frames(450);
-}
-static void tools_close(void)
-{
+    ui_frame();
+    check("SEQ pressed: nothing yet (the SEQ pages wait for the release)", ui.home);
+    release_all();
+    ui_frame();
+    check("SEQ tapped: PATTERN on the release", !ui.home && str_eq(cur_page()->title, "PATTERN"));
+    tap(B_HOME);
+    press(B_SEQ);
+    seq_hold_frames(600);
+    check("SEQ held 0.6 s: no screen over HOME (no TOOLS)", ui.home);
+    release_all();
+    ui_frame();
+    check("SEQ held 0.6 s, let go: PATTERN (a hold is a tap)", !ui.home && str_eq(cur_page()->title, "PATTERN"));
+    tap(B_HOME);
+    song.rec = REC_ALL_MASK;                         /* REC ALL, playing: the keys would play and record */
+    transport_req = 1;
+    ui_frame();
+    a = hit_age(&trk[0]);
+    mw = mo_w;
+    press(B_SEQ);
+    keys(1u << KEY_TRK_KEY[0]);                      /* SEQ and white key 1 in the same frame */
+    seq_hold_frames(2);
+    release_all();                                   /* SEQ let go, the key still held */
+    ui_frame();
+    ui_frame();
+    check("SEQ + a white key, SEQ let go first: no SEQ page (not a tap), the key still SEQ's", ui.home &&
+          (kb_mute & 1u));
+    keys(0);
+    ui_frame();
+    for (k = 0; k < NSTEP; k++)
+        on |= trk[0].step[k].on;
+    check("SEQ + a white key: no hit, no MIDI note out, nothing recorded, no step",
+          !kb_mute && hit_age(&trk[0]) == a && mo_w == mw && !on);
+    a = hit_age(&trk[1]);                            /* the ISR before the UI's pass sees SEQ */
+    fm1_in.buttons |= seq_bit();
+    keys(1u << KEY_TRK_KEY[1]);
+    render_mix(0, 0, CTL);
+    check("SEQ + a key before the UI's pass: the key is SEQ's, no note", (kb_mute >> KEY_TRK_KEY[1]) & 1u &&
+          hit_age(&trk[1]) == a && mo_w == mw);
     keys(0);
     release_all();
     ui_frame();
     ui_frame();
+    transport_req = 2;
+    ui_frame();
+    song.rec = 0;
 }
-static void seq_oct(uint32_t b)                      /* OCT- / OCT+ tapped while SEQ is held */
-{
-    press(b);
-    seq_hold_frames(1);
-    fm1_in.buttons &= ~(1u << panel.btn[b]);
-    seq_hold_frames(1);
-}
-static void tools_reset(void)                        /* no locks, nothing copied */
-{
-    memset(&mo, 0, sizeof mo);
-    memset(&tl, 0, sizeof tl);
-}
+
+/* steps and their locks: a track's whole pattern compared, a step filled */
 static uint32_t step_locks(uint32_t k, uint32_t s, uint8_t *id, int8_t *v)   /* track k's locks at step s, in order */
 {
     uint32_t i = lk_seek(&mo.b, k, s), n = 0;
@@ -1846,407 +1874,329 @@ static void rich_step(uint32_t k, uint32_t s, uint32_t seed)   /* a step with ev
     lock_set(k, s, P_E1, (int32_t)(seed % 100u));
     lock_set(k, s, P_FCUT, (int32_t)(seed % 120u) + 1);
 }
-static int step_clear(uint32_t k, uint32_t s)        /* off, all zero, no locks */
+static int track_same(uint32_t ka, uint32_t kb)      /* every step and lock, LEN DIV SWG */
+{
+    uint32_t s;
+    int ok = trk[ka].p[P_SLEN] == trk[kb].p[P_SLEN] && trk[ka].p[P_SDIV] == trk[kb].p[P_SDIV] &&
+             trk[ka].p[P_SSWING] == trk[kb].p[P_SSWING];
+    for (s = 0; s < NSTEP; s++)
+        ok &= same_step(ka, s, kb, s);
+    return ok;
+}
+static int track_empty(uint32_t k)                   /* no step set, no lock */
 {
     static const step_t z;
-    return !memcmp(&trk[k].step[s], &z, sizeof z) && !step_locks(k, s, 0, 0);
+    uint32_t s;
+    int ok = lock_count(k) == 0u;
+    for (s = 0; s < NSTEP; s++)
+        ok &= !memcmp(&trk[k].step[s], &z, sizeof z);
+    return ok;
+}
+static void rich_session(void)                       /* tracks 1, 3, 5: rich steps with locks, LEN DIV SWG set */
+{
+    uint32_t k, s;
+    memset(&mo, 0, sizeof mo);
+    for (k = 0; k < NTRK; k++)
+        memset(trk[k].step, 0, sizeof trk[k].step);
+    for (k = 0; k < NTRK; k += 2u) {
+        for (s = k; s < NSTEP; s += 5u + k)
+            rich_step(k, s, k * 64u + s + 1u);
+        trk[k].p[P_SLEN] = (int16_t)(24 + 8 * (int32_t)k);
+        trk[k].p[P_SDIV] = (int16_t)(1 + k / 2u);
+        trk[k].p[P_SSWING] = (int16_t)(10 + 5 * (int32_t)k);
+    }
 }
 
-static int key_shown(uint32_t key)                   /* key lit within 0.6 s (a blinking one too) */
+/* ---- REC + SEL held 5 s (FREITAKT phase C; the CLEAR TRACK dialog gone): the selected track cleared (steps, locks),
+ * the warning CLEAR T3 with its countdown 5..1 while held; either let go early: nothing changed; neither button acts on
+ * its own (no REC tap / REC ALL / FILL / arm, no KEYS toggle, no track select), whichever was pressed first */
+static uint32_t rs_bits(void) { return 1u << panel.btn[B_REC] | 1u << panel.btn[B_SCL]; }
+static void rs_hold_ms(uint32_t held, uint32_t ms)    /* the buttons in held down for ms (frames of 50 ms) */
 {
-    uint32_t i;
-    for (i = 0; i < 6u; i++) {
-        host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
+    uint32_t t;
+    for (t = 0; t < ms; t += 50u) {
+        host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
+        fm1_in.buttons |= held;
         ui_frame();
-        if (led_lit(14u + key))
-            return 1;
     }
-    return 0;
 }
-static void test_tools_seq_tap(void)
+static void test_clr_combo(void)
 {
-    uint32_t a, mw, pg, k, on = 0;
+    static track_t snap[NTRK];
+    static lk_bank_t bsnap;
+    uint32_t k, ok, n, last, seq[8], lc[NTRK], t0, t1 = 0;
+    uint8_t keys0;
+    /* SEL first, then REC: the countdown, then the clear */
     ui_host_init();
-    tools_reset();
-    press(B_SEQ);
+    rich_session();
+    song.sel = 2;
+    trk[2].step[1].on = 1;
+    lock_set(2, 1, P_E2, 9);                         /* (track 3: a step with a lock) */
+    memcpy(snap, trk, sizeof snap);
+    for (k = 0; k < NTRK; k++)
+        lc[k] = lock_count(k);
+    keys0 = ui.keys;
+    press(B_SCL);
     ui_frame();
-    check("TOOLS: SEQ pressed: nothing yet (the SEQ pages wait for the release)", ui.home && !ui.tools);
+    rs_hold_ms(1u << panel.btn[B_SCL], 300);
+    press(B_REC);
+    fm1_in.buttons |= rs_bits();
+    ui_frame();
+    check("REC + SEL (SEL first): the warning at once, 5", ui.clr == 5u && ui.clr_trk == 2u && !kp.on);
+    t0 = host_ticks;
+    for (n = 0, last = 0, ok = 1, k = 0; k < 200u && ui.clr; k++) {
+        if (ui.clr != last && n < 8u)
+            seq[n++] = last = ui.clr;
+        ok &= !fill_on && song.rec == 0u && !ui.rec_all && !track_empty(2);
+        t1 = host_ticks;
+        rs_hold_ms(rs_bits(), 50);
+    }
+    check("REC + SEL: the countdown 5 4 3 2 1, never FILL, REC ALL or an arm, the track whole until then",
+          ok && n == 5u && seq[0] == 5u && seq[1] == 4u && seq[2] == 3u && seq[3] == 2u && seq[4] == 1u);
+    check("REC + SEL: cleared after 5 s (not before 4.9 s)", t1 - t0 >= 4900u * 1000u * FM1_TICKS_PER_US &&
+          t1 - t0 < 5100u * 1000u * FM1_TICKS_PER_US);
+    ok = track_empty(2) && !ui.clr && str_eq(ui.msg, "CLEARED T3");
+    for (k = 0; k < NTRK; k++)
+        if (k != 2u)
+            ok &= !memcmp(trk[k].step, snap[k].step, sizeof snap[k].step) && lock_count(k) == lc[k];
+    check("REC + SEL held 5 s: track 3's steps and locks gone, CLEARED T3, the other tracks untouched",
+          ok && lc[2] > 0u && lc[0] > 0u);
+    n = lock_count(0);
+    rs_hold_ms(rs_bits(), 1000);
     release_all();
     ui_frame();
-    check("TOOLS: SEQ tapped: STEP on the release, no screen", !ui.home && str_eq(cur_page()->title, "PATTERN") &&
-          !ui.tools);
-    tap(B_SEQ);
-    check("TOOLS: SEQ taps go on turning the pages: PATTERN", str_eq(cur_page()->title, "PATTERN"));
-    pg = ui.page;
-    press(B_SEQ);
-    seq_hold_frames(150);
-    check("TOOLS: SEQ held 0.15 s: no screen yet", !ui.tools && ui.page == pg);
-    seq_hold_frames(300);
-    check("TOOLS: SEQ held 0.4 s: the TOOLS screen over the page", ui.tools && ui.page == pg);
+    ui_frame();
+    check("REC + SEL let go after the clear: no KEYS toggle, no REC ALL, no arm, no select, nothing else cleared",
+          ui.keys == keys0 && !ui.rec_all && song.rec == 0u && song.sel == 2u && lock_count(0) == n && n > 0u);
+
+    /* REC first (0.2 s), then SEL; REC let go at 2.5 s: cancelled */
+    ui_host_init();
+    rich_session();
+    song.sel = 4;
+    memcpy(snap, trk, sizeof snap);
+    bsnap = mo.b;
+    tap(B_FX);                                       /* (off SEQ: a REC hold would FILL) */
+    rec_hold_ms(200);
+    press(B_SCL);
+    fm1_in.buttons |= rs_bits();
+    ui_frame();
+    check("REC first, then SEL: the warning (CLEAR T5)", ui.clr == 5u && ui.clr_trk == 4u);
+    rs_hold_ms(rs_bits(), 2500);
+    check("REC + SEL 2.5 s: 3 left, no FILL", ui.clr == 3u && !fill_on);
+    fm1_in.buttons = 1u << panel.btn[B_SCL];         /* REC let go */
+    ui_frame();
+    check("REC let go early: cancelled, the screen back, nothing changed", !ui.clr &&
+          !memcmp(trk, snap, sizeof snap) && !memcmp(&mo.b, &bsnap, sizeof bsnap) && !str_eq(ui.msg, "CLEARED T5"));
+    rs_hold_ms(1u << panel.btn[B_SCL], 3000);
     release_all();
     ui_frame();
-    check("TOOLS: SEQ let go after the screen: the page as before (no tap), the screen gone", !ui.tools &&
-          ui.page == pg && !ui.home);
-    press(B_SEQ);
-    seq_hold_frames(100);
+    check("REC first: REC's release no tap (no REC ALL), SEL's no KEYS toggle, no FILL",
+          !ui.rec_all && song.rec == 0u && !ui.keys && !fill_on && !memcmp(trk, snap, sizeof snap));
+
+    /* REC held 0.6 s off SEQ (FILL), then SEL: the FILL stops; SEL let go at 1 s: cancelled */
+    rec_hold_ms(600);
+    check("(REC held 0.6 s: FILL)", fill_on);
+    press(B_SCL);
+    fm1_in.buttons |= rs_bits();
+    ui_frame();
+    check("SEL pressed during a FILL: the FILL stops, the warning", !fill_on && ui.clr == 5u);
+    rs_hold_ms(rs_bits(), 1000);
+    fm1_in.buttons = 1u << panel.btn[B_REC];         /* SEL let go */
+    ui_frame();
+    check("SEL let go early: cancelled, nothing changed", !ui.clr && !memcmp(trk, snap, sizeof snap) &&
+          !memcmp(&mo.b, &bsnap, sizeof bsnap));
+    rec_hold_ms(1000);
+    check("REC still held after SEL went: no FILL again", !fill_on);
     release_all();
     ui_frame();
-    check("TOOLS: SEQ held 0.1 s alone: a tap (MOTION)", !ui.tools && str_eq(cur_page()->title, "PATTERN"));
-    tap(B_HOME);
-    song.rec = REC_ALL_MASK;                                /* REC ALL, playing: the keys would play and record */
-    transport_req = 1;
+    check("REC let go: no tap (no REC ALL), no KEYS toggle", !ui.rec_all && song.rec == 0u && !ui.keys);
+
+    /* SEL held with a black key first (a select), then REC: the second press takes both */
+    track_select(0);
+    press(B_SCL);
     ui_frame();
-    a = hit_age(&trk[0]);
-    mw = mo_w;
-    press(B_SEQ);
-    keys(1u << KEY_TRK_KEY[0]);                      /* SEQ and white key 1 in the same frame */
-    seq_hold_frames(2);
-    check("TOOLS: SEQ + a key in the same frame: the screen at once", ui.tools && ui.home);
-    release_all();                                   /* SEQ let go, the key still held */
+    btn_key(B_SCL, SOLO_BK[1]);
+    check("(SEL + black 2: track 2 selected)", song.sel == 1u);
+    press(B_REC);
+    fm1_in.buttons |= rs_bits();
     ui_frame();
-    ui_frame();
-    check("TOOLS: SEQ let go with the key held: the screen gone, no SEQ page (not a tap), the key still the screen's",
-          !ui.tools && ui.home && (kb_mute & 1u));
+    keys(1u << SOLO_BK[3]);
+    rs_hold_ms(rs_bits(), 100);
     keys(0);
-    ui_frame();
-    for (k = 0; k < NSTEP; k++)
-        on |= trk[0].step[k].on;
-    check("TOOLS: the key let go: nothing held; no hit, no MIDI note out, nothing recorded",
-          !kb_mute && hit_age(&trk[0]) == a && mo_w == mw && !on);
-    a = hit_age(&trk[1]);                            /* the ISR before the UI's pass sees SEQ */
-    fm1_in.buttons |= seq_bit();
-    keys(1u << KEY_TRK_KEY[1]);
-    render_mix(0, 0, CTL);
-    check("TOOLS: SEQ + a key before the UI's pass: the key is the screen's, no note", (kb_mute >> KEY_TRK_KEY[1]) & 1u &&
-          hit_age(&trk[1]) == a && mo_w == mw);
-    keys(0);
+    rs_hold_ms(rs_bits(), 100);
+    check("REC + SEL: a black key under the warning selects nothing", song.sel == 1u && ui.clr == 5u &&
+          ui.clr_trk == 1u);
     release_all();
     ui_frame();
+    check("let go: nothing armed, nothing cleared", !ui.rec_all && song.rec == 0u && !memcmp(trk, snap, sizeof snap));
+
+    /* the knob popup up: the warning closes it, OCT- under the warning undoes nothing */
+    tap(B_EDIT);
+    k = (uint32_t)TSEL->p[page_id(cur_page(), 1)];
+    turn(EN_K2, 3);
     ui_frame();
+    n = (uint32_t)TSEL->p[page_id(cur_page(), 1)];
+    check("(the knob popup up, the value moved)", kp_live() && n != k);
+    press(B_REC);
+    ui_frame();
+    press(B_SCL);
+    fm1_in.buttons |= rs_bits();
+    ui_frame();
+    check("REC + SEL: the knob popup closed, the warning up", !kp.on && ui.clr == 5u);
+    press(B_OCTDN);
+    fm1_in.buttons |= rs_bits();
+    ui_frame();
+    rs_hold_ms(rs_bits(), 100);
+    check("OCT- under the warning: no undo", (uint32_t)TSEL->p[page_id(cur_page(), 1)] == n && ui.clr == 5u);
+    release_all();
+    ui_frame();
+    check("let go: cancelled, the page back", !ui.clr && !kp.on);
+
+    /* in the menu: dead */
+    ui_host_init();
+    rich_session();
+    memcpy(snap, trk, sizeof snap);
+    hold(B_HOME);
+    check("(the menu)", ui.menu);
+    press(B_REC);
+    press(B_SCL);
+    ui_frame();
+    rs_hold_ms(rs_bits(), 5500);
+    check("REC + SEL in the menu: no warning, nothing cleared", !ui.clr && !memcmp(trk, snap, sizeof snap));
+    release_all();
+    ui_frame();
+}
+
+/* ---- copy / paste (FREITAKT phase C: Model:Cycles style combos, no screen): SAVE + REC copies the selected track,
+ * SAVE + PLAY pastes it; GLO + REC copies the pattern, GLO + PLAY pastes it. No transport, no REC (tap / FILL / arm),
+ * no projects page, no GLOBAL page, no cue map */
+static void mod_combo(uint32_t mod, uint32_t b)       /* mod held, b tapped under it, then mod let go */
+{
+    press(mod);
+    ui_frame();
+    press(b);
+    ui_frame();
+    fm1_in.buttons = 1u << panel.btn[mod];
+    ui_frame();
+    release_all();
+    ui_frame();
+}
+static void test_copy_paste_combos(void)
+{
+    static track_t snap[NTRK];
+    static lk_bank_t bsnap;
+    uint32_t k, ok, pg;
+    ui_host_init();
+    rich_session();
+    clip_kind = CB_NONE;
+    track_select(3);
+    memcpy(snap, trk, sizeof snap);
+    mod_combo(B_SAVE, B_PLAY);
+    check("SAVE + PLAY with nothing copied: NO TRACK COPIED, nothing changed, no start",
+          str_eq(ui.msg, "NO TRACK COPIED") && !memcmp(trk, snap, sizeof snap) && !song.playing && !transport_req);
+    track_select(0);
+    mod_combo(B_SAVE, B_REC);
+    check("SAVE + REC: COPIED T1; no REC ALL, no arm, no FILL, no projects page, no cue map",
+          str_eq(ui.msg, "COPIED T1") && !ui.rec_all && song.rec == 0u && !fill_on && ui.home && !ui.cue_map &&
+              !memcmp(trk, snap, sizeof snap));
+    track_select(3);
+    mod_combo(B_SAVE, B_PLAY);
+    ok = track_same(3, 0);
+    for (k = 0; k < NTRK; k++)
+        if (k != 3u)
+            ok &= !memcmp(trk[k].step, snap[k].step, sizeof snap[k].step);
+    check("SAVE + PLAY: track 1 pasted onto track 4 (steps, locks, LEN DIV SWG), PASTED T4, the others untouched",
+          ok && str_eq(ui.msg, "PASTED T4"));
+    check("SAVE + PLAY: no start, no projects page", !song.playing && !transport_req && ui.home && !ui.cue_map);
+    transport_req = 1;                               /* playing: a paste neither stops it */
+    ui_frame();
+    track_select(5);
+    mod_combo(B_SAVE, B_PLAY);
+    check("SAVE + PLAY while playing: pasted onto track 6, still playing", track_same(5, 0) && song.playing &&
+          transport_req != 2u);
     transport_req = 2;
     ui_frame();
-    song.rec = 0;
-    seq_open("STEP");                                /* the SEQ pages: white keys the steps */
-    k = cue.q_var;
-    press(B_SEQ);
-    keys(1u << TK_CPPAGE);
-    seq_hold_frames(2);
-    keys(1u << (TK_CPPAGE) | 1u << WHITE[3]);
-    seq_hold_frames(2);
-    keys(0);
-    seq_hold_frames(1);
-    check("STEP: SEQ + a black key first: the mutes (track 3 muted; no TOOLS, no variation), a white key then toggles "
-          "no step", cue.q_var == k && !TSEL->step[3].on && !ui.tools && trk[2].p[P_MUTE] == 1);
-    release_all();
-    ui_frame();
-    trk[2].p[P_MUTE] = 0;
-    check("TOOLS: let go on STEP: STEP still (no tap)", str_eq(cur_page()->title, "PATTERN") && !ui.tools);
-    tap(B_REC);                                      /* (REC tapped: armed; REC held on STEP: its CLEAR TRACK) */
-    tap(B_REC);
+    press(B_SAVE);                                   /* SAVE held 0.5 s (the cue map), then REC */
+    btn_hold_frames(B_SAVE, 1);
+    host_ticks += 500u * 1000u * FM1_TICKS_PER_US;
+    btn_hold_frames(B_SAVE, 1);
+    check("(SAVE held 0.5 s: the cue map)", ui.cue_map);
+    track_select(2);
     press(B_REC);
-    for (k = 0; k < 800u; k++)
-        ui_frame();
-    check("TOOLS: REC held on STEP still asks CLEAR TRACK", ui.confirm == 1u);
-    press(B_OCTDN);
+    ui_frame();
+    fm1_in.buttons = 1u << panel.btn[B_SAVE];
     ui_frame();
     release_all();
     ui_frame();
-}
+    check("SAVE held (the cue map) + REC: COPIED T3, no REC ALL; let go: the map gone, no projects page",
+          str_eq(ui.msg, "COPIED T3") && !ui.rec_all && song.rec == 0u && !ui.cue_map && ui.home);
 
-/* TOOLS: D#5 CLEAR = REC held on a SEQ page: "CLEAR TRACK n?" for the selected track (OCT+ clears, OCT- keeps) */
-static void test_tools_clear(void)
-{
-    uint32_t k, n;
+    /* the pattern */
     ui_host_init();
-    tools_reset();
-    kit_session();
-    song.sel = 2;
-    seq_open("STEP");
-    tools_open();
-    check("TOOLS: D#5 (CLEAR) lit", led_lit(14u + TK_CLEAR));
-    seq_key(TK_CLEAR);
-    check("TOOLS: D#5 asks CLEAR TRACK 3? (the screen gives way to the dialog)", ui.confirm == 1u &&
-          ui.confirm_trk == 2u && !ui.tools);
-    tools_close();
-    check("TOOLS: SEQ let go: the dialog stays, no page turned", ui.confirm == 1u && str_eq(cur_page()->title, "PATTERN"));
-    tap(B_OCTDN);
-    for (k = 0, n = 0; k < NSTEP; k++)
-        n += trk[2].step[k].on;
-    check("CLEAR from TOOLS: OCT- keeps the steps", !ui.confirm && n > 0u);
-    tools_open();
-    seq_key(TK_CLEAR);
-    tools_close();
-    tap(B_OCTUP);
-    for (k = 0, n = 0; k < NSTEP; k++)
-        n += trk[2].step[k].on;
-    check("CLEAR from TOOLS: OCT+ clears track 3's steps", !ui.confirm && n == 0u);
-}
-static void test_tools_screen(void)
-{
-    uint32_t k, ok;
-    ui_host_init();
-    tools_reset();
-    kit_session();
-    seq_open("STEP");
-    lock_set(0, 4, P_E1, 30);
-    tools_open();
-    check("TOOLS: SEQ's LED lit; COPY STEP / COPY PAGE / COPY SEL / DUPLICATE lit, the pastes dark (nothing copied)",
-          led_lit(panel.btn[B_SEQ]) && led_lit(14u + TK_CPSTEP) && led_lit(14u + TK_CPPAGE) &&
-              led_lit(14u + TK_CPSEL) && led_lit(14u + TK_DUP) && !led_lit(14u + TK_PSTEP) &&
-              !led_lit(14u + TK_REPL) && !led_lit(14u + TK_MERGE) && !led_lit(14u + TK_FILL) && !led_lit(14u + TK_PSEL));
+    rich_session();
+    memcpy(snap, trk, sizeof snap);
+    bsnap = mo.b;
+    mod_combo(B_GLO, B_REC);
+    check("GLO + REC: COPIED PATTERN; no REC ALL, no FILL, no GLOBAL page", str_eq(ui.msg, "COPIED PATTERN") &&
+          !ui.rec_all && song.rec == 0u && !fill_on && ui.home);
+    for (k = 0; k < NTRK; k++)
+        track_clear(&trk[k]);
+    trk[1].step[7].on = 1;
+    trk[0].p[P_SLEN] = 64;
+    pg = ui.page;
+    mod_combo(B_GLO, B_PLAY);
     ok = 1;
-    for (k = 0; k < 16u; k++)
-        ok &= led_lit(14u + WHITE[k]) == trk[0].step[k].on;
-    check("TOOLS: the white keys show the bank's steps", ok);
-    snap_page("seqtools/00_tools_empty");
-    seq_with(TK_CPSTEP, WHITE[4]);
-    seq_key(TK_CPPAGE);
-    check("TOOLS: copied: the pastes lit", led_lit(14u + TK_PSTEP) && led_lit(14u + TK_REPL) &&
-          led_lit(14u + TK_MERGE) && led_lit(14u + TK_FILL) && led_lit(14u + TK_PSEL));
-    {
-        int16_t e1 = trk[0].p[P_E1];
-        turn(EN_K2, 5);
-        seq_hold_frames(1);
-        check("TOOLS: KNOB 2 off the selection page: nothing under it moves", trk[0].p[P_E1] == e1);
-    }
-    for (k = 0; k < 60u; k++)                        /* (the message gone) */
-        seq_hold_frames(1);
-    snap_page("seqtools/01_tools");
-    fm1_in.buttons |= seq_bit();
-    tools_close();
-}
-
-static void test_tools_step_copy(void)
-{
-    uint32_t a, k, ok;
-    ui_host_init();
-    tools_reset();
-    seq_open("STEP");
-    rich_step(0, 2, 5);
-    lock_set(0, 2, P_LEVEL, 7);                      /* three locks */
-    a = hit_age(&trk[0]);
-    tools_open();
-    seq_with(TK_PSTEP, WHITE[5]);
-    check("PASTE STEP with nothing copied: nothing changes, says so", step_clear(0, 5) &&
-          str_eq(ui.msg, "NO STEP COPIED"));
-    seq_with(TK_CPSTEP, WHITE[2]);
-    check("COPY STEP held + step 3: copied, says so", str_eq(ui.msg, "STEP 3 COPIED"));
-    seq_down(TK_PSTEP);
-    seq_key(WHITE[5]);
-    seq_key(WHITE[8]);
-    seq_key(WHITE[15]);
-    seq_up(TK_PSTEP);
-    check("PASTE STEP held + steps 6, 9, 16: each the copied step whole (on, accent, slide, tie, ratchet, PROB, note, "
-          "micro) with its 3 locks", same_step(0, 2, 0, 5) && same_step(0, 2, 0, 8) && same_step(0, 2, 0, 15) &&
-              step_locks(0, 15, 0, 0) == 3u);
-    ok = 1;
-    for (k = 0; k < NSTEP; k++)
-        ok &= k == 2u || k == 5u || k == 8u || k == 15u ? trk[0].step[k].on : step_clear(0, k);
-    check("PASTE STEP: nothing else changed; the source kept", ok && step_locks(0, 2, 0, 0) == 3u);
-    check("PASTE STEP: the keys played nothing", hit_age(&trk[0]) == a);
-    tools_close();
-    check("SEQ let go: STEP as before, the pasted steps lit (with their locks: blinking)", !ui.tools &&
-          str_eq(cur_page()->title, "PATTERN") && key_shown(WHITE[5]) && key_shown(WHITE[8]));
-    rich_step(0, 7, 9);
-    lock_set(0, 7, P_PAN, -3);
-    tools_open();
-    seq_with(TK_PSTEP, WHITE[7]);
-    tools_close();
-    check("PASTE STEP over a step with locks of its own: replaced whole, its own locks gone", same_step(0, 2, 0, 7));
-    turn(EN_ALGO, 1);                                /* track 2: the step buffer goes with the selected track */
+    for (k = 0; k < NTRK; k++)
+        ok &= !memcmp(trk[k].step, snap[k].step, sizeof snap[k].step) && trk[k].p[P_SLEN] == snap[k].p[P_SLEN] &&
+              trk[k].p[P_SDIV] == snap[k].p[P_SDIV] && trk[k].p[P_SSWING] == snap[k].p[P_SSWING];
+    ok &= mo.b.count == bsnap.count && !memcmp(mo.b.key, bsnap.key, sizeof bsnap.key) &&
+          !memcmp(mo.b.val, bsnap.val, sizeof bsnap.val);
+    check("GLO + PLAY: the pattern back (every track's steps, locks, LEN DIV SWG), PASTED PATTERN",
+          ok && str_eq(ui.msg, "PASTED PATTERN"));
+    check("GLO + PLAY: no start, no GLOBAL page", !song.playing && !transport_req && ui.home && ui.page == pg);
+    mod_combo(B_SAVE, B_PLAY);
+    check("SAVE + PLAY with a pattern copied: NO TRACK COPIED", str_eq(ui.msg, "NO TRACK COPIED"));
+    track_select(0);
+    mod_combo(B_SAVE, B_REC);
+    mod_combo(B_GLO, B_PLAY);
+    check("GLO + PLAY with a track copied: NO PATTERN COPIED, no start", str_eq(ui.msg, "NO PATTERN COPIED") &&
+          !song.playing && !transport_req);
+    tap(B_GLO);
+    check("a GLO tap still opens GLOBAL", !ui.home && cur_fam() == FAM_GLO);
+    tap(B_SAVE);
+    check("a SAVE tap still opens the projects page", !ui.home && cur_fam() == FAM_SAVE);
+    tap(B_PLAY);
+    check("PLAY alone still starts", song.playing || transport_req == 1u);
+    transport_req = 2;
     ui_frame();
-    tools_open();
-    seq_with(TK_PSTEP, WHITE[0]);
-    tools_close();
-    check("PASTE STEP on another track: the step and its locks there", song.sel == 1u &&
-          !memcmp(&trk[1].step[0], &trk[0].step[2], sizeof(step_t)) && step_locks(1, 0, 0, 0) == 3u);
+    tap(B_REC);
+    check("REC alone still taps (REC ALL)", ui.rec_all);
+    tap(B_REC);
 }
 
-static void test_tools_page(void)
+/* the clipboard's locks: a paste into a full bank: as many as fit, LOCKS FULL */
+static void test_paste_locks_full(void)
 {
-    uint32_t k, ok;
-    step_t keep;
+    uint32_t id, s;
     ui_host_init();
-    tools_reset();
-    seq_open("STEP");
-    TSEL->p[P_SLEN] = 64;
-    for (k = 0; k < 16u; k += 3u)                    /* bank 1: steps 1 4 7 10 13 16 */
-        rich_step(0, k, k + 1u);
-    rich_step(0, 17, 40);                            /* bank 2's own (an off one under the clipboard's) */
-    tools_open();
-    seq_key(TK_REPL);
-    check("PASTE REPLACE with an empty clipboard: nothing changes, says so", trk[0].step[17].on &&
-          str_eq(ui.msg, "CLIPBOARD EMPTY"));
-    seq_key(TK_CPPAGE);
-    check("COPY PAGE: the bank's 16 steps, says so", str_eq(ui.msg, "COPIED 1-16"));
-    seq_oct(B_OCTUP);
-    check("TOOLS: OCT+ the next bank, the screen stays", ui.bank == 1u && ui.tools);
-    seq_key(TK_REPL);
-    ok = 1;
-    for (k = 0; k < 16u; k++)
-        ok &= same_step(0, k, 0, 16u + k);
-    check("PASTE REPLACE on bank 2: steps 17-32 = 1-16, locks too; bank 2's own steps and locks gone", ok &&
-          str_eq(ui.msg, "PASTED 17-32"));
-    rich_step(0, 33, 50);                            /* bank 3: step 34 on (the clipboard's step 2 is off) */
-    rich_step(0, 32, 51);                            /* .. step 33 on (the clipboard's step 1 is on) */
-    keep = trk[0].step[33];
-    seq_oct(B_OCTUP);
-    seq_key(TK_MERGE);
-    ok = 1;
-    for (k = 0; k < 16u; k++)
-        if (trk[0].step[k].on)
-            ok &= same_step(0, k, 0, 32u + k);
-        else if (k != 1u)
-            ok &= step_clear(0, 32u + k);
-    check("PASTE MERGE on bank 3: the clipboard's set steps (with their locks) in, the others kept", ok &&
-          !memcmp(&trk[0].step[33], &keep, sizeof keep) && step_locks(0, 33, 0, 0) == 2u &&
-          str_eq(ui.msg, "MERGED 33-48"));
-    seq_oct(B_OCTDN);
-    seq_oct(B_OCTDN);
-    check("TOOLS: OCT- the bank before", ui.bank == 0u);
-    tools_close();
-    TSEL->p[P_SLEN] = 40;
-    rich_step(0, 50, 77);                            /* past LEN */
-    keep = trk[0].step[50];
-    tools_open();
-    seq_key(TK_FILL);
-    ok = 1;
-    for (k = 16; k < 40u; k++)
-        ok &= same_step(0, k % 16u, 0, k);
-    check("PASTE FILL at LEN 40: every bank up to LEN = the clipboard, locks too; past LEN untouched", ok &&
-          !memcmp(&trk[0].step[50], &keep, sizeof keep) && step_locks(0, 50, 0, 0) == 2u &&
-          str_eq(ui.msg, "FILLED 1-40"));
-    seq_oct(B_OCTUP);
-    seq_oct(B_OCTUP);
-    seq_oct(B_OCTUP);
-    check("TOOLS: OCT+ stops at LEN's last bank", ui.bank == 2u);
-    tools_close();
-    check("TOOLS: OCT+ under the screen leaves no bank turn or accent after it", ui.bank == 2u && !acc_oct);
-}
-
-static void test_tools_sel(void)
-{
-    uint32_t k, ok;
-    step_t before[NSTEP];
-    ui_host_init();
-    tools_reset();
-    seq_open("STEP");
-    TSEL->p[P_SLEN] = 64;
-    for (k = 0; k < 16u; k++)
-        rich_step(0, k, k * 5u + 2u);
-    memcpy(before, trk[0].step, sizeof before);
-    tools_open();
-    seq_key(TK_CPSEL);
-    check("COPY SEL: the selection page, START 1 END 16 (the bank)", tl.sel && tl.s0 == 0u && tl.s1 == 15u);
-    turn(EN_K1, 4);
-    seq_hold_frames(1);
-    turn(EN_K2, -4);
-    seq_hold_frames(1);
-    check("COPY SEL: KNOB 1 START 5, KNOB 2 END 12", tl.s0 == 4u && tl.s1 == 11u);
-    ok = 1;
-    for (k = 0; k < 16u; k++)
-        ok &= led_lit(14u + WHITE[k]) == (k >= 4u && k <= 11u);
-    check("COPY SEL: the selection on the bank's keys (5..12 lit, the rest dark)", ok);
-    snap_page("seqtools/02_copy_sel");
-    turn(EN_K1, 70);
-    seq_hold_frames(1);
-    check("COPY SEL: START past END pushes END (64 at most)", tl.s0 == 63u && tl.s1 == 63u);
-    turn(EN_K1, -59);
-    seq_hold_frames(1);
-    turn(EN_K2, -70);
-    seq_hold_frames(1);
-    check("COPY SEL: END below START pulls START (1 at least)", tl.s0 == 0u && tl.s1 == 0u);
-    turn(EN_K1, 4);
-    seq_hold_frames(1);
-    turn(EN_K2, 7);
-    seq_hold_frames(1);
-    check("(START 5 END 12 again)", tl.s0 == 4u && tl.s1 == 11u);
-    seq_key(TK_CPSEL);
-    check("COPY SEL again: the clipboard holds 5-12 (8 steps), the page closed", !tl.sel && tl.cn == 8u &&
-          str_eq(ui.msg, "COPIED 5-12"));
-    seq_oct(B_OCTUP);
-    seq_oct(B_OCTUP);
-    seq_oct(B_OCTUP);
-    seq_key(TK_PSEL);
-    check("PASTE SEL: waits for a step (says so)", tl.arm && str_eq(ui.msg, "PICK A STEP"));
-    seq_key(WHITE[11]);                              /* step 60 */
-    ok = 1;
-    for (k = 0; k < 5u; k++)
-        ok &= same_step(0, 4u + k, 0, 59u + k);
-    check("PASTE SEL at step 60: steps 60-64 = 5-9 with their locks, clipped at 64", ok && !tl.arm &&
-          str_eq(ui.msg, "PASTED 60-64"));
-    check("PASTE SEL: nothing wraps round, the rest untouched", !memcmp(trk[0].step, before, 16u * sizeof(step_t)) &&
-          step_clear(0, 58) && step_clear(0, 16));
-    seq_down(TK_PSEL);
-    seq_key(WHITE[0]);                               /* A#4 held + steps 49, 53: each */
-    seq_key(WHITE[4]);
-    seq_up(TK_PSEL);
-    check("PASTE SEL held + two steps: pasted at each (the second over the first)", same_step(0, 4, 0, 48) &&
-          same_step(0, 7, 0, 51) && same_step(0, 4, 0, 52) && same_step(0, 7, 0, 55) && same_step(0, 11, 0, 59));
-    tools_close();
-    check("SEQ let go: no selection page, nothing armed", !tl.sel && !tl.arm && !ui.tools);
-}
-
-static void test_tools_duplicate(void)
-{
-    static const uint8_t LEN[3] = {16, 40, 64};
-    uint32_t k, s, ok, n2;
-    step_t t2[NSTEP];
-    ui_host_init();
-    tools_reset();
-    for (k = 0; k < 3u; k++) {
-        trk[k].p[P_SLEN] = LEN[k];
-        for (s = 0; s < LEN[k]; s += 3u)
-            rich_step(k, s, k * 64u + s);
-    }
-    rich_step(1, 50, 99);                            /* past track 2's LEN: overwritten */
-    rich_step(3, 5, 7);                              /* track 4 at LEN 16 */
-    memcpy(t2, trk[2].step, sizeof t2);
-    n2 = lock_count(2);
-    tools_open();
-    seq_key(TK_DUP);
-    tools_close();
-    ok = trk[0].p[P_SLEN] == 32;
-    for (s = 0; s < 16u; s++)
-        ok &= same_step(0, s, 0, 16u + s);
-    check("DUPLICATE: LEN 16 -> 32, steps 17-32 = 1-16 with their locks", ok);
-    ok = trk[1].p[P_SLEN] == 64;
-    for (s = 0; s < 24u; s++)
-        ok &= same_step(1, s, 1, 40u + s);
-    check("DUPLICATE: LEN 40 -> 64 (at most), steps 41-64 = 1-24 with their locks (what was there gone)", ok);
-    check("DUPLICATE: LEN 64 stays, its steps and locks untouched", trk[2].p[P_SLEN] == 64 &&
-          !memcmp(trk[2].step, t2, sizeof t2) && lock_count(2) == n2);
-    ok = trk[3].p[P_SLEN] == 32 && same_step(3, 5, 3, 21);
-    for (k = 4; k < NTRK; k++)
-        ok &= trk[k].p[P_SLEN] == 32;
-    check("DUPLICATE: every track's pattern (the others at LEN 16 -> 32)", ok && str_eq(ui.msg, "DUPLICATED"));
-}
-
-static void test_tools_locks_full(void)
-{
-    uint32_t id, s, n;
-    ui_host_init();
-    tools_reset();
-    seq_open("STEP");
+    memset(&mo, 0, sizeof mo);
+    for (s = 0; s < NSTEP; s++)
+        memset(&trk[0].step[s], 0, sizeof(step_t));
     rich_step(0, 0, 3);
     lock_set(0, 0, P_LEVEL, 5);
     lock_set(0, 0, P_PAN, 6);
     lock_set(0, 0, P_E2, 7);                         /* 5 locks */
-    for (s = 0; s < NSTEP && mo.b.count < LK_MAX - 3u; s++)   /* the bank full but 3 places, with track 8's */
+    track_select(0);
+    mod_combo(B_SAVE, B_REC);
+    for (s = 0; s < NSTEP && mo.b.count < LK_MAX - 3u; s++)   /* the bank full but 3 places, with track 6's */
         for (id = 0; id < P_COUNT && mo.b.count < LK_MAX - 3u; id++)
             if (motion_param(id))
-                lk_put(&mo.b, lk_key(7, s, id), 1, 1);
-    tools_open();
-    seq_with(TK_CPSTEP, WHITE[0]);
-    seq_with(TK_PSTEP, WHITE[4]);
-    n = step_locks(0, 4, 0, 0);
-    check("LOCKS FULL: the step pasted with as many of its locks as fit (3 of 5), says so",
-          !memcmp(&trk[0].step[4], &trk[0].step[0], sizeof(step_t)) && n == 3u && mo.b.count == LK_MAX &&
-              str_eq(ui.msg, "LOCKS FULL"));
-    tools_close();
-    for (n = 0, id = 0; id < P_COUNT; id++)
-        n += (uint32_t)motion_param(id);
-    check("TOOLS: the step buffer holds every lockable knob's lock", n <= TL_SLK);
+                lk_put(&mo.b, lk_key(5, s, id), 1, 1);
+    track_select(1);
+    mod_combo(B_SAVE, B_PLAY);
+    check("LOCKS FULL: the track pasted with as many of its locks as fit (3 of 5), says so",
+          !memcmp(&trk[1].step[0], &trk[0].step[0], sizeof(step_t)) && step_locks(1, 0, 0, 0) == 3u &&
+              mo.b.count == LK_MAX && str_eq(ui.msg, "LOCKS FULL"));
 }
 
 /* spec §5: not in the menu, NAME, a confirm or the PERFORM layer */
@@ -2559,28 +2509,20 @@ static void test_rec_hold_vs_rec_all(void)       /* Review Focus 3 */
     check("REC: a 0.3 s press off SEQ is the tap (REC ALL, TRACKS' arm) on the release; a 0.5 s hold is FILL and "
           "leaves REC ALL on", (int)ok);
 }
-static void test_rec_seq_unchanged(void)
+static void test_rec_seq_unchanged(void)           /* (phase C: the PATTERN page's CLEAR TRACK? hold gone) */
 {
-    static const char *const PG[] = {"PATTERN"};     /* (SEQ's only page since FREITAKT) */
-    uint32_t i, k, ok = 1;
-    for (i = 0; i < 1u; i++) {
-        ui_host_init();
-        for (k = 0; k < NPAGES && (ui.home || !str_eq(cur_page()->title, PG[i])); k++)
-            tap(B_SEQ);
-        if (!str_eq(cur_page()->title, PG[i])) {
-            ok = 0;
-            break;
-        }
-        trk[0].step[0].on = 1;
-        rec_hold_ms(750);
-        OK0(!fill_on && (i >= 2u || ui.confirm == 1u));   /* never a fill; STEP / PATTERN: CLEAR TRACK? as before */
-        release_all();
-        ui_frame();
-        ui.confirm = 0;
-        ui.force = 1;
-        ui_frame();
-    }
-    check("REC held 0.7 s on PATTERN: the confirm as before, never FILL", (int)ok);
+    uint32_t k, ok = 1;
+    ui_host_init();
+    for (k = 0; k < NPAGES && (ui.home || !str_eq(cur_page()->title, "PATTERN")); k++)
+        tap(B_SEQ);
+    OK0(str_eq(cur_page()->title, "PATTERN"));
+    trk[0].step[0].on = 1;
+    rec_hold_ms(750);
+    OK0(fill_on && !ui.confirm);
+    release_all();
+    ui_frame();
+    OK0(!fill_on && !ui.rec_all && song.rec == 0u && trk[0].step[0].on);
+    check("REC held 0.7 s on PATTERN: FILL as on every page (no CLEAR TRACK? dialog), no tap on the release", (int)ok);
 }
 static void test_rec_learned_short(void)
 {
@@ -2727,8 +2669,7 @@ static void test_rec_all(void)
     tap(B_REC);
     check("STEP, KEYS off: a REC tap: REC ALL (no play)", ui.rec_all && song.rec == REC_ALL_MASK && !song.playing);
     hold(B_REC);
-    check("STEP: REC held: CLEAR TRACK? (REC ALL as it was)", ui.confirm == 1u && song.rec == REC_ALL_MASK && ui.rec_all);
-    tap(B_OCTDN);
+    check("STEP: REC held: no dialog, no tap (REC ALL as it was)", !ui.confirm && song.rec == REC_ALL_MASK && ui.rec_all);
     tap(B_REC);
     check(".. a tap after: REC ALL off", song.rec == 0u && !ui.rec_all);
 }
@@ -2977,23 +2918,6 @@ static void test_glo_midi_settings(void)
     song.g[G_SYNC] = song.g[G_ROUTE] = 0;
 }
 
-static void test_clear_confirm(void)
-{
-    uint32_t i;
-    ui_host_init();
-    trk[0].step[0].on = trk[0].step[5].on = 1;
-    open_step_page();
-    fm1_in.buttons |= 1u << panel.btn[B_REC];
-    for (i = 0; i < 800; i++)                        /* REC held 0.8 s (1 ms per tick) */
-        ui_input();
-    release_all();
-    check("REC held on SEQ: the clear dialog", ui.confirm != 0);
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    check("OCT+ clears the track's steps", !trk[0].step[0].on && !trk[0].step[5].on && !ui.confirm);
-}
-
 static void test_oct_both_reaches_main(void)
 {
     ui_host_init();
@@ -3128,7 +3052,7 @@ static void test_backlight_leds(void)
             if (!trk[k].p[P_MUTE])
                 m |= 1u << SOLO_BK[k];
         check("BACKLIGHT ON, SEQ held: audible tracks' black keys full, every other key 5 %",
-              !ui.tools && led_level(14u + SOLO_BK[5]) == 5u && led_level(14u + SOLO_BK[0]) == 100u &&
+              led_level(14u + SOLO_BK[5]) == 5u && led_level(14u + SOLO_BK[0]) == 100u &&
               keys_dim_except(m));
         release_all();
         ui_frame();
@@ -3793,10 +3717,9 @@ static void test_confirm_popup(void)
     ui_host_init();
     trk[0].step[0].on = 1;
     open_step_page();
-    fm1_in.buttons |= 1u << panel.btn[B_REC];
-    for (i = 0; i < 800; i++)
+    ui.confirm = 6;                                  /* (CLEAR ALL LEARNED?: phase C took the REC hold's CLEAR TRACK?) */
+    for (i = 0; i < 2; i++)
         ui_input();
-    release_all();
     ui.force = 1;
     ui_frame();
     check("confirm: a popup over the page (the battery and the page's rows still drawn)", ui.confirm != 0u &&
@@ -4299,7 +4222,7 @@ static int list_rows_drawn(void)
 }
 
 /* a screenshot of HOME, every page of PAGES[] (reached with its own button), the menu, ABOUT and
- * the clear dialog: build/ui_shots/NN_title[_n].png */
+ * the clear's warning: build/ui_shots/NN_title[_n].png */
 static void test_screens(void)
 {
     uint32_t i, k, n = 0, ok = 1, reach = 1;
@@ -4390,13 +4313,16 @@ static void test_screens(void)
     ui_frame();
     release_all();
     seq_open("STEP");                                /* (SEQ: STEP) */
-    hold(B_REC);                                     /* REC held on SEQ: the clear dialog */
-    snap_page("92_clear_track");
-    check("REC held on SEQ: the clear dialog draws", ui.confirm && fb_lit(80, 150) > 100);
-    press(B_OCTDN);
+    press(B_REC);                                    /* REC + SEL held: the clear's warning (phase C) */
+    press(B_SCL);
     ui_frame();
+    host_ticks += 2100u * 1000u * FM1_TICKS_PER_US;
+    snap_page("92_clear_countdown");
+    check("REC + SEL held 2 s: the warning CLEAR T1 3 draws, the screen inverted", ui.clr == 3u &&
+          fb_count(0, 0, 240, 240, C_INK) > 240u * 240u * 3u / 4u);
     release_all();
-    check("OCT- cancels the clear dialog (screens in build/ui_shots)", !ui.confirm);
+    ui_frame();
+    check("let go: the warning gone, nothing cleared (screens in build/ui_shots)", !ui.clr && !ui.confirm);
     press(B_HOME);
     ui_frame();
     release_all();
@@ -5459,7 +5385,7 @@ static void test_clears_and_locks(void)
     lock_set(5, 6, P_FCUT, 20);
     motion_add(2, 1, P_E2, 3);
     motion_add(5, 1, P_E2, 3);
-    track_clear(&trk[2]);                             /* CLEAR TRACK 3 (REC held on SEQ, YES) */
+    track_clear(&trk[2]);                             /* CLEAR TRACK 3 (REC + SEL held 5 s) */
     ok = lock_count(2) == 0u && motion_count(2) == 0u && lock_count(5) == 1u && motion_count(5) == 1u;
     check("CLEAR TRACK: the track's locks and motion gone, the other tracks' kept", ok);
     motion_clear(5);                                  /* MOTION's CLEAR */
@@ -7443,16 +7369,16 @@ static void test_popups_keep_their_margins(void)
 {
     static uint16_t a[240u * 240u];
     uint32_t i;
-    ui_host_init();                                  /* the clear confirm: box x 28..211, y 82..156; its tab x 95..144 */
+    ui_host_init();                                  /* a CLEAR confirm: box x 28..211, y 82..156; its tab x 95..144 */
     trk[0].step[0].on = 1;
     open_step_page();
     ui.force = 1;
     ui_frame();
     memcpy(a, fb, sizeof a);
-    fm1_in.buttons |= 1u << panel.btn[B_REC];
-    for (i = 0; i < 800; i++)
+    ui.confirm = 6;                                  /* (CLEAR ALL LEARNED?: phase C took CLEAR TRACK?) */
+    for (i = 0; i < 2; i++)
         ui_input();
-    release_all();
+    ui.force = 1;
     ui_frame();
     check("confirm: nothing beside its tab, left of it or under its shadow is wiped",
           ui.confirm && fb_diff(a, 28, 76, 66, 6) + fb_diff(a, 146, 76, 66, 6) + fb_diff(a, 27, 76, 1, 84) +
@@ -8061,39 +7987,42 @@ static void test_fk_perform_own_knobs(void)
 }
 
 /* review of fix-keys (item 7: PERFORM is its own page, never the page under it; item 1: OCT+ alone, the next bank on
- * its release): OCT+ let go under TOOLS or PERFORM, or held across either, moves no bank under it */
+ * its release): OCT+ let go under the clear's warning (REC + SEL; TOOLS before phase C) or PERFORM, or held across
+ * either, moves no bank under it */
 static void test_fk_oct_under_mute_perform(void)
 {
-    uint32_t octb = 1u << panel.btn[B_OCTUP], glob = 1u << panel.btn[B_SEQ];
+    uint32_t octb = 1u << panel.btn[B_OCTUP], glob = 1u << panel.btn[B_REC] | 1u << panel.btn[B_SCL];
     int was;
     ui_host_init();
     trk[0].p[P_SLEN] = 32;                           /* two banks */
     open_step_page();
     press(B_OCTUP);
     ui_frame();
-    press(B_SEQ);
+    press(B_REC);
+    press(B_SCL);
     ui_frame();
     host_ticks += 500u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
-    was = ui.tools;
-    fm1_in.buttons &= ~octb;                         /* OCT+ let go under TOOLS */
+    was = ui.clr;
+    fm1_in.buttons &= ~octb;                         /* OCT+ let go under the clear's warning */
     ui_frame();
-    check("OCT+ held, SEQ held into TOOLS, OCT+ let go under it: no bank change", was && ui.bank == 0u);
+    check("OCT+ held, REC + SEL (the clear's warning), OCT+ let go under it: no bank change", was && ui.bank == 0u);
     release_all();
     ui_frame();
-    check("..SEQ let go: the STEP page, bank 1", !ui.tools && step_keys() && ui.bank == 0u);
+    check("..REC + SEL let go: the STEP page, bank 1", !ui.clr && step_keys() && ui.bank == 0u);
     press(B_OCTUP);
     ui_frame();
-    press(B_SEQ);
+    press(B_REC);
+    press(B_SCL);
     ui_frame();
     host_ticks += 500u * 1000u * FM1_TICKS_PER_US;
     ui_frame();
-    was = ui.tools;
-    fm1_in.buttons &= ~glob;                         /* TOOLS closed, OCT+ still held */
+    was = ui.clr;
+    fm1_in.buttons &= ~glob;                         /* the warning gone (cancelled), OCT+ still held */
     ui_frame();
     release_all();                                   /* OCT+ let go on the steps */
     ui_frame();
-    check("OCT+ held across TOOLS, let go on the steps: no bank change", was && ui.bank == 0u);
+    check("OCT+ held across the clear's warning, let go on the steps: no bank change", was && ui.bank == 0u);
     press(B_OCTUP);
     ui_frame();
     press(B_FX);
@@ -9230,14 +9159,10 @@ int main(void)
     test_sel_select();
     test_seq_mute();
     test_combo_refused();
-    test_tools_seq_tap();                            /* step tools (spec 2026-10-31 §3): SEQ held */
-    test_tools_screen();
-    test_tools_clear();
-    test_tools_step_copy();
-    test_tools_page();
-    test_tools_sel();
-    test_tools_duplicate();
-    test_tools_locks_full();
+    test_seq_button();                               /* FREITAKT phase C: SEQ, REC + SEL, the copy / paste combos */
+    test_clr_combo();
+    test_copy_paste_combos();
+    test_paste_locks_full();
     test_save_tap_opens_projects();
     test_cue_keys_no_notes();
     test_save_dead();
@@ -9265,7 +9190,6 @@ int main(void)
     test_layer_in_edit();
     test_lfo_pages();
     test_lfo_edit_marker();
-    test_clear_confirm();
     test_oct_both_reaches_main();
     test_tracks_rows();
     test_screens();

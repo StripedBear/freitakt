@@ -341,22 +341,11 @@ static void test_ends(void)
     hold(B_REC);
     check("REC held on SEQ while learning: REC picked (no CLEAR TRACK?)", !ui.confirm && ui.ml.on &&
           ui.ml.act == ML_A_REC);
-    trk[0].step[0].on = 1;                           /* (FREITAKT: no MOTION page; TOOLS' CLEAR asks instead) */
     release_all();
-    press(B_SEQ);                                    /* SEQ held: TOOLS */
-    for (k = 0; k < 450u; k++) {
-        fm1_in.buttons |= 1u << panel.btn[B_SEQ];
-        ui_frame();
-    }
-    keys(1u << 22);                                  /* D#5: CLEAR */
-    for (k = 0; k < 2u; k++) {
-        fm1_in.buttons |= 1u << panel.btn[B_SEQ];
-        ui_frame();
-    }
-    keys(0);
-    release_all();
+    ui.confirm = CONFIRM_DISCARD;                    /* (phase C: no CLEAR TRACK? dialog; LOAD's DISCARD EDITS?) */
+    ui.confirm_trk = 1;
     frames(2);
-    check("another confirm (TOOLS' CLEAR TRACK 1?): LEARN off", ui.confirm == 1u && !ui.ml.on);
+    check("another confirm (DISCARD EDITS?): LEARN off", ui.confirm == CONFIRM_DISCARD && !ui.ml.on);
     oct(B_OCTDN);
     project_save(0);                                 /* (slot A used: NAME renames it) */
     learn_toggle();
@@ -1200,8 +1189,10 @@ static void test_act_stuck(void)
     check("pressed again: held again", perf_held == PF_BIT(PF_R16));
     send_note(41, 100);
     tap(B_SEQ);
-    hold(B_REC);
-    check("a confirm (CLEAR TRACK?): both end", ui.confirm == 1u && !perf_held);
+    ui.confirm = CONFIRM_DISCARD;                    /* (a dialog: DISCARD EDITS?) */
+    ui.confirm_trk = 1;
+    frames(2);
+    check("a confirm (DISCARD EDITS?): both end", ui.confirm == CONFIRM_DISCARD && !perf_held);
     oct(B_OCTDN);
     frames(2);
     send_cc(22, 0);

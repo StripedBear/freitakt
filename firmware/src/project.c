@@ -142,7 +142,7 @@ static uint8_t var_blocked;                         /* this boot's USR2 clamp fa
  * says whose each holds (slot + 1, 0 none). A slot's variations not in RAM are read from flash (XIP). The Bluetooth
  * build has no .bss room for them: its banks sit in the RAM-code region after .ram_text (app_ble.ld .ram_bss, past
  * the PC guard's _rt_end, below the 0x01C06000 debug area), which crt0 does not zero: persist_boot does (with the
- * INSERTs' state, insert.c, and the step tools' buffers, ui_tools.c) */
+ * INSERTs' state, insert.c) */
 #if defined(FELUCCA_BLE) && FELUCCA_BLE
 static var_bank_t var_buf[2] __attribute__((section(".ram_bss"), aligned(4)));
 #else
@@ -1874,7 +1874,6 @@ static void persist_boot(void)                    /* before settings_init / pane
 #if defined(FELUCCA_BLE) && FELUCCA_BLE
     memset(var_buf, 0, sizeof var_buf);               /* (the Bluetooth build's banks: not .bss, zeroed here) */
     memset(ins, 0, sizeof ins);                       /* (.. and the INSERTs' state beside them, insert.c) */
-    memset(&tl, 0, sizeof tl);                        /* (.. and the step tools' buffers, ui_tools.c: nothing copied) */
 #endif
     memset(&btset, 0, sizeof btset);                  /* no device, MODE AUTO, AUTOSTART OFF unless the flash record
                                                        * has them */

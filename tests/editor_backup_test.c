@@ -619,15 +619,16 @@ static int keys_refused(const uint8_t *keep, const project_t *staged)
           !memcmp(&proj_slot[1], staged, sizeof *staged) && str_eq(ui.msg, "RESTORING");
     return (int)ok;
 }
-/* the live steps edited on the device while a restore runs (seqtools: the TOOLS screen, a held step's KNOB 1-4, live
- * recording with QUANT): refused (RESTORING) / nothing recorded; the copies still work. edit 1: no restore, they edit */
+/* the live steps edited on the device while a restore runs (phase C: the copy / paste combos and REC + SEL's clear, a
+ * held step's KNOB 1-4, live recording with QUANT): refused (RESTORING) / nothing recorded; the copies still work.
+ * edit 1: no restore, they edit */
 static step_t tl_keep[NTRK][NSTEP];
 static int tools_edit(int edit)
 {
-    uint32_t ok = 1, k, s = song.sel;
+    uint32_t ok = 1, k, s = song.sel, s2 = (song.sel + 1u) % NTRK, pr = 0, t = 1000u;
     for (k = 0; k < NTRK; k++)
         memcpy(tl_keep[k], trk[k].step, sizeof tl_keep[k]);
-    memset(&tl, 0, sizeof tl);
+    clip_kind = CB_NONE;
     ui.msg[0] = 0;
     ui.confirm = 0;
     ui.bank = 0;
@@ -635,20 +636,32 @@ static int tools_edit(int edit)
     trk[s].step[1].on = 1;
     trk[s].step[1].micro = 9;
     memcpy(tl_keep[s], trk[s].step, sizeof tl_keep[s]);
-    fm1_in.notes = 1u << TL_K_CPSTEP;                   /* COPY STEP + step 2, COPY PAGE: the buffers (allowed) */
-    tl_keys(1u << STEP_KEY[1]);
-    fm1_in.notes = 0;
-    tl_keys(1u << TL_K_CPPAGE);
-    ok &= tl.st_ok && tl.st.micro == 9 && tl.cn == 16u;
-    fm1_in.notes = 1u << TL_K_PSTEP;                    /* PASTE STEP + step 6, REPLACE, FILL, DUPLICATE, CLEAR */
-    tl_keys(1u << STEP_KEY[5]);
-    fm1_in.notes = 0;
-    ok &= (trk[s].step[5].micro == 9) == edit;
-    tl_keys(1u << TL_K_REPL | 1u << TL_K_FILL | 1u << TL_K_DUP);
-    ok &= !ui.confirm || edit;
-    ui.confirm = 0;
-    tl_keys(1u << TL_K_CLEAR);
-    ok &= edit ? ui.confirm == 1u : !ui.confirm && str_eq(ui.msg, "RESTORING");
+    clip_copy(0);                                       /* SAVE + REC: the track (allowed) */
+    ok &= clip_kind == CB_TRACK && clip.st[0][1].micro == 9;
+    song.sel = (uint8_t)s2;                             /* SAVE + PLAY onto the next track */
+    clip_paste(0);
+    song.sel = (uint8_t)s;
+    ok &= (trk[s2].step[1].micro == 9) == edit && (edit || str_eq(ui.msg, "RESTORING"));
+    if (edit)
+        memcpy(trk[s2].step, tl_keep[s2], sizeof tl_keep[s2]);
+    clip_copy(1);                                       /* GLO + REC: the pattern (allowed), GLO + PLAY */
+    ok &= clip_kind == CB_PAT;
+    clip_paste(1);
+    ok &= str_eq(ui.msg, edit ? "PASTED PATTERN" : "RESTORING");
+    fm1_in.buttons = 1u << panel.btn[B_REC] | 1u << panel.btn[B_SCL];   /* REC + SEL held 5 s: the clear */
+    ui.clr_t0 = 0;
+    ui.msg[0] = 0;
+    clr_input(t, &pr);
+    clr_input(t + CLR_MS * 1000u * FM1_TICKS_PER_US, &pr);
+    fm1_in.buttons = 0;
+    clr_input(t, &pr);
+    {
+        char m[12] = "CLEARED T1";
+        m[9] = (char)('1' + s);
+        ok &= edit ? !trk[s].step[1].on && str_eq(ui.msg, m) : str_eq(ui.msg, "RESTORING");
+    }
+    if (edit)
+        memcpy(trk[s].step, tl_keep[s], sizeof tl_keep[s]);
     ui.confirm = 0;
     ui.held = 2;                                        /* step 3 held, KNOB 4 (NUDGE) turned */
     ui.step_t0[2] = 1;
@@ -664,7 +677,7 @@ static int tools_edit(int edit)
     song.playing = 0;
     song.rec = 0;
     if (edit)
-        ok &= trk[s].p[P_SLEN] == 32;
+        ok &= trk[s].p[P_SLEN] == 16;
     else
         for (k = 0; k < NTRK; k++)
             ok &= !memcmp(trk[k].step, tl_keep[k], sizeof tl_keep[k]) && trk[k].p[P_SLEN] == (k == s ? 16 : trk[k].p[P_SLEN]);
@@ -707,8 +720,8 @@ static void t_restoring_lock(void)
     ok &= tools_edit(0) && ed_restoring() && !memcmp(&proj_slot[1], &staged, sizeof staged) && same_flash(keep);
     ok &= rs_op(ED_RS_ABORT) == ED_OK && tools_edit(1);
     transport_req = 0;
-    check("RESTORING: the TOOLS screen's pastes, DUPLICATE and CLEAR, a held step's KNOB 1-4 refused (RESTORING), live "
-          "recording records nothing, the copies work; after the restore they edit again", (int)ok);
+    check("RESTORING: the copy / paste combos' pastes and REC + SEL's clear, a held step's KNOB 1-4 refused (RESTORING), "
+          "live recording records nothing, the copies work; after the restore they edit again", (int)ok);
 
     transport_req = 0;
     ok = restore(ED_RK_PROJECT, 1, &o, 3, 0) == ED_OK;

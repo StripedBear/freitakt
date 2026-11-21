@@ -39,7 +39,6 @@ static int pp_on(void);                    /* ui_preset.c: the PRESETS popup sho
 static int pl_on(void);                    /* .. the PRESETS list shows */
 static void draw_popup(void);
 static void draw_plist(void);
-static void draw_tools(void);              /* ui_tools.c: the TOOLS screen (SEQ held) */
 static int splash_draw(void);             /* ui_menu.c: the FREITAKT boot splash (1: a frame of it drawn) */
 static int preset_user_save(uint32_t slot, const track_t *t);   /* project.c: the user presets' flash record */
 static void preset_user_delete(uint32_t slot);
@@ -98,7 +97,7 @@ static struct {
                                   * STEP_HOLD_MS, edited, accented or let go of: grid_drop_holds), bit 2: edited */
     uint16_t step_si[16];        /* the step it pressed, 0xFFFF none */
     uint8_t held;                /* the grid key pressed last (valid while step_t0[held] is set) */
-    uint8_t confirm;             /* 1 "CLEAR TRACK n?", (2: the removed MOTION page's, 3, 4: the removed SONG's), 5 the last project
+    uint8_t confirm;             /* (1: the removed CLEAR TRACK n?, now REC + SEL held; 2: the removed MOTION page's, 3, 4: the removed SONG's), 5 the last project
                                   * failed to load (START NEW PROJECT?; confirm_trk its slot), 6 CLEAR ALL LEARNED?
                                   * (MIDI LEARN: ui_learn.c), 7 DISCARD EDITS? (a LOAD of slot confirm_trk with unsaved
                                   * edits: CONFIRM_DISCARD), 8 OVERWRITE B*? (a SAVE onto it: CONFIRM_OVERWRITE) */
@@ -122,8 +121,9 @@ static struct {
                                         * mod_input: the combos) */
     uint32_t cue_t0;             /* SAVE's press time | CUE_DOWN OPEN DEAD PLAIN (ui_input.c cue_input) */
     uint8_t cue_map;             /* SAVE held: the cue map (white keys the slots, black keys the variations, 2026-10-26) */
-    uint32_t seq_t0;             /* SEQ's press time | TL_DOWN OPEN DEAD PLAIN (ui_tools.c tools_input) */
-    uint8_t tools;               /* the TOOLS screen shows (SEQ held, spec 2026-10-31 §3: the step copy tools) */
+    uint32_t seq_t0;             /* SEQ's press time | SQ_DOWN DEAD PLAIN KEY (ui_tools.c seq_input) */
+    uint32_t clr_t0;             /* REC + SEL held: the time both were | 1; bit 1: done or dead (ui_input.c clr_input) */
+    uint8_t clr, clr_trk;        /* .. the countdown's digit shown (5..1, 0: none), the track it clears */
     uint8_t keys;                /* KEYS (spec §5): an SCL tap; off at power-on, never stored */
     uint8_t env;                 /* ENV (spec 2026-10-24 parameter locks): 1 STEPS (the white keys the selected track's
                                   * steps on every page), 0 TRACKS (as before); off at power-on, never stored */

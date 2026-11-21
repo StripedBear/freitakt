@@ -372,14 +372,14 @@ static void test_steps(void)
         host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
         frame();
     }
-    check("SEQ held: no TOOLS screen", !ui.tools);
+    check("SEQ held: no screen over the page (no TOOLS since phase C)", !ui.home && !ui.clr);
     fm1_in.notes = 1u << 2;
     frame();
     fm1_in.notes = 0;
     frame();
     release_all();
     frame();
-    check("SEQ + a white key: no TOOLS, no step", !ui.tools && !trk[0].step[0].on && !trk[0].step[1].on);
+    check("SEQ + a white key: no step", !trk[0].step[0].on && !trk[0].step[1].on);
     clear_sent();
     kh(1u << 2);
     kh(0);

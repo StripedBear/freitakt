@@ -193,10 +193,6 @@ static int head_text(char *b, int keys)              /* keys 0: not KEYS (draw_h
 {
     uint32_t ls = lock_view_step();
     b[0] = 0;
-    if (ui.tools) {                                   /* SEQ held: the step tools */
-        str_cpy(b, "STEP TOOLS", 16);
-        return 1;
-    }
     if (ui.cue_map) {                                 /* SAVE held (spec 2026-10-26): CUE A1 (* edited), CUE>B3 queued */
         int32_t ld = proj_loaded();
         if (cue.q_slot || cue.q_var) {
@@ -1962,10 +1958,10 @@ static void draw_columns(void)
 }
 
 /* ---- the knob popup (ui.c kp; FREITAKT redesign, rule 5) */
-/* up and shown: nothing owns the screen over it (the menu, a confirm, NAME, the PRESETS list or popup, TOOLS, PERFORM) */
+/* up and shown: nothing owns the screen over it (the menu, a confirm, NAME, the PRESETS list or popup, the clear's countdown, PERFORM) */
 static int kp_live(void)
 {
-    return kp.on && !ui.menu && !ui.confirm && !name_on() && !pl_on() && !pp_on() && !ui.tools && !ui.layer;
+    return kp.on && !ui.menu && !ui.confirm && !name_on() && !pl_on() && !pp_on() && !ui.clr && !ui.layer;
 }
 /* the session's name and value now (16 bytes each; unit: the value's, small) */
 static void kp_text(char *l, char *v, const char **unit)
@@ -2061,6 +2057,35 @@ static void draw_kpop(void)
     }
 }
 
+/* REC + SEL held (ui_input.c clr_input): the warning, whole screen inverted: CLEAR T3, the countdown's digit (5..1)
+ * very large, LET GO TO CANCEL; the digit's rows only when it changes */
+#define CLR_DY 70
+#define CLR_DH 100
+static void draw_clr(void)
+{
+    static uint8_t shown;
+    char t[12] = "CLEAR T1", d[2] = "5";
+    if (ui.force) {
+        uint32_t sc = md_fit_sc(t, 220, 7u);
+        t[7] = (char)('1' + ui.clr_trk % NTRK);
+        cv_begin(240, CLR_DY, C_INK);                 /* (three bands: the screen once) */
+        md_text(120 - md_text_w(&MD_F3, sc, t) / 2, 14 + (50 - 5 * (int32_t)sc) / 2, &MD_F3, sc, t, C_BG);
+        cv_blit(0, 0);
+        cv_begin(240, 240 - CLR_DY - CLR_DH, C_INK);
+        md_text(120 - md_text_w(&MD_F3, 2, "LET GO TO CANCEL") / 2, 26 + 5, &MD_F3, 2, "LET GO TO CANCEL", C_BG);
+        cv_blit(0, CLR_DY + CLR_DH);
+        shown = 0;
+        ui.force = 0;
+    }
+    if (shown == ui.clr)
+        return;
+    shown = ui.clr;
+    d[0] = (char)('0' + ui.clr % 10u);
+    cv_begin(240, CLR_DH, C_INK);
+    md_text(120 - md_text_w(&MD_F3, 18, d) / 2, (CLR_DH - 5 * 18) / 2, &MD_F3, 18, d, C_BG);
+    cv_blit(0, CLR_DY);
+}
+
 /* inlined into fm1_main (main.c), as before M2: fm1_main then stays a function of its own, the shape H2 compares
  * with upstream (the boot sequence up to the fm1_main call) */
 __attribute__((always_inline)) static inline void ui_draw(void)
@@ -2091,9 +2116,13 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         ui.force = 0;
         return;
     }
+    if (ui.clr) {                                     /* REC + SEL held: the clear's countdown */
+        draw_clr();
+        return;
+    }
     if (ui.confirm) {
         if (ui.force) {
-            char b[20] = "CLEAR TRACK 1?";
+            char b[20] = "CONFIRM?";
             if (ui.confirm == 6u) {              /* MIDI LEARN (ui_learn.c ML_CONFIRM) */
                 str_cpy(b, "CLEAR ALL LEARNED?", sizeof b);
             } else if (ui.confirm == 5u) {              /* the power-on load failed (project.c project_boot) */
@@ -2104,8 +2133,6 @@ __attribute__((always_inline)) static inline void ui_draw(void)
             } else if (ui.confirm == CONFIRM_OVERWRITE) {   /* SAVE onto a slot with unsaved edits (project.c) */
                 str_cpy(b, "OVERWRITE A*?", sizeof b);
                 b[10] = (char)('A' + ui.confirm_trk % 4u);
-            } else {
-                b[12] = (char)('1' + ui.confirm_trk);
             }
             bank_fix();                               /* the page under it, then the popup */
             if (ui.home && !ui.layer) {
@@ -2133,10 +2160,6 @@ __attribute__((always_inline)) static inline void ui_draw(void)
     }
     if (pl_on()) {                                    /* the PRESETS list (ui_preset.c): its own screen */
         draw_plist();
-        return;
-    }
-    if (ui.tools) {                                   /* SEQ held: the TOOLS screen (ui_tools.c) */
-        draw_tools();
         return;
     }
     if (kp.on) {                                      /* the knob popup: its own screen (the timers run on) */

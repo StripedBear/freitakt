@@ -43,7 +43,7 @@ static const uint8_t CUE_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
 /* the combo buttons' state (GLO, SEL, ARP: mod_input; ui.glo_t0 ..): the press time | these */
 #define MOD_DOWN 1u
 #define MOD_KEY 2u                                  /* a key pressed with it: no tap */
-#define MOD_DEAD 4u                                 /* pressed in the menu, a confirm, NAME, the PRESETS list, TOOLS */
+#define MOD_DEAD 4u                                 /* pressed in the menu, a confirm, NAME, the PRESETS list, the clear */
 #define MOD_PLAIN 8u                                /* pressed with the PERFORM layer up or FX held: a plain button */
 #define GLO_SLOTS 4u                                /* the pattern slots A..D (project.c proj_slot): GLO + white 1..4 */
 static int mod_live(uint32_t t0) { return t0 && !(t0 & (MOD_DEAD | MOD_PLAIN)); }   /* held, its keys its own */
@@ -111,7 +111,7 @@ static int track_keys(void)
 
 #include "ui_name.c"                               /* NAME: naming a project */
 #include "ui_learn.c"                              /* MIDI LEARN: SAVE > COPY > LEARN, a knob, a CC */
-#include "ui_tools.c"                              /* the step tools: SEQ held, the TOOLS screen */
+#include "ui_tools.c"                              /* SEQ, the clipboard, the track clear */
 
 /* fixes 2026-10-21 item 5 (upstream Felucca's breath, #119): the OCT LEDs, OCT_LIT_* lit, OCT_BR_* breathing (dark ..
  * ~60 % and back, led_dim.c: it would do something if pressed); a way back (NO, CANCEL, BACK) lit; elsewhere dark.
@@ -127,8 +127,6 @@ static uint32_t oct_leds(void)
 {
     if (ui.layer)
         return 0;
-    if (ui.tools)                                       /* TOOLS: the banks there are, either way */
-        return (ui.bank + 1u < bank_count() ? OCT_BR_UP : 0u) | (ui.bank ? OCT_BR_DN : 0u);
     if (name_on())
         return OCT_LIT_DN | OCT_BR_UP;
     if (pl_on())
@@ -243,8 +241,6 @@ static void ui_leds(void)
             led_put(nb, 14u + key, c == CM_BREATHE);
         }
         led_put(nl, panel.btn[B_SAVE], 1);
-    } else if (ui.tools) {                            /* TOOLS screen (SEQ held): ui_tools.c */
-        tools_leds(nl);
     } else if (mod_live(ui.glo_t0)) {                 /* GLO held: the playing pattern's white key lit, a queued
                                                        * one blinking; black 1..8 the variations (project.c cue_led:
                                                        * of the queued pattern if one is): the playing one lit, a
@@ -260,8 +256,8 @@ static void ui_leds(void)
             if (c == CM_ON)
                 dimk |= 1u << CUE_BK[k];
         }
-    } else if (mod_live(ui.arp_t0) || mod_live(ui.sel_t0) || (ui.seq_t0 && !(ui.seq_t0 & (TL_DEAD | TL_PLAIN)))) {
-        int blink = (int)((fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u);   /* (SEQ: before TOOLS opens) */
+    } else if (mod_live(ui.arp_t0) || mod_live(ui.sel_t0) || (ui.seq_t0 && !(ui.seq_t0 & (SQ_DEAD | SQ_PLAIN)))) {
+        int blink = (int)((fm1_ticks() / (250u * 1000u * FM1_TICKS_PER_US)) & 1u);   /* (SEQ: its mutes) */
         for (k = 0; k < NTRK; k++)                    /* ARP: the soloed tracks; SEL: the selected one; SEQ: the
                                                        * audible ones (a mute waiting for the bar blinks) */
             led_put(nl, 14u + CUE_BK[k], mod_live(ui.arp_t0) ? (int)((song.solo >> k) & 1u)
@@ -651,7 +647,7 @@ static void edit_param(uint32_t slot, int32_t steps)
     }
 }
 
-/* HOME / REC: tap on release, hold 0.7 s fires once. t0 = press time | 1,
+/* HOME / REC: tap on release, hold 0.7 s fires once (HOME; REC's hold is FILL: rec_fill). t0 = press time | 1,
  * bit 1 = fired (or swallowed: then the release is no tap either) */
 enum { BT_NONE, BT_TAP, BT_HOLD };
 static uint32_t btn_hold(uint32_t *t0, uint32_t label, uint32_t now, int hold_ok)
@@ -675,12 +671,12 @@ static uint32_t btn_hold(uint32_t *t0, uint32_t label, uint32_t now, int hold_ok
  * pressed with it are its own (seq.c keyboard_block), KNOB 1..4 its macros FILTER CRUSH THROW DEPTH (never saved;
  * spec §7: they stay on when the screen goes, until turned back to 0 on it, INIT ALL or BENCH). It opens at once
  * with a key or a knob, else after FX_HOLD_MS (then the release does nothing). No layer in the menu, a dialog or
- * TOOLS: a press there stays dead until let go, and every key effect is off until its keys are let go */
+ * the clear's countdown: a press there stays dead until let go, and every key effect is off until its keys are let go */
 #define FX_HOLD_MS 400u
 #define FX_DOWN 1u
 #define FX_OPEN 2u
 #define FX_DEAD 4u
-static int fx_allowed(void) { return !ui.menu && !ui.confirm && !name_on() && !ui.tools && !pl_on(); }
+static int fx_allowed(void) { return !ui.menu && !ui.confirm && !name_on() && !ui.clr && !pl_on(); }
 /* fixes 2026-10-21 item 7: PERFORM has KNOB 1..4 (fx_layer reads them; set each pass): the page's loop leaves them
  * alone, so detents that come in after fx_layer's read wait for its next one instead of reaching the page under it.
  * 1 PERFORM's; 2 the pass it stops being (FX let go): the detents read then are still the macros', the page's loop
@@ -746,7 +742,7 @@ static void fx_layer(uint32_t now, int home_tap)
 
 /* the combos (FREITAKT, Elektron Model:Cycles style): hold GLO, SEL or ARP and press a key. Every key pressed with
  * one of them is its own until let go (seq.c keyboard_block, mute_mask: no note, no MIDI, nothing recorded). Pressed in
- * the menu, a confirm, NAME, the PRESETS list or TOOLS: dead until let go; with the PERFORM layer up or FX held: a plain
+ * the menu, a confirm, NAME, the PRESETS list or the clear's countdown: dead until let go; with the PERFORM layer up or FX held: a plain
  * button. Two held: GLO's keys, then ARP's, then SEL's.
  * GLO: a tap (let go within GLO_HOLD_MS, no key pressed meanwhile) = the GLOBAL pages, on the release; + white key n
  * queues pattern n (A..D; the first of a hold, at once: cue_slot; whites past GLO_SLOTS: nothing); + black key n (1..8)
@@ -756,18 +752,18 @@ static void fx_layer(uint32_t now, int home_tap)
  * variation. A black key before any white of the hold: a plain variation cue; after the first white (still one): its
  * variation, cued too (a plain cue so far); black 9 / 10 (C#5 / D#5): nothing. SEL: + black 1..6 selects track 1..6; let go with no key pressed: KEYS on /
  * off. ARP: + black 1..6 SOLO of tracks 1..6 (TOGGLE, or MOMENTARY: while the key is held), + F#5 the SOLO mode.
- * SEQ + black 1..6 (mutes): ui_tools.c tools_input */
+ * SEQ + black 1..6 (mutes): ui_tools.c seq_input */
 #define GLO_HOLD_MS 400u
 static uint8_t glo_ch[CHAIN_N], glo_chn, glo_wh;       /* GLO held: the chain entries its white keys picked, in press
                                                         * order (project.c chain.s); glo_wh the whites pressed */
 static uint8_t solo_held;                              /* the tracks an ARP black key soloed, the key still down
                                                         * (mute_ups) */
-static int mod_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.tools; }
+static int mod_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.clr; }
 static int cue_owns_keys(void);
 static int mod_owns_keys(void)                         /* a combo button held: the keys pressed now are its own */
 {
     return mod_live(ui.glo_t0) ||
-           ((mod_live(ui.arp_t0) || mod_live(ui.sel_t0)) && !cue_owns_keys() && !tools_owns_keys());
+           ((mod_live(ui.arp_t0) || mod_live(ui.sel_t0)) && !cue_owns_keys() && !seq_owns_keys());
 }
 static void mod_hold(uint32_t b, uint32_t *t0, uint32_t now, uint32_t keyed)   /* button b held: its state */
 {
@@ -834,7 +830,7 @@ static void mod_keys(uint32_t hits)                    /* the keys the ISR gave 
         ui_message(solo_mom ? "SOLO: MOMENTARY" : "SOLO: TOGGLE");
     }
 }
-/* ARP + EDIT (ARP held, its keys its own: not in the menu, a confirm, NAME, the PRESETS list, TOOLS, with the PERFORM
+/* ARP + EDIT (ARP held, its keys its own: not in the menu, a confirm, NAME, the PRESETS list, the clear, with the PERFORM
  * layer up or FX held): the selected track's ARP page, again ARP 2/2 (a pitched model's) and back; returns 1 if so */
 static int arp_edit(void)
 {
@@ -873,8 +869,8 @@ static void mute_ups(void)                             /* SOLO MOMENTARY: an ARP
 static void mod_input(uint32_t now, uint32_t notes)
 {
     uint32_t hits = 0, f;
-    if (kb_mute_hit && !cue_owns_keys() && !tools_owns_keys()) {   /* (SAVE held: the cue map's, cue_input; SEQ
-                                                         * held: the TOOLS screen's, tools_input) */
+    if (kb_mute_hit && !cue_owns_keys() && !seq_owns_keys()) {   /* (SAVE held: the cue map's, cue_input; SEQ
+                                                         * held: its mutes, seq_input) */
         fm1_irq_off();
         hits = kb_mute_hit;
         kb_mute_hit = 0;
@@ -905,12 +901,12 @@ static void mod_input(uint32_t now, uint32_t notes)
  * pressed with a key, the cue map: white keys 1..4 queue slots A..D, the black keys F#3 .. A#4 (CUE_BK) variations 1..8
  * (project.c cue_slot / cue_var; 2026-10-27: no longer white keys 5..12), the top line CUE A1 / CUE>B3; its release
  * then does nothing else. Every key pressed with SAVE is the map's until let go (seq.c keyboard_block, mute_mask: no note, no MIDI, nothing recorded). Pressed in the menu, a
- * confirm, NAME, the PRESETS list or TOOLS: dead until let go; with the PERFORM layer up or FX held: a plain
+ * confirm, NAME, the PRESETS list or the clear's countdown: dead until let go; with the PERFORM layer up or FX held: a plain
  * button (the release opens the projects page) */
-/* FILL (spec 2026-10-26): REC held FILL_HOLD_MS on any page but SEQ's (STEP, PATTERN, MOTION: there REC held is
- * their confirm) plays a fill while held (seq.c fill_on: FILL steps play, !FILL ones not), the top line FILL; its
+/* FILL (spec 2026-10-26): REC held FILL_HOLD_MS on any page (FREITAKT phase C: SEQ's too, its CLEAR TRACK dialog
+ * gone) plays a fill while held (seq.c fill_on: FILL steps play, !FILL ones not), the top line FILL; its
  * release then is no tap (rec_t0's bit 1: btn_hold). A shorter press is the tap, on the release, as before. Not in the
- * menu, a confirm, NAME, the PRESETS list, TOOLS or MIDI LEARN. A learned REC and the SMC's REC are taps */
+ * menu, a confirm, NAME, the PRESETS list, the clear's countdown or MIDI LEARN. A learned REC and the SMC's REC are taps */
 #define FILL_HOLD_MS 400u
 static void rec_fill(uint32_t now)
 {
@@ -919,8 +915,8 @@ static void rec_fill(uint32_t now)
         fill_on = 0;
         return;
     }
-    if (!fill_on && ui.rec_t0 && !(ui.rec_t0 & 2u) && cur_fam() != FAM_SEQ && !ui.menu && !ui.confirm &&
-        !name_on() && !pl_on() && !ui.tools && !ui.ml.on &&
+    if (!fill_on && ui.rec_t0 && !(ui.rec_t0 & 2u) && !ui.menu && !ui.confirm &&
+        !name_on() && !pl_on() && !ui.clr && !ui.ml.on &&
         now - (ui.rec_t0 & ~3u) >= FILL_HOLD_MS * 1000u * FM1_TICKS_PER_US) {
         fill_on = 1;
         ui.rec_t0 |= 2u;                                /* (no tap on the release) */
@@ -932,7 +928,8 @@ static void rec_fill(uint32_t now)
 #define CUE_OPEN 2u
 #define CUE_DEAD 4u
 #define CUE_PLAIN 8u
-static int cue_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.tools; }
+#define CUE_USED 16u                                   /* SAVE took a combo (combo_input): no projects page, no map */
+static int cue_dead(void) { return ui.menu || ui.confirm || name_on() || pl_on() || ui.clr; }
 static int cue_owns_keys(void)                         /* SAVE held (GLO not): the keys pressed now are the map's */
 {
     return ((fm1_in.buttons >> panel.btn[B_SAVE]) & 1u) && !((fm1_in.buttons >> panel.btn[B_GLO]) & 1u) &&
@@ -961,20 +958,20 @@ static void cue_input(uint32_t now, uint32_t notes)
     }
     if (fm1_in.buttons & bit) {
         if (!*t0)
-            *t0 = (now & ~15u) | CUE_DOWN;
+            *t0 = (now & ~31u) | CUE_DOWN;
         if (!(*t0 & CUE_OPEN) && cue_dead())
             *t0 |= CUE_DEAD;
         else if (!(*t0 & CUE_OPEN) && (ui.layer || ui.fx_t0))
             *t0 |= CUE_PLAIN;
-        if (!(*t0 & (CUE_OPEN | CUE_DEAD | CUE_PLAIN)) &&
-            (notes || hits || now - (*t0 & ~15u) >= CUE_HOLD_MS * 1000u * FM1_TICKS_PER_US)) {
+        if (!(*t0 & (CUE_OPEN | CUE_DEAD | CUE_PLAIN | CUE_USED)) &&
+            (notes || hits || now - (*t0 & ~31u) >= CUE_HOLD_MS * 1000u * FM1_TICKS_PER_US)) {
             *t0 |= CUE_OPEN;                            /* the cue map */
             ui.cue_map = 1;
             ui.force = 1;
             grid_drop_holds();                          /* a grid key held edits nothing under it */
         }
     } else if (*t0) {
-        if (!(*t0 & (CUE_OPEN | CUE_DEAD)) && !cue_dead())
+        if (!(*t0 & (CUE_OPEN | CUE_DEAD | CUE_USED)) && !cue_dead())
             open_family(FAM_SAVE);                      /* a tap: the projects page (then TOOLS, COPY) */
         *t0 = 0;
         if (ui.cue_map) {
@@ -986,6 +983,85 @@ static void cue_input(uint32_t now, uint32_t notes)
         cue_keys(hits);
     mute_mask = (mute_mask & ~bit) |
                 (!(*t0 & (CUE_DEAD | CUE_PLAIN)) && !cue_dead() && !ui.layer && !ui.fx_t0 ? bit : 0u);
+}
+
+/* the copy / paste combos (Model:Cycles style; ui_tools.c clip_*): SAVE held + REC copies the selected track, SAVE
+ * held + PLAY pastes it onto the selected track; GLO held + REC copies the pattern (every track: the live variation),
+ * GLO held + PLAY pastes it. The button held first (GLO before SAVE when both are), and taken where it would take a key
+ * (SAVE: not dead nor plain, the cue map up or not; GLO: mod_live): its release then does nothing (no projects page, no
+ * GLOBAL pages; SAVE's cue map does not open after it), the REC press no tap, FILL, REC ALL nor MIDI LEARN pick, the PLAY press no start /
+ * stop. MIDI LEARN on: PLAY and REC pick their action, as ever (no combo). The message: COPIED T3, PASTED PATTERN .. */
+static void combo_input(uint32_t *pressed)
+{
+    uint32_t rb = 1u << panel.btn[B_REC], pb = 1u << panel.btn[B_PLAY];
+    int glo = mod_live(ui.glo_t0), save = !glo && ((fm1_in.buttons >> panel.btn[B_SAVE]) & 1u) && ui.cue_t0 &&
+                                         !(ui.cue_t0 & (CUE_DEAD | CUE_PLAIN)) && !cue_dead();
+    if (!(*pressed & (rb | pb)) || (!glo && !save) || ui.ml.on || ui.clr)
+        return;
+    if (glo)
+        ui.glo_t0 |= MOD_KEY;
+    else
+        ui.cue_t0 |= CUE_USED;
+    if (*pressed & rb) {
+        ui.rec_t0 |= 2u;                                /* (no tap, no FILL) */
+        clip_copy(glo);
+    }
+    if (*pressed & pb)
+        clip_paste(glo);
+    *pressed &= ~(rb | pb);
+}
+
+/* REC + SEL held together CLR_MS (either first): the selected track cleared (its steps, motion and locks: ui.c
+ * track_clear, as the old CLEAR TRACK dialog), then CLEARED T3. While both are held the screen is the warning CLEAR T3
+ * and its countdown 5..1 (ui_draw.c draw_clr), the panel its own (the knob popup closed, OCT- no undo, keys and knobs
+ * nothing); letting either go before cancels, nothing changed. The second press takes both: REC no tap, FILL, REC ALL nor
+ * MIDI LEARN pick (a FILL already playing stops), SEL no KEYS toggle and no track select (MOD_DEAD); after a clear, or
+ * pressed in the menu, a confirm, NAME, the PRESETS list or the cue map, nothing until one is let go */
+#define CLR_MS 5000u
+static void clr_input(uint32_t now, uint32_t *pressed)
+{
+    uint32_t el;
+    if (!((fm1_in.buttons >> panel.btn[B_REC]) & 1u) || !((fm1_in.buttons >> panel.btn[B_SCL]) & 1u)) {
+        if (ui.clr) {                                   /* let go early: cancelled */
+            ui.clr = 0;
+            ui.force = 1;
+        }
+        ui.clr_t0 = 0;
+        return;
+    }
+    ui.rec_t0 |= 2u;                                    /* (both held: neither acts on its own) */
+    if (ui.sel_t0)
+        ui.sel_t0 |= MOD_DEAD;
+    fill_on = 0;
+    *pressed &= ~(1u << panel.btn[B_REC]);
+    if (!ui.clr_t0) {
+        ui.clr_t0 = (now | 1u) & ~2u;
+        if (ui.menu || ui.confirm || name_on() || pl_on() || ui.cue_map) {
+            ui.clr_t0 |= 2u;                            /* (dead until one is let go) */
+            return;
+        }
+        kp_close();                                     /* the knob popup gone (no OCT- undo under the warning) */
+        grid_drop_holds();                              /* a grid key held edits nothing under it */
+        ui.clr = 5;
+        ui.clr_trk = song.sel;
+        ui.force = 1;
+    }
+    if (!ui.clr)
+        return;
+    el = now - (ui.clr_t0 & ~3u);
+    if (el >= CLR_MS * 1000u * FM1_TICKS_PER_US) {
+        char m[4] = "T1";
+        ui.clr = 0;
+        ui.clr_t0 |= 2u;
+        ui.force = 1;
+        if (ui_locked())                                /* (a web editor restore: RESTORING) */
+            return;
+        track_clear(&trk[ui.clr_trk % NTRK]);
+        m[1] = (char)('1' + ui.clr_trk % NTRK);
+        ui_say("CLEARED ", m);
+        return;
+    }
+    ui.clr = (uint8_t)(5u - el / (1000u * 1000u * FM1_TICKS_PER_US));
 }
 
 /* PLAY: start / stop */
@@ -1002,7 +1078,7 @@ static void play_press(void)
 #include "ui_preset.c"                             /* PRESETS: the encoder's popup, the list on a long EDIT */
 
 /* fixes 2026-10-21 item 1: OCT+ let go where it was pressed on the steps: alone (no step key accented with it), and the
- * keys still the steps, the next bank; anything else (an accent, another page, the menu, a dialog, TOOLS or
+ * keys still the steps, the next bank; anything else (an accent, another page, the menu, a dialog, the clear or
  * PERFORM up while it was held: acc_oct 2, ui_input) nothing */
 /* OCT+'s page job (an LFO page: the RATE MODE of the LFO turned last) */
 static void oct_up_job(void)
@@ -1090,7 +1166,7 @@ static int kp_aim(uint32_t c, kp_aim_t *a)
     a->id = a->gid = 0xFFFFu;
     a->vp = 0;
     a->d = 0;
-    if (c > 3u || ui.menu || ui.confirm || name_on() || pl_on() || pp_on() || ui.tools || ui.layer || fx_knobs ||
+    if (c > 3u || ui.menu || ui.confirm || name_on() || pl_on() || pp_on() || ui.clr || ui.layer || fx_knobs ||
         (!ui.home && !list_on()))
         return 0;                                     /* (a screen over the page: no popup) */
     if (step_edit_page() && ui.held < 16u && ui.step_t0[ui.held]) {   /* step_edit */
@@ -1268,10 +1344,10 @@ static void ocd_poll(uint32_t now)
     ui.ocd_t0 = 0;
 }
 /* ENV (spec 2026-10-24): a tap toggles STEPS / TRACKS on its release, unless OCT+- changed the bank while it was held
- * or it was pressed under the menu, NAME, the PRESETS list, TOOLS, PERFORM or a dialog */
+ * or it was pressed under the menu, NAME, the PRESETS list, the clear, PERFORM or a dialog */
 static void env_poll(uint32_t now, uint32_t pressed)
 {
-    int busy = ui.menu || name_on() || pl_on() || ui.tools || ui.layer || fx_knobs || ui.confirm;
+    int busy = ui.menu || name_on() || pl_on() || ui.clr || ui.layer || fx_knobs || ui.confirm;
     if ((pressed >> panel.btn[B_ENV]) & 1u)
         ui.env_t0 = ((now | 1u) & ~2u) | (busy ? 2u : 0u);   /* (the clock's own bit 1 cleared: it is the flag) */
     if (ui.env_t0 && !((fm1_in.buttons >> panel.btn[B_ENV]) & 1u)) {
@@ -1299,16 +1375,15 @@ static void keys_chop_say(void)
 }
 static void ui_input(void)
 {
-    uint32_t pressed, notes, now, id, b, k, fam;
+    uint32_t pressed, notes, now, id, b, k;
     smp_slots_sync();                                   /* dm_sample.c: a user slot changed (an upload): its lists,
                                                          * START states (the main loop's) */
     keys_chop_say();                                    /* KEYS on a CHOP track: CHOP 5/12 */
     pressed = fm1_input_edges(0);
     notes = fm1_input_note_edges();
     now = in_now = fm1_ticks();
-    fam = cur_fam();
     uint32_t home = btn_hold(&ui.home_t0, B_HOME, now, 1);
-    uint32_t rec = btn_hold(&ui.rec_t0, B_REC, now, !ui.menu && fam == FAM_SEQ), acts;
+    uint32_t rec = btn_hold(&ui.rec_t0, B_REC, now, 0), acts;   /* (REC held: FILL, rec_fill) */
     int32_t s, dt;
     if (safe_start)                                     /* safe start: no pages, no edits */
         return;
@@ -1316,6 +1391,7 @@ static void ui_input(void)
         splash_input(pressed, notes);
         return;
     }
+    clr_input(now, &pressed);                           /* REC + SEL held: the track clear's countdown */
     if (kp_live() && ((pressed >> panel.btn[B_OCTDN]) & 1u)) {   /* the knob popup up: OCT- undoes the session's
                                                                  * turns, and nothing else */
         pressed &= ~(1u << panel.btn[B_OCTDN]);
@@ -1335,17 +1411,18 @@ static void ui_input(void)
     cue_input(now, notes);                              /* SAVE: tap / hold, the cue map */
     if (cue_owns_keys())
         notes = 0;                                      /* (the map's keys: no step, no select, no record) */
-    tools_input(now, notes);                            /* SEQ: tap / hold, the TOOLS screen (ui_tools.c) */
-    if (tools_owns_keys())
-        notes = 0;                                      /* (the screen's keys: no step, no select, no record) */
-    rec_fill(now);                                      /* REC held off SEQ: FILL */
+    seq_input(now, notes);                              /* SEQ: tap / hold, its mutes (ui_tools.c) */
+    if (seq_owns_keys())
+        notes = 0;                                      /* (its keys: no step, no select, no record) */
+    combo_input(&pressed);                              /* SAVE / GLO + REC / PLAY: copy / paste */
+    rec_fill(now);                                      /* REC held: FILL */
     fx_layer(now, home == BT_TAP);                      /* PERFORM: FX tap / hold, the PAGE screen */
-    if (acc_oct && (ui.tools || ui.layer || fx_knobs))
-        acc_oct = 2;                                    /* OCT+ held under MUTE / PERFORM: no bank on its release, there
+    if (acc_oct && (ui.clr || ui.layer || fx_knobs))
+        acc_oct = 2;                                    /* OCT+ held under the clear / PERFORM: no bank on its release, there
                                                          * or after (they own the panel: item 7) */
     ml_guard();                                         /* MIDI LEARN: off in the menu, NAME, another confirm */
     ml_poll();                                          /* .. a CC / note came for the picked one */
-    if (ui.ml.on && !ui.confirm) {                      /* .. PLAY / REC pick their action, and do nothing else */
+    if (ui.ml.on && !ui.confirm && !ui.clr) {           /* .. PLAY / REC pick their action, and do nothing else */
         if ((pressed >> panel.btn[B_PLAY]) & 1u) {
             pressed &= ~(1u << panel.btn[B_PLAY]);
             ml_pick_act(ML_A_PLAY);
@@ -1359,11 +1436,12 @@ static void ui_input(void)
                                                          * NEXT / PREV TRACK as ALGORITHM (each where the button acts) */
     if (acts & 1u)
         pressed |= 1u << panel.btn[B_PLAY];
-    if ((acts & 2u) && rec == BT_NONE)
+    if ((acts & 2u) && rec == BT_NONE && !ui.clr_t0)
         rec = BT_TAP;
-    if (ui.tools) {                                     /* the TOOLS screen owns the panel (its keys: tools_input):
-                                                         * PLAY, OCT- / OCT+ the bank, the selection's knobs */
-        tools_panel(pressed);
+    if (ui.clr) {                                       /* the clear's countdown owns the panel: nothing else */
+        if (ui.home_t0)
+            ui.home_t0 |= 2u;
+        enc_drop();
         return;
     }
     if ((fm1_in.buttons & perf_mask) || (perf_mask & PERF_PAGE))   /* PERFORM: keys are the layer's */
@@ -1395,17 +1473,11 @@ static void ui_input(void)
             menu_input(pressed);
         return;
     }
-    if (rec == BT_HOLD) {                               /* REC held on SEQ: "clear track n?" */
-        ui.confirm = 1;
-        ui.confirm_trk = song.sel;
-        ui.force = 1;
-    } else if (rec == BT_TAP && !ui.confirm) {          /* spec §4: REC arms on every screen */
+    if (rec == BT_TAP && !ui.confirm) {                 /* spec §4: REC arms on every screen */
         rec_tap();                                      /* TRACKS: the selected track armed / disarmed; else REC ALL */
     }
     if (ui.confirm) {                                   /* OCT- cancels (NO), OCT+ clears (YES); nothing else reacts */
         if ((pressed >> panel.btn[B_OCTUP]) & 1u) {
-            char m[12] = "1 CLEARED";
-            m[0] = (char)('1' + ui.confirm_trk);
             if (ui.confirm == CONFIRM_OVERWRITE) {   /* SAVE onto a slot with unsaved edits: saved over them */
                 ui.confirm = 0;
                 project_save_go(ui.confirm_trk & 3u);
@@ -1421,9 +1493,6 @@ static void ui_input(void)
             } else if (ui.confirm == ML_CONFIRM) {      /* MIDI LEARN: CLEAR ALL LEARNED? (LEARN stays on) */
                 ml_clear_all();
                 ui_message("LEARN CLEARED");
-            } else {
-                track_clear(&trk[ui.confirm_trk % NTRK]);
-                ui_say("TRACK ", m);
             }
             ui.confirm = 0;
             ui.force = 1;
