@@ -1,7 +1,12 @@
 # Version history
 <!--blurb: When each feature arrived, and which versions can read which projects.-->
 
-The full changelog is `CHANGELOG.md` in the repository. This is a feature map by version, newest first. The current version is shown on MENU, ABOUT.
+The full changelog is `CHANGELOG.md` in the repository. This is a feature map by version, newest first. The current version is shown in the web editor's header bar.
+
+## After 1.0.1: FREITAKT redesign, phase D
+
+- **Carousels**: the MENU and SAVE's PROJECT, TOOLS and COPY show one item at a time (big name, its value under it, dots for where you are, the keys' hints at the bottom); [[SELECT]] scrolls and wraps. The knobs and OCT keys do what they did.
+- **No ABOUT page** (and no BACK item): the version is in the web editor, the licence and credits in `LICENSING.md` and the README.
 
 ## After 1.0.1: FREITAKT redesign, phase C
 

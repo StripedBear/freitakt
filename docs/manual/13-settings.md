@@ -1,5 +1,5 @@
 # Settings and menu
-<!--blurb: MIDI OUT and the device menu: colour, backlight, speaker EQ, accel, clock and MIDI settings, calibration, about.-->
+<!--blurb: MIDI OUT and the device menu: colour, backlight, speaker EQ, accel, clock and MIDI settings, calibration.-->
 
 ## GLO pages
 
@@ -12,9 +12,16 @@ Tap [[GLO]] for five pages: **MIDI OUT**, then **DLY 1**, **DLY 2**, **REVERB** 
 
 ## The menu
 
-Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] changes the value (on COLOR it wraps; on SPEAKER EQ and BACKLIGHT it stops at the ends; on ON / OFF rows right is ON, left is OFF), [[OCT+]] is OK (it steps on and wraps, or toggles), [[OCT-]] goes back or closes, and holding [[HOME]] again closes it. The menu saves when it closes. It scrolls: 20 rows in the Bluetooth version, 19 without.
+Hold [[HOME]] (0.7 s) for the **MENU**. It is a carousel: one item at a time, its name big in the middle, its value under it, a row of dots at the top for where you are (one dot an item) and the keys' hints at the bottom.
 
-| Row | Values (default) | Notes |
+- [[SELECT]] scrolls to the next or previous item; past the last it wraps round to the first, and back.
+- [[KNOB 1]] changes the item's value (on COLOR it wraps; on SPEAKER EQ and BACKLIGHT it stops at the ends; on ON / OFF items right is ON, left is OFF). The hint line says `K1 SET`.
+- [[OCT+]] steps the value on and wraps, or toggles (`OCT+ NEXT`); on HARDWARE CALIBRATION it starts it (`OCT+ START`), on BLUETOOTH it opens the Bluetooth page (`OCT+ OPEN`). USB MIDI is only shown (no K1 or OCT+ hint).
+- [[OCT-]] closes the menu (`OCT- BACK`), as does holding [[HOME]] again. The menu saves when it closes.
+
+There are 16 items, 17 in the Bluetooth version:
+
+| Item | Values (default) | Notes |
 | --- | --- | --- |
 | **COLOR** | ORANGE, ORANGE INV, RED, RED INV, BLUE, BLUE INV, GREEN, GREEN INV (ORANGE) | the screen's two colours; applies at once. ORANGE, the default, is black ink on a bright orange ground (about RGB ff6000; the Model:Cycles look); ORANGE INV the inverse, orange on black; RED a red ground and dark ink; RED INV red on black; BLUE white on blue; BLUE INV blue on white; GREEN dark on green; GREEN INV green on black |
 | **SPEAKER EQ** | FLAT, LOWCUT, BASS+ (FLAT) | LOWCUT is a high-pass at about 110 Hz; BASS+ lifts about 220 Hz and adds bass harmonics for the small speaker |
@@ -32,9 +39,9 @@ Hold [[HOME]] (0.7 s) for the **MENU**. [[SELECT]] moves the cursor, [[KNOB 1]] 
 | **MIDI THRU** | OFF (default), ON | |
 | **REC QUANT** | 1/16 (default), 1/8, 1/32, OFF | where live recording puts a hit (see Sequencer) |
 | **HARDWARE CALIBRATION** | OCT+ runs it | teach each button and knob; also reachable by holding [[OCT-]] and [[OCT+]] at power-on; times out after 30 s idle |
-| **ABOUT** | OCT+ opens | the logo, version (`DRUM-1.0.1`), build date; [[SELECT]] scrolls the credits |
-| **BACK** | OCT+ closes the menu | the last row |
-| **BLUETOOTH** | Bluetooth version only | between HARDWARE CALIBRATION and ABOUT; see *Bluetooth* |
+| **BLUETOOTH** | Bluetooth version only | the last item; [[OCT+]] opens the Bluetooth page (a list, see *Bluetooth*; [[OCT-]] back to the menu) |
+
+There is no ABOUT item any more: the firmware version is in the web editor's header bar (and the USB console's `status`), the licence and credits are in `LICENSING.md` and the README.
 
 **METRONOME** is a click on every quarter note while playing, the bar's first higher, on the FM-1's clock or following one. It comes after the PERFORM effects and follows MASTER, on the speaker, headphones and USB audio. METRONOME, MIDI THRU, MUTE MODE, REC QUANT and the solo mode are device settings; MIDI SYNC, MIDI ROUTE, OUT and the tracks' channels are saved with each project. See *MIDI* for how they work.
 
@@ -52,12 +59,8 @@ With ACCEL ON, a knob turned in one direction over a wide value (more than 32 st
 - **DIM LO**: every key LED that is not lit and every idle button glows at about 3 % (a very short flash about 900 times a second: steady, also with Bluetooth on) so the panel can be found in the dark. Where the white keys are the selected track's steps (PATTERN with KEYS off; TRACKS while no track is armed) the unlit steps 1, 5, 9 and 13 of the bank shown glow at about 25 % (bank 2: 17, 21, 25, 29), marking the beats.
 - **DIM HI**: the same, brighter (about 6 %, the beats about 30 %).
 - **INV**: as the stock firmware does: idle LEDs lit, active ones (steps that are on, the playhead, held keys, the page's button) dark. **INV LO / INV HI**: the same with the idle ones at about 10 % / 25 %.
-- In every mode [[OCT-]] / [[OCT+]] **breathe** (fade in and out) where pressing them would do something: the next / previous bank, the LFO pages' RATE MODE, YES in a dialog, OK in the menu, NAME's RENAME, MIDI LEARN's DONE, the PRESETS list's LOAD (and DELETE on a used user slot). A way back (NO, CANCEL, BACK) is lit; KEYS' octave shift is lit.
+- In every mode [[OCT-]] / [[OCT+]] **breathe** (fade in and out) where pressing them would do something: the next / previous bank, the LFO pages' RATE MODE, YES in a dialog, OK in the menu (not on USB MIDI), NAME's RENAME, MIDI LEARN's DONE, the PRESETS list's LOAD (and DELETE on a used user slot). A way back (NO, CANCEL, BACK) is lit; KEYS' octave shift is lit.
 - A safe start keeps every LED dark.
-
-### ABOUT
-
-Credits everyone whose work is in the firmware: Felucca, Mutable Instruments, DaisySP, the samples, the recovery tool, the web fonts and icons, and the emulator the MD voices were measured from, with a disclaimer.
 
 ## CPU and PRIO
 

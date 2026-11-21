@@ -30,7 +30,7 @@ You do not need to remember button names yet: every section of the screen is rea
 - **Finger-drum:** tap [[REC]] on any page except TRACKS to arm all tracks, then play the white keys while playing. [[REC]] never starts the transport; [[PLAY]] does.
 - **Play a melody:** tap [[SCL]] (labelled SEL) for KEYS: the keys become a keyboard for the selected track, [[OCT-]] / [[OCT+]] its octave.
 - **Lock a step:** tap [[ENV]] (the padlock appears), hold a step and turn a knob: that step plays its own value for that knob.
-- **Sound menu:** hold [[HOME]] for the device menu (colour theme, backlight, USB level, speaker EQ, about).
+- **Device menu:** hold [[HOME]] for the device menu (colour theme, backlight, USB level, speaker EQ, clock and MIDI settings), one item at a time: [[SELECT]] scrolls, [[KNOB 1]] or [[OCT+]] changes the value, [[OCT-]] closes it.
 - **Panic:** hold [[SEQ]] while powering on for a *safe start* that loads nothing.
 
 ## Where to go next

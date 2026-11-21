@@ -12,7 +12,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | Control | What it does |
 | --- | --- |
 | **MASTER** | The volume: the speaker, the headphones and USB audio. |
-| **SELECT** | Turns the pages of a section and moves the menu's cursor. On HOME's TRACKS mode it sets the tempo instead (`CLK USB` / `CLK TRS` when following a clock). |
+| **SELECT** | Turns the pages of a section; on the carousels (the MENU and SAVE's pages) it scrolls to the next / previous item and wraps round. On HOME's TRACKS mode it sets the tempo instead (`CLK USB` / `CLK TRS` when following a clock). |
 | **ALGORITHM** | Picks the selected track (T1 to T6), on any page. In MIDI LEARN it picks NEXT / PREV TRACK. |
 | **PRESETS** | Loads the next or previous preset onto the selected track at each detent; a popup shows the bank and the presets around it. A factory preset sets the sound only; a USER preset also sets the track's FX. |
 | **KNOB 1 to KNOB 4** | Edit the four rows of a list page, top to bottom; a turn shows the parameter full screen (the knob popup, [[OCT-]] undoes; see *Screens and the top bar*). Knob turns can be recorded as MOTION. |
@@ -30,7 +30,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **SCL** | Labelled SEL. A tap (on the release, no key pressed while held): KEYS, the keys play the selected track chromatically. **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): MIDI OUT, DLY 1, DLY 2, REVERB and CHORUS (5 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
 | **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
-| **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 pages; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
+| **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 carousel pages, the next one each tap; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s (on any page): a fill. **REC + SEL held 5 s**: clear the selected track; **SAVE / GLO + REC**: copy (see *Combos*). See *Playing and recording*. |
 | **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS (-2 to +2; as the MIDI KEYBOARD -4 to +4, see *MIDI*); NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
@@ -84,7 +84,9 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 
 No page has a step strip or a breadcrumb at the bottom. The **top bar** holds the battery icon at the right, with a padlock left of it while ENV is in STEPS mode; at the left it shows only what is going on for the moment: a record icon while a track is armed, MIDI LEARN's line, and held modes (`CUE`, `FILL`, `LOCK STEP`). Messages (such as `T3 DECAY 64`, `LOADED` or `COPIED T3`) appear as a small popup. While REC + SEL are held the whole screen is the clear's warning: `CLEAR T3` and a large countdown from 5 to 1.
 
-Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom, with no round dials and no graphs. The SOUND pages show a small waveform of the rendered hit at the top; LFO 1/3 shows a small schematic of one cycle of the wave. TRACKS is a list of the six tracks (see *HOME in detail*); the SAVE pages (PROJECT, TOOLS, COPY) and PERFORM keep their own layouts.
+Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom, with no round dials and no graphs. The SOUND pages show a small waveform of the rendered hit at the top; LFO 1/3 shows a small schematic of one cycle of the wave. TRACKS is a list of the six tracks (see *HOME in detail*); PERFORM keeps its own layout.
+
+**Carousels.** The device MENU and the SAVE pages (PROJECT, TOOLS, COPY) show one item at a time: a title and a row of dots at the top (one dot an item, the current one big), the item's name big in the middle with an arrow at each side, its value under it, a note under that (a state such as `LOADED EDITED`, or the message of the moment), and at the bottom the keys' hints as keycaps (for example `K1 SET  OCT+ NEXT` / `SEL MOVE  OCT- BACK`). [[SELECT]] scrolls and wraps round; what changes a value or acts is said in the hint line. Only what changed is redrawn.
 
 **The knob popup.** Turning a parameter knob (on a list page, TRACKS' LEVEL / LEN / PAN, HOME's BPM and SWING, a held step's PROB / RATCH / ACCENT / NUDGE or its parameter locks) clears the screen to the parameter's name and value, very large; 3 s after the last turn the page comes back. While the popup is up, [[OCT-]] is **undo**: the parameter goes back to the value it had before the first turn of this popup (a lock made by the turns goes away, a lock that was there gets its old value back; a muted track's LEVEL mutes again; MODEL brings the old machine and its sound back), the popup stays and shows the value back, and OCT- does nothing else (no octave or bank change, no lock clearing). Undo works once per popup; turning the knob again continues the same popup, so a further OCT- goes back to the same starting value. A parameter lock's value is shown inverted. Knobs that only pick something (TRACKS' KNOB 1 TRACK, LFO DEST's SLOT) open no popup, and turning one closes it.
 

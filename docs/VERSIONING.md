@@ -17,7 +17,8 @@ X.Y` builds) are separate and unchanged.
 
 ## Where it shows
 
-- The FM-1: MENU → ABOUT shows `DRUM-<version>`; the USB console (`status`, the greeting) prints it too.
+- The FM-1: no screen shows it since the menu's ABOUT went (FREITAKT redesign); the USB console (`status`, the
+  greeting) prints `DRUM-<version>`, and the web editor shows it in its header bar.
 - The local web installer (`build/site`): `drum-<version>+<commit>`, with `-dirty` when the source had
   uncommitted changes. Between versions, builds keep the last version and differ by the commit.
 - Git: the local tag `drum-v<version>` on the commit that set it (upstream's `v*` tags are a different line).

@@ -73,7 +73,7 @@ If the FM-1 reaches neither normal mode nor `WL80UBOOT`, only the FM-1 Transport
 - The firmware and its package: `BUILDING.md` (`./build.sh`; `DRUM_PACKAGE=1 ./build.sh` for an installable package and the site).
 - The web simulator and landing page: `tools/build_sim.sh`. This manual: `tools/build_manual.py`.
 - Tests: `tests/run_tests.sh`, `tests/run_drum_tests.sh`. Versions and publishing: `docs/VERSIONING.md`, `tools/publish.sh`.
-- Versions are MAJOR.MINOR.PATCH from `VERSION.txt`. MINOR means a new feature or compatible project format; MAJOR means saved data no longer loads. MENU, ABOUT shows `DRUM-<version>` (`DRUM-1.0.1`).
+- Versions are MAJOR.MINOR.PATCH from `VERSION.txt`. MINOR means a new feature or compatible project format; MAJOR means saved data no longer loads. The web editor's header bar and the USB console's `status` show `DRUM-<version>` (`DRUM-1.0.1`); the FM-1 itself has no ABOUT page any more.
 
 ## Licence and credits
 
