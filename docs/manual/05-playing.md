@@ -1,5 +1,5 @@
 # Playing and recording
-<!--blurb: KEYS, ACID, live record, step record, REC ALL, mutes, PERFORM and parameter locks.-->
+<!--blurb: KEYS, ACID, live record, REC ALL, mutes, PERFORM and parameter locks.-->
 
 ## KEYS: the keys as a keyboard
 
@@ -26,7 +26,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 ## Live recording
 
 - **Arm one track.** On TRACKS, a [[REC]] tap arms or disarms the selected track (`T3 REC ARMED` / `T3 REC OFF`).
-- **REC ALL.** On every other page a [[REC]] tap is REC ALL: every track armed (`REC ALL`, the REC LED lit). Each white track key then plays and records its own track wherever the keys play tracks (HOME, SOUND, FX, TRACKS...). KEYS, step record and knob motion stay the selected track's.
+- **REC ALL.** On every other page a [[REC]] tap is REC ALL: every track armed (`REC ALL`, the REC LED lit). Each white track key then plays and records its own track wherever the keys play tracks (HOME, SOUND, FX, TRACKS...). KEYS and knob motion stay the selected track's.
 - **Ending REC ALL.** A [[REC]] tap off TRACKS ends it and arms again the tracks armed before (`T3 REC ARMED`, or `REC OFF` if none). On TRACKS it ends it with the selected track armed.
 - **REC never starts the transport.** [[PLAY]] does; an armed track records once playing.
 - **What gets written.** A key writes a step as REC QUANT says (the nearest step by default; see Sequencer). A key held into later steps writes TIEs; a legato overlap writes a SLIDE (TIE and SLIDE on ACID tracks only).
@@ -36,16 +36,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 
 ## Step record
 
-Start in KEYS mode, on the STEP page, with the transport **stopped**, by a [[REC]] tap. The cursor starts at the bank's first step and the top bar shows `STEP REC nn`.
-
-| Knob | Sets |
-| --- | --- |
-| **KNOB 1** | STEP (cursor) |
-| **KNOB 2** | NOTE |
-| **KNOB 3** | TIME: NOTE / TIE / REST |
-| **KNOB 4** | FLAG: - / ACC / SLD / A+S |
-
-[[EDIT]] writes a rest. A [[REC]] tap, [[PLAY]] or leaving the page ends step record.
+FREITAKT has no step record. Steps are entered with the white keys (on PATTERN and TRACKS, or anywhere with ENV in STEPS mode) and shaped by holding a step and turning a knob (PROB, RATCH, ACCENT, NUDGE, or a parameter lock); notes go in by playing them in KEYS mode on an armed track (see *Live recording*).
 
 ## Clearing with REC
 
@@ -111,7 +102,8 @@ In STEPS, on any page whose knobs MOTION can record (TRACKS' LEVEL and PAN, SOUN
 - The top bar says `LOCK STEP 5` while a step is held; the rows show that step's values (a locked one inverted).
 - Knobs MOTION cannot record (FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.
 - **Machine locks** (Model:Cycles): hold a step and turn MODEL (EDIT / SOUND page knob 1) to lock that step to another model: `MLOCK STEP 5 SDEFM`. The track's own model stays; on that step the hit plays the locked model with the track's current knobs (each model reads them its own way) plus that step's parameter locks, and rings out as any hit until the next one. Turn back to the track's own model (`MLOCK STEP 5 OFF`) or OCT- on a page with MODEL to clear it. ACID cannot be a machine lock (it keeps its gate and track limit). MOTION never records MODEL. Machine locks are stored as ordinary locks: copy / paste of steps, CLRSQ, variations and the editor treat them like the others.
-- Hold the step and tap [[OCT-]] to clear its locks on this page's knobs (`STEP 5 LOCKS CLEARED`); hold [[OCT-]] 0.6 s to clear all its locks (`STEP 5 ALL CLEARED`).
+- Turning the knob shows the lock full screen (the knob popup, the value inverted). While that popup is up, [[OCT-]] is undo: the lock goes back to how it was before the turns (no lock, or its old value) and nothing is cleared.
+- Hold the step and tap [[OCT-]] (with no knob popup up: 3 s after the last turn) to clear its locks on this page's knobs (`STEP 5 LOCKS CLEARED`); hold [[OCT-]] 0.6 s to clear all its locks (`STEP 5 ALL CLEARED`).
 - A step turned off keeps its locks for when it is on again.
 - Locks and MOTION share **1024 events per project** (`LOCKS FULL`). Locks always play; CLEAR TRACK clears both.
 - STOP, a model change (it also lets a held machine lock go), a MIDI LEARN CC and a preset SAVE use the knob's own value, never a lock's.

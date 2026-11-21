@@ -15,7 +15,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **SELECT** | Turns the pages of a section and moves the menu's cursor. On HOME's TRACKS mode it sets the tempo instead (`CLK USB` / `CLK TRS` when following a clock). |
 | **ALGORITHM** | Picks the selected track (T1 to T6), on any page. In MIDI LEARN it picks NEXT / PREV TRACK. |
 | **PRESETS** | Loads the next or previous preset onto the selected track at each detent; a popup shows the bank and the presets around it. A factory preset sets the sound only; a USER preset also sets the track's FX. |
-| **KNOB 1 to KNOB 4** | Edit the four rows of a list page, top to bottom. Knob turns can be recorded as MOTION. |
+| **KNOB 1 to KNOB 4** | Edit the four rows of a list page, top to bottom; a turn shows the parameter full screen (the knob popup, [[OCT-]] undoes; see *Screens and the top bar*). Knob turns can be recorded as MOTION. |
 
 ## Buttons
 
@@ -37,7 +37,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 ### HOME in detail
 
-HOME has two modes. **TRACKS** is the mixer: for each track LEVEL, LEN (length), PAN, and the track's steps on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the tempo large as `BPM 120` near the top, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern playing (1 to 4 for A to D; `P-` before a pattern is loaded), **V** its playing variation (1 to 8), **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH A1 B3 A2`: each entry's pattern and variation, up to 6 shown, the entry playing inverted, the next underlined) shows under the status line. [[KNOB 1]] sets the BPM and [[KNOB 2]] the global SWING; [[KNOB 3]] and [[KNOB 4]] do nothing on HOME. Turning KNOB 2 shows its value large in a popup (ZOOM, see Settings); the BPM is already large, so KNOB 1 opens none. HOME has no top bar: the screen only redraws when something on it changes.
+HOME has two modes. **TRACKS** is the mixer: the six tracks as a large list, one row each with the track's number, its machine and, at the right, its preset's name (`*` once a SOUND knob moved it). A muted track's row is inverted (MUTE, LEVEL 0 or another track's SOLO), the selected track has a pointer (`>`) at its left, and a REC-armed track a small square after its number (solid while playing). [[KNOB 1]] picks the track, [[KNOB 2]] its LEVEL (a muted track's first turn unmutes it), [[KNOB 3]] its LEN (length), [[KNOB 4]] its PAN; the selected track's steps are on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the tempo large as `BPM 120` near the top, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern playing (1 to 4 for A to D; `P-` before a pattern is loaded), **V** its playing variation (1 to 8), **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH A1 B3 A2`: each entry's pattern and variation, up to 6 shown, the entry playing inverted, the next underlined) shows under the status line. [[KNOB 1]] sets the BPM and [[KNOB 2]] the global SWING; [[KNOB 3]] and [[KNOB 4]] do nothing on HOME. While the tempo follows an external clock the BPM line names the source with the measured tempo (`USB 120`, `TRS 98`), and KNOB 1 only says `CLK USB`. HOME has no top bar: the screen only redraws when something on it changes.
 
 ### EDIT, FX, LFO and the selected track
 
@@ -77,16 +77,17 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 
 ## Screens and the top bar
 
-No page has a step strip or a breadcrumb at the bottom. The **top bar** holds the battery icon at the right, with a padlock left of it while ENV is in STEPS mode; at the left it shows only what is going on for the moment: a record icon while a track is armed, MIDI LEARN's line, and held modes (`CUE`, `FILL`, `LOCK STEP`, `STEP TOOLS`, `STEP REC nn`). Messages (such as `T3 DECAY 64` or `LOADED`) appear as a small popup.
+No page has a step strip or a breadcrumb at the bottom. The **top bar** holds the battery icon at the right, with a padlock left of it while ENV is in STEPS mode; at the left it shows only what is going on for the moment: a record icon while a track is armed, MIDI LEARN's line, and held modes (`CUE`, `FILL`, `LOCK STEP`, `STEP TOOLS`). Messages (such as `T3 DECAY 64` or `LOADED`) appear as a small popup.
 
-Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom, with no round dials and no graphs. The SOUND pages show a small waveform of the rendered hit at the top; LFO 1/3 shows a small schematic of one cycle of the wave. TRACKS, the SAVE pages (PROJECT, TOOLS, COPY) and PERFORM keep their own layouts.
+Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom, with no round dials and no graphs. The SOUND pages show a small waveform of the rendered hit at the top; LFO 1/3 shows a small schematic of one cycle of the wave. TRACKS is a list of the six tracks (see *HOME in detail*); the SAVE pages (PROJECT, TOOLS, COPY) and PERFORM keep their own layouts.
+
+**The knob popup.** Turning a parameter knob (on a list page, TRACKS' LEVEL / LEN / PAN, HOME's BPM and SWING, a held step's PROB / RATCH / ACCENT / NUDGE or its parameter locks) clears the screen to the parameter's name and value, very large; 3 s after the last turn the page comes back. While the popup is up, [[OCT-]] is **undo**: the parameter goes back to the value it had before the first turn of this popup (a lock made by the turns goes away, a lock that was there gets its old value back; a muted track's LEVEL mutes again; MODEL brings the old machine and its sound back), the popup stays and shows the value back, and OCT- does nothing else (no octave or bank change, no lock clearing). Undo works once per popup; turning the knob again continues the same popup, so a further OCT- goes back to the same starting value. A parameter lock's value is shown inverted. Knobs that only pick something (TRACKS' KNOB 1 TRACK, LFO DEST's SLOT) open no popup, and turning one closes it.
 
 | Top-bar sign | Meaning |
 | --- | --- |
 | padlock (left of the battery) | ENV is in STEPS mode |
 | record icon (left) | a track is armed |
 | `LEARN: TURN OR PRESS`, `T3 DECAY: SEND A CC`... | MIDI LEARN's line, while MIDI LEARN is on |
-| `STEP REC nn` | step record, at step nn |
 
 ## Common rules
 

@@ -52,7 +52,7 @@ An effect on every track, after DIST and before LEVEL, PAN and the sends.
 
 ## SRR: sample rate reduction
 
-It samples and holds the track's sound after the FILTER and before DIST, aliasing on purpose, for the gritty sound of the classic drum machines. OFF at 0, down to 347 Hz at 127; the screen shows the rate.
+It samples and holds the track's sound after the FILTER and before DIST, aliasing on purpose, for the gritty sound of the classic drum machines. OFF at 0, down to 347 Hz at 127; its row on INSERT 2/2 (and the knob popup) shows the rate in Hz or kHz.
 
 ## Delay (GLO DLY 1 and DLY 2)
 

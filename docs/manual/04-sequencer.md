@@ -93,11 +93,11 @@ On PATTERN or TRACKS hold a step and turn [[KNOB 4]] (NUDGE): -50 to +50, the hi
 
 - A late hit keeps its PROB, RATCH and locks (its ratchet hits spread over what is left of the step). An early hit plays in the step before, its locks from the hit to the end of its own step.
 - A tap that turns a step off makes it plain again.
-- NUDGE is part of the step: copied, saved and played everywhere (variations, live cue, slot COPY / PASTE). Step record writes NUDGE 0. All steps start at 0 and play exactly as before.
+- NUDGE is part of the step: copied, saved and played everywhere (variations, live cue, slot COPY / PASTE). All steps start at 0 and play exactly as before.
 
 ## QUANT: where live recording lands
 
-**REC QUANT** in the device menu (hold [[HOME]]) decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer; step record is not affected). It is a device setting, kept over power-off.
+**REC QUANT** in the device menu (hold [[HOME]]) decides where a live-recorded hit goes (keys, MIDI notes and the SMC-Mixer). It is a device setting, kept over power-off.
 
 | QUANT | The hit goes to |
 | --- | --- |

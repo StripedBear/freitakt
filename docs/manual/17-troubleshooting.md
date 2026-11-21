@@ -28,7 +28,6 @@
 | Message | Meaning |
 | --- | --- |
 | `T3 REC ARMED` / `T3 REC OFF` / `REC ALL` / `REC OFF` | recording state |
-| `STEP REC nn` | step record at step nn |
 | `LOCK STEP n`, `STEP n LOCKS CLEARED`, `STEP n ALL CLEARED`, `LOCKS FULL`, `MOTION FULL`, `LOCKS LOST`, `VARIATIONS LOST` | parameter locks and motion |
 | `MIDI LEARN ON`, `LEARN: TURN OR PRESS`, `LEARN DONE`, `LEARN FULL`, `CC NOT LEARNABLE`, `NOT LEARNABLE`, `CLEAR ALL LEARNED?` | MIDI LEARN |
 | `CUE>B3`, `VARIATIONS FULL`, `SAVE C FIRST` | live cue |

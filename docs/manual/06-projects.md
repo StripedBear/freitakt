@@ -15,7 +15,7 @@ A project holds the six tracks' sounds, patterns (with each step's NUDGE), timin
 - The list rows show `A*` when a slot has unsaved edits and `#` when it is the copied slot; `NOW` shows the current project; `EMPTY` marks an unused slot.
 - **The last project saved loads at power-on** (`LOADED` pops up, stopped). If it cannot be loaded, the FM-1 asks `LOAD FAILED: SLOT B` / `START NEW PROJECT?`: [[OCT+]] (YES) forgets it, [[OCT-]] (NO) tries again at the next power-on; both carry on with the power-on kit. A safe start loads nothing.
 - **Edits stay in RAM until SAVE.** A reset or power cut brings every slot back as last saved. Leaving a slot by LOAD or a cue keeps its edits in RAM, so going back finds them. LOAD of a slot with unsaved edits asks `DISCARD EDITS?` (a tempo change counts). SAVE onto another slot with unsaved edits asks `OVERWRITE B*?`. SAVE to another slot moves the edits there. RENAME of a slot with unsaved edits renames it in RAM only (`RENAMED (SAVE TO KEEP)`). Messages include `SAVED`, `SAVED (RAM)`, `SAVE A FIRST`, `STOP TO LOAD`, `STOP TO SAVE`. Unsaved variations of one slot can wait while another plays; a cue of a third slot then says `SAVE C FIRST`. A power cut during SAVE keeps the previous save whole.
-- **Device settings are not in projects:** the colour theme, ACCEL, BACKLIGHT, SPEAKER EQ, USB LEVEL, PERFORM mode, ZOOM, METRO, THRU, MUTE timing, QUANT, the solo mode (TGL / MOM), MIDI LEARN bindings and Bluetooth settings.
+- **Device settings are not in projects:** the colour theme, ACCEL, BACKLIGHT, SPEAKER EQ, USB LEVEL, PERFORM mode, METRO, THRU, MUTE timing, QUANT, the solo mode (TGL / MOM), MIDI LEARN bindings and Bluetooth settings.
 
 ## NAME
 
