@@ -7520,7 +7520,7 @@ static void test_model_list_order(void)
     static const char *const WANT[NMODELS] = {
         "BDTRX", "SDTRX", "TMTRX", "CGTRX", "CPTRX", "RSTRX", "CBTRX", "CHTRX", "OHTRX", "CYTRX", "SHTRX", "CLTRX",
         "B2TRX", "BDEFM", "SDEFM", "TMEFM", "CPEFM", "RSEFM", "CBEFM", "HHEFM", "CYEFM",
-        "BOOM", "PUNCH", "SNAP", "CRACK", "METAL", "HISS", "SKIN", "FM", "ACID", "SAMPL",
+        "BOOM", "PUNCH", "SNAP", "CRACK", "METAL", "HISS", "SKIN", "FM", "ACID", "CHORD", "SAMPL",
         "K808", "K909", "S808", "S909", "C808", "C909", "HATC", "HATO", "CYMB", "COWB", "TOM", "CONGA", "RIM", "CLAVE"};
     uint32_t i, ok = 1, okb = 1, okp = 1;
     ui_host_init();
@@ -7537,11 +7537,11 @@ static void test_model_list_order(void)
         model_step(-1);
         okb &= str_eq(N_MODEL[TSEL->p[P_MODEL]], WANT[i]);
     }
-    check("MODEL list: MD (BDTRX .. CYEFM), MODERN (BOOM .. SAMPL), CLASSIC (K808 .. CLAVE), CLAVE wraps to BDTRX", ok);
+    check("MODEL list: MD (BDTRX .. CYEFM), MODERN (BOOM .. ACID, CHORD, SAMPL), CLASSIC (K808 .. CLAVE), CLAVE wraps to BDTRX", ok);
     check("MODEL list: the same order backwards (BDTRX back to CLAVE)", okb);
     check("MODEL list: each voice on its first preset, not edited", okp);
-    check("models keep their numbers (projects store them): K808 0, ACID 23, BDTRX 24, CYEFM 44",
-          DM_K808 == 0 && DM_ACID == 23 && DM_KTRX == 24 && DM_CYEFM == 44 && NMODELS == 45);
+    check("models keep their numbers (projects store them): K808 0, ACID 23, BDTRX 24, CYEFM 44, CHORD 45",
+          DM_K808 == 0 && DM_ACID == 23 && DM_KTRX == 24 && DM_CYEFM == 44 && DM_CHORD == 45 && NMODELS == 46);
 }
 
 /* the renamed engines (owner, fixes 9): the MODEL message, the engine view's title (DMODELS' name) and N_MODEL agree,
