@@ -14,11 +14,13 @@ Tap [[SCL]] (labelled SEL; on its release): the 27 keys play the selected track 
 
 ## Notes on steps
 
-Every step holds a note. Drum tracks play their steps transposed from C4 (C4 plays as tuned). A step you turn on with the white keys takes the last KEYS note on an ACID track, or C4 on a drum (the last note resets on LOAD and on clearing the pattern).
+Every step holds a note, C-1 to G9. Drum tracks play their steps transposed from C4 (C4 plays as tuned, by up to two octaves either way). Each track also has a **NOTE**, the note a step you turn on with the white keys takes, on every machine, drums included. Three things set it: a key you play in KEYS, SOUND 1's NOTE ([[KNOB 2]]) and, with KEYS off, [[ALGORITHM]], each with no step held. NOTE is C4 again after LOAD and after clearing the track's pattern.
+
+To set a step's own note, hold the step (or several) and turn [[ALGORITHM]] with KEYS off, or SOUND 1's NOTE under ENV STEPS: every held step gets the note (see *Sequencer, Steps*). Live recording writes the notes you play, as before.
 
 ## ACID: the 303-style bass
 
-ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent, slide and tie. Its knobs: **TUNE DECAY CUTOF RESO ENVMD ACCNT WAVE GATE**.
+ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent, slide and tie. Its knobs: **PITCH DECAY CUTOF RESO ENVMD ACCNT WAVE GATE**.
 
 - Up to **two tracks** can be ACID (`ACID: 2 TRACKS MAX`). A loaded project keeps ACID on its first two ACID tracks; the others come back as their power-on kit drum.
 - On ACID tracks a step can be a **TIE** (the note continues into the next step) or a **SLIDE** (legato glide).

@@ -32,7 +32,7 @@ Applies to notes from USB, the TRS jack and, in MIDI mode, Bluetooth.
 
 | ROUT | Notes |
 | --- | --- |
-| **NOTE** (default) | On the drum channel (CH), each note plays the tracks whose NOTE it is, at their tuning. |
+| **NOTE** (default) | On the drum channel (CH), each note plays the tracks whose MNOTE it is, at their tuning. |
 | **SEL** | On the drum channel, every note plays the selected track, pitched: C4 (note 60) is its tuning, a semitone per note. |
 | **TRACK** | MIDI channels 1 to 6 play tracks 1 to 6, pitched from C4 as SEL (CH plays no part; channels 9 to 16 do nothing). |
 
@@ -117,7 +117,7 @@ Up to **32** controls of any controller. A learned CC moves one knob of one trac
 
 1. **Turn it on:** tap [[SAVE]] to its **COPY** page (3/3) and turn [[KNOB 4]] (**LEARN**) to `ON`: `MIDI LEARN ON` pops up. Go to the page you want; the top bar shows `LEARN: TURN OR PRESS`.
 2. **Pick a knob:** turn a knob of the selected track on any page: EDIT (SOUND), FX (FILTER, the sends, INSERT and SRR), LFO, PATTERN, or LEVEL / LEN / PAN on TRACKS. It edits as usual and the top bar says `T3 DECAY: SEND A CC`.
-3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM and the PERFORM keys pick their action instead of doing their job. The top bar says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
+3. **Or pick an action:** while LEARN is on, PLAY, REC, ALGORITHM (KEYS on or off) and the PERFORM keys pick their action instead of doing their job. The top bar says `PLAY: SEND CC/NOTE`, `FX R1/16: SEND CC/NOTE`, `FX RPT T3: SEND CC/NOTE`.
 4. **Move the controller's knob, or press its button or pad.** The first CC (or, for an action, note) that arrives on any channel is learned: `CC74 -> T3 DECAY`, `NOTE36 -> PLAY`, `CC20 -> FX FILTER`. Then pick the next one. An already learned one shows `T3 DECAY = CC74`; sending another replaces it.
 5. **Finish:** [[OCT+]] ends LEARN (`LEARN DONE`), as turning COPY's LEARN knob back to `OFF` does.
 

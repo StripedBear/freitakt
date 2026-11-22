@@ -56,7 +56,7 @@ As a plain keyboard for a phone or a DAW, turn on the **MIDI KEYBOARD** (GLO MID
 1. Switch the controller on and make it discoverable (most BLE-MIDI controllers are, as soon as they are on).
 2. On the FM-1: ROLE **HOST**, MODE **AUTO** (or **MIDI**), BLUETOOTH **ON**.
 3. SELECT to **+ ADD A DEVICE**, OCT+. After the 8 s scan, SELECT to the controller (it says `MIDI`), OCT+. It is saved and connects; `BT CONNECTED` pops up.
-4. Play: notes on the drum channel (the menu's MIDI CHANNEL, 10 at first) play the tracks whose NOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs use MIDI LEARN (SAVE's COPY page, KNOB 4 LEARN).
+4. Play: notes on the drum channel (the menu's MIDI CHANNEL, 10 at first) play the tracks whose MNOTE matches; ROUT SEL plays the selected track pitched, ROUT TRACK plays tracks 1–6 from channels 1–6. To map its knobs use MIDI LEARN (SAVE's COPY page, KNOB 4 LEARN).
 5. To play in time with it: the menu's CLOCK **BLE** follows its clock; MIDI SYNC **BLE** (or BOTH, USB too) sends it the FM-1's.
 6. Next time it connects by itself once BLUETOOTH is ON (or set AUTOSTART ON).
 
@@ -96,7 +96,7 @@ The M-VAVE SMC-Mixer in its DAW (Mackie Control) mode, MODE AUTO or SMC DAW. Onl
 | --- | --- |
 | Fader 1–6 | track 1–6 LEVEL (strips 7 and 8 do nothing), with pickup; recorded as motion for the selected track while armed and playing |
 | Master fader | nothing |
-| Knob 1-4 | the selected track's first four knobs (TUNE DECAY TONE and the model's fourth; ACID: TUNE DECAY CUTOF RESO), one step a click; a popup shows e.g. `T3 DECAY 64`; recorded as motion while armed and playing |
+| Knob 1-4 | the selected track's first four knobs (PITCH DECAY TONE and the model's fourth; ACID: PITCH DECAY CUTOF RESO), one step a click; a popup shows e.g. `T3 DECAY 64`; recorded as motion while armed and playing |
 | Knob 5-8 | MIDI LEARN's (CC 20-23): learned to a parameter, a click steps it by one value; while LEARN waits for a CC, turning one learns it; not learned: nothing |
 | MUTE 1–6 | mute / unmute the track, as SEQ + its black key does (MUTE: NEXT BAR applies) |
 | SOLO 1–6 | solo / unsolo the track |

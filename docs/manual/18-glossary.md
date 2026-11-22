@@ -27,9 +27,11 @@
 | **KEYS** | the keys play the selected track chromatically ([[SCL]]). |
 | **LOCK** | a per-step value for a knob (parameter lock). |
 | **MD / MODERN / CLASSIC** | the three sound banks. |
+| **MNOTE** | the MIDI note a track answers to (ROUT NOTE). |
 | **MOTION** | recorded knob turns. |
-| **NOTE** | the MIDI note a track answers to. |
+| **NOTE** | a step's note (C-1 to G9, shown `C#4`); also the track's NOTE, the note a new step gets (SOUND 1's KNOB 2, or ALGORITHM with KEYS off). |
 | **PERFORM** | live master effects while [[FX]] is held. |
+| **PITCH** | every machine's tuning knob, -24 to +24 semitones (was TUNE). |
 | **PRIO** | HIGH or LOW voice priority. |
 | **PROB** | a step's probability. |
 | **RATCH** | a step's ratchet repeats (1 to 4). |
@@ -45,7 +47,7 @@
 | **THRU** | pass MIDI from each input to the other outputs (the menu's MIDI THRU). |
 | **THROW** | PERFORM macro that sends the dry mix into the delay and reverb. |
 | **USR1 to USR3** | user sample slots, each a set of up to 16 samples. |
-| **ATK / SUS / REL** | the SAMPLE model's envelope: fade-in, held level, release (SOUND 5/5). |
+| **ATK / SUS / REL** | the SAMPLE model's envelope: fade-in, held level, release (SOUND 6/6). |
 | **CHOP** | SAMPLE PLAY CHOP: the 16 white keys (and a step's NOTE) pick a sample of the set. Also the editor's Chop tool. |
 | **CUT** | SAMPLE: ON makes each hit cut the one sounding. |
 | **EDITOR** | the web editor (Sound, Presets, Projects, Patterns, Samples). |

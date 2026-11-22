@@ -33,7 +33,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <tr><td><kbd class="k">MASTER</kbd></td><td>Громкость (динамик, наушники). Аналоговая ручка, прошивка её не читает.</td></tr>
 <tr><td><kbd class="k">SELECT</kbd> (энкодер)</td><td>Листает страницы текущего раздела вперёд/назад, на краях останавливается.
 На TRACKS задаёт темп. В меню, в карусели SAVE и в списке пресетов прокручивает пункты.</td></tr>
-<tr><td><kbd class="k">ALGORITHM</kbd> (энкодер)</td><td>Выбирает трек T1–T6 на любой странице.</td></tr>
+<tr><td><kbd class="k">ALGORITHM</kbd> (энкодер)</td><td>При включённом KEYS (SEL горит) выбирает трек T1–T6 на любой странице. При выключенном KEYS — <b>NOTE</b> выбранного трека, как ручка NOTE на SOUND 1: с удержанными шагами задаёт их ноты, без них — ноту трека (её получают новые шаги). Всплывающее окно показывает <code>NOTE C#4</code> / <code>STEP 5 NOTE C#4</code>, <kbd>OCT-</kbd> отменяет. Трек всегда выбирается через <kbd>SEL</kbd> + чёрная 1–6. В MIDI LEARN — NEXT / PREV TRACK.</td></tr>
 <tr><td><kbd class="k">PRESETS</kbd> (энкодер)</td><td>Каждый щелчок загружает в выбранный трек следующий или предыдущий пресет; вместо страницы на весь экран появляется список пресетов, страница возвращается через 3 с после последнего щелчка.</td></tr>
 <tr><td><kbd class="k">KNOB 1–4</kbd></td><td>Четыре строки текущей страницы, сверху вниз.</td></tr>
 <tr><td><kbd>HOME</kbd></td><td>Тап: экран HOME ⇄ TRACKS (с любой другой страницы — тот из них, что был последним). Удержание 0,7 с: меню устройства.</td></tr>
@@ -65,18 +65,18 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <h2 id="quick">2. Быстрый старт</h2>
 <ol>
 <li><b>Включите</b> FM-1. После заставки откроется экран TRACKS со списком из шести треков.</li>
-<li><b>Выберите трек</b>: повернуть <kbd class="k">ALGORITHM</kbd>, или <kbd>SEL</kbd> + чёрная 1–6,
+<li><b>Выберите трек</b>: <kbd>SEL</kbd> + чёрная 1–6, или <kbd class="k">ALGORITHM</kbd> при включённом KEYS,
 или на TRACKS повернуть <kbd class="k">KNOB 1</kbd>. Выбранный трек помечен <code>&gt;</code>.</li>
 <li><b>Поставьте шаги.</b> Нажмите <kbd>SEQ</kbd>, откроется страница PATTERN. Белые клавиши — 16 шагов выбранного трека:
 тап включает или выключает шаг. Длинным треком (LEN &gt; 16) управляют банки: <kbd>OCT+</kbd> / <kbd>OCT-</kbd>.
 То же можно делать прямо на TRACKS, пока ни один трек не взведён на запись.</li>
 <li><b>Запустите</b>: <kbd>PLAY</kbd>. Повторное нажатие останавливает.</li>
 <li><b>Смените машину.</b> <kbd>EDIT</kbd> открывает первую страницу звука, <kbd class="k">KNOB 1</kbd> (<code>MODEL</code>) выбирает машину,
-<kbd class="k">KNOB 2–4</kbd> — её главные параметры. Быстрее: крутите <kbd class="k">PRESETS</kbd>, каждый щелчок — новый пресет.</li>
+<kbd class="k">KNOB 2</kbd> — NOTE трека, <kbd class="k">KNOB 3–4</kbd> — PITCH и DECAY. Быстрее: крутите <kbd class="k">PRESETS</kbd>, каждый щелчок — новый пресет.</li>
 <li><b>Настройте шаг.</b> Вернитесь на <kbd>SEQ</kbd>, держите белую клавишу шага и крутите ручки:
 <kbd class="k">KNOB 1</kbd> PROB (вероятность или условие), <kbd class="k">KNOB 2</kbd> RATCH (рэтчет 1–4),
 <kbd class="k">KNOB 3</kbd> ACC (акцент), <kbd class="k">KNOB 4</kbd> NUDGE (сдвиг во времени).
-Акцент также ставится через <kbd>OCT+</kbd> + шаг.</li>
+Акцент также ставится через <kbd>OCT+</kbd> + шаг. Ноту шага задаёт <kbd class="k">ALGORITHM</kbd> (KEYS выключен).</li>
 <li><b>Темп и свинг.</b> <kbd>HOME</kbd> переключает на экран HOME: <kbd class="k">KNOB 1</kbd> — BPM, <kbd class="k">KNOB 2</kbd> — общий свинг.</li>
 <li><b>Сохраните.</b> Остановите воспроизведение, тапните <kbd>SAVE</kbd> (страница <code>PROJECT 1/3</code>),
 выберите букву паттерна <kbd class="k">KNOB 1</kbd> и поверните <kbd class="k">KNOB 4</kbd> два щелчка подряд
@@ -97,8 +97,8 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <kbd>EDIT</kbd> и <kbd>LFO</kbd> срабатывают на нажатии, <kbd>FX</kbd>, <kbd>GLO</kbd>, <kbd>SAVE</kbd> и <kbd>SEQ</kbd> — на отпускании
 (так их можно держать для комбинаций).</li>
 <li><b>Всплывающее окно ручки.</b> При повороте ручки весь экран показывает имя параметра и крупное значение
-(значение лока — инверсно). Окно закрывается через 3 с после последнего поворота.
-Пока оно открыто, <kbd>OCT-</kbd> — <b>отмена</b>: параметр возвращается к значению до начала поворотов.</li>
+(значение лока и ноты удержанного шага — инверсно). Окно закрывается через 3 с после последнего поворота.
+Пока оно открыто, <kbd>OCT-</kbd> — <b>отмена</b>: параметр возвращается к значению до начала поворотов (у NOTE — ноты всех удержанных шагов).</li>
 <li><b>Белые клавиши</b> на HOME и на страницах трека (EDIT, FX кроме COMP, LFO) — белые 1–6 выбирают и проигрывают треки 1–6.
 На PATTERN и TRACKS белые клавиши — шаги. На COMP — переключатели DUCK.</li>
 <li><b>Верхняя строка</b> (на страницах-списках): справа батарея; левее замок, если включён режим STEPS (<kbd>ENV</kbd>).
@@ -154,19 +154,23 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <div class="shots">{{shot:01_sound.png|SOUND 1 (K909)}}{{shot:02_sound_2.png|SOUND 2}}{{shot:03_sound_3.png|SOUND 3}}{{shot:93_sound_kboom.png|SOUND 1 машины BOOM}}</div>
 <p><b>Как открыть:</b> <kbd>EDIT</kbd>; повторные нажатия листают страницы SOUND, а за ними ARP. Удержание <kbd>EDIT</kbd> 0,4 с открывает список пресетов.</p>
 <p>Вверху нарисована форма удара трека. Страницы — список параметров по четыре на страницу:
-<code>MODEL</code>, четыре главных ручки машины, её дополнительные ручки, затем
-<code>LVL</code> (громкость), <code>PAN</code>, <code>NOTE</code> (MIDI-нота трека), <code>CHOKE</code> (группа глушения OFF/1–4)
-и <code>PRIO</code> (приоритет голоса HIGH/LOW). Число страниц зависит от машины:
-3 у простых машин, 4 у машин с 7–8 ручками (ACID, FM, SKIN, *EFM, большинство *TRX), 5 у SAMPL.</p>
+<code>MODEL</code>, <code>NOTE</code>, ручки машины (первые — <code>PITCH</code> и <code>DECAY</code>), затем
+<code>LVL</code> (громкость), <code>PAN</code>, <code>MNOTE</code> (MIDI-нота трека, раньше называлась NOTE), <code>CHOKE</code> (группа глушения OFF/1–4)
+и <code>PRIO</code> (приоритет голоса HIGH/LOW). Число страниц зависит от машины; у SAMPL их шесть
+(5: PLAY CUT, 6: ATK SUS REL LOOP).</p>
+<p><code>NOTE</code> (<kbd class="k">KNOB 2</kbd> на SOUND 1) показывается названием ноты (<code>C#4</code>, от C-1 до G9).
+Без удержанных шагов это нота трека: её получает каждый новый включённый шаг, у всех машин, и у ударных (они играют её
+с транспонированием от C4). С удержанными шагами (ENV STEPS) ручка пишет ноту во все удержанные шаги сразу. Нота трека
+ставится и клавишей в режиме KEYS; после LOAD и очистки паттерна — снова C4. Это не звуковая ручка: без локов, motion, пресетов и MIDI LEARN.</p>
 <p><code>MODEL</code> показывает машину и имя пресета. Поворот <kbd class="k">KNOB 1</kbd> перебирает 46 машин по кругу:</p>
 <p class="mono">BDTRX SDTRX TMTRX CGTRX CPTRX RSTRX CBTRX CHTRX OHTRX CYTRX SHTRX CLTRX B2TRX ·
 BDEFM SDEFM TMEFM CPEFM RSEFM CBEFM HHEFM CYEFM · BOOM PUNCH SNAP CRACK METAL HISS SKIN FM ACID CHORD SAMPL ·
 K808 K909 S808 S909 C808 C909 HATC HATO CYMB COWB TOM CONGA RIM CLAVE</p>
-<p>У всех машин первые ручки — <code>TUNE</code> и <code>DECAY</code>. Белые 1–6 выбирают трек.
+<p>У всех машин первые ручки — <code>PITCH</code> (строй машины, −24…+24 полутона, показывается со знаком; раньше TUNE) и <code>DECAY</code>. Белые 1–6 выбирают трек.
 С удержанным шагом в режиме STEPS ручки ставят parameter lock, а <code>MODEL</code> — machine lock (см. <a href="#locks">раздел 4</a>).</p>
 <p><b>CHORD</b> — полифоническая машина аккордов (как CHORD в Elektron Model:Cycles): до четырёх осцилляторов играют аккорд
-от ноты (TUNE + NOTE шага, клавиша KEYS или MIDI-нота; C4 — корень при TUNE 0). Страница 1: <code>TUNE</code>, <code>CHORD</code>,
-<code>INV</code>, <code>DECAY</code>; страница 2: <code>WAVE</code>, <code>TONE</code>, <code>ATTACK</code>, <code>DETUNE</code>.</p>
+от ноты (PITCH + NOTE шага, клавиша KEYS или MIDI-нота; C4 — корень при PITCH 0). Ручки по порядку: <code>PITCH</code>, <code>CHORD</code>,
+<code>INV</code>, <code>DECAY</code>, <code>WAVE</code>, <code>TONE</code>, <code>ATTACK</code>, <code>DETUNE</code> (на SOUND 1 — MODEL, NOTE, PITCH, CHORD).</p>
 <ul>
 <li><code>CHORD</code> — форма: MAJ (0 4 7), MIN (0 3 7), 7 (0 4 7 10), MIN7 (0 3 7 10), MAJ7 (0 4 7 11), SUS2 (0 2 7), SUS4 (0 5 7),
 DIM (0 3 6), 6 (0 4 7 9), 9 (0 4 10 14: прима, терция, септима, нона — квинта выброшена, чтобы уложиться в 4 ноты), OCT (0 12), 5TH (0 7).</li>
@@ -253,7 +257,7 @@ HIDE — источник никогда не слышен, только кач�
 <tr><td>3</td><td><code>SWG</code></td><td>Свинг трека 0–100 %</td></tr>
 <tr><td>4</td><td><code>MLEN</code></td><td>Master Length: OFF или 2–1024 шестнадцатых (общий для паттерна)</td></tr>
 </tbody></table>
-<p>Белые клавиши — шаги выбранного трека. Удержанный шаг и ручки задают PROB / RATCH / ACC / NUDGE
+<p>Белые клавиши — шаги выбранного трека. Удержанный шаг и ручки задают PROB / RATCH / ACC / NUDGE, а <kbd class="k">ALGORITHM</kbd> (KEYS выключен) — ноту шага
 (см. <a href="#steps">раздел 4</a>). <kbd>OCT-</kbd>/<kbd>OCT+</kbd> переключают банк.</p>
 {{/screen}}
 {{shot:seq/20_step_held_prob.png|Удержанный шаг + KNOB 1 (PROB)}}
@@ -317,7 +321,7 @@ LOAD с несохранёнными правками спрашивает <code
 <tr><td>CLOCK</td><td>INT / USB / TRS (/ BLE / LINK)</td><td>Источник темпа</td></tr>
 <tr><td>MIDI SYNC</td><td>OFF / USB (/ BLE / BOTH)</td><td>Отправка MIDI-клока и старт/стоп</td></tr>
 <tr><td>MIDI CHANNEL</td><td>1–16 (10)</td><td>Входной канал</td></tr>
-<tr><td>MIDI ROUTE</td><td>NOTE / SEL / TRACK</td><td>Куда идут входящие ноты: NOTE — ноты канала MIDI CHANNEL играют трек с таким же NOTE; SEL — выбранный трек хроматически; TRACK — каналы 1–6 играют треки 1–6 хроматически</td></tr>
+<tr><td>MIDI ROUTE</td><td>NOTE / SEL / TRACK</td><td>Куда идут входящие ноты: NOTE — ноты канала MIDI CHANNEL играют трек с таким же MNOTE; SEL — выбранный трек хроматически; TRACK — каналы 1–6 играют треки 1–6 хроматически</td></tr>
 <tr><td>USB MIDI</td><td>только чтение</td><td>Состояние USB-соединения</td></tr>
 <tr><td>METRONOME</td><td>OFF / LOW / MID / HIGH</td><td>Щелчок на четвертях, пока идёт транспорт</td></tr>
 <tr><td>MUTE MODE</td><td>NOW / BAR</td><td>Mute сразу или со следующего такта</td></tr>
@@ -346,7 +350,10 @@ LOAD с несохранёнными правками спрашивает <code
 <tr><td><kbd class="k">KNOB 2</kbd> RATCH</td><td>1–4 удара на шаг</td></tr>
 <tr><td><kbd class="k">KNOB 3</kbd> ACC</td><td>Вправо — акцент, влево — без акцента (громкость 127 вместо 96)</td></tr>
 <tr><td><kbd class="k">KNOB 4</kbd> NUDGE</td><td>−50…+50 сотых шага: раньше / позже</td></tr>
+<tr><td><kbd class="k">ALGORITHM</kbd> NOTE (KEYS выключен)</td><td>Нота шага, C-1…G9; все удержанные шаги получают одну ноту (как trig note в Model:Cycles).
+Окно: <code>STEP 5 NOTE C#4</code> или <code>3 STEPS NOTE C#4</code>, инверсно; <kbd>OCT-</kbd> возвращает ноты всех шагов</td></tr>
 </tbody></table>
+<p><b>Нота нового шага</b> — NOTE трека: последнее значение <kbd class="k">ALGORITHM</kbd> (без удержанных шагов), ручки NOTE на SOUND 1 или клавиши KEYS. Работает на любой машине.</p>
 <p><b>FILL:</b> держите <kbd>REC</kbd> 0,4 с на любой странице. Пока кнопка удержана, играют шаги с условием FILL, а шаги !FILL молчат.
 В верхней строке горит <code>FILL</code>.</p>
 
@@ -485,7 +492,7 @@ ARP1 арпеджирует ноту удержанной клавиши; нов
 <h3 id="midiout">MIDI OUT</h3>
 <p>Страница GLO → MIDI OUT. <code>OUT</code> — куда слать (USB; в сборке с Bluetooth ещё BLE/BOTH). <code>T1CH…T6CH</code> — канал выбранного трека
 (OFF — трек не отправляет). Отправляется то, что играет секвенсор: шаги, рэтчеты, NUDGE, роллы ARP/RTRG.
-Машины с высотой тона шлют сыгранную ноту, ударные — NOTE трека. Velocity 127 (акцент) или 96. Клок и старт/стоп — меню MIDI SYNC.</p>
+Машины с высотой тона шлют сыгранную ноту, ударные — MNOTE трека. Velocity 127 (акцент) или 96. Клок и старт/стоп — меню MIDI SYNC.</p>
 
 <h3 id="midikbd">MIDI-клавиатура</h3>
 <p>На MIDI OUT поставьте <code>KBD</code> в TRK (канал выбранного трека) или 1–16. Режим KEYS включится сам, и 27 клавиш начнут слать ноты
@@ -515,14 +522,15 @@ AUTOSTART включает Bluetooth через 5 с после старта. Е
 <tr><td><kbd>FX</kbd> / удержание 0,4 с</td><td>Страницы FX / PERFORM</td></tr>
 <tr><td><kbd>LFO</kbd>, <kbd>SEQ</kbd>, <kbd>GLO</kbd> (тап), <kbd>SAVE</kbd> (тап)</td><td>LFO, PATTERN, глобальные страницы, PROJECT/TOOLS/COPY</td></tr>
 <tr><td><kbd class="k">SELECT</kbd></td><td>Страница вперёд/назад; на TRACKS — BPM</td></tr>
-<tr><td><kbd class="k">ALGORITHM</kbd></td><td>Трек</td></tr>
+<tr><td><kbd class="k">ALGORITHM</kbd></td><td>KEYS вкл: трек; KEYS выкл: NOTE (шагов или трека)</td></tr>
 <tr><td><kbd class="k">PRESETS</kbd></td><td>Следующий/предыдущий пресет трека</td></tr>
 <tr><td rowspan="4">Треки</td><td><kbd>SEL</kbd> + чёрная 1–6, белая 1–6 на HOME/звуке</td><td>Выбор трека</td></tr>
 <tr><td><kbd>SEQ</kbd> + чёрная 1–6</td><td>Mute</td></tr>
 <tr><td><kbd>ARP</kbd> + чёрная 1–6</td><td>Solo</td></tr>
 <tr><td><kbd>ARP</kbd> + F#5</td><td>Режим solo TOGGLE/MOMENTARY</td></tr>
-<tr><td rowspan="7">Шаги</td><td>тап шага / удержание 0,3 с</td><td>Вкл/выкл / удержанный шаг</td></tr>
+<tr><td rowspan="8">Шаги</td><td>тап шага / удержание 0,3 с</td><td>Вкл/выкл / удержанный шаг</td></tr>
 <tr><td>шаг + <kbd class="k">KNOB 1–4</kbd> (PATTERN, TRACKS)</td><td>PROB / RATCH / ACC / NUDGE</td></tr>
+<tr><td>шаг(и) + <kbd class="k">ALGORITHM</kbd> (KEYS выкл)</td><td>Нота шагов</td></tr>
 <tr><td><kbd>OCT+</kbd> + шаг</td><td>Акцент</td></tr>
 <tr><td><kbd>OCT-</kbd> / <kbd>OCT+</kbd> (PATTERN, TRACKS)</td><td>Банк шагов</td></tr>
 <tr><td><kbd>ENV</kbd> + <kbd>OCT-</kbd>/<kbd>OCT+</kbd></td><td>Банк шагов на любой странице</td></tr>

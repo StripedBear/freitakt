@@ -17,7 +17,7 @@
 | A voice stops short in a busy pattern | An audio block took over 85 %; a voice was stopped (HOME shows the CPU load). Set less important tracks to PRIO LOW, reduce heavy models (BOOM, PUNCH, SNAP, CRACK, SKIN count double). |
 | Sound stutters with Bluetooth on | A saved device that is not connected is searched for again and again: FORGET it or switch BLUETOOTH OFF. |
 | No `Hortator` in the DAW | A computer that knew an older firmware's Hortator 8ch may list it beside Hortator: choose Hortator. |
-| MIDI notes play nothing | Check the menu's MIDI CHANNEL (10 by default) and MIDI ROUTE (NOTE needs the track's NOTE to match; SEL plays the selected track; TRACK uses channels 1 to 6). |
+| MIDI notes play nothing | Check the menu's MIDI CHANNEL (10 by default) and MIDI ROUTE (NOTE needs the track's MNOTE to match; SEL plays the selected track; TRACK uses channels 1 to 6). |
 | The FM-1 follows no tempo | The menu's CLOCK is INT; set USB, TRS or BLE to follow a clock. |
 | A project says `LOAD FAILED` at power-on | The last-saved slot is empty or unreadable: YES forgets it. Projects saved by 1.0.0 or later look empty on 0.26.0 and older. |
 | Hortator is unstable or crashes | Use a safe start (hold [[SEQ]] while powering on), then install the plain version or go back to stock. |

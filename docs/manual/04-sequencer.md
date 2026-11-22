@@ -5,7 +5,7 @@
 
 Each of the six tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
 
-Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[ALGORITHM]] picks the track.
+Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[SCL]] + a black key 1 to 6 picks the track (with KEYS on, [[ALGORITHM]] too).
 
 ## Steps: tapping in a pattern
 
@@ -19,6 +19,8 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and o
 | **KNOB 3** | ACC, accent | turn right: on, left: off |
 | **KNOB 4** | NUDGE | -50 to +50 hundredths of a step |
 
+- **The step's note** (as Model:Cycles' trig note): hold one or more steps and turn [[ALGORITHM]] (KEYS off), or SOUND 1's NOTE ([[KNOB 2]], under ENV STEPS). Every held step gets the same note, from the one shown (the last pressed); an off step turns on. The popup shows `STEP 5 NOTE C#4` (or `3 STEPS NOTE C#4`), inverted; [[OCT-]] undoes. Notes run from C-1 to G9 (C4 is middle C, the note a drum plays as tuned). Holding a step without turning shows its note on SOUND 1's NOTE row.
+- **The note of a new step:** a step you turn on (tap, hold, accent) takes the track's **NOTE**: what [[ALGORITHM]] (KEYS off, no step held) or SOUND 1's NOTE last set, or the last key played in KEYS. Every machine, drums too (a drum plays it transposed from C4). It is C4 again after LOAD and after clearing the track's pattern.
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
 - **The keys' lights:** a trig lit, a step with a parameter or machine lock blinking; while playing the selected track's step (the running cursor) toggles its key; black 1 to 6 light the selected track and breathe for armed ones (see *Panel, Step LEDs*).
 - **Banks:** [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
