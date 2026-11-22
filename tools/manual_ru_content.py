@@ -132,7 +132,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <p>В режиме MIDI-клавиатуры строка состояния HOME меняется на <code>MIDI KBD CH1 OCT+1</code> (см. <a href="#midikbd">раздел 6</a>).</p>
 
 <h3 id="tracks">TRACKS (микшер)</h3>
-{{screen:24_tracks.png|TRACKS}}
+{{screen:25_tracks.png|TRACKS}}
 <p><b>Как открыть:</b> тап <kbd>HOME</kbd> на экране HOME. Этот экран открывается после включения.</p>
 <p>Шесть строк, по одной на трек: номер, отметка записи (квадрат: залитый, пока играет; контур, пока стоит),
 машина и справа мелко имя пресета (<code>*</code> — пресет изменён). Выбранный трек отмечен <code>&gt;</code>.
@@ -205,7 +205,7 @@ ARP2 по клавишам KEYS играет целый аккорд на каж
 </tbody></table>
 
 <h3 id="arp">EDIT: страницы ARP (арпеджиатор и ретриггер)</h3>
-{{screen:04_arp.png|ARP 1}}
+{{screen:05_arp.png|ARP 1}}
 <p><b>Как открыть:</b> держите <kbd>ARP</kbd> и нажмите <kbd>EDIT</kbd>. Следующее <kbd>ARP</kbd> + <kbd>EDIT</kbd> откроет ARP 2.
 Страницы ARP также идут в цикле <kbd>EDIT</kbd> сразу после SOUND.</p>
 <table><thead><tr><th>Ручка</th><th>ARP 1</th><th>ARP 2 (только у ACID, SAMPL, FM, SKIN, CHORD)</th></tr></thead><tbody>
@@ -219,7 +219,7 @@ ARP2 по клавишам KEYS играет целый аккорд на каж
 <h3 id="fx">FX: фильтр, посылы, инсерт, компрессор</h3>
 <p><b>Как открыть:</b> тап <kbd>FX</kbd> (срабатывает на отпускании); повторные тапы листают 7 страниц по кругу.
 Удержание <kbd>FX</kbd> 0,4 с открывает PERFORM (см. ниже). Страницы 1–5 относятся к выбранному треку, COMP — общий.</p>
-<div class="shots">{{shot:05_filter.png|FILTER 1}}{{shot:06_filter_2.png|FILTER 2}}{{shot:07_fx.png|FX (посылы)}}{{shot:08_insert.png|INSERT 1}}{{shot:09_insert_2.png|INSERT 2}}{{shot:10_comp.png|COMP 1}}{{shot:11_comp_2.png|COMP 2}}</div>
+<div class="shots">{{shot:06_filter.png|FILTER 1}}{{shot:07_filter_2.png|FILTER 2}}{{shot:08_fx.png|FX (посылы)}}{{shot:09_insert.png|INSERT 1}}{{shot:10_insert_2.png|INSERT 2}}{{shot:11_comp.png|COMP 1}}{{shot:12_comp_2.png|COMP 2}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>FILTER 1</td><td><code>TYPE</code> OFF LP BP HP NOT</td><td><code>CUT</code> срез (до 16 кГц)</td><td><code>RESO</code> 0–127</td><td><code>ENV</code> −64…+63 (огибающая на срез)</td></tr>
 <tr><td>FILTER 2</td><td><code>DECAY</code> огибающей фильтра</td><td>—</td><td>—</td><td>—</td></tr>
@@ -249,7 +249,7 @@ HIDE — источник никогда не слышен, только кач�
 {{/screen}}
 
 <h3 id="pattern">SEQ: PATTERN</h3>
-{{screen:12_pattern.png|PATTERN}}
+{{screen:13_pattern.png|PATTERN}}
 <p><b>Как открыть:</b> <kbd>SEQ</kbd> (на отпускании). В разделе SEQ одна страница.</p>
 <table><thead><tr><th>Ручка</th><th>Строка</th><th>Значения</th></tr></thead><tbody>
 <tr><td>1</td><td><code>LEN</code></td><td>Длина трека 1–64 шага (16)</td></tr>
@@ -263,7 +263,7 @@ HIDE — источник никогда не слышен, только кач�
 {{shot:seq/20_step_held_prob.png|Удержанный шаг + KNOB 1 (PROB)}}
 
 <h3 id="lfo">LFO</h3>
-<div class="shots">{{shot:21_lfo.png|LFO 1}}{{shot:22_lfo_2.png|LFO 2 (страница)}}{{shot:23_dest.png|DEST}}</div>
+<div class="shots">{{shot:22_lfo.png|LFO 1}}{{shot:23_lfo_2.png|LFO 2 (страница)}}{{shot:24_dest.png|DEST}}</div>
 <p><b>Как открыть:</b> <kbd>LFO</kbd>; повторные нажатия листают 3 страницы. У каждого трека один LFO с четырьмя назначениями.</p>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>1 (с формой волны)</td><td><code>WAVE</code> SQUAR SAW RSAW SINE TRI S&amp;H WANDR EXP+ EXP- RWALK</td><td><code>RATE</code> (в SYNC: от 8BAR до 1/64, с пунктирными и триолями)</td><td><code>MORPH</code></td><td><code>PHASE</code></td></tr>
@@ -277,7 +277,7 @@ PLAY — рестарт по PLAY.</p>
 <h3 id="glo">GLO: MIDI OUT, дилей, реверб, хорус</h3>
 <p><b>Как открыть:</b> короткий тап <kbd>GLO</kbd> (меньше 0,4 с, без клавиш); повторные тапы листают 5 страниц.
 Удержание <kbd>GLO</kbd> с клавишами управляет паттернами (см. <a href="#patterns">раздел 5</a>).</p>
-<div class="shots">{{shot:13_midi out.png|MIDI OUT}}{{shot:14_dly.png|DLY 1}}{{shot:15_dly_2.png|DLY 2}}{{shot:16_reverb.png|REVERB}}{{shot:17_chorus.png|CHORUS}}</div>
+<div class="shots">{{shot:14_midi out.png|MIDI OUT}}{{shot:15_dly.png|DLY 1}}{{shot:16_dly_2.png|DLY 2}}{{shot:17_reverb.png|REVERB}}{{shot:18_chorus.png|CHORUS}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>MIDI OUT</td><td><code>OUT</code> OFF / USB (/ BLE / BOTH)</td><td><code>T1CH</code>…<code>T6CH</code> канал выбранного трека, OFF/1–16</td><td><code>KBD</code> OFF / TRK / 1–16</td><td><code>LOCL</code> ON/OFF</td></tr>
 <tr><td>DLY 1</td><td><code>TIME</code> (1/8; есть пунктирные и триоли)</td><td><code>FDBK</code></td><td><code>COLR</code></td><td><code>MIX</code></td></tr>
@@ -293,7 +293,7 @@ PLAY — рестарт по PLAY.</p>
 внизу подсказки по кнопкам. <kbd class="k">SELECT</kbd> прокручивает пункты по кругу.</p>
 <p><b>Защита от случайностей:</b> LOAD, SAVE, PASTE и все действия TOOLS требуют двух щелчков ручки в течение примерно 1,5 с.
 Первый щелчок показывает <code>AGAIN: …</code>.</p>
-<div class="shots">{{shot:18_project.png|PROJECT}}{{shot:19_tools.png|TOOLS}}{{shot:20_copy.png|COPY}}</div>
+<div class="shots">{{shot:19_project.png|PROJECT}}{{shot:20_tools.png|TOOLS}}{{shot:21_copy.png|COPY}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>PROJECT</td><td>Паттерн A–D (на экране <code>SLOT</code>); значение — имя, <code>EMPTY</code> или <code>USED</code></td><td><code>NAME</code>: поворот вправо — переименовать</td><td><code>LOAD</code> ×2</td><td><code>SAVE</code> ×2</td></tr>
 <tr><td>TOOLS</td><td>CLEAR TRACK: шаги, motion и локи трека</td><td>INIT SOUND: звук трека по умолчанию</td><td>CLEAR ALL: все треки (шаги, LEN, DIV, SWG)</td><td>INIT ALL: всё (сохранённые паттерны и настройки остаются)</td></tr>
