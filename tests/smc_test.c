@@ -198,12 +198,12 @@ static void test_knobs(void)
     v0 = trk[0].p[P_E0];
     in(cc(16, 3));
     d = track_desc(&trk[0], P_E0);
-    check("knob 1 +3 on a K808 track: TUNE 3 steps up", trk[0].p[P_E0] == param_turn(d, v0, 3) && trk[0].p[P_E0] == v0 + 3);
+    check("knob 1 +3 on a K808 track: PITCH 3 steps up", trk[0].p[P_E0] == param_turn(d, v0, 3) && trk[0].p[P_E0] == v0 + 3);
     param_format(d, trk[0].p[P_E0], val, &unit);
-    str_cpy(want, "T1 TUNE ", sizeof want);
+    str_cpy(want, "T1 PITCH ", sizeof want);
     str_cpy(want + str_len(want), val, sizeof want - str_len(want));
     str_cpy(want + str_len(want), unit, sizeof want - str_len(want));
-    check("knob 1: the top bar says T1 TUNE <value><unit>", str_eq(ui.msg, want));
+    check("knob 1: the top bar says T1 PITCH <value><unit>", str_eq(ui.msg, want));
     v0 = trk[0].p[P_E1];
     in(cc(17, 0x41));
     check("knob 2 counter-clockwise 1 (0x41): DECAY 1 down", trk[0].p[P_E1] == v0 - 1);
