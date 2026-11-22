@@ -225,8 +225,8 @@ const q = (cmd, args) => m.request(cmd, args);
   }
   const t0 = q(CMD.DUMP, { track: NONE });
   ok(pages.length > 20 && pages.filter((p) => /^DEST \d$/.test(p.title)).length === 4 && !pages.some((p) => ["PROJECT", "COPY", "TOOLS", "MOTION", "STEP", "TRACKS"].includes(p.title))
-    && pages[0].title === "SOUND" && same(pages[0].ids, [0, 1, 2, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
-  "PAGES: paged, DEST x 4, no slot / motion / tools pages, SOUND list, DLY MODE");
+    && pages[0].title === "SOUND" && same(pages[0].ids, [0, U14_NONE, 1, 2]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE")),
+  "PAGES: paged, DEST x 4, no slot / motion / tools pages, SOUND list (NOTE: the device's, none), DLY MODE");
   ok(t0.p.length === 71 && t0.g.length === 39 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
     "DUMP: 71 parameters, 39 globals, the model");
   const names = [];

@@ -587,14 +587,14 @@ static void test_edit_marks(void)
     transport_req = 2;
     render_mix(0, 0, CTL * 4);
     check("an LFO on DECAY: not edited", !t->pre_ed && t->pre == id);
-    open_family(FAM_SND);                            /* (FREITAKT: HOME's knobs BPM SWING; SOUND 1: knob 3 = DECAY) */
+    open_family(FAM_SND);                            /* (FREITAKT: HOME's knobs BPM SWING; SOUND 1: knob 4 = DECAY) */
     frames(1);
-    turn(EN_K1 + 2, 3);
+    turn(EN_K1 + 3, 3);
     frames(1);
     check("a SOUND knob turned (DECAY): edited", t->pre_ed && t->pre == id);
     preset_load(t, id);
     t->p[P_E1] = (int16_t)track_desc(t, P_E1)->max;
-    turn(EN_K1 + 2, 3);                              /* at its limit: nothing changes */
+    turn(EN_K1 + 3, 3);                              /* at its limit: nothing changes */
     frames(1);
     check("SOUND: a knob turned on at its limit (nothing changed): not edited", !t->pre_ed &&
           t->p[P_E1] == track_desc(t, P_E1)->max);
@@ -607,17 +607,18 @@ static void test_edit_marks(void)
     ml_set(t, P_E2, 3);
     check("a learned CC on a SOUND knob: edited", t->pre_ed);
     preset_load(t, id);
-    open_family(FAM_SND);                            /* EDIT 1: MODEL TUNE DECAY TONE */
+    open_family(FAM_SND);                            /* EDIT 1: MODEL NOTE PITCH DECAY */
     frames(1);
-    turn(EN_K1 + 3, -2);                             /* (HARDSNAP's TONE is at its top: down) */
+    t->p[P_E1] = 64;
+    turn(EN_K1 + 3, -2);                             /* DECAY down */
     frames(1);
-    check("a SOUND page knob (TONE): edited", t->pre_ed && t->p[P_MODEL] == DM_SDTRX);
+    check("a SOUND page knob (DECAY): edited", t->pre_ed && t->p[P_MODEL] == DM_SDTRX);
     preset_load(t, id);
-    t->p[P_E2] = (int16_t)track_desc(t, P_E2)->max;
-    turn(EN_K1 + 3, 2);                              /* TONE at its limit */
+    t->p[P_E1] = (int16_t)track_desc(t, P_E1)->max;
+    turn(EN_K1 + 3, 2);                              /* DECAY at its limit */
     frames(1);
     check("a SOUND page knob turned on at its limit (nothing changed): not edited", !t->pre_ed &&
-          t->p[P_E2] == track_desc(t, P_E2)->max);
+          t->p[P_E1] == track_desc(t, P_E1)->max);
     preset_load(t, id);
     turn(EN_K1 + 0, 1);                              /* MODEL */
     frames(1);

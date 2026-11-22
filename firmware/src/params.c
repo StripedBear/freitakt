@@ -20,6 +20,25 @@ static const char *const N_CLOCK[] = {"INT", "USB", "TRS",   /* G_CLOCK: = the i
 };
 static const char *const N_NOTE[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 static const char *const N_DASH[] = {"--"};
+/* a note as NOTE - 60 (C4 = 0, a step's nt) -> its name and octave, C4 = MIDI 60: "C#4", "C-1" (0) .. "G9" (127);
+ * out: 5 bytes at least */
+static void note_name(int32_t nt, char *out)
+{
+    int32_t m = nt + 60, o;
+    const char *n;
+    m = m < 0 ? 0 : m > 127 ? 127 : m;
+    n = N_NOTE[m % 12];
+    o = m / 12 - 1;
+    *out++ = n[0];
+    if (n[1])
+        *out++ = n[1];
+    if (o < 0) {
+        *out++ = '-';
+        o = -o;
+    }
+    *out++ = (char)('0' + o);
+    *out = 0;
+}
 static const char *const N_SYNC[] = {"OFF", "USB",   /* G_SYNC: SY_ bits (midi_out.c; no TRS out on the FM-1) */
 #if FELUCCA_BLE
                                      "BLE", "BOTH",
@@ -74,7 +93,8 @@ static const param_desc_t TP[P_COUNT] = {
     [P_PAN] = PD("PAN", F_BIPCT, -64, 63, 0),
     [P_MUTE] = PE("MUTE", N_ONOFF, 0),
     [P_CHOKE] = PE("CHOKE", N_CHOKE, 0),
-    [P_NOTE] = PD("NOTE", F_INT, 0, 127, 36),
+    [P_NOTE] = PD("MNOTE", F_INT, 0, 127, 36),   /* the MIDI note the track answers to (ROUT NOTE); MNOTE: NOTE is
+                                                  * the sequencer's (pages.c PG_NOTE) */
     [P_DIST] = PD("DST", F_PCT, 0, 127, 0),
     [P_CHOR] = PD("CHO", F_PCT, 0, 127, 0),
     [P_DLY] = PD("DLY", F_PCT, 0, 127, 0),
@@ -130,6 +150,7 @@ static int arp_model(uint32_t m)
 
 /* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */
 static const param_desc_t MLEN_DESC = PD("MLEN", F_MLEN, 1, 1024, 1);
+static const param_desc_t NOTE_DESC = PD("NOTE", F_NOTE, NT_MIN, NT_MAX, 0);   /* SOUND 1's NOTE (pages.c PG_NOTE): NOTE - 60 */
 
 static const param_desc_t GP[G_COUNT] = {
     [G_BPM] = PD("BPM", F_BPM, 40, 240, 120),
@@ -413,7 +434,7 @@ static void param_format(const param_desc_t *d, int32_t v, char *val, const char
         *unit = "BPM";
         break;
     case F_NOTE:
-        str_cpy(val, N_NOTE[v % 12], 6);
+        note_name(v, val);
         break;
     case F_ONOFF:
         str_cpy(val, N_ONOFF[v ? 1 : 0], 6);

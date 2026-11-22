@@ -1319,6 +1319,63 @@ static void kp_turn(uint32_t c)
         kp.on = 1;
     kp.t0 = ui.pr.now;
 }
+/* NOTE turned s (KNOB c + 1 on SOUND 1, c 4: ALGORITHM with KEYS off), as Model:Cycles' trig NOTE: the step keys
+ * down (note_keys) all take the note, from the shown one's (an off step turns on, as a held step's edit; the keys let
+ * go toggle nothing); none, the track's NOTE (key_nt: the note new steps take). Its own popup session (KP_NOTE; OCT-
+ * puts the steps and the NOTE back). Nothing while the web editor restores */
+static void note_turn(uint32_t c, int32_t s)
+{
+    track_t *t = TSEL;
+    uint32_t m = note_keys(), at = note_key(m), k, si = at < 16u ? ui.step_si[at] : 0u;
+    int32_t v;
+    if (ui_locked())
+        return;
+    if (!kp.on || kp.kind != KP_NOTE || kp.col != c || kp.trk != song.sel || kp.id != m || kp.st != si) {
+        kp.col = (uint8_t)c;                          /* a new session: what it is now (kp_snap's) */
+        kp.kind = KP_NOTE;
+        kp.trk = (uint8_t)song.sel;
+        kp.id = (uint16_t)m;
+        kp.st = (uint8_t)si;
+        kp.gid = 0xFFFFu;
+        kp.vp = 0;
+        kp.d = 0;
+        kp.v = t->key_nt;
+        for (k = 0; k < 16u; k++) {
+            kp.nsi[k] = (uint8_t)(((m >> k) & 1u) ? ui.step_si[k] : 0u);
+            kp.steps[k] = t->step[kp.nsi[k] % NSTEP];
+        }
+    }
+    if (pp_on())
+        pp_close();
+    kp.undone = 0;
+    kp.on = kp.on ? kp.on : 1u;
+    kp.t0 = ui.pr.now;
+    if (c < 4u)
+        hot_touch(c);
+    if (!m) {
+        t->key_nt = (int16_t)clamp(t->key_nt + accel(c < 4u ? EN_K1 + c : EN_ALGO, s, NT_MAX - NT_MIN), NT_MIN, NT_MAX);
+        return;
+    }
+    for (k = 0; k < 16u; k++)                         /* edited: no key down is a tap any more */
+        if (ui.step_t0[k])
+            ui.step_t0[k] |= 2u;
+    ui.step_lit = 0;                                  /* (an edited step stays on) */
+    for (k = 0; k < 16u; k++)
+        if ((m >> k) & 1u)
+            step_hold_on(k);                          /* (an off step on: the track's NOTE first) */
+    v = clamp(t->step[si % NSTEP].nt + accel(c < 4u ? EN_K1 + c : EN_ALGO, s, NT_MAX - NT_MIN), NT_MIN, NT_MAX);
+    for (k = 0; k < 16u; k++)
+        if ((m >> k) & 1u)
+            t->step[ui.step_si[k] % NSTEP].nt = (int8_t)v;
+}
+/* NOTE on the page: KNOB c's row is SOUND 1's NOTE (pages.c PG_NOTE) */
+static int note_knob(uint32_t c)
+{
+    const page_t *pg = cur_page();
+    return c < 4u && !ui.home && !ui.menu && !ui.confirm && !name_on() && !pl_on() && !ui.clr && !ui.layer &&
+           pg->scope == SC_TRACK && page_id(pg, c) == PG_NOTE;
+}
+
 /* OCT- with the popup up: the session's thing as it was before its first turn, through the knob's own path (a track's
  * parameter: its preset mark and MUTE back, motion's capture as a turn's; a global: the device setting; MODEL: the
  * sound, as the PRESETS audition puts it back; a lock: the step and its lock, or none). Once; the popup stays (its 3 s
@@ -1331,7 +1388,13 @@ static void kp_undo(void)
     if (kp.undone || ui_locked())
         return;
     kp.undone = 1;
-    if (kp.kind == KP_STEP) {
+    if (kp.kind == KP_NOTE) {                          /* the held steps, the track's NOTE */
+        uint32_t k;
+        for (k = 0; k < 16u; k++)
+            if ((kp.id >> k) & 1u)
+                t->step[kp.nsi[k] % NSTEP] = kp.steps[k];
+        t->key_nt = kp.v;
+    } else if (kp.kind == KP_STEP) {
         t->step[kp.st % NSTEP] = kp.step;
     } else if (kp.kind == KP_LOCK) {
         t->step[kp.st % NSTEP] = kp.step;
@@ -1681,7 +1744,10 @@ static void ui_input(void)
     } else if (s) {
         if (ui.ml.on)
             ml_pick_act(s > 0 ? ML_A_NEXT : ML_A_PREV);   /* MIDI LEARN: NEXT / PREV TRACK picked, no track change */
-        else
+        else if (!ui.keys && !ui.menu && !ui.confirm && !name_on() && !ui.clr)
+            note_turn(4u, s);                         /* KEYS off (SEL unlit): NOTE, as SOUND 1's (a held step's,
+                                                       * else the track's), its popup on any page */
+        else                                          /* KEYS on (or the menu, a confirm, NAME): the track */
             track_select((uint32_t)clamp((int32_t)song.sel + (s > 0 ? 1 : -1), 0, NTRK - 1));
     }
     if (dt)                                             /* NEXT / PREV TRACK learned (MIDI LEARN) */
@@ -1707,6 +1773,14 @@ static void ui_input(void)
         int16_t *hv;
         if ((s = panel_enc(EN_K1 + k)) == 0)
             continue;
+        if (note_knob(k)) {                             /* SOUND 1's NOTE: a held step's note, else the track's */
+            if (ui.ml.on) {                             /* (MIDI LEARN: not a parameter, as MODEL) */
+                ml_pick_check();
+                ui_message("NOT LEARNABLE");
+            }
+            note_turn(k, s);
+            continue;
+        }
         kp_turn(k);                                     /* the knob popup: its session (before the edit) */
         if (save_car_on() && pg->id[0] == G_CLRSEQ)     /* SAVE's TOOLS: the carousel shows the knob's action */
             ui.tool = (uint8_t)k;

@@ -21,8 +21,8 @@ static const act_t SCRIPT[] = {                           /* HOME's scope first;
     {3.6f, 'b', B_SEQ, 0}, {3.6f, 'm', 0, 0, "seq"},     /* the step grid of track 1, the playhead running */
     {6.4f, 'e', EN_ALGO, 1},                              /* track 2's steps */
     {8.8f, 'b', B_EDIT, 0}, {8.8f, 'm', 0, 0, "sound"},  /* track 2's sound: a knob swept up and back */
-    {9.8f, 'e', EN_K2, 2}, {10.1f, 'e', EN_K2, 2}, {10.4f, 'e', EN_K2, 2}, {10.7f, 'e', EN_K2, 2},
-    {11.2f, 'e', EN_K2, -2}, {11.5f, 'e', EN_K2, -2}, {11.8f, 'e', EN_K2, -2}, {12.1f, 'e', EN_K2, -2},
+    {9.8f, 'e', EN_K3, 2}, {10.1f, 'e', EN_K3, 2}, {10.4f, 'e', EN_K3, 2}, {10.7f, 'e', EN_K3, 2},
+    {11.2f, 'e', EN_K3, -2}, {11.5f, 'e', EN_K3, -2}, {11.8f, 'e', EN_K3, -2}, {12.1f, 'e', EN_K3, -2},
     {12.8f, 'b', B_FX, 0}, {12.8f, 'm', 0, 0, "fx"},     /* FX, SELECT through to REVERB, SIZE swept */
     {13.4f, 'e', EN_SELECT, 1}, {13.65f, 'e', EN_SELECT, 1}, {13.9f, 'e', EN_SELECT, 1}, {14.15f, 'e', EN_SELECT, 1},
     {14.4f, 'e', EN_SELECT, 1}, {14.65f, 'e', EN_SELECT, 1}, {14.9f, 'e', EN_SELECT, 1},   /* (INSERT 1/2, 2/2 too) */

@@ -415,7 +415,7 @@ export class MockDevice {
       case "STEPS": return [String(v), "STEP"];
       case "SEMI": return [(v > 0 ? "+" : "") + v, "st"];
       case "ONOFF": return [v ? "ON" : "OFF", ""];
-      case "NOTE": return [N_NOTE[((v % 12) + 12) % 12], ""];
+      case "NOTE": { const m = Math.min(127, Math.max(0, v + 60)); return [N_NOTE[m % 12] + (Math.floor(m / 12) - 1), ""]; } // (NOTE - 60: C#4)
       case "LPHASE": return [String(Math.trunc(clamp(v, 0, 127) * 360 / 128)), "deg"]; // (the font's degree sign: "deg")
       case "INT":
         if (d.split) return [d.names[Math.floor((v - d.min) * d.names.length / (d.max - d.min + 1))], d.unit || ""];
@@ -705,12 +705,13 @@ export class MockDevice {
   }
   pages() {
     const out = [], d = this.d, t = this.tracks[this.sel], P = this.P;
-    const snd = [P.MODEL];
+    const snd = [P.MODEL, undefined]; // (SOUND 1's NOTE: the device's own, pages.c PG_NOTE)
     for (let k = 0; k < 8; k++) { const l = d.models[t.p[P.MODEL]].edit[k].label; if (k < 4 || (l && l[0] !== "-")) snd.push(P.E0 + k); }
     snd.push(P.LEVEL, P.PAN, P.NOTE, P.CHOKE, P.PRIO);
-    if (t.p[P.MODEL] === d.consts.DM_SMPL) { // pages.c snd_list: SAMPLE's PLAY; ATK SUS REL LOOP, a page of their own
-      snd.push(P.SPLAY, P.SCUT);
+    if (t.p[P.MODEL] === d.consts.DM_SMPL) { // pages.c snd_list: SAMPLE's PLAY CUT; ATK SUS REL LOOP, pages of their own
       while (snd.length < 16) snd.push(undefined);
+      snd.push(P.SPLAY, P.SCUT);
+      while (snd.length < 20) snd.push(undefined);
       snd.push(P.SATK, P.SSUS, P.SREL, P.SLOOP);
     }
     for (const pg of d.pages) {

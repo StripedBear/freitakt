@@ -413,7 +413,7 @@ static int ed_page(uint32_t i, uint32_t s, uint16_t *ids)
             return 0;                      /* TOOLS, GLOBAL 3/7 (MUTE METRO THRU QUANT): past the globals */
     for (c = 0; c < 4u; c++) {
         uint32_t id = pg->graph == GR_LDEST ? (c < 3u ? LS_ID[s][c] : 0xFFu) : page_id(pg, c);
-        ids[c] = (uint16_t)(id == 0xFFu || id == PG_MLEN ? ED_U14_NONE : id);   /* (MLEN: the device's) */
+        ids[c] = (uint16_t)(id == 0xFFu || id == PG_MLEN || id == PG_NOTE ? ED_U14_NONE : id);   /* (MLEN, NOTE: the device's) */
         any |= id != 0xFFu;
     }
     return (int)any;

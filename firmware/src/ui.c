@@ -156,7 +156,7 @@ static void hot_touch(uint32_t c)
  * until HOT_MS after the last turn; then the screen under it whole, once. A session is one knob's turns on one thing
  * (a parameter, MODEL, a held step's lock or its PROB RATCH ACC NUDGE): what it was before the first turn is kept here
  * (kp_snap), and OCT- while the popup is up puts it back (kp_undo, ui_input.c) instead of its own job */
-enum { KP_NONE, KP_PAR, KP_MODEL, KP_LOCK, KP_STEP };
+enum { KP_NONE, KP_PAR, KP_MODEL, KP_LOCK, KP_STEP, KP_NOTE };
 static struct {
     uint8_t on;                  /* 0 off, 1 up (the screen still to clear), 2 up and drawn */
     uint8_t kind, col;           /* KP_*; the knob */
@@ -165,12 +165,16 @@ static struct {
     uint8_t ed, mute;            /* KP_PAR (a track's), KP_MODEL: the preset's edited mark, MUTE before */
     uint8_t model, undone;       /* KP_MODEL: the model before; OCT- done (again: nothing, until another turn) */
     uint16_t id, gid;            /* KP_PAR: the P_* id (P_COUNT none: a global, MLEN); KP_LOCK: the P_*; KP_STEP: the
-                                  * field (0 PROB, 1 RATCH, 2 ACC, 3 NUDGE); gid: a global's G_* (0xFFFF none) */
+                                  * field (0 PROB, 1 RATCH, 2 ACC, 3 NUDGE); KP_NOTE: the held keys (bit k: key k, its
+                                  * step nsi[k]; 0: the track's NOTE, st 0); gid: a global's G_* (0xFFFF none) */
     uint16_t pre;                /* KP_MODEL: the preset before */
     int16_t v, v2;               /* the value before (KP_LOCK: the lock's); P_E4 (a SAMPLE's SET): its SLOT before */
     int16_t *vp;                 /* KP_PAR: the value */
     const param_desc_t *d;       /* KP_PAR KP_LOCK: its description (the name, the format) */
     step_t step;                 /* KP_STEP KP_LOCK: the step before */
+    step_t steps[16];            /* KP_NOTE: the held steps before (KP_NOTE's v: the track's NOTE before; col 4:
+                                  * ALGORITHM's) */
+    uint8_t nsi[16];             /* KP_NOTE: their step numbers */
     int16_t k[8u + SENV_N];      /* KP_MODEL: the SOUND knobs before (as the PRESETS audition keeps them) */
     uint32_t t0;                 /* the last turn (or OCT-), as hot_t0 */
     uint32_t nsig, vsig, msig;   /* the name's, the value's and the message's rows shown */
@@ -449,9 +453,33 @@ static uint32_t lk_view_mask(void)
     return lkv.mask;
 }
 
-/* the NOTE of a step the grid keys turn on (spec §2, user 2026-10-10): a gated (ACID) track's last KEYS / recorded
- * note; a drum's C4 (its steps transposed only by KEYS record) */
-static int8_t new_step_nt(const track_t *t) { return trk_model_own(t)->gate ? t->key_nt : 0; }
+/* the NOTE of a step the grid keys turn on (spec §2): the track's NOTE (key_nt: SOUND 1's NOTE / ALGORITHM with no
+ * step held, else the last KEYS / recorded note), every machine's (a drum plays it transposed from C4) */
+static int8_t new_step_nt(const track_t *t) { return (int8_t)clamp(t->key_nt, NT_MIN, NT_MAX); }
+
+/* NOTE (SOUND 1's KNOB 2; ALGORITHM with KEYS off): the step keys down now whose steps a turn writes (bit k: key k,
+ * its step ui.step_si[k]): where the keys are the steps (the grid, STEPS), every grid key down inside LEN; 0 none:
+ * the turn sets the track's NOTE (key_nt) */
+static uint32_t note_keys(void)
+{
+    uint32_t k, m = 0;
+    if (!step_keys())
+        return 0;
+    for (k = 0; k < 16u; k++)
+        if (ui.step_t0[k] && ((fm1_in.notes >> STEP_KEY[k]) & 1u) && ui.step_si[k] < (uint32_t)TSEL->p[P_SLEN])
+            m |= 1u << k;
+    return m;
+}
+/* .. the key whose step NOTE shows (the last pressed if it is down, else the lowest); 16 none */
+static uint32_t note_key(uint32_t m)
+{
+    uint32_t k;
+    if (ui.held < 16u && ((m >> ui.held) & 1u))
+        return ui.held;
+    for (k = 0; k < 16u && !((m >> k) & 1u); k++)
+        ;
+    return k;
+}
 
 /* a step key down this long is a hold, not a tap (owner 2026-10-23: holding a step is for editing it, never toggles
  * it). 0.3 s: a deliberate tap on these keys is well under it (~0.1 s down), a hold to edit is felt as one past it,

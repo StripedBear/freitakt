@@ -421,7 +421,7 @@ static void lock_turn_partial(void)
     memset(&plain, 0, sizeof plain);
     for (i = 0; i < 20u; i++) {
         host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
-        turn(EN_K2, (i & 4u) ? -1 : 1);
+        turn(EN_K3, (i & 4u) ? -1 : 1);   /* (PITCH) */
         add(&plain, frame());
     }
     settle(60);
@@ -432,7 +432,7 @@ static void lock_turn_partial(void)
     memset(&held, 0, sizeof held);
     for (i = 0; i < 20u; i++) {
         host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
-        turn(EN_K2, (i & 4u) ? -1 : 1);
+        turn(EN_K3, (i & 4u) ? -1 : 1);   /* (PITCH) */
         add(&held, frame());
     }
     report("SOUND, a knob turn a frame", &plain);

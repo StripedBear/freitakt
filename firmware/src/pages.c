@@ -11,8 +11,10 @@ enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, G
                                                           * removed STEP page's, keeps its number) */
 
 #define SND_SLOT 0xC0u                            /* EDIT page ids: SND_SLOT + n = the track's n-th sound knob */
-#define SND_N 20u                                 /* .. at most: 5 SOUND pages (the fifth the SAMPLE model's only) */
+#define SND_N 24u                                 /* .. at most: 6 SOUND pages (the fifth and sixth the SAMPLE model's) */
 #define PG_MLEN 0xFEu                             /* PATTERN's MLEN: MASTER LENGTH (song.mlen, the slot's; not a track's) */
+#define PG_NOTE 0xFDu                             /* SOUND 1's NOTE (KNOB 2): the track's note for new steps (key_nt;
+                                                   * a held step's own note: ui_input.c note_turn) */
 
 typedef struct {
     const char *title;
@@ -27,6 +29,8 @@ static const page_t PAGES[] = {
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 8, SND_SLOT + 9, SND_SLOT + 10, SND_SLOT + 11}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 12, SND_SLOT + 13, SND_SLOT + 14, SND_SLOT + 15}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 16, SND_SLOT + 17, SND_SLOT + 18, SND_SLOT + 19}},   /* SAMPLE:
+                                                                                * PLAY CUT */
+    {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 20, SND_SLOT + 21, SND_SLOT + 22, SND_SLOT + 23}},   /* SAMPLE:
                                                                                 * ATK SUS REL LOOP */
     /* ARP / RTRG (seq.c roll_*): after the SOUND pages in EDIT's cycle (ARP + EDIT: here at once, ui_input.c); the
      * second ARP's only (hidden on a drum: page_hidden) */
@@ -70,14 +74,15 @@ static const page_t PAGES[] = {
  * none (0xFF: no button's) */
 static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME, 0xFFu};
 
-/* the EDIT list of track t: MODEL, its model's TUNE DECAY TONE and 4th knob, its extra knobs, then LVL PAN NOTE
- * CHOKE PRIO (at most 16: 14); the SAMPLE model's then PLAY CUT, and ATK SUS REL LOOP on a page of their own (the 5th:
- * 0xFF, an empty column, up to it); returns how many (SND_N at most) */
+/* the EDIT list of track t: MODEL, NOTE (the sequencer's: PG_NOTE), its model's PITCH DECAY TONE and 4th knob, its
+ * extra knobs, then LVL PAN MNOTE CHOKE PRIO (at most 16: 15); the SAMPLE model's then PLAY CUT on the 5th page and
+ * ATK SUS REL LOOP on the 6th (0xFF, an empty column, up to each); returns how many (SND_N at most) */
 static uint32_t snd_list(const track_t *t, uint8_t *ids)
 {
     const dmodel_t *m = &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS];
     uint32_t n = 0, k;
     ids[n++] = P_MODEL;
+    ids[n++] = PG_NOTE;
     for (k = 0; k < 8u; k++)
         if (k < 4u || (m->edit[k].label && m->edit[k].label[0] != '-'))
             ids[n++] = (uint8_t)(P_E0 + k);
@@ -87,9 +92,11 @@ static uint32_t snd_list(const track_t *t, uint8_t *ids)
     ids[n++] = P_CHOKE;
     ids[n++] = P_PRIO;
     if ((uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL) {
-        ids[n++] = P_SPLAY;                         /* (SOUND 4/5: CHOKE PRIO PLAY CUT) */
+        while (n < 16u)                             /* (SOUND 4/6: MNOTE CHOKE PRIO) */
+            ids[n++] = 0xFFu;
+        ids[n++] = P_SPLAY;                         /* SOUND 5/6: PLAY CUT */
         ids[n++] = P_SCUT;
-        while (n < 16u)
+        while (n < 20u)
             ids[n++] = 0xFFu;
         for (k = 0; k < 4u; k++)
             ids[n++] = (uint8_t)(P_SATK + k);
@@ -139,6 +146,10 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
     if (id == PG_MLEN) {
         *valp = &song.mlen;
         return &MLEN_DESC;
+    }
+    if (id == PG_NOTE) {
+        *valp = &TSEL->key_nt;
+        return &NOTE_DESC;
     }
     *valp = &TSEL->p[id];
     return track_desc(TSEL, id);

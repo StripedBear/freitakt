@@ -19,6 +19,7 @@ static int list_rows_drawn(void);
 static int menu_value_is(uint32_t item, const char *s);
 static uint32_t fb_count(uint32_t x0, uint32_t y0, uint32_t w, uint32_t h, uint16_t c);
 static void tap(uint32_t b);
+static void algo_sel(int32_t s);
 #define OK0(e) do { if (!(e)) { printf("     (line %d)\n", __LINE__); ok = 0; } } while (0)
 static void hold(uint32_t label);
 static void safe_boot(int seq_held);
@@ -98,8 +99,8 @@ static void test_families(void)
     }
 }
 
-/* EDIT: one list per engine, 4 knobs a page: MODEL, its TUNE DECAY TONE and 4th knob, its extras, then
- * LVL PAN NOTE CHOKE (no MUTE: the TRACKS quick mutes) */
+/* EDIT: one list per engine, 4 knobs a page: MODEL, NOTE (the sequencer's), its PITCH DECAY TONE and 4th knob, its
+ * extras, then LVL PAN MNOTE CHOKE PRIO (no MUTE: the TRACKS quick mutes) */
 static void edit_next(void)
 {
     press(B_EDIT);
@@ -110,25 +111,29 @@ static void edit_next(void)
 static void test_sound_pages(void)
 {
     uint32_t n, k;
+    int16_t *vp;
     const page_t *pg;
     ui_host_init();
     old_set_model(&trk[0], DM_C808);
     edit_next();
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
-    check("EDIT page 1 (C808): MODEL TUNE DECAY TONE; 4 pages (FREITAKT: ARP's first, a drum's)",
-          n == 4u && k == 1u && page_id(pg, 0) == P_MODEL && page_id(pg, 1) == P_E0 && page_id(pg, 3) == P_E2);
+    check("EDIT page 1 (C808): MODEL NOTE PITCH DECAY; 4 pages (FREITAKT: ARP's first, a drum's)",
+          n == 4u && k == 1u && page_id(pg, 0) == P_MODEL && page_id(pg, 1) == PG_NOTE && page_id(pg, 2) == P_E0 &&
+              page_id(pg, 3) == P_E1 && str_eq(page_desc(pg, 1, &vp)->label, "NOTE") &&
+              str_eq(page_desc(pg, 2, &vp)->label, "PITCH"));
     snap_page("engines/zz_c808_edit_1");
     edit_next();
     pg = cur_page();
-    check("EDIT page 2 (C808): TAIL LVL PAN NOTE",
-          page_id(pg, 0) == P_E3 && page_id(pg, 1) == P_LEVEL && page_id(pg, 2) == P_PAN && page_id(pg, 3) == P_NOTE);
+    check("EDIT page 2 (C808): TONE TAIL LVL PAN",
+          page_id(pg, 0) == P_E2 && page_id(pg, 1) == P_E3 && page_id(pg, 2) == P_LEVEL && page_id(pg, 3) == P_PAN);
     snap_page("engines/zz_c808_edit_2");
     edit_next();
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
-    check("EDIT page 3: CHOKE PRIO, nothing else (no MUTE)", page_id(pg, 0) == P_CHOKE && page_id(pg, 1) == P_PRIO &&
-                                                               page_id(pg, 2) == 0xFFu && k == 3u && n == 4u);
+    check("EDIT page 3: MNOTE CHOKE PRIO, nothing else (no MUTE)", page_id(pg, 0) == P_NOTE &&
+              str_eq(page_desc(pg, 0, &vp)->label, "MNOTE") && page_id(pg, 1) == P_CHOKE && page_id(pg, 2) == P_PRIO &&
+              page_id(pg, 3) == 0xFFu && k == 3u && n == 4u);
     snap_page("engines/zz_c808_edit_3");
     edit_next();
     pg = cur_page();
@@ -141,8 +146,9 @@ static void test_sound_pages(void)
     old_set_model(&trk[0], DM_K909);
     edit_next();
     pg = cur_page();
-    check("K909 page 2: CLICK SWPT DRIVE LVL (its extras before LVL)",
-          page_id(pg, 0) == P_E3 && page_id(pg, 1) == P_E4 && page_id(pg, 2) == P_E5 && page_id(pg, 3) == P_LEVEL);
+    check("K909 page 2: TONE CLICK SWPT DRIVE (its extras before LVL)",
+          page_id(pg, 0) == P_E2 && page_id(pg, 1) == P_E3 && page_id(pg, 2) == P_E4 && page_id(pg, 3) == P_E5);
+    edit_next();
     edit_next();
     edit_next();
     edit_next();
@@ -154,13 +160,10 @@ static void test_sound_pages(void)
 static void test_track_select(void)
 {
     ui_host_init();
-    turn(EN_ALGO, 3);
-    ui_frame();
+    algo_sel(3);
     check("ALGORITHM selects tracks (1 -> 2 per detent)", song.sel == 1);
-    for (int i = 0; i < 20; i++) {
-        turn(EN_ALGO, 1);
-        ui_frame();
-    }
+    for (int i = 0; i < 20; i++)
+        algo_sel(1);
     check("ALGORITHM stops at track 6 (FREITAKT: the last)", song.sel == NTRK - 1);
 }
 
@@ -250,8 +253,7 @@ static void test_select_pages(void)
     turn(EN_PRESET, 2);
     ui_frame();
     check("PRESETS on TRACKS: no BPM, the page stays", mix_mode() && song.g[G_BPM] == bpm - 1);
-    turn(EN_ALGO, 2);
-    ui_frame();
+    algo_sel(2);
     check("ALGORITHM on TRACKS: the track (1 -> 2 per read)", song.sel == 1);
 }
 
@@ -638,7 +640,7 @@ static void test_step_hold_on_acc(void)
     }
 }
 
-/* review #2: a step key held while the track changes (ALGO, or a page change) writes nothing into the new track */
+/* review #2: a step key held while the track changes (SEL + a black key, or a page change) writes nothing into the new track */
 static void test_grid_hold_track_change(void)
 {
     step_t before;
@@ -654,7 +656,7 @@ static void test_grid_hold_track_change(void)
     before = trk[1].step[20];
     keys(1u << WHITE[4]);                            /* hold T1 step 21 */
     ui_frame();
-    turn(EN_ALGO, 1);                                /* T2 while holding */
+    track_select(1);                                 /* T2 while holding (as SEL + black key 2) */
     ui_frame();
     turn(EN_K1, 2);
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
@@ -663,7 +665,7 @@ static void test_grid_hold_track_change(void)
     ui_frame();
     keys(0);
     ui_frame();
-    check("a held step key, then another track (ALGO): the new track's steps are untouched (also outside its LEN), "
+    check("a held step key, then another track: the new track's steps are untouched (also outside its LEN), "
           "the held one too (no tap on the release)",
           song.sel == 1 && !memcmp(&trk[1].step[20], &before, sizeof before) && trk[0].step[20].cond == 33 &&
               trk[0].step[20].on);
@@ -889,6 +891,15 @@ static void tap(uint32_t b)
     ui_frame();
     release_all();
     ui_frame();
+}
+/* ALGORITHM turned s with KEYS on (SEL lit): the track (KEYS off it is NOTE); one frame, then KEYS as it was */
+static void algo_sel(int32_t s)
+{
+    uint8_t k = ui.keys;
+    ui.keys = 1;
+    turn(EN_ALGO, s);
+    ui_frame();
+    ui.keys = k;
 }
 
 static void test_layer_in_edit(void)                 /* FREITAKT removed the sample LAYER: no page under SOUND */
@@ -1144,7 +1155,7 @@ static void test_rec_everywhere(void)
         ui_host_init();
         for (j = 0; j < S[i].n; j++)
             tap(S[i].btn);
-        turn(EN_ALGO, 1);                            /* track 2 */
+        algo_sel(1);                                 /* track 2 */
         ui_frame();
         pg = ui.page;
         home = ui.home;
@@ -2050,10 +2061,10 @@ static void test_clr_combo(void)
 
     /* the knob popup up: the warning closes it, OCT- under the warning undoes nothing */
     tap(B_EDIT);
-    k = (uint32_t)TSEL->p[page_id(cur_page(), 1)];
-    turn(EN_K2, 3);
+    k = (uint32_t)TSEL->p[page_id(cur_page(), 2)];   /* (KNOB 3: PITCH) */
+    turn(EN_K3, 3);
     ui_frame();
-    n = (uint32_t)TSEL->p[page_id(cur_page(), 1)];
+    n = (uint32_t)TSEL->p[page_id(cur_page(), 2)];
     check("(the knob popup up, the value moved)", kp_live() && n != k);
     press(B_REC);
     ui_frame();
@@ -2065,7 +2076,7 @@ static void test_clr_combo(void)
     fm1_in.buttons |= rs_bits();
     ui_frame();
     rs_hold_ms(rs_bits(), 100);
-    check("OCT- under the warning: no undo", (uint32_t)TSEL->p[page_id(cur_page(), 1)] == n && ui.clr == 5u);
+    check("OCT- under the warning: no undo", (uint32_t)TSEL->p[page_id(cur_page(), 2)] == n && ui.clr == 5u);
     release_all();
     ui_frame();
     check("let go: cancelled, the page back", !ui.clr && !kp.on);
@@ -2746,7 +2757,7 @@ static void test_rec_all(void)
     check("REC ALL on HOME: key 5 records into track 5 (and selects it, as before)", ui.home && only_steps(16u) &&
           song.sel == 4u);
     tap(B_EDIT);                                     /* (HOME's knobs: BPM, SWING since FREITAKT: SOUND's) */
-    turn(EN_K2, 3);
+    turn(EN_K3, 3);                                  /* (PITCH) */
     ui_frame();
     for (ok = motion_count(4) >= 1u, i = 0; i < NTRK; i++)
         ok &= i == 4u || motion_count(i) == 0u;
@@ -3786,8 +3797,9 @@ static void test_graph_model_name(void)              /* FREITAKT LIST: the MODEL
     tap(B_EDIT);
     ui.force = 1;
     ui_frame();
-    check("SOUND: row 1 the machine (K909) and its preset, row 2 TUNE; the hit waveform's band above (y 16..63)",
-          col_has(0, "K909|") && col_has(1, "PITCH|") && fb_count(0, 16, 240, 48, C_INK) > 50u &&
+    check("SOUND: row 1 the machine (K909) and its preset, row 2 NOTE (C4), row 3 PITCH; the hit waveform's band above "
+          "(y 16..63)",
+          col_has(0, "K909|") && col_has(1, "NOTE|C4") && col_has(2, "PITCH|") && fb_count(0, 16, 240, 48, C_INK) > 50u &&
               fb_count(0, 16, 240, 48, C_BG) > 240u * 48u / 2u);
 }
 
@@ -4063,10 +4075,10 @@ static void test_kpop_first_turn(void)
     ui.force = 1;
     ui_frame();
     check("popup: none before a turn", !kp.on && list_rows_drawn());
-    turn(EN_K2, 1);
+    turn(EN_K3, 1);
     ui_frame();
-    check("popup: up on the first turn of a parameter knob (KNOB 2: the SOUND page's second row)",
-          kp.on == 2u && kp.kind == KP_PAR && kp.col == 1u && kp.vp == &TSEL->p[page_id(cur_page(), 1)]);
+    check("popup: up on the first turn of a parameter knob (KNOB 3: the SOUND page's third row, PITCH)",
+          kp.on == 2u && kp.kind == KP_PAR && kp.col == 2u && kp.vp == &TSEL->p[page_id(cur_page(), 2)]);
     check("popup: the screen cleared (no top bar, no rows), the name and the value large",
           fb_count(0, 0, 240, KP_NY, C_INK) == 0u && fb_count(0, KP_NY, 240, KP_NH, C_INK) > 100u &&
           fb_count(0, KP_VY, 240, KP_VH, C_INK) > 600u && fb_count(0, KP_VY + KP_VH, 240, 240 - KP_VY - KP_VH, C_INK) == 0u);
@@ -4130,19 +4142,19 @@ static void test_kpop_undo(void)
     tap(B_SCL);                                      /* KEYS: OCT- would be the keyboard's octave down */
     tap(B_EDIT);
     ui_frame();
-    vp = &TSEL->p[page_id(cur_page(), 1)];
+    vp = &TSEL->p[page_id(cur_page(), 2)];
     v0 = *vp;
-    turn(EN_K2, 1);
+    turn(EN_K3, 1);
     ui_frame();
     host_ticks += 100u * 1000u * FM1_TICKS_PER_US;
-    turn(EN_K2, 2);
+    turn(EN_K3, 2);
     ui_frame();
     check("undo: the turns moved the value", *vp != v0 && kp.on);
     tap(B_OCTDN);
     check("undo: OCT- puts the value back as before the session", *vp == v0);
     check("undo: OCT-'s own job not done (KEYS' octave unchanged)", song.octave == 0 && ui.keys);
     kp_text(l, v, &u);
-    param_format(track_desc(TSEL, page_id(cur_page(), 1)), v0, w, &u);
+    param_format(track_desc(TSEL, page_id(cur_page(), 2)), v0, w, &u);
     check("undo: the popup stays, showing the value back", kp.on && str_eq(v, w));
     *vp = (int16_t)(v0 + 1);
     tap(B_OCTDN);
@@ -4215,12 +4227,12 @@ static void test_kpop_undo_lock(void)
     tap(B_EDIT);
     tap(B_ENV);                                      /* STEPS */
     ui_frame();
-    id = lock_id(1);
-    check("lock undo: KNOB 2 here can lock", id < P_COUNT && env_steps());
+    id = lock_id(2);
+    check("lock undo: KNOB 3 (PITCH) here can lock", id < P_COUNT && env_steps());
     lock_set(song.sel, 3, P_PAN, 10);                /* (another lock on the step: OCT- would clear it) */
     keys(1u << STEP_KEY[3]);
     ui_frame();
-    turn(EN_K2, 2);
+    turn(EN_K3, 2);
     ui_frame();
     check("lock undo: the turn locked step 4, the popup a lock's", lock_get(song.sel, 3, id, &v) && kp.on &&
           kp.kind == KP_LOCK);
@@ -4230,7 +4242,7 @@ static void test_kpop_undo_lock(void)
           lock_get(song.sel, 3, P_PAN, &v) && v == 10);
     grid_wait(3200);                                 /* (the popup gone: the next turn a new session) */
     lock_set(song.sel, 3, id, 20);
-    turn(EN_K2, 3);
+    turn(EN_K3, 3);
     ui_frame();
     check("lock undo: a new session from the old lock (20)", lock_get(song.sel, 3, id, &v) && v != 20);
     tap(B_OCTDN);
@@ -4241,22 +4253,26 @@ static void test_kpop_undo_lock(void)
     tap(B_ENV);
 }
 
-static void test_fix_msg_shrink(void)
+static void test_fix_msg_shrink(void)              /* (row y 120: the edges the message added, not the row's own) */
 {
     uint32_t k, e = 0;
+    uint16_t row[240];
+#define MS_EDGE(l, k) ((l)[k] == C_INK && (l)[(k) - 1u] == C_INK && (l)[(k) - 2u] == C_BG)
     ui_host_init();
     tap(B_EDIT);
     ui.force = 1;
     ui_frame();
+    memcpy(row, fb + 120u * 240u, sizeof row);
     ui_message("A MUCH LONGER MESSAGE");
     ui_frame();
     for (k = 3; k < 239u; k++)
-        if (fb[120u * 240u + k] == C_INK && fb[120u * 240u + k - 1u] == C_INK && fb[120u * 240u + k - 2u] == C_BG)
+        if (MS_EDGE(fb + 120u * 240u, k) && !MS_EDGE(row, k))
             e = k;
     ui_message("OK");
     ui_frame();
     check("message: a shorter one replacing it leaves no edge of the longer popup", e > 150u &&
-          !(fb[120u * 240u + e] == C_INK && fb[120u * 240u + e - 1u] == C_INK && fb[120u * 240u + e - 2u] == C_BG));
+          MS_EDGE(fb + 120u * 240u, e) == MS_EDGE(row, e));
+#undef MS_EDGE
 }
 
 static void test_fix_popup_holds_graph(void)
@@ -4537,8 +4553,7 @@ static void seq_select(uint32_t ti)                  /* the track encoder, one d
 {
     uint32_t k;
     for (k = 0; k < NTRK && song.sel != ti; k++) {
-        turn(EN_ALGO, ti > song.sel ? 1 : -1);
-        ui_frame();
+        algo_sel(ti > song.sel ? 1 : -1);
     }
 }
 
@@ -5705,8 +5720,8 @@ static void test_phys_screens(void)
     snap_page("phys/memb_2");
     {
         int16_t *vp;
-        const param_desc_t *h = page_desc(cur_page(), 0, &vp), *b = page_desc(cur_page(), 2, &vp);
-        check("MEMB: SOUND 2/3 holds HEAD .. BEND", h && b && str_eq(h->label, "HEAD") && str_eq(b->label, "BEND"));
+        const param_desc_t *h = page_desc(cur_page(), 1, &vp), *b = page_desc(cur_page(), 3, &vp);
+        check("MEMB: SOUND 2/3 holds TONE HEAD .. BEND", h && b && str_eq(h->label, "HEAD") && str_eq(b->label, "BEND"));
     }
 }
 
@@ -5917,8 +5932,7 @@ static void test_step_keys_everywhere(void)
         } else {
             open_tracks();                           /* HOME's TRACKS mode */
         }
-        turn(EN_ALGO, 1);                            /* track 2, nothing played */
-        ui_frame();
+        algo_sel(1);                                 /* track 2, nothing played */
         a2 = hit_age(&trk[1]);
         a3 = hit_age(&trk[2]);
         was = trk[1].step[2].on;
@@ -6009,17 +6023,18 @@ static void test_fm_screens(void)
         tap(B_EDIT);
     ui.force = 1;
     snap_page("fm/sound_1");
-    check("FM: SOUND 1/4 holds MODEL TUNE DECAY INDEX; the graph draws the sidebands",
-          str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "INDEX") &&
+    check("FM: SOUND 1/4 holds MODEL NOTE PITCH DECAY; the graph draws the sidebands",
+          str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY") &&
           str_eq(N_FMRATIO[TSEL->p[P_E3]], "1.41") && fm_graph_lit() > 150u);
     page_turn(1);
     ui.force = 1;
     snap_page("fm/sound_2");
-    check("FM: SOUND 2/4 holds RATIO MDEC SWEEP FBK",
-          str_eq(page_desc(cur_page(), 0, &vp)->label, "RATIO") && str_eq(page_desc(cur_page(), 3, &vp)->label, "FBK"));
+    check("FM: SOUND 2/4 holds INDEX RATIO MDEC SWEEP",
+          str_eq(page_desc(cur_page(), 0, &vp)->label, "INDEX") && str_eq(page_desc(cur_page(), 1, &vp)->label, "RATIO") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
 }
 
-/* KTRX: SOUND 1/4 holds MODEL PITCH DECAY SWEEP, 2/4 SDEC PUNCH NOISE SUB; the graph draws the pitch and the level,
+/* KTRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY, 2/4 SWEEP SDEC PUNCH NOISE; the graph draws the pitch and the level,
  * SWEEP raising the pitch curve (more lit rows high in the graph); the CHOKE label stays out of it */
 static uint32_t ktrx_high_lit(void)                  /* lit pixels in the graph's upper half (the pitch above ~2 oct) */
 {
@@ -6057,8 +6072,9 @@ static void test_ktrx_screens(void)
     snap_page("ktrx/sound_1");
     plain = fm_graph_area(0u, 110u);
     printf("     KTRX graph: upper half lit %u (SWEEP 0) / %u (SWEEP 127, SDEC 96)\n", flat, swept);
-    check("KTRX: SOUND 1/4 holds MODEL TUNE DECAY SWEEP (FREITAKT LIST: the hit's band, no pitch graph)",
-          str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
+    check("KTRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY (FREITAKT LIST: the hit's band, no pitch graph)",
+          str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY"));
     TSEL->p[P_CHOKE] = 2;
     ui.force = 1;
     ui_frame();
@@ -6068,11 +6084,12 @@ static void test_ktrx_screens(void)
     page_turn(1);
     ui.force = 1;
     snap_page("ktrx/sound_2");
-    check("KTRX: SOUND 2/4 holds SDEC PUNCH NOISE SUB",
-          str_eq(page_desc(cur_page(), 0, &vp)->label, "SDEC") && str_eq(page_desc(cur_page(), 3, &vp)->label, "SUB"));
+    check("KTRX: SOUND 2/4 holds SWEEP SDEC PUNCH NOISE",
+          str_eq(page_desc(cur_page(), 0, &vp)->label, "SWEEP") && str_eq(page_desc(cur_page(), 1, &vp)->label, "SDEC") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "NOISE"));
 }
 
-/* SDTRX, B2TRX: their SOUND pages (MODEL + the first three knobs, then the next four) */
+/* SDTRX, B2TRX: their SOUND pages (MODEL NOTE + the first two knobs, then the next four) */
 static void test_trx_drum_screens(void)
 {
     static const struct { uint32_t m; const char *dir, *l1, *l3, *l4, *l7; } S[] = {
@@ -6089,17 +6106,19 @@ static void test_trx_drum_screens(void)
         ui.force = 1;
         snprintf(name, sizeof name, "%s_sound_1", S[i].dir);
         snap_page(name);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, S[i].l1) && str_eq(page_desc(cur_page(), 3, &vp)->label, S[i].l3);
+        ok &= str_eq(page_desc(cur_page(), 2, &vp)->label, S[i].l1) && str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
         page_turn(1);
         ui.force = 1;
         snprintf(name, sizeof name, "%s_sound_2", S[i].dir);
         snap_page(name);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l4) && str_eq(page_desc(cur_page(), 3, &vp)->label, S[i].l7);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l3) && str_eq(page_desc(cur_page(), 1, &vp)->label, S[i].l4);
+        page_turn(1);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l7);
     }
-    check("SDTRX, B2TRX: SOUND 1/4 holds MODEL TUNE DECAY SNAP / RAMP, 2/4 TONE .. CLIP / HOLD .. DIRT", ok);
+    check("SDTRX, B2TRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY, 2/4 SNAP TONE .. / RAMP HOLD .., 3/4 CLIP / DIRT", ok);
 }
 
-/* CPTRX / MATRX: their SOUND pages hold the knobs in order (1/4 MODEL TUNE DECAY + the third, 2/4 the next four, 3/4
+/* CPTRX / MATRX: their SOUND pages hold the knobs in order (1/4 MODEL NOTE PITCH DECAY, 2/4 the next four, 3/4
  * the last); screenshots build/ui_shots/engines/trxn_*.png */
 static void test_trxn_screens(void)
 {
@@ -6115,21 +6134,21 @@ static void test_trxn_screens(void)
             tap(B_EDIT);
         ui.force = 1;
         snap_page(M[i].s1);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s2);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k4);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k3) && str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k4);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s3);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k7);
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k7);
     }
-    check("CPTRX, MATRX: SOUND 1/4 MODEL TUNE DECAY CLPY / ATT, 2/4 from HARD / REV, 3/4 RTUN / HARD", ok);
+    check("CPTRX, MATRX: SOUND 1/4 MODEL NOTE PITCH DECAY, 2/4 from CLPY HARD / ATT REV, 3/4 RTUN / HARD second", ok);
 }
 
-/* SDEFM / CPEFM / RSEFM: their SOUND pages hold the knobs in order (1/4 MODEL TUNE DECAY + the third, 2/4 the next
+/* SDEFM / CPEFM / RSEFM: their SOUND pages hold the knobs in order (1/4 MODEL NOTE PITCH DECAY, 2/4 the next
  * four, 3/4 the last); screenshots build/ui_shots/engines/efmn_*.png */
 static void test_efmn_screens(void)
 {
@@ -6146,19 +6165,19 @@ static void test_efmn_screens(void)
             tap(B_EDIT);
         ui.force = 1;
         snap_page(M[i].s1);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s2);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k4);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k3) && str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k4);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s3);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k8);
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k8);
     }
-    check("SDEFM, CPEFM, RSEFM: SOUND 1/4 MODEL TUNE DECAY NOIS / CLPS / MOD, 2/4 from NDEC / CDEC / HPF, 3/4 HPF / HPF / "
-          "SMOD", ok);
+    check("SDEFM, CPEFM, RSEFM: SOUND 1/4 MODEL NOTE PITCH DECAY, 2/4 from NOIS NDEC / CLPS CDEC / MOD HPF, 3/4 HPF / "
+          "HPF / SMOD second", ok);
 }
 
 /* ---- ACID plan B: KEYS (spec §5) */
@@ -6596,8 +6615,8 @@ static void test_step_key_note(void)
           !t->step[3].tie && t->step[3].nt == 5);
 }
 
-/* bug 2026-10-10 (user: "ACID only"): the last KEYS note goes to the steps the grid keys turn on only on a gated
- * (ACID) track; on a drum the new step is C4 (tap, hold, hold + knob) */
+/* the track's NOTE (key_nt: the last KEYS note here) goes to the steps the grid keys turn on (tap, hold, hold + knob),
+ * on every machine (NOTE request, 2026-11: a drum too, played transposed from C4; was ACID only, 2026-10-10) */
 static void test_step_key_note_drum(void)
 {
     track_t *t;
@@ -6621,9 +6640,9 @@ static void test_step_key_note_drum(void)
         grid_hold_turn(WHITE[2], 0, -2);             /* hold + KNOB 1 */
         keys(0);
         ui_frame();
-        want = pass ? 2 : 0;
+        want = 2;
         check(pass ? "ACID: a step the grid keys turn on (tap, hold, hold + knob) gets the last KEYS note (D4)"
-                   : "drum: a step the grid keys turn on (tap, hold, hold + knob) is C4 after KEYS played D4",
+                   : "drum: a step the grid keys turn on (tap, hold, hold + knob) gets the last KEYS note (D4)",
               t->step[0].on && t->step[1].on && t->step[2].on && t->step[0].nt == want && t->step[1].nt == want &&
                   t->step[2].nt == want);
     }
@@ -6897,12 +6916,13 @@ static void test_prio_sound_list(void)
     for (m = 0; m < NMODELS; m++) {
         old_set_model(TSEL, m);
         n = snd_list(TSEL, ids);
-        if (m == DM_SMPL)                            /* (SAMPLE: then its own page, ATK SUS REL LOOP) */
-            ok &= n == SND_N && ids[13] == P_PRIO && ids[12] == P_CHOKE && ids[16] == P_SATK;
+        if (m == DM_SMPL)                            /* (SAMPLE: then PLAY CUT, then ATK SUS REL LOOP, pages of their own) */
+            ok &= n == SND_N && ids[14] == P_PRIO && ids[13] == P_CHOKE && ids[15] == 0xFFu && ids[16] == P_SPLAY &&
+                  ids[17] == P_SCUT && ids[20] == P_SATK && ids[23] == P_SLOOP;
         else
             ok &= n <= 16u && ids[n - 1u] == P_PRIO && ids[n - 2u] == P_CHOKE;
     }
-    check("PRIO: every model's SOUND list ends CHOKE, PRIO (SAMPLE's before its ATK SUS REL LOOP page)", ok);
+    check("PRIO: every model's SOUND list ends CHOKE, PRIO (SAMPLE's before its PLAY CUT and ATK SUS REL LOOP pages)", ok);
     old_set_model(TSEL, DM_CYMB);
     n = snd_list(TSEL, ids);
     ui.home = 0;                                     /* the SOUND page with PRIO */
@@ -7251,7 +7271,7 @@ static void test_name_and_edited_mark(void)
     check("SOUND: the track's preset named on the MODEL row, not edited", col_has(0, "K909|") && !strchr(ui.col[0], '*') &&
           !TSEL->pre_ed);
     host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
-    turn(EN_K2, 1);                                     /* TUNE */
+    turn(EN_K3, 1);                                     /* PITCH */
     ui_frame();
     host_ticks += 3100u * 1000u * FM1_TICKS_PER_US;
     for (b = 0; b < 50u; b++)                           /* (the knob popup gone) */
@@ -7607,7 +7627,8 @@ static void engine_view_ready(void)                  /* a frame (the render star
 }
 
 
-static void graph_copy(uint16_t *d) { memcpy(d, fb + Y_GRAPH * 240u, 240u * H_GRAPH * sizeof fb[0]); }
+/* (from y 16: the LIST band, the rendered hit, and the rows under it) */
+static void graph_copy(uint16_t *d) { memcpy(d, fb + 16u * 240u, 240u * H_GRAPH * sizeof fb[0]); }
 
 /* the same sound draws the same pixels: again after a knob went and came back, after the live state moved on (hits on
  * every track: the metal bank, SKIN's bodies, the voices' ages and seeds), on a forced redraw; another knob value
@@ -8033,8 +8054,8 @@ static void test_fk_track_keys(void)
     check("item 2: GLOBAL, SAVE: no track key (the keys held only, as before)", other);
     tap(B_FX);
     song.sel = 0;
-    turn(EN_ALGO, 2);
-    ui_frame();
+    algo_sel(2);
+    ui_frame();                                      /* (the LEDs with KEYS off again) */
     check("item 2: FX, ALGORITHM to track 2: its key (G3) lit, F3 dark", song.sel == 1u &&
           fk_keys_show_only(1u << KEY_TRK_KEY[1]));
     tap(B_EDIT);
@@ -8508,9 +8529,9 @@ static void test_lock_before_hold(void)
     grid_down(WHITE[4]);
     grid_wait(100);
     host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
-    turn(EN_K2, 1);
+    turn(EN_K3, 1);
     ui_frame();
-    ok = lock_get(0, 4, lock_id(1), &v) && trk[0].step[4].on;
+    ok = lock_get(0, 4, lock_id(2), &v) && trk[0].step[4].on;
     grid_up(WHITE[4]);
     check("locks: a turn 0.1 s after the press writes the lock, turns the off step on; the release toggles nothing",
           ok && trk[0].step[4].on);
@@ -8523,7 +8544,7 @@ static void test_lock_cells(void)
     int16_t lv = 0;
     lock_fresh();
     tap(B_EDIT);
-    id = held_turn(1, 1);                            /* KNOB 2 locked on step 5 */
+    id = held_turn(2, 1);                            /* KNOB 3 (PITCH) locked on step 5 */
     ok = lock_get(0, 4, id, &lv);
     grid_up(WHITE[4]);
     grid_wait(3200);                                 /* (the touched mark gone: HOT_MS) */
@@ -8531,16 +8552,16 @@ static void test_lock_cells(void)
     grid_wait(350);
     param_format(track_desc(TSEL, id), lv, val, &unit);
     snprintf(want, sizeof want, "|%sB", val);
-    ok &= strstr(ui.col[1], want) != 0;
-    param_format(track_desc(TSEL, lock_id(2)), TSEL->p[lock_id(2)], val, &unit);
-    snprintf(want, sizeof want, "|%sA", val);
     ok &= strstr(ui.col[2], want) != 0;
+    param_format(track_desc(TSEL, lock_id(3)), TSEL->p[lock_id(3)], val, &unit);
+    snprintf(want, sizeof want, "|%sA", val);
+    ok &= strstr(ui.col[3], want) != 0;
     ok &= head_mode(m) && str_eq(m, "LOCK STEP 5");
     snap_page("locks/sound_held");
     grid_up(WHITE[4]);
     param_format(track_desc(TSEL, id), TSEL->p[id], val, &unit);
     snprintf(want, sizeof want, "|%sA", val);
-    ok &= strstr(ui.col[1], want) != 0 && !head_mode(m);
+    ok &= strstr(ui.col[2], want) != 0 && !head_mode(m);
     check("locks: step held: a locked cell shows the lock inverted, the others their value; LOCK STEP 5; let go: the "
           "knobs' values", ok);
 }
@@ -8559,11 +8580,11 @@ static void test_lock_while_playing(void)
     trk[0].p[P_SLEN] = 16;
     transport_req = 1;
     seq_play_to(0, 1);
-    id = lock_id(1);
+    id = lock_id(2);
     own = trk[0].p[id];
     grid_down(WHITE[4]);
     grid_wait(350);
-    turn(EN_K2, 5);
+    turn(EN_K3, 5);
     ui_frame();
     ok = song.playing && id < P_COUNT && lock_get(0, 4, id, &lv) && lv != own;
     param_format(track_desc(TSEL, id), lv, val, &unit);
@@ -8580,7 +8601,7 @@ static void test_lock_while_playing(void)
     ok &= trk[0].p[id] == own;                         /* the next step the knob's own value */
     transport_req = 2;
     ui_frame();
-    check("locks while playing: a held step + KNOB 2 locks it, the popup shows the lock, step 5 plays it and "
+    check("locks while playing: a held step + KNOB 3 locks it, the popup shows the lock, step 5 plays it and "
           "step 6 the knob's own value", ok);
 }
 static void test_lock_full(void)
@@ -8590,7 +8611,7 @@ static void test_lock_full(void)
     tap(B_EDIT);
     for (i = 0; mo.b.count < LK_MAX; i++)
         motion_add(1u + i / 512u, i % 64u, P_E0 + (i / 64u) % 8u, 1);
-    held_turn(1, 1);
+    held_turn(2, 1);
     grid_up(WHITE[4]);
     check("locks: a held turn with 1024 events: LOCKS FULL, nothing added", str_eq(ui.msg, "LOCKS FULL") &&
           mo.b.count == LK_MAX && lock_count(0) == 0u);
@@ -8754,9 +8775,9 @@ static void test_env_one_press_then_lock(void)
     memset(&mo.b, 0, sizeof mo.b);
     host_ticks = (host_ticks & ~7u) + 2u;
     env_tap();
-    id = held_turn(1, 2);
+    id = held_turn(2, 2);
     grid_up(WHITE[4]);
-    check("one ENV press (tick bit 1 set), step 5 held + KNOB 2: a lock on step 5", ui.env == 1u && id < P_COUNT &&
+    check("one ENV press (tick bit 1 set), step 5 held + KNOB 3: a lock on step 5", ui.env == 1u && id < P_COUNT &&
           lock_get(0, 4, id, &v) && lock_count(0) == 1u);
     memset(&mo.b, 0, sizeof mo.b);
 }
@@ -8913,7 +8934,7 @@ static void test_step_leds(void)
     check("step LEDs: the trigs lit, the empty steps dark; black 1 (the selected track) lit, the others dark", ok);
 
     ok = 1;
-    id = lock_id(1);
+    id = lock_id(2);
     lock_set(0, 2, id, 3);                            /* step 3: a parameter lock */
     lock_set(0, 5, P_MODEL, 1);                       /* step 6 (no trig): a machine lock */
     ui_frame();
@@ -9327,6 +9348,200 @@ static void test_tools_copy_carousels(void)
     memset(proj_slot, 0, sizeof proj_slot);
 }
 
+/* ---- NOTE and PITCH (user request 2026-11, Model:Cycles style): SOUND 1's KNOB 2 NOTE, ALGORITHM = NOTE with KEYS
+ * off; a held step's note, else the track's NOTE (the note new steps take); PITCH the machines' tuning knob */
+static void test_note_names(void)
+{
+    static const struct { int16_t nt; const char *s; } N[] = {
+        {0, "C4"}, {1, "C#4"}, {-1, "B3"}, {9, "A4"}, {12, "C5"}, {-48, "C0"}, {-60, "C-1"}, {-59, "C#-1"},
+        {55, "G8"}, {67, "G9"}, {-90, "C-1"}, {99, "G9"}};
+    uint32_t i, ok = 1;
+    char v[12];
+    const char *u;
+    for (i = 0; i < sizeof N / sizeof N[0]; i++) {
+        param_format(&NOTE_DESC, N[i].nt, v, &u);
+        if (!str_eq(v, N[i].s) || u[0]) {
+            printf("     NOTE %d: \"%s\", want \"%s\"\n", N[i].nt, v, N[i].s);
+            ok = 0;
+        }
+    }
+    check("NOTE: names with the octave, C4 = 0 (MIDI 60): C#4, B3, C0, C-1 .. G9, clamped at the ends", ok);
+    check("NOTE: the step note's full range (NT_MIN..NT_MAX = MIDI 0..127)",
+          NOTE_DESC.min == NT_MIN && NOTE_DESC.max == NT_MAX && str_eq(NOTE_DESC.label, "NOTE"));
+}
+
+static void test_pitch_label(void)
+{
+    uint32_t m, ok = 1, own = 1;
+    uint8_t ids[SND_N];
+    for (m = 0; m < NMODELS; m++) {
+        ok &= str_eq(DMODELS[m].edit[0].label, "PITCH") && DMODELS[m].edit[0].fmt == F_SEMI;
+        old_set_model(TSEL, m);
+        own &= snd_list(TSEL, ids) > 3u && ids[0] == P_MODEL && ids[1] == PG_NOTE && ids[2] == P_E0;
+    }
+    check("PITCH: every machine's tuning knob (P_E0, semitones) is named PITCH (no TUNE)", ok);
+    check("SOUND 1 of every machine: MODEL NOTE PITCH ..", own);
+    ui_host_init();
+}
+
+/* no step held: KNOB 2 on SOUND 1 sets the track's NOTE (popup, OCT- undo), and a step the keys turn on takes it:
+ * a drum (played transposed from C4) and ACID alike */
+static void test_note_default(void)
+{
+    uint32_t pass;
+    for (pass = 0; pass < 2u; pass++) {
+        track_t *t;
+        char l[16], v[16];
+        const char *u;
+        const char *what = pass ? "ACID" : "drum";
+        char b[120];
+        ui_host_init();
+        t = TSEL;
+        if (pass)
+            old_set_model(t, DM_ACID);
+        memset(t->step, 0, sizeof t->step);
+        tap(B_EDIT);
+        ui.force = 1;
+        ui_frame();
+        snprintf(b, sizeof b, "%s: SOUND 1's row 2 is NOTE, C4 at first", what);
+        check(b, page_id(cur_page(), 1) == PG_NOTE && t->key_nt == 0 && col_has(1, "NOTE|C4"));
+        if (!pass)
+            snap_page("locks/note_sound_1");
+        turn(EN_K2, 3);
+        ui_frame();
+        kp_text(l, v, &u);
+        snprintf(b, sizeof b, "%s: KNOB 2 (no step held): the track's NOTE D#4, its popup (NOTE D#4)", what);
+        check(b, t->key_nt == 3 && kp.on && kp.kind == KP_NOTE && kp.id == 0u && str_eq(l, "NOTE") &&
+                     str_eq(v, "D#4"));
+        if (!pass)
+            shot("build/ui_shots/popup_note.ppm");
+        tap(B_OCTDN);
+        kp_text(l, v, &u);
+        snprintf(b, sizeof b, "%s: OCT- puts the NOTE back (C4), the popup stays", what);
+        check(b, t->key_nt == 0 && kp.on && str_eq(v, "C4"));
+        grid_wait(3200);
+        turn(EN_K2, 5);
+        ui_frame();
+        grid_wait(3200);
+        open_step_page();
+        grid_hold(WHITE[0], 0);                      /* tap */
+        grid_acc(WHITE[1]);                          /* OCT+ held: an accent */
+        grid_hold(WHITE[2], 500);                    /* a hold */
+        keys(0);
+        ui_frame();
+        snprintf(b, sizeof b, "%s: the steps turned on (tap, accent, hold) take the track's NOTE (F4)", what);
+        check(b, t->key_nt == 5 && t->step[0].on && t->step[1].on && t->step[2].on && t->step[0].nt == 5 &&
+                     t->step[1].nt == 5 && t->step[2].nt == 5);
+    }
+}
+
+/* STEPS (ENV) on SOUND 1: the step keys held + KNOB 2 write their notes (every held step, from the shown one's: the
+ * last pressed); held without a turn, the NOTE row shows that step's note; no lock, the track's NOTE untouched; OCT-
+ * puts the steps back; the release toggles nothing */
+static void test_note_held_steps(void)
+{
+    track_t *t;
+    char l[16], v[16];
+    const char *u;
+    uint32_t ok;
+    lock_fresh();                                    /* STEPS, track 1, no steps */
+    t = TSEL;
+    tap(B_EDIT);
+    t->step[2].on = 1;
+    t->step[2].nt = -5;
+    t->step[6].on = 1;
+    t->step[6].nt = 7;
+    grid_down(WHITE[2]);
+    grid_down(WHITE[6]);
+    grid_wait(350);
+    ui.force = 1;
+    ui_frame();
+    check("NOTE: steps 3 and 7 held (7 last): the NOTE row shows step 7's note (G4), inverted",
+          col_has(1, "NOTE|G4B"));
+    snap_page("locks/note_step_held");
+    turn(EN_K2, 2);
+    ui_frame();
+    kp_text(l, v, &u);
+    ok = t->step[2].nt == 9 && t->step[6].nt == 9 && t->step[2].on && t->step[6].on && t->key_nt == 0 &&
+         mo.b.count == 0u;
+    check("NOTE: two held steps + KNOB 2: both take the note (G4 + 2 = A4); no lock, the track's NOTE untouched", ok);
+    check("NOTE: the popup says 2 STEPS NOTE A4", kp.on && kp.kind == KP_NOTE && str_eq(l, "2 STEPS NOTE") &&
+          str_eq(v, "A4"));
+    shot("build/ui_shots/popup_steps_note.ppm");
+    tap(B_OCTDN);
+    check("NOTE: OCT- puts both steps' notes back (-5, 7), no lock cleared", t->step[2].nt == -5 &&
+          t->step[6].nt == 7 && t->step[2].on && t->step[6].on);
+    grid_up(WHITE[2]);
+    grid_up(WHITE[6]);
+    check("NOTE: let go: the steps stay on (an edit is no tap)", t->step[2].on && t->step[6].on);
+    grid_wait(3200);
+    grid_down(WHITE[9]);                             /* an off step held: on with the track's NOTE, then the turn */
+    grid_wait(100);
+    turn(EN_K2, -1);
+    ui_frame();
+    kp_text(l, v, &u);
+    check("NOTE: an off step held + KNOB 2: on, B3 (C4 - 1); the popup STEP 10 NOTE B3", t->step[9].on &&
+          t->step[9].nt == -1 && str_eq(l, "STEP 10 NOTE") && str_eq(v, "B3"));
+    grid_up(WHITE[9]);
+    check("NOTE: .. let go: still on", t->step[9].on);
+    tap(B_ENV);
+}
+
+/* ALGORITHM: KEYS off (SEL unlit) it is NOTE on any page (a held step's on PATTERN, else the track's; its popup, OCT-
+ * undo); KEYS on (SEL lit) it picks the track; MIDI LEARN's NEXT / PREV TRACK pick stays */
+static void test_note_algorithm(void)
+{
+    track_t *t;
+    char l[16], v[16];
+    const char *u;
+    ui_host_init();
+    t = TSEL;
+    memset(t->step, 0, sizeof t->step);
+    open_step_page();                                /* PATTERN, KEYS off: the keys are the steps */
+    check("ALGORITHM: KEYS off for this test", !ui.keys && seq_keys());
+    t->step[4].on = 1;
+    grid_down(WHITE[4]);
+    grid_wait(350);
+    turn(EN_ALGO, -1);
+    ui_frame();
+    kp_text(l, v, &u);
+    check("ALGORITHM, KEYS off, step 5 held on PATTERN: its note B3, no track change; the popup STEP 5 NOTE B3",
+          song.sel == 0u && t->step[4].nt == -1 && t->key_nt == 0 && kp_live() && kp.col == 4u &&
+              str_eq(l, "STEP 5 NOTE") && str_eq(v, "B3"));
+    shot("build/ui_shots/popup_step_note.ppm");
+    grid_up(WHITE[4]);
+    check("ALGORITHM: let go, step 5 still on", t->step[4].on);
+    grid_wait(3200);
+    turn(EN_ALGO, 2);
+    ui_frame();
+    check("ALGORITHM, KEYS off, no step held: the track's NOTE (D4), no track change, its popup", song.sel == 0u &&
+          t->key_nt == 2 && kp_live() && kp.kind == KP_NOTE && kp.id == 0u);
+    tap(B_OCTDN);
+    check("ALGORITHM: OCT- puts the NOTE back (C4)", t->key_nt == 0 && song.octave == 0);
+    turn(EN_ALGO, 4);
+    ui_frame();
+    grid_wait(3200);
+    grid_hold(WHITE[8], 0);
+    check("ALGORITHM: a step tapped on takes the NOTE it set (E4)", t->step[8].on && t->step[8].nt == 4);
+    tap(B_HOME);
+    turn(EN_ALGO, 1);
+    ui_frame();
+    check("ALGORITHM on HOME, KEYS off: NOTE, its popup over HOME", t->key_nt == 5 && kp_live() && song.sel == 0u);
+    grid_wait(3200);
+    tap(B_SCL);                                      /* KEYS on (SEL lit) */
+    turn(EN_ALGO, 1);
+    ui_frame();
+    check("ALGORITHM, KEYS on: the track (T2), no NOTE change", ui.keys && song.sel == 1u && trk[0].key_nt == 5 &&
+          trk[1].key_nt == 0 && !kp.on);
+    keys(1u << 9);                                   /* D4 played on T2: its NOTE (KEYS sets it, as before) */
+    ui_frame();
+    keys(0);
+    ui_frame();
+    check("KEYS: a key played sets the track's NOTE (D4)", trk[1].key_nt == 2);
+    tap(B_SCL);
+    tap(B_HOME);
+}
+
 int main(void)
 {
     test_safe_start();
@@ -9532,6 +9747,11 @@ int main(void)
     test_head_lock_icon();
     test_lock_line_whole_every_page();
     test_step_leds();                                /* the step LEDs: trigs, locks, cursor, tracks */
+    test_note_names();                               /* NOTE and PITCH (2026-11) */
+    test_pitch_label();
+    test_note_default();
+    test_note_held_steps();
+    test_note_algorithm();
     printf(fails ? "ui_test: %d FAILED\n" : "ui_test: all passed\n", fails);
     return fails ? 1 : 0;
 }

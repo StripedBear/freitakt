@@ -1079,6 +1079,13 @@ static void draw_columns(void)
         int lk = 0;
         int16_t sv = pg->scope == SC_TRACK ? lock_shown(lock_id(c), *vp, &lk) : *vp;   /* (a step held in STEPS: the
                                                                                           * knob's lock there) */
+        if (pg->scope == SC_TRACK && page_id(pg, c) == PG_NOTE) {   /* NOTE: a held step's own (inverted) */
+            uint32_t nk = note_key(note_keys());
+            if (nk < 16u && (ui.step_t0[nk] & 2u)) {
+                sv = TSEL->step[ui.step_si[nk] % NSTEP].nt;
+                lk = 1;
+            }
+        }
         if (pg->id[c] == G_INFO && pg->scope == SC_GLOBAL) {
             fmt_int(val, (int32_t)(song.cpu_q8 * 100u / 256u));
             unit = "%";
@@ -1118,7 +1125,22 @@ static void kp_text(char *l, char *v, const char **unit)
     uint32_t n;
     *unit = "";
     l[0] = v[0] = 0;
-    if (kp.kind == KP_STEP) {                          /* a held step's PROB RATCH ACC NUDGE */
+    if (kp.kind == KP_NOTE) {                          /* NOTE: STEP 5 NOTE / 3 STEPS NOTE, else the track's */
+        uint32_t m = kp.id, c = 0;
+        for (; m; m &= m - 1u)
+            c++;
+        if (c == 1u) {
+            str_cpy(l, "STEP ", 16);
+            fmt_int(l + 5, (int32_t)kp.st + 1);
+            str_cpy(l + str_len(l), " NOTE", 16 - str_len(l));
+        } else if (c) {
+            fmt_int(l, (int32_t)c);
+            str_cpy(l + str_len(l), " STEPS NOTE", 16 - str_len(l));
+        } else {
+            str_cpy(l, "NOTE", 16);
+        }
+        note_name(c ? t->step[kp.st % NSTEP].nt : t->key_nt, v);
+    } else if (kp.kind == KP_STEP) {                   /* a held step's PROB RATCH ACC NUDGE */
         str_cpy(l, STEP_FIELD[kp.id & 3u], 16);
         step_field_text(kp.id & 3u, &t->step[kp.st % NSTEP], v);
     } else if (kp.kind == KP_MODEL || (kp.kind == KP_LOCK && kp.id == P_MODEL)) {   /* MODEL, a machine lock */
@@ -1175,7 +1197,7 @@ static void draw_kpop(void)
         md_text(120 - md_text_w(&MD_F3, sc, l) / 2, (KP_NH - 5 * (int32_t)sc) / 2, &MD_F3, sc, l, C_INK);
         cv_blit(0, KP_NY);
     }
-    sig = str_hash(str_hash(0x5650u + (kp.kind == KP_LOCK), v), u) | 1u;
+    sig = str_hash(str_hash(0x5650u + (kp.kind == KP_LOCK || (kp.kind == KP_NOTE && kp.id)), v), u) | 1u;
     if (sig != kp.vsig) {
         kp.vsig = sig;
         uw = u[0] ? md_text_w(&MD_F3, 3, u) + 6 : 0;
@@ -1184,7 +1206,8 @@ static void draw_kpop(void)
         x = 120 - (w + uw) / 2;
         ty = (KP_VH - 5 * (int32_t)sc) / 2;
         cv_begin(240, KP_VH, C_BG);
-        if (kp.kind == KP_LOCK) {                      /* a lock: the value inverted (as a LIST row's) */
+        if (kp.kind == KP_LOCK || (kp.kind == KP_NOTE && kp.id)) {   /* a lock, a step's NOTE: the value inverted
+                                                                         * (as a LIST row's) */
             cv_rect(x - 5, ty - 5, w + 10, 5 * (int32_t)sc + 10, C_INK);
             md_text(x, ty, &MD_F3, sc, v, C_BG);
         } else {

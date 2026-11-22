@@ -360,8 +360,11 @@ static void test_ends(void)
     learn_toggle();
     knob(0, 1);
     check("MODEL: NOT LEARNABLE, no pick", same(ui.msg, "NOT LEARNABLE") && !ui.ml.pick);
+    ui.msg_t = 0;
     knob(1, 1);
-    check("the next SOUND knob picks", ui.ml.pick && ui.ml.id == page_id(cur_page(), 1));
+    check("NOTE (the sequencer's): NOT LEARNABLE, no pick", same(ui.msg, "NOT LEARNABLE") && !ui.ml.pick);
+    knob(2, 1);
+    check("the next SOUND knob (PITCH) picks", ui.ml.pick && ui.ml.id == page_id(cur_page(), 2));
     fresh();
     learn_toggle();
     copy_page();
@@ -954,9 +957,11 @@ static void test_act_learn(void)
     song.rec = 0;
     transport_req = 2;
     frames(1);
+    ui.keys = 1;                                     /* (KEYS on: ALGORITHM is the track; off, NOTE) */
     turn(EN_ALGO, 1);
     ui_frame();
-    check(".. ALGORITHM selects again", song.sel == 1u);
+    ui.keys = 0;
+    check(".. ALGORITHM selects again (KEYS on)", song.sel == 1u);
     fx_key(KEY_GS3);
     press(B_FX);
     ui_frame();

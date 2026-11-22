@@ -15,7 +15,7 @@
 
 /* ------------------------------------------------------- parameters --- */
 enum {
-    F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,
+    F_INT, F_PCT, F_BIPCT, F_TIME, F_LFOHZ, F_CUTOFF, F_DB, F_SEMI, F_ENUM, F_BPM, F_NOTE,   /* NOTE: NOTE - 60 as C#4 */
     F_ONOFF, F_OCT, F_STEPS, F_CTHR, F_CRAT, F_CATK, F_CREL, F_CMKUP, F_LRATE1, F_LRATE2, F_LDEST, F_LPHASE,
     F_FDEC, F_SRR, F_SLOT,           /* SLOT: the SAMPLE model's (its SET) */
     F_MLEN                           /* MASTER LENGTH: 1/16 steps, below 2 OFF */
@@ -192,7 +192,9 @@ typedef struct track {
     uint32_t gate_n;             /* ACID: samples until its gate closes, GATE_HELD while the next step decides, 0 closed */
     uint8_t slide_in;            /* ACID: the previous step slides into this one */
     int8_t rat_nt;               /* RATCH: the roll's note (a live hit between its hits leaves it) */
-    int8_t key_nt;               /* the note KEYS played or recorded last on this track (0 = C4): a new step's (§2) */
+    int16_t key_nt;              /* the track's NOTE (0 = C4, NT_MIN..NT_MAX): a new step's note (§2); KEYS sets it
+                                  * (the key played or recorded last), and the EDIT NOTE knob / ALGORITHM with no step
+                                  * held (ui_input.c note_turn); int16: the knob popup's and the LIST row's value */
     uint32_t seq_pos;            /* samples into the current step */
     uint16_t seq_idx;
     uint32_t seq_cnt;            /* steps played since PLAY: swing pairs follow it, so any length stays on the bar */
