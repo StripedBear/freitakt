@@ -37,7 +37,7 @@ static void learn_save(void);              /* project.c: MIDI LEARN's map to fla
 static void ml_line(char *b);              /* ui_learn.c: MIDI LEARN's footer line */
 static int pp_on(void);                    /* ui_preset.c: the PRESETS popup shows */
 static int pl_on(void);                    /* .. the PRESETS list shows */
-static void draw_popup(void);
+static void draw_popup(void);              /* .. the popup: its own screen */
 static void draw_plist(void);
 static int splash_draw(void);             /* ui_menu.c: the FREITAKT boot splash (1: a frame of it drawn) */
 static int preset_user_save(uint32_t slot, const track_t *t);   /* project.c: the user presets' flash record */
@@ -129,7 +129,8 @@ static struct {
         uint8_t e_st;            /* EDIT: 1 pressed (may become a hold), 2 the hold acted / dead until let go */
         uint8_t e_page, e_home, e_hmode, e_snd;   /* the page EDIT's press left (the hold puts it back) */
         uint16_t pop_id, cur, arm_id;   /* the popup's preset; the list's cursor */
-        uint16_t shown[5];       /* the popup's rows, top to bottom (the preset in the middle) */
+        uint16_t shown[7];       /* the popup's rows, top to bottom (the preset in the middle) */
+        uint32_t rsig[8];        /* .. what its bands show (the bank's, the 7 rows; 0: to draw) */
         uint32_t now, pop_t0, arm_t0, e_t0, sig;
         uint8_t pv, pv_trk;      /* the list: track pv_trk auditions the cursor's preset (its own sound in sv_*) */
         uint8_t sv_model, sv_ed; /* .. that sound: MODEL, the 8 SOUND knobs (motion's base while it plays), the preset */

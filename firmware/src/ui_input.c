@@ -1210,7 +1210,7 @@ static int kp_aim(uint32_t c, kp_aim_t *a)
     a->id = a->gid = 0xFFFFu;
     a->vp = 0;
     a->d = 0;
-    if (c > 3u || ui.menu || ui.confirm || name_on() || pl_on() || pp_on() || ui.clr || ui.layer || fx_knobs ||
+    if (c > 3u || ui.menu || ui.confirm || name_on() || pl_on() || ui.clr || ui.layer || fx_knobs ||
         (!ui.home && !list_on()))
         return 0;                                     /* (a screen over the page: no popup) */
     if (step_edit_page() && ui.held < 16u && ui.step_t0[ui.held]) {   /* step_edit */
@@ -1311,6 +1311,9 @@ static void kp_turn(uint32_t c)
     if (!kp.on || kp.col != c || kp.kind != a.kind || kp.trk != a.trk || kp.st != a.st || kp.id != a.id ||
         kp.vp != a.vp)
         kp_snap(c, &a);
+    if (pp_on())                                      /* the PRESETS screen up: the knob's instead (kp_live: a PRESETS
+                                                       * detent the other way round) */
+        pp_close();
     kp.undone = 0;
     if (!kp.on)
         kp.on = 1;

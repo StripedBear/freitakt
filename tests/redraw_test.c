@@ -170,8 +170,8 @@ static void msg_tempo(void)
     same_as_full("after the message and TEMPO");
 }
 
-/* PRESETS' popup up on HOME (y 61..180, over the strip's last rows 61..68): the strip's changes (a knob's cell, LEV's
- * level) leave the popup as it is */
+/* PRESETS' popup up on HOME (a screen of its own): the strip's changes (a knob's cell, LEV's level) leave the popup as
+ * it is */
 static void popup_strip(void)
 {
     uint32_t i;
@@ -182,14 +182,44 @@ static void popup_strip(void)
     for (i = 0; i < 6u; i++) {
         TSEL->p[P_LEVEL] = (int16_t)(30 + i * 15u);   /* LEV's marker */
         frame();
-        turn(EN_K1, 1);                               /* a knob's cell */
-        frame();
-        turn(EN_K1 + 2, -1);
+        turn(EN_K1 + 2, -1);                          /* a knob's cell (KNOB 3: no knob screen on HOME; KNOB 1 / 2
+                                                       * would put theirs in its place) */
         frame();
     }
     check("HOME: PRESETS' popup still up", pp_on());
     vs_full("HOME, PRESETS' popup up, the strip's level and knobs moving: the popup over the strip");
     same_as_full("HOME after PRESETS' popup");
+}
+
+/* PRESETS' popup (a screen of its own, playing): the first detent the screen once; a later one the bands that changed
+ * only (the 7 rows, 240 x 138; the bank's band at a bank's end); idle (the strip, the meters moving under it): nothing;
+ * gone: the page whole once */
+static void popup_redraw(void)
+{
+    uint32_t i, first, maxpx = 0, idle = 0, gone;
+    fr_t f;
+    char b[160];
+    start(1, 1);
+    settle(30);
+    turn(EN_PRESET, 1);
+    first = frame().px;
+    for (i = 0; i < 12u; i++) {                       /* a detent every 2 frames, across a bank's end or two */
+        turn(EN_PRESET, i < 6u ? 1 : -1);
+        f = frame();
+        if (f.px > maxpx)
+            maxpx = f.px;
+        idle += frame().px;
+    }
+    for (i = 0; i < 40u; i++)
+        idle += frame().px;
+    snprintf(b, sizeof b, "PRESETS' popup playing: its first frame %u px, a detent %u px at most, idle %u px", (unsigned)first,
+             (unsigned)maxpx, (unsigned)idle);
+    check(b, pp_on() && first >= 240u * 240u && first <= 58000u && maxpx <= 240u * (138u + 28u) && idle == 0u);
+    host_ticks += 3100u * 1000u * FM1_TICKS_PER_US;
+    gone = frame().px;
+    snprintf(b, sizeof b, "PRESETS' popup gone: the page whole once (%u px)", (unsigned)gone);
+    check(b, !pp_on() && gone >= FULL_PX && gone <= 58000u);
+    same_as_full("HOME after PRESETS' popup (playing)");
 }
 
 /* random use (knobs, SELECT, the preset knob, buttons, keys, SMC knob clicks, messages, start / stop, FX held:
@@ -518,6 +548,7 @@ int main(void)
     lock_turn_partial();
     lock_icon_partial();
     clr_redraw();
+    popup_redraw();
 
     /* a full repaint (a page change): at most the screen once, plus the 1 px rules (nothing drawn twice) */
     ui_host_init();

@@ -6930,6 +6930,14 @@ static uint32_t lit_box(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1)   /*
             n += fb[y * 240u + x] == C_INK && x != 0u && x != 239u;
     return n;
 }
+static int as_full(void)                               /* the screen = what a full repaint draws now (nothing stale) */
+{
+    static uint16_t was[240 * 240];
+    memcpy(was, fb, sizeof was);
+    ui.force = 1;
+    ui_draw();
+    return !memcmp(was, fb, sizeof was);
+}
 static void users_clear(void)                          /* no user preset, nothing left to write */
 {
     memset(&upr, 0, sizeof upr);
@@ -6939,6 +6947,7 @@ static void users_clear(void)                          /* no user preset, nothin
 static void test_popup_shows_and_loads(void)
 {
     uint32_t id0, id1, m;
+    int16_t bpm0;
     ui_host_init();
     users_clear();
     ui_frame();
@@ -6948,16 +6957,41 @@ static void test_popup_shows_and_loads(void)
     pre_turn(1);
     check("PRESETS one detent right: the next preset loaded at once (MODEL and the 8 knobs), not edited; the popup up",
           TSEL->pre == id1 && voice_is(TSEL, id1) && !TSEL->pre_ed && pp_on());
-    check("PRESETS popup: the preset in the middle, the two loadable ones before and after around it",
-          ui.pr.shown[2] == id1 && ui.pr.shown[1] == id0 && ui.pr.shown[0] == preset_step(TSEL, id0, -1) &&
-              ui.pr.shown[3] == preset_step(TSEL, id1, 1) && ui.pr.shown[4] == preset_step(TSEL, ui.pr.shown[3], 1));
-    check("PRESETS popup: drawn over the graph (its preset row lit)", lit_box(8, Y_GRAPH + 56, 140, Y_GRAPH + 86) > 0);
+    check("PRESETS popup: the preset in the middle, the three loadable ones before and after around it",
+          ui.pr.shown[3] == id1 && ui.pr.shown[2] == id0 && ui.pr.shown[1] == preset_step(TSEL, id0, -1) &&
+              ui.pr.shown[0] == preset_step(TSEL, ui.pr.shown[1], -1) && ui.pr.shown[4] == preset_step(TSEL, id1, 1) &&
+              ui.pr.shown[5] == preset_step(TSEL, ui.pr.shown[4], 1) &&
+              ui.pr.shown[6] == preset_step(TSEL, ui.pr.shown[5], 1));
+    check("PRESETS popup: a screen of its own, nothing of HOME under it (no CPU, no BPM: the header's middle and the "
+          "screen's last rows bare; the preset's bar lit)",
+          lit_box(0, 112, 240, 152) > 4000u && lit_box(110, 0, 200, 32) == 0u && lit_box(0, 230, 240, 240) == 0u &&
+              as_full());
     snap_page("presets/01_popup");
-    pre_wait(1000);
-    check("PRESETS popup: still up 1 s after the detent", pp_on());
-    pre_wait(600);
-    check("PRESETS popup: gone ~1.5 s after the last detent (the graph back)", !pp_on());
+    pre_wait(2900);
+    check("PRESETS popup: still up 2.9 s after the detent", pp_on());
+    pre_turn(1);
+    pre_wait(2900);
+    check("PRESETS popup: another detent keeps it up 3 s more", pp_on() && TSEL->pre == preset_step(TSEL, id1, 1));
+    pre_turn(-1);
+    pre_wait(3100);
+    check("PRESETS popup: gone 3 s after the last detent, HOME drawn whole again (= a full repaint)",
+          !pp_on() && ui.home && lit_box(0, 112, 240, 152) < 4000u && as_full());
     snap_page("presets/02_popup_closed");
+    bpm0 = song.g[G_BPM];
+    pre_turn(1);
+    turn(EN_K1, 1);                                     /* a knob over the PRESETS screen: the knob's screen */
+    ui_frame();
+    ui_frame();
+    check("PRESETS screen, a knob turned: the knob's screen instead (the later one), drawn whole",
+          kp.on && !pp_on() && as_full());
+    pre_turn(1);
+    check("knob screen, PRESETS turned: the PRESETS screen instead, drawn whole", pp_on() && !kp.on && as_full());
+    pre_wait(3100);
+    check("PRESETS screen after the knob's: gone 3 s after, HOME whole", !pp_on() && !kp.on && ui.home && as_full());
+    song.g[G_BPM] = bpm0;                               /* (the tempo and the preset as they were) */
+    pre_turn(-1);
+    pre_turn(-1);
+    pre_wait(3100);
     pre_turn(-1);
     check("PRESETS one detent left: the one before (the first again)", TSEL->pre == id0 && voice_is(TSEL, id0));
     TSEL->pre = (uint16_t)PRE_NONE;                    /* (a converted project: no preset) */
@@ -6969,16 +7003,18 @@ static void test_popup_shows_and_loads(void)
         pre_turn(TSEL->pre < PRE_BANK_START[PB_MODERN] ? 1 : -1);
     pre_turn(1);
     check("PRESETS across banks: MACHINEDRUM's last -> MODERN's first", TSEL->pre == PRE_BANK_START[PB_MODERN] &&
-                                                                          preset_bank_of(ui.pr.shown[1]) == PB_MD);
+                                                                          preset_bank_of(ui.pr.shown[2]) == PB_MD);
+    check("PRESETS popup at a bank's end: a dotted rule over the preset's bar, the screen a full repaint's",
+          lit_box(8, 110, 232, 111) > 100u && lit_box(8, 82, 232, 83) == 0u && as_full());
     snap_page("presets/03_popup_bank_edge");
-    pre_wait(1600);
+    pre_wait(3100);
     open_tracks();
     pre_turn(1);
-    check("PRESETS on TRACKS: loads, the popup over the rows, TRACKS stays", pp_on() && mix_mode() &&
-                                                                         TSEL->pre == PRE_BANK_START[PB_MODERN] + 1u);
+    check("PRESETS on TRACKS: loads, the popup a screen of its own, TRACKS stays under it", pp_on() && mix_mode() &&
+              TSEL->pre == PRE_BANK_START[PB_MODERN] + 1u && lit_box(0, 112, 240, 152) > 4000u && as_full());
     snap_page("presets/04_popup_tracks");
-    pre_wait(1600);
-    check("PRESETS on TRACKS: the rows back", !pp_on() && mix_mode());
+    pre_wait(3100);
+    check("PRESETS on TRACKS: the rows back, whole", !pp_on() && mix_mode() && as_full());
 }
 
 /* Review Focus 1: turning PRESETS fast while a dense pattern plays: every detent's preset loads, the output stays
@@ -7040,13 +7076,13 @@ static void test_popup_skips_capped_acid(void)
         n += trk[k].p[P_MODEL] == DM_ACID;
     check("PRESETS with ACID on 2 tracks: the detent past ACID's presets to the one after them",
           z > a + 1u && trk[2].pre == z && trk[2].p[P_MODEL] != DM_ACID && n == 2u);
-    for (k = 0, n = 0; k < 5u; k++)
+    for (k = 0, n = 0; k < 7u; k++)
         n += ui.pr.shown[k] >= a && ui.pr.shown[k] < z;
-    check("PRESETS with ACID on 2 tracks: the popup leaves them out", ui.pr.shown[1] == a - 1u && n == 0u);
+    check("PRESETS with ACID on 2 tracks: the popup leaves them out", ui.pr.shown[2] == a - 1u && n == 0u);
     snap_page("presets/05_popup_acid_capped");
     pre_turn(-1);
     check("PRESETS with ACID on 2 tracks: back past it too", trk[2].pre == a - 1u);
-    pre_wait(1600);
+    pre_wait(3100);
     preset_list_open();
     pre_turn(1);                                        /* the cursor onto ACID's first: no audition */
     check("list with ACID on 2 tracks: the cursor on ACID's preset auditions nothing (ACID: 2 TRACKS MAX)",
@@ -9262,11 +9298,11 @@ static void test_tools_copy_carousels(void)
     check("SAVE > COPY: a carousel of the slots (COPY 3/3); K2 copies the one shown (COPIED in its note), K4 MIDI "
           "LEARN ON / OFF in its hint", ok);
     pre_turn(1);
-    ok = pp_on() && car_title_is("COPY 3/3") && lit_box(8, Y_GRAPH + 56, 140, Y_GRAPH + 86) > 0;
-    pre_wait(1600);
+    ok = pp_on() && save_car_on() && lit_box(0, 112, 240, 152) > 4000u && as_full();
+    pre_wait(3100);
     ui_frame();
-    ok &= !pp_on() && car_item_is("B") && car_val_is("EMPTY") && car_hint_has("PASTE");
-    check("SAVE's carousel: the PRESETS popup over it (the title still there); gone, the carousel whole again", ok);
+    ok &= !pp_on() && car_item_is("B") && car_val_is("EMPTY") && car_hint_has("PASTE") && as_full();
+    check("SAVE's carousel: the PRESETS popup a screen of its own over it; gone, the carousel whole again", ok);
     memset(proj_slot, 0, sizeof proj_slot);
 }
 

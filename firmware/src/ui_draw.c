@@ -33,7 +33,6 @@ static struct {
     rc_t dmg;                    /* the screen rect a popup left / uncovered this frame (w 0: none) */
     rc_t ex[3];                  /* the popups up (drawn this frame, or there): no window covers them */
     uint8_t nex;
-    uint8_t noex;                /* windows not less rg.ex (PRESETS' popup drawn whole: over the others, as before) */
     uint8_t thaw;                /* a popup came / went this frame: the graph draws as it is now (round the popups) */
     int16_t rx, ry, rw, rh;      /* the region planned (screen) */
     uint8_t n;                   /* its windows (its canvas's coordinates) */
@@ -84,7 +83,7 @@ static void rg_region(int32_t x, int32_t y, int32_t w, int32_t h)  /* plan a reg
     rg.n = 0;
 }
 
-/* a window, in the region's coordinates: less the popups up (rg.ex; unless rg.noex), each one splitting a piece in up
+/* a window, in the region's coordinates: less the popups up (rg.ex), each one splitting a piece in up
  * to four (above, below, left, right) */
 static void rg_add(int32_t x, int32_t y, int32_t w, int32_t h)
 {
@@ -95,7 +94,7 @@ static void rg_add(int32_t x, int32_t y, int32_t w, int32_t h)
         return;
     a.x = (int16_t)(a.x + rg.rx), a.y = (int16_t)(a.y + rg.ry);
     p[0] = a;
-    for (k = 0; k < (rg.noex ? 0u : rg.nex); k++) {
+    for (k = 0; k < rg.nex; k++) {
         rc_t e = rg.ex[k];
         for (i = m = 0; i < n; i++) {
             rc_t c = p[i], o = e;
@@ -973,11 +972,6 @@ static void draw_home(void)
         cv_blit(HM_BPM_X, HM_BPM_Y);
     }
     rg_fill(0, HM_Y_CH + HM_H_CH, 240, 240 - HM_Y_CH - HM_H_CH, C_BG);
-    if (pp_on()) {                                    /* PRESETS' popup over the middle (y 61..180; it repaints all
-                                                       * when gone): the chain band's rows under it */
-        rg_fill(0, Y_GRAPH + H_GRAPH, 240, HM_Y_CH + HM_H_CH - Y_GRAPH - H_GRAPH, C_BG);
-        return;
-    }
     home_status(st);
     for (n = rg_plan(&hm.mid, str_hash(0x811C9DC5u, st), 0, HM_Y_MID, 240, HM_H_MID), i = 0; i < n; i++) {
         rg_win(i, HM_Y_MID, C_BG);                    /* "P1 V2 T6 L1", centred */
@@ -1319,6 +1313,22 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         draw_plist();
         return;
     }
+    if (pp_on()) {                                    /* PRESETS turned: its popup, a screen of its own (ui_preset.c;
+                                                       * the timers run on) */
+        draw_popup();
+        if (ui.msg_t)
+            ui.msg_t--;
+        if (ui.bpm_t)
+            ui.bpm_t--;
+        if (ui.arm_t && !--ui.arm_t)
+            ui.arm = 0;
+        ui.force = 0;
+        hm.on = 0;                                    /* (HOME under it: all again when it goes) */
+        rg.dmg.w = 0;
+        rg.nex = 0;
+        rg.thaw = 0;
+        return;
+    }
     if (kp.on) {                                      /* the knob popup: its own screen (the timers run on) */
         draw_kpop();
         if (ui.msg_t)
@@ -1370,9 +1380,6 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         rg_damage(msgp.x, MSG_Y, msgp.w, MSG_H);
     rg.thaw = rg.dmg.w != 0;                          /* (a popup came and went, another one still up: the graph as it
                                                        * is now round it, as the full repaint once did) */
-    if (rg.dmg.w && pp_on())                          /* PRESETS' popup up (over the HOME strip's last rows): all, as
-                                                       * before */
-        ui.force = 1;
     if (ui.force)
         rg.dmg.w = 0, rg.thaw = 0;
     if (ui.msg_t)                                     /* the popups up: no window covers them */
@@ -1388,20 +1395,13 @@ __attribute__((always_inline)) static inline void ui_draw(void)
         draw_home();
     } else {
         uint8_t nex = rg.nex;
-        if (pp_on())                                  /* PRESETS' popup up: the LIST rows round it */
-            rg_keep(0, Y_GRAPH, 240, H_GRAPH);
         draw_head();
         felucca_dbg.stage = 4;
         draw_columns();
-        if (pp_on() && list_on() && list_band_on())   /* the LIST band (y 16..63) round the popup (draw_graph's
-                                                       * place is the popup's) */
-            list_band();
         rg.nex = nex;
     }
     felucca_dbg.stage = 5;
-    if (pp_on())
-        draw_popup();                                 /* PRESETS turned: the popup in the graph's place */
-    else if (!home)
+    if (!home)
         draw_graph();
     draw_msg(draw_tempo());                           /* (the message over TEMPO) */
     if (ui.msg_t)

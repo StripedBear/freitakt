@@ -4,8 +4,9 @@
  * bank's flash record: project.c). Included by ui_input.c.
  * The PRESETS encoder: each detent loads the next / previous preset onto the selected track at once (presets.c
  * preset_step: every bank in order, empty user slots and a capped ACID skipped, wrapping; no preset yet: the voice's
- * first). A popup over the graph shows the bank, the preset (large) and two loadable ones above and below; it goes
- * PP_SHOW_MS after the last detent (or with another track, a full screen).
+ * first). The popup, a screen of its own (the page under it cleared): the bank and the track, the preset (large, an
+ * inverted bar) and three loadable ones above and below; it goes PP_SHOW_MS after the last detent (or with another
+ * track, a full screen, PERFORM), the page under it drawn whole again.
  * EDIT held PP_HOLD_MS (as GLO_HOLD_MS): the PRESETS list. The press still acts at once, as a tap (SOUND, its next
  * page); the hold puts the page before the press back under the list. Step record keeps EDIT for its rest (no list);
  * while MIDI LEARN is on the hold does nothing (the list would end LEARN: ui_learn.c ml_guard).
@@ -21,7 +22,7 @@
  * plays.
  * A save while playing is in the list at once, in flash at the next STOP (project.c). */
 #define PP_HOLD_MS GLO_HOLD_MS                          /* EDIT held: the list */
-#define PP_SHOW_MS 1500u                                /* the popup after the last detent */
+#define PP_SHOW_MS HOT_MS                              /* the popup after the last detent (3 s, as the knob's) */
 #define PP_ARM_MS 1500u                                 /* SAVE over / DELETE: the second press within */
 #define PP_T(ms) ((ms) * 1000u * FM1_TICKS_PER_US)
 #define PL_ROWS 7u                                      /* the list's rows */
@@ -37,13 +38,12 @@ static int pl_on(void) { return ui.pr.lst; }
 static void preset_popup_turn(int dir)
 {
     track_t *t = TSEL;
-    uint32_t m = (uint32_t)t->p[P_MODEL], id = preset_step(t, t->pre, dir);
+    uint32_t id = preset_step(t, t->pre, dir);
     if (preset_load(t, id) < 0)                        /* (nothing loadable: preset_step gave the one it came from) */
         return;
-    if ((uint32_t)t->p[P_MODEL] != m)
-        ui.force = 1;                                  /* another voice: its pages, as a MODEL change */
-    if (!ui.pr.pop)
-        ui.pr.sig = 0;
+    if (!ui.pr.pop)                                    /* (another voice: its pages drawn whole when the popup goes,
+                                                        * pp_close) */
+        ui.pr.sig = 0;                                 /* the screen to clear */
     ui.pr.pop = 1;
     ui.pr.pop_trk = song.sel;
     ui.pr.pop_id = (uint16_t)id;
@@ -53,7 +53,7 @@ static void preset_popup_turn(int dir)
 static void pp_close(void)
 {
     ui.pr.pop = 0;
-    ui.force = 1;                                      /* the graph back */
+    ui.force = 1;                                      /* the screen under it whole again */
 }
 
 /* the list's cursor: preset id c, the arm off */
@@ -181,7 +181,7 @@ static void pre_frame(uint32_t now)
     else if (ui.clr || ui.menu || ui.confirm || name_on() || ui.pr.lst || ui.ml.on)
         ui.pr.e_st = 2;                                /* dead until let go (MIDI LEARN: the list would end it) */
     if (ui.pr.pop && (now - ui.pr.pop_t0 >= PP_T(PP_SHOW_MS) || song.sel != ui.pr.pop_trk || ui.pr.lst || ui.menu ||
-                      ui.confirm || name_on() || ui.clr))
+                      ui.confirm || name_on() || ui.clr || ui.layer))
         pp_close();
     if (ui.pr.arm && now - ui.pr.arm_t0 >= PP_T(PP_ARM_MS)) {
         ui.pr.arm = 0;
@@ -352,14 +352,15 @@ static void preset_list_input(uint32_t pressed, uint32_t notes, uint32_t home)
         pl_delete();
 }
 
-/* the popup's rows: the preset in the middle, the two loadable ones before and after it (preset_step) */
+/* the popup's rows: the preset in the middle, the three loadable ones before and after it (preset_step) */
 static void pp_rows(uint16_t *r)
 {
-    r[2] = ui.pr.pop_id;
-    r[1] = (uint16_t)preset_step(TSEL, r[2], -1);
-    r[0] = (uint16_t)preset_step(TSEL, r[1], -1);
-    r[3] = (uint16_t)preset_step(TSEL, r[2], 1);
-    r[4] = (uint16_t)preset_step(TSEL, r[3], 1);
+    uint32_t i;
+    r[3] = ui.pr.pop_id;
+    for (i = 3; i > 0; i--)
+        r[i - 1u] = (uint16_t)preset_step(TSEL, r[i], -1);
+    for (i = 3; i < 6u; i++)
+        r[i + 1u] = (uint16_t)preset_step(TSEL, r[i], 1);
 }
 /* a preset's name (8) and voice's, "" for an empty slot */
 static int pre_label(uint32_t id, char *nb, const char **voice)
@@ -375,52 +376,74 @@ static int pre_label(uint32_t id, char *nb, const char **voice)
     return 1;
 }
 
-/* the popup (ui_draw, in the graph's place): a frame; the bank (amber) and the track; the preset large between two
- * neighbours above and below (smaller, dimmer the further), each with its voice at the right; a rule where a bank
- * ends */
+/* the popup (ui_draw): its own screen, as the knob popup's. The bank (an inverted tab, 3x) and the track (y 0..27; a
+ * message there while shown); seven bands: the preset an inverted bar (its name as large as fits, 6x at most, its voice
+ * 3x at the right), the two loadable ones either side of it 3x, the outer two 2x; a dotted rule on a band's top line
+ * where a bank ends. Opened (ui.pr.sig 0) or ui.force: the ground between the bands, all of them; then a band only
+ * when what it shows changed (a detent: the 7 rows, 240 x 138) */
+static const uint8_t PP_Y[7] = {32, 54, 82, 110, 162, 190, 218}, PP_H[7] = {12, 18, 18, 42, 18, 18, 12};
+#define PP_HH 28                                        /* the bank's band */
 static void draw_popup(void)
 {
-    static const int8_t RY[5] = {20, 36, 54, 84, 100};
     char nb[9], tn[3] = {'T', (char)('1' + song.sel), 0};
     const char *vo;
-    uint32_t i, sig = 2166136261u + song.sel * 7919u, nw, wi;
-    uint16_t r[5];
-    pp_rows(r);
-    for (i = 0; i < 5u; i++)
-        sig = (sig ^ r[i]) * 16777619u;
-    for (i = 0; i < 5u; i++)
-        ui.pr.shown[i] = r[i];
-    rg.noex = ui.force || sig != ui.pr.sig;            /* whole: over the other popups (as it always was) */
-    for (nw = rg_plan(&ui.pr.sig, sig, 0, Y_GRAPH, 240, H_GRAPH), wi = 0; wi < nw; wi++) {   /* (ui_draw.c) */
-        rg_win(wi, Y_GRAPH, C_BG);                     /* the graph's place: the bank's tab, the track; the preset
-                                                       * an inverted bar (F3 3x), its neighbours plain, the outer two
-                                                       * dithered; a dotted rule where a bank ends */
-        cv_oy = 0;
-        cv_rect(0, 0, 1, H_GRAPH, C_INK);
-        cv_rect(239, 0, 1, H_GRAPH, C_INK);
-        cv_tab(2, 2, N_PBANK[preset_bank_of(r[2]) % PB_N], C_INK, C_BG);
-        md_text(234 - md_text_w(&MD_F3, 2, tn), 4, &MD_F3, 2, tn, C_INK);
-        for (i = 0; i < 5u; i++) {
-            int32_t y = RY[i];
-            if (i != 2u && r[i] == r[2])
-                continue;                                  /* (nothing else loadable) */
-            pre_label(r[i], nb, &vo);
-            if (i == 2u) {
-                cv_rect(2, y - 2, 236, 25, C_INK);
-                md_text(8, y + 3, &MD_F3, 3, nb, C_BG);
-                md_text(232 - md_text_w(&MD_F3, 2, vo), y + 6, &MD_F3, 2, vo, C_BG);
-            } else {
-                md_text(10, y, &MD_F3, 2, nb, C_INK);
-                md_text(232 - md_text_w(&MD_F3, 2, vo), y, &MD_F3, 2, vo, C_INK);
-                if (i == 0u || i == 4u)                    /* the outer two: dimmer */
-                    cv_dither(10, y, 222, 10, C_BG);
-            }
-            if (i && preset_bank_of(r[i]) != preset_bank_of(r[i - 1u]))   /* a bank's end between them */
-                cv_hdot(8, 231, i == 3u ? y - 6 : y - 4, C_INK);
+    uint32_t i, sig, sc;
+    int32_t w, y;
+    uint16_t r[7];
+    if (!ui.pr.sig || ui.force) {                      /* the ground between the bands (they send their own) */
+        for (i = 0; i < 8u; i++) {
+            y = i ? PP_Y[i - 1u] + PP_H[i - 1u] : PP_HH;
+            lcd_fill(0, (uint32_t)y, 240, (uint32_t)((i < 7u ? PP_Y[i] : 240) - y), C_BG);
         }
-        cv_blit(0, Y_GRAPH);
+        for (i = 0; i < 8u; i++)
+            ui.pr.rsig[i] = 0;
+        ui.pr.sig = 1;
     }
-    rg.noex = 0;
+    pp_rows(r);
+    for (i = 0; i < 7u; i++)
+        ui.pr.shown[i] = r[i];
+    sig = (ui.msg_t ? str_hash(0x4D53u, ui.msg) : str_hash(0x5042u + preset_bank_of(r[3]) % PB_N, tn)) | 1u;
+    if (sig != ui.pr.rsig[0]) {                        /* the bank (a tab) and the track; a message instead */
+        ui.pr.rsig[0] = sig;
+        cv_begin(240, PP_HH, C_BG);
+        if (ui.msg_t) {
+            cv_rect(0, 0, 240, PP_HH - 4, C_INK);
+            md_text(120 - md_text_w(&MD_F3, md_fit_sc(ui.msg, 228, 3u), ui.msg) / 2,
+                    12 - 5 * (int32_t)md_fit_sc(ui.msg, 228, 3u) / 2, &MD_F3, md_fit_sc(ui.msg, 228, 3u), ui.msg, C_BG);
+        } else {
+            const char *bk = PB_TAB[preset_bank_of(r[3]) % PB_N];
+            cv_rect(0, 0, md_text_w(&MD_F3, 3, bk) + 16, PP_HH - 4, C_INK);
+            md_text(8, 5, &MD_F3, 3, bk, C_BG);
+            md_text(232 - md_text_w(&MD_F3, 3, tn), 5, &MD_F3, 3, tn, C_INK);
+        }
+        cv_blit(0, 0);
+    }
+    for (i = 0; i < 7u; i++) {
+        uint32_t edge = i && preset_bank_of(r[i]) != preset_bank_of(r[i - 1u]), dup = i != 3u && r[i] == r[3];
+        sig = ((2166136261u ^ r[i]) * 16777619u ^ (edge * 2u + dup)) * 16777619u | 1u;
+        if (sig == ui.pr.rsig[i + 1u])
+            continue;
+        ui.pr.rsig[i + 1u] = sig;
+        cv_begin(240, PP_H[i], C_BG);
+        if (edge)                                      /* a bank's end above this row */
+            cv_hdot(8, 231, 0, C_INK);
+        if (!dup) {                                    /* (nothing else loadable: the row empty) */
+            pre_label(r[i], nb, &vo);
+            if (i == 3u) {                             /* the preset: an inverted bar */
+                sc = md_fit_sc(nb, 216 - md_text_w(&MD_F3, 3, vo), 6u);
+                y = 2 + (40 - 5 * (int32_t)sc) / 2;
+                cv_rect(0, 2, 240, 40, C_INK);
+                md_text(8, y, &MD_F3, sc, nb, C_BG);
+                md_text(232 - md_text_w(&MD_F3, 3, vo), y + 5 * (int32_t)sc - 15, &MD_F3, 3, vo, C_BG);
+            } else {                                   /* its neighbours: 3x, the outer two 2x */
+                sc = i == 0u || i == 6u ? 2u : 3u;
+                w = md_text_w(&MD_F3, sc, vo);
+                md_text(10, 2, &MD_F3, sc, nb, C_INK);
+                md_text(230 - w, 2, &MD_F3, sc, vo, C_INK);
+            }
+        }
+        cv_blit(0, PP_Y[i]);
+    }
 }
 
 /* the list (its own screen, as NAME): the title (a message, or what an armed button does, while shown) and the

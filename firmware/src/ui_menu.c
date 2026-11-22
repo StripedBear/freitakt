@@ -261,7 +261,6 @@ static void draw_menu(void)
 static const char *const TOOL_NAME[4] = {"CLEAR TRACK", "INIT SOUND", "CLEAR ALL", "INIT ALL"};
 static const char *const TOOL_NOTE[4] = {"STEPS, MOTION, LOCKS", "MODEL DEFAULT, FILTER", "STEPS, LEN, DIV, SWG",
                                          "PROJECTS, SETTINGS KEPT"};
-static uint8_t car_pp;                              /* the PRESETS popup was up (its end: all again) */
 static int save_car_on(void) { return !ui.home && !ui.layer && !ui.menu && cur_page()->fam == FAM_SAVE; }
 static int save_slots(void) { return cur_page()->id[0] == G_SLOT; }   /* PROJECT, COPY (not TOOLS) */
 static void save_select(int32_t s)                  /* SELECT: the next / previous item, wrapping */
@@ -341,14 +340,7 @@ static void draw_save(void)
     c.n = 4;
     c.val = v;
     c.note = ui.msg_t ? ui.msg : n;
-    if (car_pp != (uint8_t)pp_on()) {               /* the PRESETS popup came or went: all */
-        car_pp = (uint8_t)pp_on();
-        ui.force = 1;
-    }
-    if (car_draw(&c) && pp_on())                    /* (a band over the popup's place: the popup whole again) */
-        ui.force = 1;
-    if (pp_on())
-        draw_popup();
+    car_draw(&c);
 }
 
 static void enc_drop(void)                             /* knob turns nobody takes */

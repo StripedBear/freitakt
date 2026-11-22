@@ -14,7 +14,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **MASTER** | The volume: the speaker, the headphones and USB audio. |
 | **SELECT** | Turns the pages of a section; on the carousels (the MENU and SAVE's pages) it scrolls to the next / previous item and wraps round. On HOME's TRACKS mode it sets the tempo instead (`CLK USB` / `CLK TRS` when following a clock). |
 | **ALGORITHM** | Picks the selected track (T1 to T6), on any page. In MIDI LEARN it picks NEXT / PREV TRACK. |
-| **PRESETS** | Loads the next or previous preset onto the selected track at each detent; a popup shows the bank and the presets around it. A factory preset sets the sound only; a USER preset also sets the track's FX. |
+| **PRESETS** | Loads the next or previous preset onto the selected track at each detent; a screen of its own replaces the page (the bank and track on top, the preset large on an inverted bar, three presets before and after it with their machines) and the page comes back 3 s after the last detent. A factory preset sets the sound only; a USER preset also sets the track's FX. |
 | **KNOB 1 to KNOB 4** | Edit the four rows of a list page, top to bottom; a turn shows the parameter full screen (the knob popup, [[OCT-]] undoes; see *Screens and the top bar*). Knob turns can be recorded as MOTION. |
 
 ## Buttons
