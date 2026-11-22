@@ -104,6 +104,8 @@ export async function runMidiExportTests(log = console.log) {
     ok(J(an.map((n) => [n.on, n.off, n.note])) === J([[0, 120, 60], [240, 360, 64]]), "ARP MAJ 1/8 on a 1/4 step: 60 then 64, GATE 50 %");
     const a3 = renderTrack({ ...arp, len: 1, steps: steps(() => step({ note: 60 })), arp: { ...arp.arp, rate: 4, range: 2 } }, 960);
     ok(J(a3.map((n) => n.note)) === J([60, 64, 67, 72, 60, 64, 67, 72]), "ARP UP x 2 octaves at 1/16, restarting with each step");
+    const a4 = renderTrack({ ...arp, len: 1, steps: steps(() => step({ note: 60 })), arp: { ...arp.arp, mode: 3, rate: 4, range: 2 } }, 960);
+    ok(J(a4.map((n) => n.note)) === J([60, 64, 67, 72, 60, 64, 67, 72]), "ARP2 on a step (one note) plays as ARP1");
     const rt = renderTrack({ ...arp, model: 0, note: 38, steps: steps((i) => (i === 0 ? step({ flags: ON | ACC }) : i === 1 ? step({ flags: TIE }) : rest())), arp: { mode: 2, rate: 2, gate: 50, fade: -16 } }, 1920);
     ok(J(rt.map((n) => [n.on, n.note, n.vel])) === J([[0, 38, 127], [240, 38, 123], [480, 38, 119], [720, 38, 115]]), "a drum's ARP is RTRG: its NOTE, FADE down, through the TIE step");
     const acid = { len: 4, div: 2, swing: 0, model: 23, gate: 127, steps: steps((i) => (i === 0 ? step({ flags: ON | SLIDE, note: 60 }) : i === 1 ? step({ note: 62 }) : i === 2 ? rest() : step({ note: 65 }))) };

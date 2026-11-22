@@ -248,7 +248,7 @@ static __attribute__((noinline)) void rep_take(track_t *t, uint32_t k)
     rp.nt[k] = (int8_t)(on ? clamp(s->nt, NT_MIN, NT_MAX) : t->nt);
     rp.vel[k] = (uint8_t)(on && s->acc ? 127u : 96u);
     t->rat_n = 0;
-    t->ar_on = 0;
+    t->ar.on = 0;
     if (t->gate_n == GATE_HELD)
         acid_gate_off(t);
 }
@@ -309,58 +309,70 @@ static __attribute__((noinline)) void acid_gates_close(void)
 }
 
 /* ARP / RTRG (spec 2026-11-20 "Arp / Retrig"): a track's MODE (P_AMODE; a step's lock too, MODE included) turns a step's
- * hit into a roll: RTRG repeats it, ARP plays the step's note spread by CHORD over RANGE octaves in DIR's order, a
+ * hit into a roll: RTRG repeats it, ARP1 plays the step's note spread by CHORD over RANGE octaves in DIR's order (ARP2
+ * too: a step has one note; ARP2 the held KEYS: keys_on), a
  * repeat every RATE (a whole note / ARATE_D) of the step as it plays: its swing's long / short steps stretch and squeeze
  * the repeats with them (FIT, any division: RATE's share of the step's own num / den beats), so they stay on the step's
  * grid at any tempo and clock. It runs from the hit until the step ends, through the TIE steps after it, or until the
  * next hit (a rest, a skipped step, REPEAT STEP, a restart: over). FADE ramps each repeat's velocity (- down to
  * silence, + up from quiet to the hit's), GATE a repeat's length for the gated models (ACID's gate, a SAMPL note with
  * SUS). Its knobs as they were at the hit (a locked step's own). The track's voices, as RATCH (which a roll replaces:
- * its RATCH plays one hit). ARP: a pitched model's only (arp_model; a drum's ARP plays RTRG) */
+ * its RATCH plays one hit). ARP1 / ARP2: a pitched model's only (arp_model; a drum's plays RTRG) */
 static const uint8_t ARATE_D[7] = {4, 6, 8, 12, 16, 24, 32};   /* N_ARATE: RATE's repeats a whole note */
 static const uint8_t ARP_CHORD[8][4] = {{0}, {0, 7}, {0, 4, 7}, {0, 3, 7}, {0, 5, 7}, {0, 4, 7, 11}, {0, 3, 7, 10},
                                         {0, 4, 7, 10}};   /* N_ACHORD: OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 */
 static const uint8_t ARP_CN[8] = {1, 2, 3, 3, 3, 4, 4, 4};   /* .. their notes */
 
-/* MODE of the hit to play (its step's locks applied): 0 OFF, 1 RTRG, 2 ARP (the hit's model a drum: RTRG) */
+/* MODE of the hit to play (its step's locks applied): 0 OFF, 1 RTRG, 2 ARP1, 3 ARP2 (the hit's model a drum: RTRG) */
 static uint32_t roll_mode(const track_t *t)
 {
-    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 2);
-    return m == 2u && !arp_model(voice_model(t)) ? 1u : m;
+    uint32_t m = (uint32_t)clamp(t->p[P_AMODE], 0, 3);
+    return m >= 2u && !arp_model(voice_model(t)) ? 1u : m;
 }
-/* the next repeat's place: RATE's share of the playing step (cur_len samples, swung), its remainder carried (ar_fr) */
-static void roll_next(track_t *t, uint32_t cur_len)
+/* KEYS' roll (live: keys_on, keys_roll): the track whose key holds it, ARP2's held keys (by pitch: key, note), the
+ * step clock it is spaced by while stopped (from the press at the tempo; playing: the track's) */
+#define KR_N 8u
+static struct {
+    roll_t r;
+    uint8_t trk, n;
+    uint8_t key[KR_N];
+    int8_t nt[KR_N];
+    uint8_t vrem;
+    uint32_t vpos, vcnt;
+} kr;
+/* the next repeat's place: RATE's share of the playing step (cur_len samples, swung), its remainder carried (fr) */
+static void roll_next(roll_t *r, const track_t *t, uint32_t cur_len)
 {
-    uint32_t den, num = trk_num_den(t, &den), b = (uint32_t)ARATE_D[t->ar_rate % 7u] * num, q, iv;
-    if (t->ar_fr >= b)
-        t->ar_fr = 0;                                /* (DIV or LEN changed meanwhile) */
-    q = cur_len * 4u * den + t->ar_fr;
+    uint32_t den, num = trk_num_den(t, &den), b = (uint32_t)ARATE_D[r->rate % 7u] * num, q, iv;
+    if (r->fr >= b)
+        r->fr = 0;                                   /* (DIV or LEN changed meanwhile) */
+    q = cur_len * 4u * den + r->fr;
     iv = q / b;
-    t->ar_fr = q % b;
-    t->ar_at += (int32_t)(iv ? iv : 1u);
+    r->fr = q % b;
+    r->at += (int32_t)(iv ? iv : 1u);
 }
-/* the roll's next note: RTRG the step's; ARP the note at its place ar_i (UP, DOWN, UPDN: up and down, the ends once;
- * RND: any), ar_i moved on */
-static int32_t roll_note(track_t *t)
+/* the roll's next note: RTRG the hit's; ARP1 the note by CHORD, ARP2 the held keys (kr), over RANGE octaves at its
+ * place i (UP, DOWN, UPDN: up and down, the ends once; RND: any), i moved on */
+static int32_t roll_note(roll_t *r)
 {
-    uint32_t c = t->ar_chord & 7u, cn = ARP_CN[c], n = cn * t->ar_range, per, p, i;
-    if (!t->ar_arp)
-        return t->ar_nt;
-    per = t->ar_dir == 2u && n > 1u ? 2u * n - 2u : n;
-    p = t->ar_i % per;
-    t->ar_i = (uint8_t)((p + 1u) % per);
-    if (t->ar_dir == 3u) {
-        t->ar_rng = t->ar_rng * 1664525u + 1013904223u;
-        i = ((t->ar_rng >> 16) * n) >> 16;
+    uint32_t c = r->chord & 7u, cn = r->arp == 2u ? kr.n : ARP_CN[c], n = cn * r->range, per, p, i;
+    if (!r->arp || !n)
+        return r->nt;
+    per = r->dir == 2u && n > 1u ? 2u * n - 2u : n;
+    p = r->i % per;
+    r->i = (uint8_t)((p + 1u) % per);
+    if (r->dir == 3u) {
+        r->rng = r->rng * 1664525u + 1013904223u;
+        i = ((r->rng >> 16) * n) >> 16;
     } else {
-        i = t->ar_dir == 1u ? n - 1u - p : p < n ? p : per - p;
+        i = r->dir == 1u ? n - 1u - p : p < n ? p : per - p;
     }
-    return t->ar_nt + ARP_CHORD[c][i % cn] + 12 * (int32_t)(i / cn);
+    return (r->arp == 2u ? kr.nt[i % cn] : r->nt + ARP_CHORD[c][i % cn]) + 12 * (int32_t)(i / cn);
 }
-/* FADE: the velocity of the roll's hit ar_k (0: the step's own), below 1 not played */
-static int32_t roll_vel(const track_t *t)
+/* FADE: the velocity of the roll's hit k (0: the first), below 1 not played */
+static int32_t roll_vel(const roll_t *r)
 {
-    int32_t v = t->ar_vel, f = t->ar_fade, k = t->ar_k, u;
+    int32_t v = r->vel, f = r->fade, k = r->k, u;
     if (f >= 0) {
         u = v - v * f / 64 + k * f / 4;
         return u < v ? u : v;
@@ -368,62 +380,77 @@ static int32_t roll_vel(const track_t *t)
     return v + k * f / 4;
 }
 /* GATE: a hit's length for the gated models, of the time to the next (iv samples), a block at least */
-static uint32_t roll_gate(const track_t *t, uint32_t iv)
+static uint32_t roll_gate(const roll_t *r, uint32_t iv)
 {
-    uint32_t g = iv / 100u * t->ar_gate;
+    uint32_t g = iv / 100u * r->gate;
     return g > CTL ? g : CTL;
 }
-/* the step's hit is about to play (note nt, velocity *vel): its MODE starts its roll, or none; returns the hit's note
- * (ARP's first), *vel FADE's first; ar_glen its gate (the caller clears it) */
+/* RATE GATE FADE DIR CHORD RANGE: t's knobs now */
+static void roll_knobs(roll_t *r, const track_t *t)
+{
+    r->fade = (int8_t)clamp(t->p[P_AFADE], -64, 63);
+    r->rate = (uint8_t)clamp(t->p[P_ARATE], 0, 6);
+    r->gate = (uint8_t)clamp(t->p[P_AGATE], 1, 100);
+    r->dir = (uint8_t)clamp(t->p[P_ADIR], 0, 3);
+    r->chord = (uint8_t)clamp(t->p[P_ACHORD], 0, 7);
+    r->range = (uint8_t)clamp(t->p[P_ARANGE], 1, 4);
+}
+/* a roll starts: arp 0 RTRG, 1 ARP1, 2 ARP2; note nt, velocity vel; t's knobs; its first hit next */
+static void roll_set(roll_t *r, const track_t *t, uint32_t arp, int32_t nt, uint32_t vel)
+{
+    r->on = 1;
+    r->arp = (uint8_t)arp;
+    r->nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
+    r->vel = (uint8_t)vel;
+    roll_knobs(r, t);
+    r->k = 0;
+    r->i = 0;
+    r->at = 0;
+    r->fr = 0;
+}
+/* the step's hit is about to play (note nt, velocity *vel): its MODE starts its roll, or none (ARP2: one note, ARP1's);
+ * returns the hit's note (ARP's first), *vel FADE's first; ar_glen its gate (the caller clears it) */
 static int32_t roll_begin(track_t *t, int32_t nt, uint32_t *vel)
 {
     uint32_t m = roll_mode(t);
     int32_t v;
-    t->ar_on = 0;
+    t->ar.on = 0;
     if (!m)
         return nt;
-    t->ar_on = 1;
-    t->ar_arp = (uint8_t)(m == 2u);
-    t->ar_nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
-    t->ar_vel = (uint8_t)*vel;
-    t->ar_fade = (int8_t)clamp(t->p[P_AFADE], -64, 63);
-    t->ar_rate = (uint8_t)clamp(t->p[P_ARATE], 0, 6);
-    t->ar_gate = (uint8_t)clamp(t->p[P_AGATE], 1, 100);
-    t->ar_dir = (uint8_t)clamp(t->p[P_ADIR], 0, 3);
-    t->ar_chord = (uint8_t)clamp(t->p[P_ACHORD], 0, 7);
-    t->ar_range = (uint8_t)clamp(t->p[P_ARANGE], 1, 4);
-    t->ar_k = 0;
-    t->ar_i = 0;
-    t->ar_at = 0;
-    t->ar_fr = 0;
-    v = roll_vel(t);
+    roll_set(&t->ar, t, m >= 2u, nt, *vel);
+    v = roll_vel(&t->ar);
     *vel = (uint32_t)(v < 1 ? 1 : v);
-    t->ar_k = 1;
-    roll_next(t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));
-    ar_glen = roll_gate(t, (uint32_t)t->ar_at);
-    return roll_note(t);
+    t->ar.k = 1;
+    roll_next(&t->ar, t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));
+    ar_glen = roll_gate(&t->ar, (uint32_t)t->ar.at);
+    return roll_note(&t->ar);
+}
+/* a roll's hit: the next note at FADE's velocity (faded out: none; down: the roll over), the repeat after it placed
+ * in the step playing (cur_len), GATE its gate */
+static void roll_hit(track_t *t, roll_t *r, uint32_t cur_len)
+{
+    int32_t at = r->at, v = roll_vel(r), nt = roll_note(r);
+    roll_next(r, t, cur_len);
+    if (r->k < 255u)
+        r->k++;
+    if (v < 1) {                                     /* FADE: faded out (down: for good) */
+        r->on = (uint8_t)(r->fade > 0);
+        return;
+    }
+    ar_glen = roll_gate(r, (uint32_t)(r->at - at));
+    drum_play(t, (uint32_t)v, nt);
+    if (trk_model(t)->gate) {
+        t->gate_n = ar_glen;                         /* ACID: each its gate */
+        t->slide_in = 0;
+    }
+    ar_glen = 0;
 }
 /* the roll's hits whose time has come (cur_len: the playing step's length); one due past the step's end waits for the
  * next step (a TIE goes on with it) */
 static __attribute__((noinline)) void roll_due(track_t *t, uint32_t cur_len)
 {
-    while (t->ar_on && t->seq_pos < 0x7FFFFFFFu && t->ar_at <= (int32_t)t->seq_pos && t->ar_at < (int32_t)cur_len) {
-        int32_t at = t->ar_at, v = roll_vel(t), nt = roll_note(t);
-        roll_next(t, cur_len);
-        if (t->ar_k < 255u)
-            t->ar_k++;
-        if (v < 1) {                                 /* FADE: faded out (down: for good) */
-            t->ar_on = (uint8_t)(t->ar_fade > 0);
-            continue;
-        }
-        ar_glen = roll_gate(t, (uint32_t)(t->ar_at - at));
-        drum_play(t, (uint32_t)v, nt);
-        if (trk_model(t)->gate) {
-            t->gate_n = ar_glen;                     /* ACID: each its gate */
-            t->slide_in = 0;
-        }
-        ar_glen = 0;
-    }
+    while (t->ar.on && t->seq_pos < 0x7FFFFFFFu && t->ar.at <= (int32_t)t->seq_pos && t->ar.at < (int32_t)cur_len)
+        roll_hit(t, &t->ar, cur_len);
 }
 
 /* the step after the playing one (LEN wraps) */
@@ -487,11 +514,11 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
     }
     t->rat_nt = t->nt;                                 /* the roll's note (rat_due) */
     t->slide_in = s->slide;
-    t->rat_n = (uint8_t)(t->ar_on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
+    t->rat_n = (uint8_t)(t->ar.on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
     t->rat_k = 1;
     t->rat_len = len_s;
     acid_gate_set(t, next);
-    if (t->ar_on)
+    if (t->ar.on)
         t->gate_n = ar_glen;                           /* a roll's hit: GATE of its repeat, never held */
     ar_glen = 0;
 }
@@ -506,10 +533,10 @@ static void step_fire(track_t *t, uint32_t len_s)
     int32_t nt;
     t->rat_off = 0;                                 /* (a nudged hit's roll: its callers set where it began) */
     if (!s->tie)
-        t->ar_on = 0;                               /* ARP / RTRG: a roll goes on through TIE steps only */
+        t->ar.on = 0;                               /* ARP / RTRG: a roll goes on through TIE steps only */
     if ((rp.on >> trk_index(t)) & 1u) {             /* REPEAT STEP holds the track: its steps paused */
         t->rat_n = 0;
-        t->ar_on = 0;
+        t->ar.on = 0;
         return;
     }
     if (trk_model(t)->gate) {
@@ -517,7 +544,7 @@ static void step_fire(track_t *t, uint32_t len_s)
         return;
     }
     t->rat_n = 0;
-    if (s->tie && !t->ar_on)
+    if (s->tie && !t->ar.on)
         smpl_tie(t, len_s);                         /* (a SAMPLE note with SUS: held through it; a roll's not) */
     if (!s->on || s->tie || !step_plays(t, s, len))
         return;
@@ -527,7 +554,7 @@ static void step_fire(track_t *t, uint32_t len_s)
     drum_play(t, vel, nt);
     ar_glen = 0;
     t->rat_nt = t->nt;
-    t->rat_n = (uint8_t)(t->ar_on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
+    t->rat_n = (uint8_t)(t->ar.on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
     t->rat_k = 1;
     t->rat_len = len_s;
 }
@@ -642,6 +669,74 @@ static __attribute__((noinline)) void keys_off(void)
     smpl_release(SH_KEYS);                             /* (a SAMPLE note the key held) */
     kz.key = 0;
     kz.rec = 0;
+    kr.r.on = 0;                                       /* KEYS' roll: over (its last hit's gate ends as it counts) */
+    kr.n = 0;
+}
+
+/* KEYS' roll (live ARP / RTRG: keys_on): the step clock it is spaced by, as a step's roll (RATE's share of the step,
+ * swung): playing, the track's playing step; stopped, its own from the press (vpos samples into step vcnt) at the
+ * tempo. sync: playing, the track's */
+static void keys_clock(const track_t *t, int sync)
+{
+    if (song.playing && t->seq_pos < 0x7FFFFFFFu) {
+        kr.vpos = t->seq_pos;
+        kr.vcnt = t->seq_cnt;
+        kr.vrem = t->seq_rem;
+    } else if (sync) {
+        kr.vpos = 0;
+        kr.vcnt = 0;
+        kr.vrem = 0;
+    }
+}
+/* KEYS' roll, each block after the steps (n samples): KEYS off or another track selected: over (the key's note ends);
+ * else the hits due in the block play (the knobs as they are now), the next ones counted from the block's end */
+static __attribute__((noinline)) void keys_roll(uint32_t n)
+{
+    track_t *t = &trk[kr.trk % NTRK];
+    uint32_t len;
+    if (song.seq_mode != 3u || song.sel != kr.trk) {
+        keys_off();
+        return;
+    }
+    if (song.playing && t->seq_pos < 0x7FFFFFFFu) {
+        keys_clock(t, 0);
+    } else {
+        kr.vpos += n;
+        while (kr.vpos >= (len = step_samples(t, trk_period(t, kr.vrem), kr.vcnt))) {
+            kr.vpos -= len;
+            kr.vcnt++;
+            kr.vrem = (uint8_t)trk_rem_next(t, kr.vrem);
+        }
+    }
+    while (kr.r.on && kr.r.at < (int32_t)n) {
+        roll_knobs(&kr.r, t);
+        roll_hit(t, &kr.r, step_samples(t, trk_period(t, kr.vrem), kr.vcnt));
+    }
+    kr.r.at -= (int32_t)n;
+}
+/* ARP2: a held key into the set (by pitch; KR_N at most: more not heard) / out of it */
+static void keys_add(uint32_t key, int32_t nt)
+{
+    uint32_t i = kr.n;
+    if (i >= KR_N)
+        return;
+    for (; i > 0u && kr.nt[i - 1u] > nt; i--) {
+        kr.nt[i] = kr.nt[i - 1u];
+        kr.key[i] = kr.key[i - 1u];
+    }
+    kr.nt[i] = (int8_t)nt;
+    kr.key[i] = (uint8_t)key;
+    kr.n++;
+}
+static void keys_del(uint32_t up)
+{
+    uint32_t i, j = 0;
+    for (i = 0; i < kr.n; i++)
+        if (!((up >> kr.key[i]) & 1u)) {
+            kr.nt[j] = kr.nt[i];
+            kr.key[j++] = kr.key[i];
+        }
+    kr.n = (uint8_t)j;
 }
 
 /* KEYS live record (spec §6): the key's note into the nearest step (rec_hit): ON + NOTE; a gated model's key goes on
@@ -700,6 +795,7 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     const dmodel_t *m = trk_model(t);
     int32_t nt;
     int legato = kz.key && kz.trk == song.sel;
+    uint32_t am = roll_mode(t);
     if (!keys_note(t, key, &nt))
         return;                                        /* (a black key on a CHOP track: nothing) */
     if (t->p[P_SPLAY] == 1 && voice_model(t) == DM_SMPL) {
@@ -709,9 +805,30 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     if (kz.key && !legato)
         keys_off();                                    /* mono over the keys: another track's held note ends */
     if (((song.rec >> song.sel) & 1u) && song.playing && !REC_LOCKED() && !mkb_kbd)
-        keys_rec(t, nt, legato);                       /* live record (spec §6; not as the MIDI KEYBOARD) */
+        keys_rec(t, nt, legato);                       /* live record (spec §6; not as the MIDI KEYBOARD): the key's
+                                                        * note, not its roll's */
     else
         kz.rec = 0;
+    kz.key = (uint8_t)(key + 1u);
+    kz.trk = song.sel;
+    if (am == 3u && legato && kr.n) {
+        keys_add(key, nt);                             /* ARP2: one more held key, the roll goes on */
+        return;
+    }
+    kr.r.on = 0;
+    kr.n = 0;
+    if (am) {                                          /* ARP / RTRG: the key's roll (keys_roll), its first hit now */
+        if (m->gate)
+            model_follow(t);
+        if (am == 3u)
+            keys_add(key, nt);
+        kr.trk = song.sel;
+        keys_clock(t, 1);
+        roll_set(&kr.r, t, am - 1u, nt, 100u);
+        roll_hit(t, &kr.r, step_samples(t, trk_period(t, kr.vrem), kr.vcnt));
+        t->key_nt = (int8_t)nt;
+        return;
+    }
     if (m->gate) {
         dvoice_t *v = &t->v[0];
         model_follow(t);
@@ -730,8 +847,6 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
         smpl_hold(t, SH_KEYS, a);                      /* a SAMPLE note with SUS: held while the key is */
     }
     t->key_nt = (int8_t)nt;
-    kz.key = (uint8_t)(key + 1u);
-    kz.trk = song.sel;
 }
 
 static void keyboard_block(void)
@@ -768,8 +883,13 @@ static void keyboard_block(void)
             ch &= ~bit;
         }
     }
-    if (kz.key && ((ch >> (kz.key - 1u)) & 1u) && !((cur >> (kz.key - 1u)) & 1u))
+    if (kr.n) {                                     /* KEYS ARP2: the keys let go leave its set, the last one ends it */
+        keys_del(ch & ~cur);
+        if (!kr.n)
+            keys_off();
+    } else if (kz.key && ((ch >> (kz.key - 1u)) & 1u) && !((cur >> (kz.key - 1u)) & 1u)) {
         keys_off();                                 /* KEYS: the sounding key let go, whoever has the keys now */
+    }
     if (kz.rec)
         keys_tie();                                 /* KEYS live record: the held note's TIEs (before this block's
                                                      * presses: a legato key in the block that passes a middle finds
@@ -946,9 +1066,9 @@ static void seq_start(void)
         t->seq_par = 0;
         t->rskip = 0;
         t->rat_n = 0;
-        t->ar_on = 0;
+        t->ar.on = 0;
         t->rng = 0x9E3779B9u * (i + 1u);           /* PROB: the same variations after every PLAY */
-        t->ar_rng = 0x2545F491u * (i + 1u);        /* ARP RND: the same notes after every PLAY */
+        t->ar.rng = 0x2545F491u * (i + 1u);        /* ARP RND: the same notes after every PLAY */
     }
     gclk.pos = 0x7FFFFFFF;                          /* the first 1/16 on the first block too */
     gclk.cnt = 0xFFFFFFFFu;
@@ -1010,7 +1130,7 @@ static __attribute__((noinline)) void mic_due(track_t *t, uint32_t cur)
     motion_step(t, t->seq_idx, MS_LOCK);
     step_fire(t, cur - at);
     t->rat_off = (int32_t)at;
-    t->ar_at += (int32_t)at;                        /* (its roll from the hit) */
+    t->ar.at += (int32_t)at;                        /* (its roll from the hit) */
 }
 
 /* MICRO: the next step nudged early: its hit (100 + micro) / 100 into the playing step (cur long; -50 halfway), played
@@ -1036,7 +1156,7 @@ static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
     t->seq_idx = (uint16_t)idx;
     t->seq_cnt = cnt - 1u;
     t->rat_off = (int32_t)at;
-    t->ar_at += (int32_t)at;                        /* (its roll from the hit, in the playing step's samples) */
+    t->ar.at += (int32_t)at;                        /* (its roll from the hit, in the playing step's samples) */
 }
 
 /* MICRO: t entered the step whose early hit played (prev: the step before's length): its motion (its locks hold since
@@ -1068,7 +1188,7 @@ static void seq_tick(track_t *t, uint32_t n)
         if (t->mic & MIC_DUE)
             mic_due(t, cur_len);                    /* MICRO: the step's late hit */
         rat_due(t, cur_len);
-        if (t->ar_on)
+        if (t->ar.on)
             roll_due(t, cur_len);                   /* ARP / RTRG: the roll's repeats */
         if (t->seq_pos < cur_len && t->seq_pos != 0x7FFFFFFFu + n) {
             if (t->seq_pos >= cur_len / 2u && !(t->mic & MIC_EARLY))
@@ -1082,7 +1202,7 @@ static void seq_tick(track_t *t, uint32_t n)
                                                      * block's rest after it, as the clock's) */
         } else {
             t->seq_pos -= cur_len;
-            t->ar_at -= (int32_t)cur_len;           /* (the roll's next repeat: in the next step's samples) */
+            t->ar.at -= (int32_t)cur_len;           /* (the roll's next repeat: in the next step's samples) */
             t->seq_rem = (uint8_t)trk_rem_next(t, t->seq_rem);
         }
         t->seq_cnt++;                               /* the step: steps since PLAY mod LEN, so a LEN change keeps
@@ -1094,7 +1214,7 @@ static void seq_tick(track_t *t, uint32_t n)
         }
         t->mic = 0;
         if (!t->step[t->seq_idx].tie)
-            t->ar_on = 0;                           /* ARP / RTRG: the roll's step ended (a TIE: it goes on) */
+            t->ar.on = 0;                           /* ARP / RTRG: the roll's step ended (a TIE: it goes on) */
         late = t->step[t->seq_idx].micro > 0 && !(t->rskip && t->rskip_idx == t->seq_idx);
         motion_step(t, t->seq_idx, late ? MS_REL | MS_MOT : MS_ALL);   /* motion.c: its knobs at this step (before
                                                      * the hit; a late hit's locks at the hit) */
@@ -1230,6 +1350,8 @@ static void events_block(uint32_t n)
         gclk_tick(seq_n);
         cue.cut = 0;
     }
+    if (kr.r.on | kr.n)
+        keys_roll(n);                                /* KEYS' roll (live ARP / RTRG; no MIDI OUT, as the keys) */
     if (mon.on)
         mon_post(n);                                 /* midi_out.c: MIDI OUT's Offs due */
     mout_block(n, run);                             /* midi_out.c: SYNC's Clocks on the own clock (after gclk_tick) */

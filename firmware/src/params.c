@@ -51,7 +51,7 @@ static const char *const N_SLOOP[] = {"OFF", "FWD", "PING", "LOOPI", "ONE"};   /
 static const char *const N_SPLAY[] = {"KEY", "CHOP"};                /* P_SPLAY: the SAMPLE model's PLAY (dm_sample.c) */
 /* ARP / RTRG (seq.c roll_*; stored: append only): MODE; RATE, a repeat's length in the order of their length (whole
  * note / ARATE_D); ARP's DIR and CHORD (ARP_CHORD's notes) */
-static const char *const N_AMODE[] = {"OFF", "RTRG", "ARP"};
+static const char *const N_AMODE[] = {"OFF", "RTRG", "ARP1", "ARP2"};   /* (2: the ARP before ARP2) */
 static const char *const N_ARATE[] = {"1/4", "4T", "1/8", "8T", "1/16", "16T", "1/32"};
 static const char *const N_ADIR[] = {"UP", "DOWN", "UPDN", "RND"};
 static const char *const N_ACHORD[] = {"OCT", "5TH", "MAJ", "MIN", "SUS4", "MAJ7", "MIN7", "DOM7"};
@@ -111,7 +111,8 @@ static const param_desc_t TP[P_COUNT] = {
                                                     * never released); ONE (to END whatever the gate) */
     [P_SPLAY] = PE("PLAY", N_SPLAY, 0),            /* KEY as before; CHOP: a hit's note picks the sample (chop) */
     [P_SCUT] = PE("CUT", N_ONOFF, 0),              /* OFF as before (hits overlap); ON: a hit cuts the one sounding */
-    [P_AMODE] = PE("MODE", N_AMODE, 0),            /* ARP / RTRG: OFF as before; a drum's OFF RTRG (AMODE_DRUM) */
+    [P_AMODE] = PE("MODE", N_AMODE, 0),            /* ARP / RTRG: OFF as before; a drum's OFF RTRG (AMODE_DRUM); ARP2: the
+                                                    * held KEYS (a step's: ARP1) */
     [P_ARATE] = PE("RATE", N_ARATE, 4),            /* 1/16 */
     [P_AGATE] = PD("GATE", F_PCT, 0, 100, 50),
     [P_AFADE] = PD("FADE", F_BIPCT, -64, 63, 0),   /* each repeat's velocity: - down, + up to the hit's, 0 flat */
@@ -119,9 +120,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_ACHORD] = PE("CHORD", N_ACHORD, 0),
     [P_ARANGE] = PD("RANGE", F_INT, 1, 4, 1),      /* octaves */
 };
-/* MODE on a model that plays no notes (arp_model): OFF or RTRG (a stored ARP plays and shows as RTRG) */
+/* MODE on a model that plays no notes (arp_model): OFF or RTRG (a stored ARP1 / ARP2 plays and shows as RTRG) */
 static const param_desc_t AMODE_DRUM = {"MODE", F_ENUM, 0, 1, 0, N_AMODE, 0};
-/* the models ARP plays (pitched: ACID, SAMPL, FM, SKIN); the drums RTRG only */
+/* the models ARP1 / ARP2 play (pitched: ACID, SAMPL, FM, SKIN); the drums RTRG only */
 static int arp_model(uint32_t m) { return m == DM_ACID || m == DM_SMPL || m == DM_FM || m == DM_MEMB; }
 
 /* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */

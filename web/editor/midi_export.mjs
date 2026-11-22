@@ -9,7 +9,7 @@
 //    swing * step / 250;
 //  - NUDGE (micro, -50..+50 hundredths of a step): late inside its step, early inside the step before;
 //  - RATCH: hits spread evenly over the step; ARP / RTRG (MODE): a roll, a repeat every RATE (a whole note / RATE's
-//    divisor, as the step's share), FADE, GATE, ARP's CHORD x RANGE in DIR's order (RND: a fixed seed, so not the
+//    divisor, as the step's share), FADE, GATE, ARP1's (a step's ARP2 too) CHORD x RANGE in DIR's order (RND: a fixed seed, so not the
 //    device's dice), through the TIE steps after it;
 //  - PROB: a seeded die (not the device's); 1-SHOT the first pass only; FILL steps silent, !FILL ones play; a/b by pass;
 //  - MASTER LENGTH (1/16 steps, 0 / 1 OFF): every track restarts at step 0 after it.
@@ -83,7 +83,7 @@ export function renderTrack(tr, span, opt = {}) {
   const model = tr.model | 0, pitched = PITCHED.has(model), gated = model === ACID;
   const steps = tr.steps, len = clamp(tr.len | 0, 1, 64), { num, den } = numDen(tr.div | 0, len);
   const grid = stepGrid(tr, span, ppq, gswing);
-  const ap = tr.arp ?? {}, amode0 = clamp(ap.mode | 0, 0, 2), amode = amode0 === 2 && !pitched ? 1 : amode0;
+  const ap = tr.arp ?? {}, amode0 = Math.min(clamp(ap.mode | 0, 0, 3), 2), amode = amode0 === 2 && !pitched ? 1 : amode0; // (ARP2 on a step: ARP1)
   const gateK = 10 + tdiv(clamp(tr.gate ?? 64, 0, 127) * 90, 127);
   let rng = (opt.seed ?? 0x2545f491) >>> 0, arng = 0x9e3779b9;
   const die = () => { rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0; return (((rng >>> 16) * 100) >>> 16); };
