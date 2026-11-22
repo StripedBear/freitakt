@@ -1430,6 +1430,27 @@ static void test_arp_edit_page(void)
     pg = cur_page();
     check("ARP + EDIT: the ARP page (MODE RATE GATE FADE)", !ui.home && str_eq(pg->title, "ARP") &&
           page_id(pg, 0) == P_AMODE && page_id(pg, 1) == P_ARATE && page_id(pg, 2) == P_AGATE && page_id(pg, 3) == P_AFADE);
+    {
+        static const char *const MV[4] = {"OFF", "RTRG", "ARP1", "ARP2"};
+        char l[16], v[16], pv[16];
+        const char *u;
+        uint32_t i, ok = 1;
+        for (i = 1; i < 6u; i++) {                   /* MODE: OFF RTRG ARP1 ARP2, at its end stays */
+            uint32_t w = i < 4u ? i : 3u;
+            turn(EN_K1, 1);
+            ui_frame();
+            kp_text(l, v, &u);
+            param_format(track_desc(&trk[0], P_AMODE), trk[0].p[P_AMODE], pv, &u);
+            ok &= kp.on && str_eq(l, "MODE") && str_eq(v, MV[w]) && str_eq(pv, MV[w]) && trk[0].p[P_AMODE] == (int16_t)w;
+        }
+        check("ARP page KNOB 1 (ACID): MODE OFF RTRG ARP1 ARP2 on the knob's value and its popup", ok);
+        trk[0].p[P_AMODE] = 2;                       /* the stored 2 (the ARP before): ARP1 */
+        param_format(track_desc(&trk[0], P_AMODE), 2, pv, &u);
+        check("MODE's stored 2 (ARP before ARP2) shows ARP1", str_eq(pv, "ARP1"));
+        trk[0].p[P_AMODE] = 0;
+        release_all();
+        ui_frame();
+    }
     press(B_EDIT);
     fm1_in.buttons |= 1u << panel.btn[B_ARP];
     ui_frame();
