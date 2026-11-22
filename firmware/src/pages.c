@@ -55,7 +55,7 @@ static const page_t PAGES[] = {
     {"TOOLS", FAM_SAVE, SC_GLOBAL, GR_NONE, {G_CLRSEQ, G_INITSND, G_CLRALL, G_INITALL}},   /* track; all */
     {"COPY", FAM_SAVE, SC_GLOBAL, GR_SLOTS, {G_SLOT, G_COPY, G_PASTE, G_LEARN}},   /* a slot's COPY / PASTE (project.c);
                                                                                  * KNOB 4: MIDI LEARN on / off */
-    /* LFO: one LFO on the FM-1 (FREITAKT redesign; LFO 2 stays in the record, off unless a DEST slot names it): its
+    /* LFO: one LFO on the FM-1 (FREITAKT redesign; LFO 2's knobs stay in the record, never computed: SRC is LFO1 or OFF): its
      * wave (the schematic over page 1), then TRIG MODE; then DEST, the track's 4 slots: KNOB 1 the slot
      * (song.lslot), 2-4 its SRC DEST DEPTH (page_id; lfo.c LS_ID) */
     {"LFO", FAM_LFO, SC_TRACK, GR_LFO, {P_LFO1 + LF_WAVE, P_LFO1 + LF_RATE, P_LFO1 + LF_MORPH, P_LFO1 + LF_PHASE}},

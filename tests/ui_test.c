@@ -4522,6 +4522,57 @@ static void test_project_roundtrip(void)
               trk[4].p[P_LFO2 + LF_DEPTH] == -20 && trk[4].p[P_LFO2 + LF_MODE] == LM_TIME);
 }
 
+/* LFO DEST's SRC (owner 2026-11-22): no LFO 2 (it has no page): the choices LFO1 and OFF, OFF the value LFO 2 had, so
+ * a stored LFO 2 loads as OFF and routes nothing; LFO 2 never computed */
+static void test_lfo_src_no_lfo2(void)
+{
+    uint32_t ok = 1, k;
+    char v[16];
+    const char *u;
+    ui_host_init();
+    OK0(TP[P_LSRC1].max == 1 && TP[P_LS4SRC].max == 1 && str_eq(TP[P_LSRC2].names[0], "LFO1") &&
+        str_eq(TP[P_LSRC2].names[1], "OFF"));
+    while (cur_fam() != FAM_LFO || !str_eq(cur_page()->title, "DEST"))
+        tap(B_LFO);
+    song.lslot = 0;
+    TSEL->p[P_LSRC1] = 0;
+    turn(EN_K1 + 1, 5);                              /* KNOB 2: SRC, past its end */
+    ui_frame();
+    param_format(&TP[P_LSRC1], TSEL->p[P_LSRC1], v, &u);
+    OK0(TSEL->p[P_LSRC1] == 1 && str_eq(v, "OFF"));
+    check("LFO DEST: SRC is LFO1 or OFF (no LFO2: there is no LFO 2 page)", ok);
+    ok = 1;
+    trk[2].p[P_LSRC2] = 1;                           /* slot 2 / 4 from LFO 2, as a project stored it */
+    trk[2].p[P_LFO2 + LF_DEST] = 9;
+    trk[2].p[P_LFO2 + LF_DEPTH] = 64;
+    trk[2].p[P_LS4SRC] = 1;
+    trk[2].p[P_LS4DEST] = 10;
+    trk[2].p[P_LS4DEPTH] = -64;
+    trk[2].p[P_LFO2 + LF_WAVE] = LW_SQUARE;
+    trk[2].p[P_LFO2 + LF_MODE] = LM_HZ;
+    trk[2].p[P_LFO2 + LF_RATE] = 120;
+    trk[2].p[P_LEVEL] = 100;
+    trk[2].p[P_PAN] = 0;
+    project_save(0);
+    trk[2].p[P_LSRC2] = 0;
+    trk[2].p[P_LFO2 + LF_DEST] = 0;
+    (void)proj_load(0, 1);
+    OK0(trk[2].p[P_LSRC2] == 1 && trk[2].p[P_LS4SRC] == 1 && trk[2].p[P_LFO2 + LF_DEST] == 9);
+    param_format(&TP[P_LSRC2], trk[2].p[P_LSRC2], v, &u);
+    OK0(str_eq(v, "OFF"));
+    for (k = 0; k < 200u; k++) {
+        lfo_apply(CTL);
+        OK0(trk[2].p[P_LEVEL] == 100 && trk[2].p[P_PAN] == 0 && trk[2].lnum == 0u);
+        lfo_restore();
+        if (!ok)
+            break;
+    }
+    OK0(trk[2].lfo[1].ph == 0u && trk[2].lfo[0].ph == 0u);
+    check("LFO DEST: a project's slots stored from LFO 2 load as SRC OFF: nothing routed (LVL, PAN untouched), no LFO "
+          "computed", ok);
+    memset(proj_slot, 0, sizeof proj_slot);
+}
+
 static void test_project_rejects(void)
 {
     ui_host_init();
@@ -9152,6 +9203,7 @@ int main(void)
     test_screens();
     test_project_roundtrip();
     test_project_rejects();
+    test_lfo_src_no_lfo2();
     test_ui_frame_cost();
     test_speaker_eq();
     test_bus_pages_on_glo();

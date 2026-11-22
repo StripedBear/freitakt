@@ -35,7 +35,7 @@
 | **SCL** | the button labelled SEL: a tap KEYS; held + black key 1 to 6 selects a track. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
-| **SRC** | an LFO slot's source, or COMP's key track. |
+| **SRC** | an LFO slot's source (LFO1 or OFF), or COMP's key track. |
 | **STEPS / TRACKS** | ENV mode: the keys are steps, or play tracks. |
 | **SYNC** | MIDI clock out (the menu's MIDI SYNC). |
 | **MIDI OUT** | the sequencer's notes out, track n on its channel (GLO MIDI OUT: OUT, TnCH). |

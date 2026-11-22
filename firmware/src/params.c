@@ -55,7 +55,8 @@ static const char *const N_AMODE[] = {"OFF", "RTRG", "ARP"};
 static const char *const N_ARATE[] = {"1/4", "4T", "1/8", "8T", "1/16", "16T", "1/32"};
 static const char *const N_ADIR[] = {"UP", "DOWN", "UPDN", "RND"};
 static const char *const N_ACHORD[] = {"OCT", "5TH", "MAJ", "MIN", "SUS4", "MAJ7", "MIN7", "DOM7"};
-static const char *const N_LSRC[] = {"LFO1", "LFO2"};                /* an LFO DEST slot's SRC */
+static const char *const N_LSRC[] = {"LFO1", "OFF"};   /* an LFO DEST slot's SRC (FREITAKT: one LFO; OFF the value
+                                                         * LFO2 was, so a stored LFO2 routes nothing: lfo.c) */
 static const char *const N_ITYPE[] = {"OFF", "SOFT", "HARD", "FOLD", "FUZZ", "CRUSH", "PHASR", "FLANG", "CHOR"};   /* INSERT
                                                                      * TYPE (IT_; insert.c) */
 static const char *const N_IBITS[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
@@ -90,8 +91,9 @@ static const param_desc_t TP[P_COUNT] = {
     [P_FENV] = PD("ENV", F_INT, -64, 63, 0),
     [P_FDEC] = PD("DECAY", F_FDEC, 0, 127, 40),
     [P_PRIO] = PE("PRIO", N_PRIO, 0),
-    [P_LSRC1] = PE("SRC", N_LSRC, 0), [P_LSRC2] = PE("SRC", N_LSRC, 1),   /* slots 1 / 2: LFO 1 / LFO 2 (the routing
-                                                                            * before slots) */
+    [P_LSRC1] = PE("SRC", N_LSRC, 0), [P_LSRC2] = PE("SRC", N_LSRC, 1),   /* slots 1 / 2: LFO1 / OFF (the defaults
+                                                                            * LFO 1 / LFO 2 were: records keep their
+                                                                            * values relative to them) */
     [P_LS3SRC] = PE("SRC", N_LSRC, 0), [P_LS3DEST] = PD("DEST", F_LDEST, 0, LD_MAX, 0),
     [P_LS3DEPTH] = PD("DEPTH", F_BIPCT, -64, 64, 0),
     [P_LS4SRC] = PE("SRC", N_LSRC, 1), [P_LS4DEST] = PD("DEST", F_LDEST, 0, LD_MAX, 0),

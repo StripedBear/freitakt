@@ -3,7 +3,7 @@
 
 ## LFOs
 
-The panel shows one LFO per track, LFO 1; LFO 2 has no page (its settings stay stored). Press [[LFO]] for **LFO 1/3**, **LFO 2/3** and **DEST 3/3**: list pages, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom. LFO 1/3 shows a small schematic of one cycle of the wave at the top.
+Each track has one LFO, LFO 1. (An LFO 2 is no longer offered or computed; its settings stay stored but do nothing.) Press [[LFO]] for **LFO 1/3**, **LFO 2/3** and **DEST 3/3**: list pages, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom. LFO 1/3 shows a small schematic of one cycle of the wave at the top.
 
 | Page | KNOB 1 | KNOB 2 | KNOB 3 | KNOB 4 |
 | --- | --- | --- | --- | --- |
@@ -11,7 +11,7 @@ The panel shows one LFO per track, LFO 1; LFO 2 has no page (its settings stay s
 | LFO 2/3 | TRIG | MODE | | |
 | DEST 3/3 | SLOT (1 to 4) | SRC | DEST | DEPTH |
 
-[[OCT+]] on an LFO page cycles the RATE MODE (SYNC, HZ, TIME) of the LFO turned last (on DEST, of the selected slot's source LFO); it needs KEYS off.
+[[OCT+]] on an LFO page cycles the LFO's RATE MODE (SYNC, HZ, TIME); it needs KEYS off.
 
 ### Parameters
 
@@ -24,7 +24,7 @@ The panel shows one LFO per track, LFO 1; LFO 2 has no page (its settings stay s
 
 ### DEST: four destination slots per track
 
-Each slot has a **SRC** (LFO 1 or LFO 2), a **DEST** and its own **DEPTH** (-100 to +100 %, default 0). Slots 1 and 2 default to LFO 1 and LFO 2. KNOB 1 picks the slot. Destinations:
+Each slot has a **SRC** (LFO1 or OFF), a **DEST** and its own **DEPTH** (-100 to +100 %, default 0). Slots 1 and 3 default to LFO1, slots 2 and 4 to OFF: set SRC to LFO1 to use them. A slot is active only with SRC LFO1, a DEST and a DEPTH other than 0. KNOB 1 picks the slot. A project or preset saved with a slot on LFO 2 loads with that slot's SRC set to OFF, so nothing is routed without you knowing. Destinations:
 
 | Destinations |
 | --- |
@@ -37,7 +37,7 @@ Each slot has a **SRC** (LFO 1 or LFO 2), a **DEST** and its own **DEPTH** (-100
 
 The last two groups were added in 1.0.0 after F.RES, so projects, presets, step locks and MIDI LEARN keep their meaning; nothing changes until an LFO is routed to one.
 
-An LFO on a knob moves it around its set value. A locked step or a MIDI LEARN CC sets the centre value; the LFO keeps modulating around it. Older projects load with their LFO 1 and LFO 2 routing as slots 1 and 2. MOTION records an LFO's RATE, MORPH and DEPTH (not SRC or DEST); MODEL, WAVE, DEST and SRC cannot be locked.
+An LFO on a knob moves it around its set value. A locked step or a MIDI LEARN CC sets the centre value; the LFO keeps modulating around it. Older projects load with their LFO 1 routing as slot 1; their LFO 2 routing comes in as slot 2 with SRC OFF. MOTION records an LFO's RATE, MORPH and DEPTH (not SRC or DEST); MODEL, WAVE, DEST and SRC cannot be locked.
 
 ## Compressor (COMP)
 

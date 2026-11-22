@@ -2039,7 +2039,7 @@ static void test_lfo_off_identical(void)
     }
 }
 
-/* review focus 4: both LFOs on one knob add and clamp */
+/* review focus 4: two slots on one knob add and clamp (FREITAKT: both from LFO1; slot 2's SRC set to LFO1) */
 static void test_lfo_two_on_one(void)
 {
     uint32_t l, k;
@@ -2054,13 +2054,14 @@ static void test_lfo_two_on_one(void)
         q[LF_DEPTH] = 64;
         q[LF_TRIG] = LT_PLAY;
     }
+    trk[0].p[P_LSRC2] = 0;                           /* (slot 2: LFO1, not OFF) */
     trk[0].p[P_LEVEL] = 100;
     lfo_start();
     for (k = 0; k < 500u; k++) {
         int32_t v = lfo_probe(0, P_LEVEL);
         hi = v > hi ? v : hi;
     }
-    check("LFO: both LFOs on LVL add and stay in its range (max 127)", hi == 127 && trk[0].p[P_LEVEL] == 100);
+    check("LFO: two slots on LVL add and stay in its range (max 127)", hi == 127 && trk[0].p[P_LEVEL] == 100);
 }
 
 /* review focus 2: an engine without the targeted extra knob */
@@ -2776,11 +2777,11 @@ static double lfo_slots_cost(int mode)          /* host instructions a block (lf
         }
         if (mode >= 1) {                             /* the two routes an older project has */
             lfo_slot_set(i, 0, 0, 3, 40);
-            lfo_slot_set(i, 1, 1, 9, 40);
+            lfo_slot_set(i, 1, 0, 9, 40);
         }
         if (mode >= 2) {                             /* every slot */
             lfo_slot_set(i, 2, 0, 2, 30);
-            lfo_slot_set(i, 3, 1, 10, -30);
+            lfo_slot_set(i, 3, 0, 10, -30);
         }
     }
     for (k = 0; k < 100u; k++) {
@@ -2799,33 +2800,41 @@ static void test_lfo_dest_slots(void)
     uint32_t k, moved3 = 0, moved1 = 0;
     int32_t v, mv;
     host_init();
-    check("LFO slots: defaults: slot 1 LFO 1, slot 2 LFO 2, slot 3 LFO 1, slot 4 LFO 2, all off",
+    check("LFO slots: defaults: slot 1 LFO1, slot 2 OFF, slot 3 LFO1, slot 4 OFF (OFF: the value LFO 2 was), all off",
           TP[LS_ID[0][LS_SRC]].def == 0 && TP[LS_ID[1][LS_SRC]].def == 1 && TP[LS_ID[2][LS_SRC]].def == 0 &&
               TP[LS_ID[3][LS_SRC]].def == 1 && TP[P_LS3DEST].def == 0 && TP[P_LS4DEPTH].def == 0 &&
-              LS_ID[0][LS_DEST] == P_LFO1 + LF_DEST && LS_ID[1][LS_DEPTH] == P_LFO2 + LF_DEPTH);
-    lfo_q(0, 1)[LF_WAVE] = LW_SQUARE;                /* LFO 2 square, Hz; LFO 1 has no slot */
-    lfo_q(0, 1)[LF_MODE] = LM_HZ;
-    lfo_q(0, 1)[LF_RATE] = 100;
-    lfo_slot_set(0, 2, 1, 3, 32);                    /* slot 3: LFO 2 -> E2 +50 % */
+              LS_ID[0][LS_DEST] == P_LFO1 + LF_DEST && LS_ID[1][LS_DEPTH] == P_LFO2 + LF_DEPTH &&
+              TP[P_LSRC1].max == 1 && str_eq(TP[P_LSRC1].names[0], "LFO1") && str_eq(TP[P_LSRC1].names[1], "OFF"));
+    lfo_q(0, 0)[LF_WAVE] = lfo_q(0, 1)[LF_WAVE] = LW_SQUARE;   /* both square, Hz */
+    lfo_q(0, 0)[LF_MODE] = lfo_q(0, 1)[LF_MODE] = LM_HZ;
+    lfo_q(0, 0)[LF_RATE] = lfo_q(0, 1)[LF_RATE] = 100;
+    lfo_slot_set(0, 2, 1, 3, 32);                    /* slot 3: SRC 1 (a stored LFO 2: OFF now) -> E2 */
     trk[0].p[P_E2] = 64;
+    for (k = 0, v = 64; k < 2000u; k++) {
+        v = lfo_probe(0, P_E2);
+        moved3 |= v != 64;
+    }
+    check("LFO slot 3 with SRC OFF (what LFO 2 was): routes nothing, no LFO computed (LFO 2 never)",
+          !moved3 && trk[0].lfo[0].ph == 0u && trk[0].lfo[1].ph == 0u && trk[0].p[P_E2] == 64 &&
+              !lfo_live(&trk[0], P_E2, &mv));
+    lfo_slot_set(0, 2, 0, 3, 32);                    /* slot 3: LFO1 -> E2 +50 % */
     for (k = 0; k < 2000u; k++) {
         v = lfo_probe(0, P_E2);
         moved3 |= v != 64;
     }
-    check("LFO slot 3 from LFO 2 moves its knob; LFO 1 (no slot) is not computed",
-          moved3 && trk[0].lfo[0].ph == 0u && trk[0].lfo[0].out == 0 && trk[0].p[P_E2] == 64);
-    lfo_slot_set(0, 0, 1, 9, 64);                    /* slot 1 from LFO 2 too: LVL */
+    check("LFO slot 3 from LFO1 moves its knob; LFO 2 is not computed", moved3 && trk[0].lfo[1].ph == 0u &&
+                                                                          trk[0].p[P_E2] == 64);
+    lfo_slot_set(0, 0, 0, 9, 64);                    /* slot 1 too: LVL */
     lfo_apply(CTL);
-    check("LFO slot 1 set to LFO 2: LFO 1 still not computed, LVL follows LFO 2",
-          trk[0].lfo[0].ph == 0u && trk[0].lnum == 2u && trk[0].lval[1] != trk[0].lsave[1]);
+    check("LFO slots 1 and 3 from LFO1: both knobs modulated", trk[0].lnum == 2u && trk[0].lval[1] != trk[0].lsave[1]);
     check("LFO slots: the UI's live value of a slot-modulated knob", lfo_live(&trk[0], P_E2, &mv) && mv != 64);
     lfo_restore();
     host_init();                                     /* all four slots on four knobs */
-    lfo_q(0, 0)[LF_WAVE] = lfo_q(0, 1)[LF_WAVE] = LW_SQUARE;
+    lfo_q(0, 0)[LF_WAVE] = LW_SQUARE;
     lfo_slot_set(0, 0, 0, 1, 50);
-    lfo_slot_set(0, 1, 1, 2, 50);
+    lfo_slot_set(0, 1, 0, 2, 50);
     lfo_slot_set(0, 2, 0, 3, -50);
-    lfo_slot_set(0, 3, 1, 9, 50);
+    lfo_slot_set(0, 3, 0, 9, 50);
     lfo_apply(CTL);
     check("LFO slots: four slots on four knobs at once", trk[0].lnum == 4u);
     lfo_restore();
@@ -2843,11 +2852,11 @@ static void test_lfo_dest_slots(void)
         v = x > v ? x : v;
         moved1 |= trk[0].lfo[1].ph != 0u;
     }
-    check("LFO slots: two slots of LFO 1 on LVL add and clamp; LFO 2 unused, not computed", v == 127 && !moved1);
+    check("LFO slots: two slots of LFO1 on LVL add and clamp; LFO 2 not computed", v == 127 && !moved1);
     host_init();                                     /* F.CUT through slot 4 */
     trk[0].p[P_FCUT] = 64;
-    lfo_q(0, 1)[LF_WAVE] = LW_SQUARE;
-    lfo_slot_set(0, 3, 1, 11, 64);
+    lfo_q(0, 0)[LF_WAVE] = LW_SQUARE;
+    lfo_slot_set(0, 3, 0, 11, 64);
     lfo_apply(CTL);
     check("LFO slot 4 on F.CUT: the FILTER's CUT", trk[0].p[P_FCUT] != 64 && lfo_live(&trk[0], P_FCUT, &mv));
     lfo_restore();
@@ -2855,7 +2864,7 @@ static void test_lfo_dest_slots(void)
         double c0 = lfo_slots_cost(0), c2 = lfo_slots_cost(1), c4 = lfo_slots_cost(2);
         printf("     LFO cost, host instructions a block (6 tracks): none %.0f, 2 slots (an older project's routes) %.0f, "
                "4 slots %.0f (0e76751, 2 LFOs routed: none 663, 2 routes 3712)\n", c0, c2, c4);
-        check("LFO slots: 4 slots on 2 LFOs cost less than twice the 2 routes (the LFOs are computed once)",
+        check("LFO slots: 4 slots on LFO1 cost less than twice the 2 routes (the LFO is computed once)",
               !c0 || c4 < 2.0 * c2);
     }
 }

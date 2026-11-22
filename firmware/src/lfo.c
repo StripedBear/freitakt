@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: GPL-3.0-only
  * Drum machine fork: 2026 DEADACTIVE */
-/* LFOs: two per track (spec docs/superpowers/specs/2026-10-06-lfo-design.md), routed by 4 DEST slots a track
- * (fixes 2026-10-21 item 3): each slot a SRC (LFO 1 / LFO 2), a DEST (one of the knobs an LFO can target) and its own
- * DEPTH. Waveforms are functions of the phase (2^32 = one cycle) and MORPH; S&H / WANDER / RANDOM WALK keep state.
+/* LFOs (spec docs/superpowers/specs/2026-10-06-lfo-design.md), routed by 4 DEST slots a track (fixes 2026-10-21
+ * item 3): each slot a SRC, a DEST (one of the knobs an LFO can target) and its own DEPTH. FREITAKT (owner 2026-11-22):
+ * one LFO a track, LFO 1 (there is no LFO 2 page): SRC LFO1 or OFF (OFF the value LFO 2 had: a stored LFO 2 routes
+ * nothing); LFO 2's knobs stay in the record, never computed. Waveforms are functions of the phase (2^32 = one cycle) and MORPH; S&H / WANDER / RANDOM WALK keep state.
  * Output Q15, -32767 .. 32767. */
 static uint32_t beat_samples(void);               /* fx.c: a quarter note, the clock's when following */
 _Static_assert(FS == 44100, "lfo_tables.h is made for 44.1 kHz");
@@ -11,7 +12,8 @@ _Static_assert(FS == 44100, "lfo_tables.h is made for 44.1 kHz");
 static const uint16_t LFO_SYNC_TICKS[17] = {3072, 1536, 768, 384, 192, 144, 96, 64, 72, 48, 32, 36, 24, 16, 12, 8, 6};
 
 /* the DEST slots' parameter ids: SRC DEST DEPTH. Slot 1 / 2 are LFO 1's / LFO 2's own DEST and DEPTH (the routing
- * before slots: older projects, motion and MIDI LEARN keep meaning the same), SRC LFO 1 / LFO 2 by default */
+ * before slots: older projects, motion and MIDI LEARN keep meaning the same), SRC LFO1 / OFF by default (slots 3 / 4
+ * too: the values LFO 1 / LFO 2 were) */
 enum { LS_SRC, LS_DEST, LS_DEPTH };
 #define LS_N 4u
 static const uint8_t LS_ID[LS_N][3] = {
@@ -145,17 +147,14 @@ static int32_t lfo_value(track_t *t, uint32_t l, int wrapped)
     return lfo_shape(wave, m, ph);
 }
 
-/* the LFOs of t in mask (bit l) turned on (DEST and DEPTH set): a PLAY LFO joins the cycle it would be in since PLAY
- * (rare: kept out of the per-block loop) */
+/* the LFOs of t in mask (bit l; LFO 1 only since FREITAKT) turned on (a slot on): a PLAY LFO joins the cycle it
+ * would be in since PLAY (rare: kept out of the per-block loop) */
 static __attribute__((noinline)) void lfo_join(track_t *t, uint32_t mask)
 {
-    uint32_t l;
-    for (l = 0; l < 2u; l++) {
-        const int16_t *q = &t->p[l ? P_LFO2 : P_LFO1];
-        if ((mask >> l & 1u) && q[LF_TRIG] == LT_PLAY && song.playing) {
-            t->lfo[l].ph = song.tick * (uint32_t)CTL * lfo_inc(q);
-            t->lfo[l].fresh = 1;
-        }
+    const int16_t *q = &t->p[P_LFO1];
+    if ((mask & 1u) && q[LF_TRIG] == LT_PLAY && song.playing) {
+        t->lfo[0].ph = song.tick * (uint32_t)CTL * lfo_inc(q);
+        t->lfo[0].fresh = 1;
     }
 }
 
@@ -164,7 +163,7 @@ static __attribute__((noinline)) void lfo_join(track_t *t, uint32_t mask)
 static inline __attribute__((always_inline)) void lfo_slot(track_t *t, uint32_t s, int32_t *acc)
 {
     uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, LD_MAX), pid, k;
-    int32_t m = t->lfo[t->p[LS_ID[s][LS_SRC]] ? 1 : 0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
+    int32_t m = t->lfo[0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
     const param_desc_t *d;
     pid = lfo_dest_param(dest);
     if (pid == 0xFFu)
@@ -183,33 +182,28 @@ static inline __attribute__((always_inline)) void lfo_slot(track_t *t, uint32_t 
     acc[k] += m * (d->max - d->min) / 32767;
 }
 
-#define LS_ON(t, s) ((uint32_t)((t)->p[LS_ID[s][LS_DEST]] && (t)->p[LS_ID[s][LS_DEPTH]]) << (s))
-#define LS_SRC_BIT(t, s) ((t)->p[LS_ID[s][LS_SRC]] ? 2u : 1u)
-/* track t: advance its LFOs by n samples (0: none) and write the knobs its DEST slots modulate, saving their set
- * values. An LFO no slot uses (DEST OFF or DEPTH 0) is not computed (its phase waits); the slots' sums are the same
- * terms, in the same order, as the per-LFO routing before slots (an older project sounds the same) */
+/* slot s on: SRC LFO1 (not OFF), a DEST, a DEPTH */
+#define LS_ON(t, s) ((uint32_t)(!(t)->p[LS_ID[s][LS_SRC]] && (t)->p[LS_ID[s][LS_DEST]] && (t)->p[LS_ID[s][LS_DEPTH]]) \
+                     << (s))
+/* track t: advance its LFO by n samples (0: none) and write the knobs its DEST slots modulate, saving their set
+ * values. No slot on (SRC OFF, DEST OFF or DEPTH 0): LFO 1 not computed (its phase waits) */
 static void lfo_track(track_t *t, uint32_t n)
 {
-    uint32_t l, k, used = LS_ON(t, 0) | LS_ON(t, 1) | LS_ON(t, 2) | LS_ON(t, 3), on;
+    uint32_t k, used = LS_ON(t, 0) | LS_ON(t, 1) | LS_ON(t, 2) | LS_ON(t, 3);
     int32_t acc[LS_N];
     if (!used) {                                      /* no slot on: nothing computed, nothing written */
         t->lon = 0;
         return;
     }
-    on = (used & 1u ? LS_SRC_BIT(t, 0) : 0u) | (used & 2u ? LS_SRC_BIT(t, 1) : 0u) |
-         (used & 4u ? LS_SRC_BIT(t, 2) : 0u) | (used & 8u ? LS_SRC_BIT(t, 3) : 0u);
-    if (on & ~(uint32_t)t->lon)
-        lfo_join(t, on & ~(uint32_t)t->lon);
-    t->lon = (uint8_t)on;
-    for (l = 0; l < 2u; l++) {
-        const int16_t *q = &t->p[l ? P_LFO2 : P_LFO1];
-        lfo_state_t *st = &t->lfo[l];
-        uint32_t old, off = (uint32_t)clamp(q[LF_PHASE], 0, 127) << 25;
-        if (!((on >> l) & 1u))
-            continue;                                 /* off: costs nothing (its phase waits) */
-        old = st->ph;
+    if (!(t->lon & 1u))
+        lfo_join(t, 1u);
+    t->lon = 1u;
+    {
+        const int16_t *q = &t->p[P_LFO1];
+        lfo_state_t *st = &t->lfo[0];
+        uint32_t old = st->ph, off = (uint32_t)clamp(q[LF_PHASE], 0, 127) << 25;
         st->ph += lfo_inc(q) * n;
-        st->out = lfo_value(t, l, (n && st->ph + off < old + off) | st->fresh);   /* a new cycle where PHASE puts it,
+        st->out = lfo_value(t, 0, (n && st->ph + off < old + off) | st->fresh);   /* a new cycle where PHASE puts it,
                                                                                    * or a restart */
         st->fresh = 0;
     }
@@ -256,14 +250,13 @@ static void lfo_restore(void)
  * them next) */
 static void lfo_hit(track_t *t)
 {
-    uint32_t l, any = 0;
-    for (l = 0; l < 2u; l++)
-        if (t->p[(l ? P_LFO2 : P_LFO1) + LF_TRIG] == LT_HIT) {
-            t->lfo[l].ph = 0;
-            t->lfo[l].sub = 0;
-            t->lfo[l].fresh = 1;
-            any = 1;
-        }
+    uint32_t any = 0;
+    if (t->p[P_LFO1 + LF_TRIG] == LT_HIT) {
+        t->lfo[0].ph = 0;
+        t->lfo[0].sub = 0;
+        t->lfo[0].fresh = 1;
+        any = 1;
+    }
     if (any && song.lfo_in) {
         lfo_restore_track(t);
         lfo_track(t, 0);
@@ -274,16 +267,15 @@ static void lfo_hit(track_t *t)
  * again from there (this block's hits read them next) */
 static void lfo_start(void)
 {
-    uint32_t i, l;
+    uint32_t i;
     for (i = 0; i < NTRK; i++) {
         track_t *t = &trk[i];
         t->lrng = 0x2545F491u * (i + 1u);
-        for (l = 0; l < 2u; l++)
-            if (t->p[(l ? P_LFO2 : P_LFO1) + LF_TRIG] != LT_FREE) {
-                memset(&t->lfo[l], 0, sizeof t->lfo[l]);
-                t->lfo[l].fresh = 1;
-                t->lon |= (uint8_t)(1u << l);         /* restarted here: no joining */
-            }
+        if (t->p[P_LFO1 + LF_TRIG] != LT_FREE) {
+            memset(&t->lfo[0], 0, sizeof t->lfo[0]);
+            t->lfo[0].fresh = 1;
+            t->lon |= 1u;                             /* restarted here: no joining */
+        }
         if (song.lfo_in) {
             lfo_restore_track(t);
             lfo_track(t, 0);
@@ -299,8 +291,8 @@ static int lfo_live(const track_t *t, uint32_t pid, int32_t *val)
     const param_desc_t *d = track_desc(t, pid);
     for (s = 0; s < LS_N; s++) {
         uint32_t dest = (uint32_t)clamp(t->p[LS_ID[s][LS_DEST]], 0, LD_MAX);
-        int32_t m = t->lfo[t->p[LS_ID[s][LS_SRC]] ? 1 : 0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
-        if (!dest || !t->p[LS_ID[s][LS_DEPTH]])
+        int32_t m = t->lfo[0].out * clamp(t->p[LS_ID[s][LS_DEPTH]], -64, 64) / 64;
+        if (!dest || !t->p[LS_ID[s][LS_DEPTH]] || t->p[LS_ID[s][LS_SRC]])   /* (SRC OFF: routes nothing) */
             continue;
         if (lfo_dest_param(dest) == pid) {
             hit = 1;

@@ -1081,14 +1081,11 @@ static void play_press(void)
 /* fixes 2026-10-21 item 1: OCT+ let go where it was pressed on the steps: alone (no step key accented with it), and the
  * keys still the steps, the next bank; anything else (an accent, another page, the menu, a dialog, the clear or
  * PERFORM up while it was held: acc_oct 2, ui_input) nothing */
-/* OCT+'s page job (an LFO page: the RATE MODE of the LFO turned last) */
+/* OCT+'s page job (an LFO page: LFO 1's RATE MODE, the one LFO since FREITAKT) */
 static void oct_up_job(void)
 {
-    if (!ui.home && cur_fam() == FAM_LFO) {      /* the LFO turned last (DEST: the slot's source): SYNC -> Hz
-                                                         * -> TIME */
-        uint32_t l = cur_page()->graph == GR_LDEST ? (TSEL->p[LS_ID[song.lslot & 3u][LS_SRC]] ? 1u : 0u)
-                                                   : ui.lfo_l & 1u;
-        int16_t *mp = &TSEL->p[(l ? P_LFO2 : P_LFO1) + LF_MODE];
+    if (!ui.home && cur_fam() == FAM_LFO) {      /* SYNC -> Hz -> TIME */
+        int16_t *mp = &TSEL->p[P_LFO1 + LF_MODE];
         *mp = (int16_t)((clamp(*mp, 0, 2) + 1) % 3);
         ui.force = 1;
     }
