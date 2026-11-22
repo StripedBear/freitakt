@@ -206,7 +206,7 @@ const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
   ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 6 && info.pcount === 71
-    && info.gcount === 39 && info.nmodels === 45 && info.nfact === 151 && info.nuser === 96 && info.maxreq === 640
+    && info.gcount === 39 && info.nmodels === 46 && info.nfact === 156 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
   ok(P.classifyPort("Hortator") === "fm1" && P.classifyPort("Hortator 8ch MIDI 1") === "fm1" && P.classifyPort("Felucca") === "fm1"
@@ -238,8 +238,8 @@ const q = (cmd, args) => m.request(cmd, args);
     if (first >= d0.nnames || !d0.items.length) break;
   }
   const ord = q(CMD.DESC, { scope: SCOPE.TRACK, track: NONE, id: 0, first: P.DESC_ORDER });
-  ok(d0.label === "MODEL" && d0.nnames === 45 && same(names, data.models.map((x) => x.name)) && (d0.flags & P.DF.ORDER) && same(ord.items, data.modelList),
-    "DESC: MODEL's 45 names over two replies, its knob order");
+  ok(d0.label === "MODEL" && d0.nnames === 46 && same(names, data.models.map((x) => x.name)) && (d0.flags & P.DF.ORDER) && same(ord.items, data.modelList),
+    "DESC: MODEL's 46 names over two replies, its knob order");
   const div = q(CMD.DESC, { scope: SCOPE.TRACK, track: 0, id: data.P.indexOf("SDIV"), first: P.DESC_ORDER });
   const ldest = q(CMD.DESC, { scope: SCOPE.TRACK, track: 0, id: data.P.indexOf("LFO1_DEST"), first: 0 });
   const e1 = q(CMD.DESC, { scope: SCOPE.TRACK, track: 0, id: 2, first: 0 }), mdl = q(CMD.DESC, { scope: SCOPE.MODEL, track: 0, id: 0, first: 0 });
@@ -267,11 +267,11 @@ const q = (cmd, args) => m.request(cmd, args);
     const out = [];
     for (let first = 0; ;) { const r = q(CMD.NAMES, { bank, first }); out.push(...r.presets); first += r.presets.length; if (first >= r.total || !r.presets.length) return { r, out }; }
   });
-  ok(banks.map((b) => b.out.length).join() === "55,40,56" && banks[0].r.name === "MACHINEDRUM" && banks.flatMap((b) => b.out).every((x, i) => x.id === i && x.name === data.presets[i].name)
+  ok(banks.map((b) => b.out.length).join() === "55,45,56" && banks[0].r.name === "MACHINEDRUM" && banks.flatMap((b) => b.out).every((x, i) => x.id === i && x.name === data.presets[i].name)
     && q(CMD.NAMES, { bank: 3, first: 0 }).rc === RC.BAD, "NAMES: the three factory banks by id, the user bank refused");
   const pl = q(CMD.PRESET_LOAD, { track: 5, id: 60 }), emptyUser = m.upr.findIndex((x) => !x);
   ok(pl.model === data.presets[60].model && q(CMD.DUMP, { track: 5 }).preset === 60
-    && q(CMD.PRESET_LOAD, { track: 5, id: 151 + emptyUser }).detail === DETAIL.PRESET_EMPTY, "PRESET_LOAD: factory preset loaded, an empty user slot refused");
+    && q(CMD.PRESET_LOAD, { track: 5, id: 156 + emptyUser }).detail === DETAIL.PRESET_EMPTY, "PRESET_LOAD: factory preset loaded, an empty user slot refused");
 }
 
 /* patterns: steps, switch-to-edit, locks, cue, save --------------------------------------------- */

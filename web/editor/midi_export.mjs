@@ -22,7 +22,16 @@
 
 export const PPQ = 480;
 /** core.h / dmodels.c model ids whose MIDI note is the step's (params.c arp_model) */
-export const PITCHED = new Set([14, 21, 22, 23]); // SAMPL SKIN FM ACID
+export const PITCHED = new Set([14, 21, 22, 23, 45]); // SAMPL SKIN FM ACID CHORD
+export const CHORD = 45; // the CHORD machine (dm_chord.c): a hit sends its chord's notes; ARP1 one of them a hit
+const CHORD_SHAPE = [[0, 4, 7], [0, 3, 7], [0, 4, 7, 10], [0, 3, 7, 10], [0, 4, 7, 11], [0, 2, 7], [0, 5, 7], [0, 3, 6],
+  [0, 4, 7, 9], [0, 4, 10, 14], [0, 12], [0, 7]]; // MAJ MIN 7 MIN7 MAJ7 SUS2 SUS4 DIM 6 9 OCT 5TH
+/** dm_chord.c chord_notes: shape s inverted inv times (the lowest note up an octave each), lowest first */
+export function chordNotes(s, inv) {
+  const o = [...CHORD_SHAPE[clamp(s | 0, 0, CHORD_SHAPE.length - 1)]];
+  for (let k = 0; k < clamp(inv | 0, 0, 3); k++) o[o.indexOf(Math.min(...o))] += 12;
+  return o.sort((a, b) => a - b);
+}
 export const ACID = 23; // the gated model (dmodel gate): its GATE knob is E7
 const DIV_DEN = [1, 2, 4, 8, 3, 6], DIV_FIT = 10;
 const ARATE_D = [4, 6, 8, 12, 16, 24, 32];
@@ -123,7 +132,9 @@ export function renderTrack(tr, span, opt = {}) {
     const next = steps[(g.idx + 1) % len] ?? { flags: 0 };
     if (amode) { // ARP / RTRG: the roll through this step and the TIE steps after it
       const rate = ARATE_D[clamp(ap.rate | 0, 0, 6)], agate = clamp(ap.gate ?? 50, 1, 100), fade = clamp(ap.fade | 0, -64, 63);
-      const dir = clamp(ap.dir | 0, 0, 3), chord = ARP_CHORD[clamp(ap.chord | 0, 0, 7)], rng4 = clamp(ap.range ?? 1, 1, 4);
+      const dir = clamp(ap.dir | 0, 0, 3), rng4 = clamp(ap.range ?? 1, 1, 4);
+      // ARP1 on CHORD: the machine's own shape and INV, not ARP's CHORD)
+      const chord = model === CHORD ? chordNotes(tr.chord?.[0], tr.chord?.[1]) : ARP_CHORD[clamp(ap.chord | 0, 0, 7)];
       const cn = chord.length, n = cn * rng4, per = dir === 2 && n > 1 ? 2 * n - 2 : n;
       let ai = 0, k = 0, fr = 0, end = g.start + g.len, j = i, rt = at, alive = true;
       const rnote = () => {
@@ -187,7 +198,10 @@ export function renderTrack(tr, span, opt = {}) {
     out.push({ on: h.t, off: h.off, note: h.note, vel: h.vel, legato: false });
   }
   for (const n of out) n.off = Math.min(n.off, span);
-  return out.filter((n) => n.off > n.on);
+  const res = out.filter((n) => n.off > n.on);
+  if (model !== CHORD || amode === 2) return res; // (ARP1 on CHORD: one note a hit)
+  const cn = chordNotes(tr.chord?.[0], tr.chord?.[1]); // a CHORD hit: its chord's notes, together
+  return res.flatMap((n) => cn.map((c) => ({ ...n, note: clamp(n.note + c, 0, 127) })));
 }
 
 /** a part's length: MASTER LENGTH's 1/16s (the global swing's pairs keep it on the beat), else the longest track's
@@ -226,7 +240,7 @@ function mtrk(events) { // [{ t, b: [bytes] }] sorted
 /**
  * The .mid file.
  * song: { bpm, swing (global), mlen (MASTER LENGTH, 0 OFF), name, tracks: [{ model, note (drum's), ch (1..16, 0 OFF),
- *   gate (ACID E7), arp: { mode, rate, gate, fade, dir, chord, range } }] }
+ *   gate (ACID E7), chord (CHORD: [shape E1, INV E2]), arp: { mode, rate, gate, fade, dir, chord, range } }] }
  * parts: [{ label, tracks: [{ len, div, swing, steps[64] }] }] played in order (a chain; one part: a variation)
  * returns { bytes: Uint8Array, notes: [[{ on, off, note, vel, ch }] per track], length (ticks) }
  */

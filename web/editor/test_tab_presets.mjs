@@ -42,12 +42,12 @@ export async function runPresetsTests(log = console.log) {
     /* ---------------------------------------------------------------- factory --- */
     const { m, s, pm } = await open();
     sessions.push(s);
-    ok(pm.banks.map((b) => `${b.name} ${b.presets.length}`).join() === "MACHINEDRUM 55,MODERN 40,CLASSIC 56"
-      && pm.factory().length === 151 && pm.factory().every((p, i) => p.id === i && p.name === data.presets[i].name),
-    "factory: 151 presets in three banks, the device's names and ids");
+    ok(pm.banks.map((b) => `${b.name} ${b.presets.length}`).join() === "MACHINEDRUM 55,MODERN 45,CLASSIC 56"
+      && pm.factory().length === 156 && pm.factory().every((p, i) => p.id === i && p.name === data.presets[i].name),
+    "factory: 156 presets in three banks, the device's names and ids");
     const k808 = pm.factory("k808");
     ok(k808.length > 0 && k808.every((p) => pm.modelNames[p.model] === "K808" || /K808/.test(p.name))
-      && pm.factory("", 1).length === 40 && pm.factory("", 1).every((p) => p.bank === 1) && pm.factory("zzzq").length === 0,
+      && pm.factory("", 1).length === 45 && pm.factory("", 1).every((p) => p.bank === 1) && pm.factory("zzzq").length === 0,
     "factory: search by name or model, filter by bank");
     await s.select(2);
     const id = data.banks[2].start + 3, seen = [], rel = [];

@@ -113,6 +113,13 @@ export async function runMidiExportTests(log = console.log) {
     ok(J(ac.map((n) => [n.on, n.off, n.note])) === J([[0, 120, 60], [120, 240, 62], [360, 480, 65]]), "ACID: SLIDE holds into the next note (legato), GATE 100 %, a rest closes");
     const ac2 = renderTrack({ ...acid, gate: 0, steps: steps((i) => (i === 0 ? step() : rest())) }, 480);
     ok(ac2[0].off === 12, "ACID GATE 0: 10 % of the step");
+    const ch = { len: 4, div: 2, swing: 0, ...drum({ model: 45, chord: [3, 1] }), steps: steps((i) => (i === 0 ? step({ note: 62 }) : rest())) };
+    const cn = renderTrack(ch, 480);
+    ok(J(cn.map((n) => [n.on, n.note])) === J([[0, 65], [0, 69], [0, 72], [0, 74]]), "CHORD MIN7 INV 1 on D: its 4 notes together (F A C D)");
+    const cr = renderTrack({ ...ch, div: 0, arp: { mode: 1, rate: 2, gate: 50, fade: 0 } }, 480);
+    ok(cr.length === 8 && cr[4].on === 240 && J(cr.slice(4).map((n) => n.note)) === J([65, 69, 72, 74]), "CHORD with RTRG: the whole chord each repeat");
+    const ca = renderTrack({ ...ch, div: 0, len: 1, steps: steps(() => step({ note: 60 })), arp: { mode: 2, rate: 4, gate: 50, fade: 0, dir: 0, chord: 7, range: 2 } }, 960);
+    ok(J(ca.map((n) => n.note)) === J([63, 67, 70, 72, 63, 67, 70, 72]), "ARP1 on CHORD: one note a hit, the machine's own shape (MIN7 INV 1: Eb G Bb C), not ARP's CHORD");
   }
 
   /* the Patterns tab against the mock device */
