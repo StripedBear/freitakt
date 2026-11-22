@@ -13,6 +13,7 @@
 | **ARP2** | the arpeggiator MODE over the keys held in KEYS (pitched models): the held notes by pitch in DIR's order over RANGE octaves, a note every RATE; on a step, as ARP1. |
 | **BANK** | 16 steps; a track has up to four. |
 | **BDTRX... SHTRX** | the TRX models of the MD bank (see Sounds). |
+| **CHORD** | the polyphonic chord model (up to four notes, one chord at a time over all tracks); also the ARP page's knob for ARP1's notes. |
 | **CHOKE** | choke group 1 to 4: hits cut others in the group. |
 | **CLK** | clock source: INT, USB, TRS, BLE, LINK (the menu's CLOCK). |
 | **COMP** | the compressor. **GHOST** is its handling of a muted source (MUTE, KEEP, HIDE). |

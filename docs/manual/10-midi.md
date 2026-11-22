@@ -65,7 +65,7 @@ Tap [[GLO]] for **MIDI OUT**, its first page. While playing, every track sends i
 KNOB 2 sets the channel of the selected track (selected as on any page); OFF silences that track's notes only.
 
 - **What is sent**: the sequencer's hits, as the sound engine plays them: every step, RATCH, NUDGE, swing, FIT and MASTER LENGTH, and ARP / RTRG's repeats. The keys' notes go out as before (see *ROUT*), their live ARP / RTRG repeats do not; REPEAT STEP, MIDI in and THRU are not sent again as MIDI OUT notes.
-- **The note**: an ACID, SAMPL, FM or SKIN track sends the note it plays (the step's NOTE, with ARP1's chord and octaves). A drum track sends its **NOTE** knob, the kit's GM note (36 kick, 38 snare, 39 clap, 42 closed hat ...).
+- **The note**: an ACID, SAMPL, FM or SKIN track sends the note it plays (the step's NOTE, with ARP1's chord and octaves). A CHORD track sends its chord's notes (up to four, on and off together), or with ARP1 the one note each hit plays. A drum track sends its **NOTE** knob, the kit's GM note (36 kick, 38 snare, 39 clap, 42 closed hat ...).
 - **Velocity**: 127 on an accented step, else 96; ARP / RTRG's FADE lowers its repeats.
 - **Note Off**: ACID when its gate closes (a SLIDE plays legato: the new note before the old one's Off); other tracks after the step (or the RATCH / repeat). One note a track at a time.
 - **No hanging notes**: STOP, PLAY again, muting a track or soloing another sends the Note Offs at once; if a Note Off was lost, STOP also sends All Notes Off (CC 123) on the channels played.

@@ -158,12 +158,29 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <code>LVL</code> (громкость), <code>PAN</code>, <code>NOTE</code> (MIDI-нота трека), <code>CHOKE</code> (группа глушения OFF/1–4)
 и <code>PRIO</code> (приоритет голоса HIGH/LOW). Число страниц зависит от машины:
 3 у простых машин, 4 у машин с 7–8 ручками (ACID, FM, SKIN, *EFM, большинство *TRX), 5 у SAMPL.</p>
-<p><code>MODEL</code> показывает машину и имя пресета. Поворот <kbd class="k">KNOB 1</kbd> перебирает 45 машин по кругу:</p>
+<p><code>MODEL</code> показывает машину и имя пресета. Поворот <kbd class="k">KNOB 1</kbd> перебирает 46 машин по кругу:</p>
 <p class="mono">BDTRX SDTRX TMTRX CGTRX CPTRX RSTRX CBTRX CHTRX OHTRX CYTRX SHTRX CLTRX B2TRX ·
-BDEFM SDEFM TMEFM CPEFM RSEFM CBEFM HHEFM CYEFM · BOOM PUNCH SNAP CRACK METAL HISS SKIN FM ACID SAMPL ·
+BDEFM SDEFM TMEFM CPEFM RSEFM CBEFM HHEFM CYEFM · BOOM PUNCH SNAP CRACK METAL HISS SKIN FM ACID CHORD SAMPL ·
 K808 K909 S808 S909 C808 C909 HATC HATO CYMB COWB TOM CONGA RIM CLAVE</p>
 <p>У всех машин первые ручки — <code>TUNE</code> и <code>DECAY</code>. Белые 1–6 выбирают трек.
 С удержанным шагом в режиме STEPS ручки ставят parameter lock, а <code>MODEL</code> — machine lock (см. <a href="#locks">раздел 4</a>).</p>
+<p><b>CHORD</b> — полифоническая машина аккордов (как CHORD в Elektron Model:Cycles): до четырёх осцилляторов играют аккорд
+от ноты (TUNE + NOTE шага, клавиша KEYS или MIDI-нота; C4 — корень при TUNE 0). Страница 1: <code>TUNE</code>, <code>CHORD</code>,
+<code>INV</code>, <code>DECAY</code>; страница 2: <code>WAVE</code>, <code>TONE</code>, <code>ATTACK</code>, <code>DETUNE</code>.</p>
+<ul>
+<li><code>CHORD</code> — форма: MAJ (0 4 7), MIN (0 3 7), 7 (0 4 7 10), MIN7 (0 3 7 10), MAJ7 (0 4 7 11), SUS2 (0 2 7), SUS4 (0 5 7),
+DIM (0 3 6), 6 (0 4 7 9), 9 (0 4 10 14: прима, терция, септима, нона — квинта выброшена, чтобы уложиться в 4 ноты), OCT (0 12), 5TH (0 7).</li>
+<li><code>INV</code> 0–3 — обращение: каждое деление переносит нижнюю ноту на октаву вверх (MAJ от C с INV 1 — E G C).</li>
+<li><code>DECAY</code> — затухание после закрытия гейта, 5 мс … ~4 с; <code>ATTACK</code> — нарастание 1 мс … 2 с (доигрывает до конца даже на коротком шаге).</li>
+<li><code>WAVE</code> — SAW, SQR (с подавлением алиасинга) или SIN; <code>TONE</code> — мягкий ФНЧ (~100 Гц на 0, открыт на 127);
+<code>DETUNE</code> — лёгкая расстройка нот аккорда (до ~30 центов на крайних), корень остаётся в строю.</li>
+<li>Гейт — как у SAMPL с SUS: аккорд держится длину шага (у ролла — GATE повтора), через TIE-шаги и пока держится клавиша, пэд или MIDI-нота; затем DECAY.</li>
+<li><b>Один аккорд на всю машину.</b> Движок аккорда один: новый удар CHORD с любого трека (его MODEL или machine lock шага) заменяет звучащий
+аккорд с коротким затуханием, без щелчка. Аккорд звучит через трек последнего удара (его LEVEL, PAN, FILTER, INSERT, посылы FX);
+остальные треки играют как обычно. Нагрузка на процессор — не больше одного аккорда из 4 нот (примерно как один голос ACID).</li>
+<li>С MODE: RTRG повторяет весь аккорд; ARP1 играет ноты аккорда по одной (форма и INV самой машины, ручка CHORD страницы ARP не используется);
+ARP2 по клавишам KEYS играет целый аккорд на каждой удержанной клавише по очереди. MIDI OUT шлёт ноты аккорда (до четырёх вместе), с ARP1 — по одной.</li>
+</ul>
 
 <h3 id="presets">Пресеты</h3>
 <div class="shots">{{shot:presets/06_list.png|Список пресетов (удержание EDIT)}}{{shot:presets/01_popup.png|Экран пресетов (энкодер PRESETS)}}</div>
@@ -187,7 +204,7 @@ K808 K909 S808 S909 C808 C909 HATC HATO CYMB COWB TOM CONGA RIM CLAVE</p>
 {{screen:04_arp.png|ARP 1}}
 <p><b>Как открыть:</b> держите <kbd>ARP</kbd> и нажмите <kbd>EDIT</kbd>. Следующее <kbd>ARP</kbd> + <kbd>EDIT</kbd> откроет ARP 2.
 Страницы ARP также идут в цикле <kbd>EDIT</kbd> сразу после SOUND.</p>
-<table><thead><tr><th>Ручка</th><th>ARP 1</th><th>ARP 2 (только у ACID, SAMPL, FM, SKIN)</th></tr></thead><tbody>
+<table><thead><tr><th>Ручка</th><th>ARP 1</th><th>ARP 2 (только у ACID, SAMPL, FM, SKIN, CHORD)</th></tr></thead><tbody>
 <tr><td>1</td><td><code>MODE</code>: OFF / RTRG / ARP1 / ARP2 (ARP1 и ARP2 — только у машин с высотой тона)</td><td><code>DIR</code>: UP DOWN UPDN RND</td></tr>
 <tr><td>2</td><td><code>RATE</code>: 1/4 4T 1/8 8T 1/16 16T 1/32 (по умолчанию 1/16)</td><td><code>CHORD</code>: OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 (ARP2 его не использует)</td></tr>
 <tr><td>3</td><td><code>GATE</code>: 0–100 % (50)</td><td><code>RANGE</code>: 1–4 октавы</td></tr>
@@ -378,7 +395,7 @@ ATK/SUS/REL/LOOP/PLAY сэмплера, RATE/MORPH/DEPTH LFO, все парам�
 {{shot:popup_lock.png|Значение лока во всплывающем окне — инверсно}}
 
 <h3 id="arpseq">ARP и RTRG в секвенсоре</h3>
-<p><b>RTRG</b> (ретриггер) — дробь одного удара на всё время шага с частотой RATE. <b>ARP1</b> (только ACID, SAMPL, FM, SKIN) играет аккорд CHORD
+<p><b>RTRG</b> (ретриггер) — дробь одного удара на всё время шага с частотой RATE. <b>ARP1</b> (только ACID, SAMPL, FM, SKIN, CHORD; у CHORD — ноты его собственного аккорда) играет аккорд CHORD
 от ноты шага в направлении DIR на RANGE октав. <b>ARP2</b> — классический арпеджиатор по удержанным клавишам в режиме KEYS; на шаге (одна нота) звучит как ARP1.
 Старое значение ARP в проектах открывается как ARP1; на барабанах ARP1/ARP2 звучат как RTRG. Ролл длится от удара до конца шага (с учётом TIE) или до следующего удара и заменяет RATCH.
 RATE считается от длины шага трека (со свингом и FIT). FADE гасит или поднимает повторы. Все параметры ARP можно лочить по шагам.</p>
