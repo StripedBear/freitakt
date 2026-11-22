@@ -29,7 +29,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
 | **SCL** | Labelled SEL. KEYS is on at power-on (SEL lit); a tap (on the release, no key pressed while held) toggles it. While SEL is lit the keys play the selected track chromatically on every page, TRACKS and COMP included. **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): MIDI OUT, DLY 1, DLY 2, REVERB and CHORUS (5 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
-| **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
+| **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2 and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 carousel pages, the next one each tap; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s (on any page): a fill. **REC + SEL held 5 s**: clear the selected track; **SAVE / GLO + REC**: copy (see *Combos*). See *Playing and recording*. |

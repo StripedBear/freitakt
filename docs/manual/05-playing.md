@@ -8,6 +8,7 @@ Tap [[SCL]] (labelled SEL; on its release): the 27 keys play the selected track 
 - With KEYS on, [[OCT-]] / [[OCT+]] are the octave. The LFO pages' RATE MODE needs KEYS off.
 - On TRACKS the OCT buttons remain the bank.
 - TRACKS, COMP, NAME, the menu, PERFORM (FX held), the combos (GLO, SEL, SEQ or ARP held) and the cue map (SAVE held) keep their own key jobs.
+- The selected track's **MODE** (ARP page) plays the keys live: RTRG repeats the held key, ARP1 arpeggiates its note, ARP2 arpeggiates all held keys (up to 8), at RATE, on the tempo and the track's swing, playing or stopped. Let go and it stops. See *Sequencer, ARP and RETRIG*.
 - KEYS notes send **no MIDI out**. An ACID note (or a tied chain) longer than 5.5 s is cut, a safety limit.
 - [[ENV]] turns KEYS off, and [[SCL]] turns STEPS off.
 
@@ -54,7 +55,7 @@ Black keys 1 to 6 (F#3 G#3 A#3 C#4 D#4 F#4) are tracks 1 to 6. Hold a button and
 | --- | --- |
 | [[SEQ]] + black 1 to 6 | toggle the mute of tracks 1 to 6 (their LEDs lit while heard, while SEQ is held) |
 | [[ARP]] + black 1 to 6 | **solo** tracks 1 to 6 (several at once; their LEDs lit while soloed, while ARP is held) |
-| [[ARP]] + [[EDIT]] | the selected track's ARP page (ARP / RTRG, see Sequencer); solo is not touched |
+| [[ARP]] + [[EDIT]] | the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2, see Sequencer; the MODE also plays the KEYS live); solo is not touched |
 | [[ARP]] + F#5 | solo mode: **TOGGLE** (a press solos / unsolos) or **MOMENTARY** (soloed only while the key is held, also after ARP is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`; F#5 lit while MOMENTARY) |
 | [[SCL]] (SEL) + black 1 to 6 | select track 1 to 6 (its key lit while SEL is held) |
 

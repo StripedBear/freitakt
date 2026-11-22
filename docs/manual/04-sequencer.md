@@ -27,20 +27,22 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and o
 
 ## ARP and RETRIG
 
-Each track has a MODE: **OFF**, **RTRG** (retrig) or **ARP**, one at a time. Open its page with [[ARP]] + [[EDIT]] (hold ARP, press EDIT; press EDIT again for page 2), or turn EDIT's pages to the end: page 1 is MODE, RATE, GATE, FADE; page 2 is DIR, CHORD, RANGE.
+Each track has a MODE: **OFF**, **RTRG** (retrig), **ARP1** or **ARP2**, one at a time. Open its page with [[ARP]] + [[EDIT]] (hold ARP, press EDIT; press EDIT again for page 2), or turn EDIT's pages to the end: page 1 is MODE, RATE, GATE, FADE; page 2 is DIR, CHORD, RANGE.
 
 | Knob | What it does | Values |
 | --- | --- | --- |
-| **MODE** | OFF, RTRG or ARP. A drum model offers OFF / RTRG only | OFF RTRG ARP |
+| **MODE** | OFF, RTRG, ARP1 or ARP2. A drum model offers OFF / RTRG only | OFF RTRG ARP1 ARP2 |
 | **RATE** | the time between repeats | 1/4 4T 1/8 8T 1/16 16T 1/32 (T: triplet) |
 | **GATE** | a repeat's length, for the models with a gate (ACID, SAMPLE with SUS) | 0 to 100 % |
 | **FADE** | each repeat's velocity: below 0 fades down (to silence at -64), above 0 rises from quiet to the hit's, 0 flat | -64 to +63 |
-| **DIR** | ARP's order | UP DOWN UPDN RND |
-| **CHORD** | ARP's notes above the step's note | OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 |
-| **RANGE** | ARP's octaves | 1 to 4 |
+| **DIR** | ARP1's and ARP2's order | UP DOWN UPDN RND |
+| **CHORD** | ARP1's notes above the step's note (ARP2 ignores it) | OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 |
+| **RANGE** | ARP1's and ARP2's octaves | 1 to 4 |
 
 - **RTRG** repeats each hit of the track at RATE from the hit until its step ends (on through TIE steps after it) or the next hit, whichever comes first. A rest, a skipped step, REPEAT STEP or a restart ends it.
-- **ARP** plays the step's note spread by CHORD over RANGE octaves in DIR's order, one note every RATE, for as long as RTRG would. RND picks at random, the same notes after every PLAY. ARP is for the models that play notes: ACID, SAMPLE, FM and SKIN. On the drums MODE stops at RTRG, and an ARP that a drum inherits (a model change, a lock) plays as RTRG. Only sequenced steps are arpeggiated; notes played live in KEYS are not.
+- **ARP1** plays the step's note spread by CHORD over RANGE octaves in DIR's order, one note every RATE, for as long as RTRG would. RND picks at random, the same notes after every PLAY. ARP1 and ARP2 are for the models that play notes: ACID, SAMPLE, FM and SKIN. On the drums MODE stops at RTRG, and an ARP1 / ARP2 that a drum inherits (a model change, a lock, an older project's ARP) plays as RTRG. A project saved with the old **ARP** opens as ARP1.
+- **ARP2** is the classic arpeggiator over the keys you hold in KEYS (see below). A sequenced step has one note, so on a step ARP2 plays as ARP1.
+- **Live in KEYS**: the selected track's MODE also applies to the keys. RTRG repeats the held key at RATE (with GATE and FADE) until you let go. ARP1 arpeggiates the held key's note; another key (mono, legato as always) restarts from the new note. ARP2 arpeggiates all held keys (up to 8), sorted by pitch, in DIR's order over RANGE octaves; adding or releasing a key changes the notes without restarting the timing, and letting go of the last key stops it (the last note's gate ends normally). The timing follows the tempo and the track's swing: while playing it is on the track's own steps, while stopped it runs free at the tempo from the moment you press. Letting go, STOP, selecting another track or leaving KEYS ends it. The repeats are not sent to MIDI OUT (the keys never are), and recording records the note you press, not the repeats: the step's MODE plays them back.
 - The repeats stay on the step's grid. With swing, a long step's repeats are spread over it and a short step's are squeezed. With FIT divisions they follow the step's own length, so nothing drifts at any tempo or clock.
 - While MODE is on, a step's RATCH is ignored: the roll replaces the ratchet. With MODE OFF, RATCH works as before.
 - All seven are track parameters, so a step can **lock** them: in STEPS mode hold a step and turn the knob. MODE can be locked too, so one step can roll while the rest of the track stays OFF (or the other way around). They are saved with the project.
