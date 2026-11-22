@@ -164,12 +164,27 @@ static int trk_silent(const track_t *t)
 
 static void mon_hit(track_t *t, uint32_t vel);   /* midi_out.c: MIDI OUT, the sequencer's hit */
 
+/* dm_chord.c chord_trigger: CHORD's voice v of track t starts: any other CHORD voice sounding (any track: its MODEL or a
+ * machine lock's) stops, its declick tail fading it (one chord at a time) */
+static void chord_claim(track_t *t, dvoice_t *v)
+{
+    uint32_t i, k;
+    (void)t;
+    for (i = 0; i < NTRK; i++)
+        if (trk[i].model == DM_CHORD)
+            for (k = 0; k < NDV; k++)
+                if (trk[i].v[k].active && &trk[i].v[k] != v)
+                    dv_cut(&trk[i], &trk[i].v[k]);
+}
+
 /* one hit of track t at velocity vel (1..127), playing note nt (an offset from C4) */
 static void drum_play(track_t *t, uint32_t vel, int32_t nt)
 {
     const dmodel_t *m = trk_model(t);
     uint32_t i, nv = m->voices < NDV ? m->voices : NDV;
     dvoice_t *v;
+    chord_mono = chord_one;                         /* (seq.c: ARP1's note on a CHORD voice: one note) */
+    chord_one = 0;
     t->nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
     if (safe_start)
         return;
@@ -198,14 +213,15 @@ static void drum_play(track_t *t, uint32_t vel, int32_t nt)
 
 static uint32_t hit_gate_len(const track_t *t);          /* seq.c */
 
-/* ---- the SAMPLE model's held notes (dm_sample.c ATK SUS REL): a KEYS key, a pad, a MIDI note holds the gate of the
- * voice its hit started (age above a: dvage before the hit) until let go; a TIE step holds the sounding one on */
+/* ---- the SAMPLE model's held notes (dm_sample.c ATK SUS REL; CHORD's too, dm_chord.c): a KEYS key, a pad, a MIDI
+ * note holds the gate of the voice its hit started (age above a: dvage before the hit) until let go; a TIE step holds the sounding one on */
 #define SH_KEYS (1u << 16)                               /* who holds: the KEYS keyboard */
 #define SH_PAD (2u << 16)                                /* .. | the track: its pad */
 #define SH_MIDI (3u << 16)                               /* .. | channel << 8 | note */
 static int smpl_gated(const track_t *t, const dvoice_t *v)   /* a SAMPLE voice with SUS, its gate open */
 {
-    return v->active && t->model % NMODELS == DM_SMPL && (v->k[2] & (SE_SUS | SE_REL)) == SE_SUS;
+    return v->active && (t->model % NMODELS == DM_SMPL || t->model % NMODELS == DM_CHORD) &&
+           (v->k[2] & (SE_SUS | SE_REL)) == SE_SUS;     /* (CHORD's gate: the same fields) */
 }
 static void smpl_hold(track_t *t, uint32_t who, uint32_t a)
 {

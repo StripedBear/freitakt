@@ -355,7 +355,17 @@ static void roll_next(roll_t *r, const track_t *t, uint32_t cur_len)
  * place i (UP, DOWN, UPDN: up and down, the ends once; RND: any), i moved on */
 static int32_t roll_note(roll_t *r)
 {
-    uint32_t c = r->chord & 7u, cn = r->arp == 2u ? kr.n : ARP_CN[c], n = cn * r->range, per, p, i;
+    uint32_t c = r->chord, cn, n, per, p, i;
+    int32_t o[4];
+    if (r->arp == 2u) {
+        cn = kr.n;
+    } else if (c & 0x80u) {
+        cn = chord_notes((int32_t)(c >> 2) & 31, (int32_t)c & 3, o);   /* (a CHORD voice: its own CHORD and INV) */
+    } else {
+        for (cn = ARP_CN[c & 7u], i = 0; i < cn; i++)
+            o[i] = ARP_CHORD[c & 7u][i];
+    }
+    n = cn * r->range;
     if (!r->arp || !n)
         return r->nt;
     per = r->dir == 2u && n > 1u ? 2u * n - 2u : n;
@@ -367,7 +377,7 @@ static int32_t roll_note(roll_t *r)
     } else {
         i = r->dir == 1u ? n - 1u - p : p < n ? p : per - p;
     }
-    return (r->arp == 2u ? kr.nt[i % cn] : r->nt + ARP_CHORD[c][i % cn]) + 12 * (int32_t)(i / cn);
+    return (r->arp == 2u ? kr.nt[i % cn] : r->nt + o[i % cn]) + 12 * (int32_t)(i / cn);
 }
 /* FADE: the velocity of the roll's hit k (0: the first), below 1 not played */
 static int32_t roll_vel(const roll_t *r)
@@ -393,6 +403,10 @@ static void roll_knobs(roll_t *r, const track_t *t)
     r->gate = (uint8_t)clamp(t->p[P_AGATE], 1, 100);
     r->dir = (uint8_t)clamp(t->p[P_ADIR], 0, 3);
     r->chord = (uint8_t)clamp(t->p[P_ACHORD], 0, 7);
+    if (voice_model(t) == DM_CHORD)                  /* CHORD: ARP1 plays its own chord's notes, one by one (0x80 |
+                                                      * CHORD << 2 | INV) */
+        r->chord = (uint8_t)(0x80u | (uint32_t)clamp(t->p[P_E1], 0, CHORD_NS - 1) << 2 |
+                             (uint32_t)clamp(t->p[P_E2], 0, 3));
     r->range = (uint8_t)clamp(t->p[P_ARANGE], 1, 4);
 }
 /* a roll starts: arp 0 RTRG, 1 ARP1, 2 ARP2; note nt, velocity vel; t's knobs; its first hit next */
@@ -423,6 +437,7 @@ static int32_t roll_begin(track_t *t, int32_t nt, uint32_t *vel)
     t->ar.k = 1;
     roll_next(&t->ar, t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));
     ar_glen = roll_gate(&t->ar, (uint32_t)t->ar.at);
+    chord_one = (uint8_t)(t->ar.arp == 1u && voice_model(t) == DM_CHORD);   /* (ARP1 on CHORD: one note a hit) */
     return roll_note(&t->ar);
 }
 /* a roll's hit: the next note at FADE's velocity (faded out: none; down: the roll over), the repeat after it placed
@@ -438,6 +453,7 @@ static void roll_hit(track_t *t, roll_t *r, uint32_t cur_len)
         return;
     }
     ar_glen = roll_gate(r, (uint32_t)(r->at - at));
+    chord_one = (uint8_t)(r->arp == 1u && voice_model(t) == DM_CHORD);   /* (ARP1 on CHORD: one note a hit) */
     drum_play(t, (uint32_t)v, nt);
     if (trk_model(t)->gate) {
         t->gate_n = ar_glen;                         /* ACID: each its gate */

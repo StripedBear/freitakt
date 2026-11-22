@@ -33,9 +33,10 @@
  * track n on channel n by default): the sequencer's hits (seq_tick: the steps, RATCH, MICRO, ARP / RTRG's repeats; not
  * REPEAT STEP, the keys (keyboard_block sends theirs), MIDI in) as Note On / Off, scheduled in the Clocks' queue from
  * the block the voice starts in (drum_play's mon_hit: mon_seq), timed as a Clock is. The note: a pitched model's
- * (arp_model: ACID SAMPL FM SKIN, the hit's machine) the hit's own (60 + its offset from C4: the step's NOTE, ARP's
- * chord and octaves); a drum's the track's NOTE (P_NOTE, the kit's GM note). The velocity: the hit's (ACC 127, else 96,
- * RTRG / ARP's FADE). One note a track at a time (a new hit ends the sounding one first; an ACID slide sends the new
+ * (arp_model: ACID SAMPL FM SKIN CHORD, the hit's machine) the hit's own (60 + its offset from C4: the step's NOTE,
+ * ARP's chord and octaves; CHORD's hit: its chord's notes, up to 4, Ons and Offs together, the Ons only with room for
+ * all of them; ARP1's hit on CHORD: its one note); a drum's the track's NOTE (P_NOTE, the kit's GM note). The
+ * velocity: the hit's (ACC 127, else 96, RTRG / ARP's FADE). One note a track at a time (a new hit ends the sounding one first; an ACID slide sends the new
  * note before the old one's Off: legato). Its Off: a gated model's (ACID) when its gate closes; any other's after
  * its length (a roll's hit: GATE of its repeat; else the step, swung, / RATCH), counted in blocks (mon_post). STOP,
  * PLAY again, the track muted (or another soloed): the Off at once. The Off goes to the channel and ports its On went
@@ -81,6 +82,7 @@ static uint8_t mon_seq;                             /* seq_tick running: drum_pl
 static struct {
     uint8_t nt[NTRK], ch[NTRK], po[NTRK];           /* the sounding note, its channel 0..15, its ports (0: none) */
     uint8_t gate[NTRK];                             /* .. a gated model's: its Off when the gate closes */
+    uint8_t cn[NTRK], cx[NTRK][3];                  /* .. a CHORD's: its notes over the first (nt), up to 3 */
     uint32_t left[NTRK];                            /* .. else the samples to its Off */
     uint32_t on;                                    /* bit per track: a note sounding */
     uint32_t used;                                  /* bit per channel: notes since PLAY (All Notes Off when lost) */
@@ -146,6 +148,10 @@ static void mon_off(uint32_t k)                     /* track k's sounding note e
     mon.on &= ~(1u << k);
     if (!mout_put(0x08u | (0x80u | mon.ch[k]) << 8 | (uint32_t)mon.nt[k] << 16 | 0x40u << 24, mon.po[k], 0))
         mon.lost++, mon.lostf = 1;
+    while (mon.cn[k])                               /* (a CHORD's other notes) */
+        if (!mout_put(0x08u | (0x80u | mon.ch[k]) << 8 | (uint32_t)mon.cx[k][--mon.cn[k]] << 16 | 0x40u << 24,
+                      mon.po[k], 0))
+            mon.lost++, mon.lostf = 1;
 }
 static void mon_all_off(void)                       /* STOP, PLAY: every Off; a lost one: All Notes Off */
 {
@@ -165,7 +171,9 @@ static void mon_all_off(void)                       /* STOP, PLAY: every Off; a 
 static __attribute__((noinline)) void mon_note(track_t *t, uint32_t vel, int legato)
 {
     uint32_t k = trk_index(t), po = (uint32_t)song.g[G_MOUT] & SY_ALL, ch = (uint32_t)song.g[G_MCH1 + k], nt, len;
+    uint32_t cn = 1, i, base = 0;
     uint32_t was = (mon.on >> k) & 1u, ont = mon.nt[k];
+    int32_t co[4];
     if (!po || ch - 1u > 15u || trk_silent(t)) {
         mon_off(k);
         return;
@@ -175,7 +183,14 @@ static __attribute__((noinline)) void mon_note(track_t *t, uint32_t vel, int leg
         return;                                     /* (slid into the same note: it goes on) */
     if (!legato)
         mon_off(k);                                 /* one note a track: the sounding one ends first */
-    if (mout.w - mout.r > MOUT_Q - MON_ROOM) {      /* (the Offs and the Clocks keep their room) */
+    if (voice_model(t) == DM_CHORD && !chord_mono) {   /* CHORD: its chord's notes, lowest first (ARP1's hit: its
+                                                         * one note) */
+        cn = chord_notes(t->p[P_E1], t->p[P_E2], co);
+        base = nt;
+        nt = (uint32_t)clamp((int32_t)base + co[0], 0, 127);
+    }
+    if (mout.w - mout.r > MOUT_Q - MON_ROOM - (cn - 1u)) {   /* (the Offs and the Clocks keep their room; a chord's
+                                                             * notes go all or none) */
         mon.drops++;
         if (legato)
             mon_off(k);
@@ -184,6 +199,12 @@ static __attribute__((noinline)) void mon_note(track_t *t, uint32_t vel, int leg
     vel = vel < 1u ? 1u : vel > 127u ? 127u : vel;
     (void)mout_put(0x09u | (0x90u | (ch - 1u)) << 8 | nt << 16 | vel << 24, po, 0);
     mon.notes++;
+    for (mon.cn[k] = 0, i = 1; i < cn; i++) {
+        uint32_t cnt = (uint32_t)clamp((int32_t)base + co[i], 0, 127);
+        (void)mout_put(0x09u | (0x90u | (ch - 1u)) << 8 | cnt << 16 | vel << 24, po, 0);
+        mon.cx[k][mon.cn[k]++] = (uint8_t)cnt;
+        mon.notes++;
+    }
     if (legato && was && (ont != nt || mon.ch[k] != ch - 1u))
         (void)mout_put(0x08u | (0x80u | mon.ch[k]) << 8 | ont << 16 | 0x40u << 24, mon.po[k], 0);
     mon.on |= 1u << k;

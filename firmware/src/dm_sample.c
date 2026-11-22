@@ -573,6 +573,7 @@ SMP_COLD static int smp_steps(dvoice_t *v, const smp_zone_t *z, uint32_t m)
 /* one block: amplitude env[0] (env * k[0] + c a sample), gain Q15, one-pole tone lp (Q15 coefficient), drive 0..127.
  * Returns 0 when the sample (to its END) or its envelope has ended (the voice is then off). An output sample whose
  * source steps reach the bound (ph[2]: END, or LOOP's next point) takes them one at a time (smp_steps, smp_edge) */
+__attribute__((noinline))   /* (a function of its own: the target budget counts it; CHORD's added code made GCC inline it) */
 static int smp_render(dvoice_t *v, int32_t *out, uint32_t n, int32_t gain, int32_t lp, int32_t drv, int32_t c)
 {
     voice_t *s = &v->sv;

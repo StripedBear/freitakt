@@ -769,8 +769,8 @@ static void test_acid_cap(void)
     song.sel = 2;
     old_set_model(&trk[2], DM_FM);
     model_step(1);
-    check("ACID cap: a 3rd track's MODEL knob goes past ACID (full) to the next model in the list (SMPL)",
-          trk[2].p[P_MODEL] == DM_SMPL && str_eq(ui.msg, "ACID: 2 TRACKS MAX"));
+    check("ACID cap: a 3rd track's MODEL knob goes past ACID (full) to the next model in the list (CHORD)",
+          trk[2].p[P_MODEL] == DM_CHORD && str_eq(ui.msg, "ACID: 2 TRACKS MAX"));
     model_step(-1);
     check("ACID cap: back down, past ACID (full) to FM", trk[2].p[P_MODEL] == DM_FM);
     old_set_model(&trk[1], DM_K808);                /* a place frees */

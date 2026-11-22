@@ -62,7 +62,7 @@ static const preset_t PRE_FACTORY[] = {
     {DM_CYEFM, {-15, 77, 57, 44, 0, 0, 0, 0}, "LOWCHIME"},
     {DM_CYEFM, {0, 25, 64, 0, 127, 127, 127, 0}, "FMSPLASH"},
     {DM_CYEFM, {5, 81, 126, 119, 8, 40, 91, 0}, "SIZZRIDE"},
-    /* MODERN / PLAITS (ACID, SMPL included): 40 */
+    /* MODERN / PLAITS (ACID, CHORD, SMPL included): 45 */
     {DM_KBOOM, {0, 64, 64, 32, 0, 0, 0, 0}, "BOOMBD"},
     {DM_KBOOM, {-4, 110, 40, 20, 0, 0, 0, 0}, "LONGBOOM"},
     {DM_KBOOM, {2, 50, 90, 100, 0, 0, 0, 0}, "PUNCHER"},
@@ -99,6 +99,11 @@ static const preset_t PRE_FACTORY[] = {
     {DM_ACID, {-12, 30, 20, 30, 30, 40, 0, 70}, "DEEPBASS"},
     {DM_ACID, {0, 80, 60, 115, 100, 100, 0, 56}, "SCREAMER"},
     {DM_ACID, {0, 60, 50, 80, 70, 64, 1, 40}, "SQUAREAC"},
+    {DM_CHORD, {0, 1, 0, 40, 0, 80, 0, 20}, "MINSTAB"},
+    {DM_CHORD, {0, 3, 0, 55, 1, 45, 0, 30}, "DUBCHORD"},
+    {DM_CHORD, {0, 4, 1, 110, 0, 60, 80, 70}, "SOFTPAD"},
+    {DM_CHORD, {0, 9, 2, 90, 2, 127, 8, 8}, "GLASSORG"},
+    {DM_CHORD, {-12, 11, 0, 60, 0, 100, 0, 40}, "POWER5"},
     {DM_SMPL, {0, 127, 127, 0, 0, -16, 0, 127}, "SMPKICK"},
     {DM_SMPL, {0, 127, 127, 0, 0, -6, 0, 127}, "TAMBO"},
     {DM_SMPL, {0, 127, 110, 0, 0, -3, 0, 127}, "SHAKER"},
@@ -162,7 +167,7 @@ static const preset_t PRE_FACTORY[] = {
     {DM_CLAVE, {-2, 60, 20, 100, 0, 0, 0, 0}, "BLIP"},
 };
 #define PRE_NFACT ((uint32_t)(sizeof PRE_FACTORY / sizeof PRE_FACTORY[0]))
-typedef char pre_nfact_is[PRE_NFACT == 151u ? 1 : -1];
+typedef char pre_nfact_is[PRE_NFACT == 156u ? 1 : -1];
 /* each factory preset's uid (the same order): a project's reference (append-only: never reused) */
 static const uint16_t PRE_UID[] = {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
@@ -170,12 +175,12 @@ static const uint16_t PRE_UID[] = {
     33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
     49, 50, 51, 52, 53, 54, 55, 112, 113, 114, 115, 116, 117, 118, 119, 120,
     121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136,
-    137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 56,
-    57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72,
-    73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88,
-    89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
-    105, 106, 107, 108, 109, 110, 111,
+    137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 152, 153, 154, 155, 156,
+    148, 149, 150, 151, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67,
+    68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83,
+    84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99,
+    100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111,
 };
 typedef char pre_uid_n[sizeof PRE_UID / sizeof PRE_UID[0] == PRE_NFACT ? 1 : -1];
 /* each bank's first id; PRE_BANK_START[PB_N]: the end of the user bank */
-static const uint16_t PRE_BANK_START[PB_N + 1] = {0, 55, 95, PRE_NFACT, PRE_NFACT + PRE_NUSER};
+static const uint16_t PRE_BANK_START[PB_N + 1] = {0, 55, 100, PRE_NFACT, PRE_NFACT + PRE_NUSER};

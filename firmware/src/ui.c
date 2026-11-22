@@ -669,12 +669,12 @@ static void drum_boot_init(void)
 }
 
 /* the MODEL knob's list (fix 8, owner 2026-10-21): MD -> MODERN -> CLASSIC, as the preset banks; within MD and CLASSIC
- * the enum's order, MODERN as its bank (ACID, SMPL last). Only the order shown: the models keep their numbers (projects
- * store them, dmodels.c) */
+ * the enum's order, MODERN as its bank (ACID, CHORD, SMPL last). Only the order shown: the models keep their numbers
+ * (projects store them, dmodels.c) */
 static const uint8_t MODEL_LIST[NMODELS] = {
     DM_KTRX, DM_SDTRX, DM_XTTRX, DM_XCTRX, DM_CPTRX, DM_RSTRX, DM_CBTRX, DM_CHTRX, DM_OHTRX, DM_CYTRX, DM_MATRX, DM_CLTRX,
     DM_B2TRX, DM_BDEFM, DM_SDEFM, DM_XTEFM, DM_CPEFM, DM_RSEFM, DM_CBEFM, DM_HHEFM, DM_CYEFM,
-    DM_KBOOM, DM_KPUNC, DM_SSNAP, DM_SCRAK, DM_HMETL, DM_HNOIS, DM_MEMB, DM_FM, DM_ACID, DM_SMPL,
+    DM_KBOOM, DM_KPUNC, DM_SSNAP, DM_SCRAK, DM_HMETL, DM_HNOIS, DM_MEMB, DM_FM, DM_ACID, DM_CHORD, DM_SMPL,
     DM_K808, DM_K909, DM_S808, DM_S909, DM_C808, DM_C909, DM_HATC, DM_HATO, DM_CYMB, DM_COWB, DM_TOM, DM_CONGA, DM_RIM,
     DM_CLAVE,
 };

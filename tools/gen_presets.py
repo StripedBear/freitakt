@@ -25,7 +25,7 @@ SRC = ROOT / "tools/presets.json"
 OUT = ROOT / "firmware/src/preset_bank.h"
 BANKS = ["MACHINEDRUM", "MODERN", "CLASSIC"]   # the order the banks present (fix 8, owner 2026-10-21)
 TITLE = {"MACHINEDRUM": "MACHINEDRUM: the Machinedrum voices' factory-kit sounds (MATRX, CLTRX: none)",
-         "CLASSIC": "CLASSIC 808 / 909", "MODERN": "MODERN / PLAITS (ACID, SMPL included)"}
+         "CLASSIC": "CLASSIC 808 / 909", "MODERN": "MODERN / PLAITS (ACID, CHORD, SMPL included)"}
 
 
 def models():

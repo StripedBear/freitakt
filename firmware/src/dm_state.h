@@ -136,6 +136,11 @@ typedef struct {                        /* CYEFM (dm_efmm.c) */
     uint32_t pc[4], pm[4], wc[4], wm[4], ea, da, ih, di;
     int32_t yp[4], bq, gk, s1, s2, lvl;
 } cyefm_t;
+typedef struct {                        /* CHORD (dm_chord.c): its oscillators, TONE's coefficient (Q12) */
+    uint32_t ph[4], inc[4];
+    int32_t a;
+    uint8_t n, wave;
+} chord_t;
 /* SAMPLE's LOOP (dm_sample.c smp_edge): the loop [ls, le), its start state; FWD's crossfade (the tail past END and its
  * count); PING-PONG's reverse leg, exact: chunks of SPP_B source samples counted down from END (chunk 0 the top), a
  * segment SPP_K2 chunks; the decoder state at each segment's lowest chunk (co, the forward legs'), at each chunk of the
@@ -182,4 +187,5 @@ typedef union {
     cbefm_t cbe;
     hhefm_t hhe;
     cyefm_t cye;
+    chord_t ch;
 } dm_state_t;

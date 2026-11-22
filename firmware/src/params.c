@@ -122,8 +122,11 @@ static const param_desc_t TP[P_COUNT] = {
 };
 /* MODE on a model that plays no notes (arp_model): OFF or RTRG (a stored ARP1 / ARP2 plays and shows as RTRG) */
 static const param_desc_t AMODE_DRUM = {"MODE", F_ENUM, 0, 1, 0, N_AMODE, 0};
-/* the models ARP1 / ARP2 play (pitched: ACID, SAMPL, FM, SKIN); the drums RTRG only */
-static int arp_model(uint32_t m) { return m == DM_ACID || m == DM_SMPL || m == DM_FM || m == DM_MEMB; }
+/* the models ARP1 / ARP2 play (pitched: ACID, SAMPL, FM, SKIN, CHORD); the drums RTRG only */
+static int arp_model(uint32_t m)
+{
+    return m == DM_ACID || m == DM_SMPL || m == DM_FM || m == DM_MEMB || m == DM_CHORD;
+}
 
 /* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */
 static const param_desc_t MLEN_DESC = PD("MLEN", F_MLEN, 1, 1024, 1);

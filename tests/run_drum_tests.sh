@@ -67,6 +67,13 @@ cc -O2 -DARP_COST -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro
 "$OUT/arp_cost" > "$OUT/arp_cost.txt" 2>&1 || { grep -v "^ok" "$OUT/arp_cost.txt"; exit 1; }
 tail -6 "$OUT/arp_cost.txt"
 cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
+    -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/chord_test" tests/chord_test.c -lm   # (CHORD: ASan + UBSan)
+"$OUT/chord_test"
+cc -O2 -DCHORD_COST -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src \
+    -o "$OUT/chord_cost" tests/chord_test.c -lm   # (.. its CPU cost: host instructions)
+"$OUT/chord_cost" > "$OUT/chord_cost.txt" 2>&1 || { grep -v "^ok" "$OUT/chord_cost.txt"; exit 1; }
+grep "cost" "$OUT/chord_cost.txt"
+cc -O1 -g -fsanitize=address,undefined -fno-sanitize=shift-base -fno-sanitize-recover=all -Wall -Wno-unused-function \
     -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/var_test" tests/var_test.c -lm   # (variations: ASan + UBSan)
 "$OUT/var_test"
 cc -O2 -Wall -Wno-unused-function -Wno-int-to-pointer-cast -Wno-macro-redefined -Ibuild/gen -Ifirmware/src -o "$OUT/phys_test" tests/phys_test.c -lm

@@ -60,9 +60,9 @@ static void test_tables(void)
         ok &= strcmp(N_MODEL[i], m->name) == 0 && strlen(m->name) <= 5;
         ok &= m->voices >= 1 && m->voices <= NDV && m->choke <= 4 && m->trigger && m->render;
         for (k = 0; k < 8; k++)
-            ok &= m->edit[k].def >= m->edit[k].min && m->edit[k].def <= m->edit[k].max && strlen(m->edit[k].label) <= 5;
+            ok &= m->edit[k].def >= m->edit[k].min && m->edit[k].def <= m->edit[k].max && strlen(m->edit[k].label) <= 6;
     }
-    check("model table: names, voices, choke, defaults in range, labels <= 5 chars", ok);
+    check("model table: names, voices, choke, defaults in range, names <= 5 chars, labels <= 6 (CHORD's ATTACK, DETUNE: they fit the knob cell)", ok);
 }
 
 static void test_idle_silence(void)
@@ -994,6 +994,9 @@ static void test_stress_seq(void)
             render_mix(wl, wr, CTL);
             ok &= voices_sounding() <= DRUM_MAXV && peak_of(wl, 0, CTL) <= 32767;
         }
+        for (k = 36; k < 40; k++)                       /* the MIDI notes let go (a held one, CHORD's / SAMPLE's
+                                                         * with SUS, sounds while held) */
+            midi_in(0x80, 9, k, 0);
         transport_req = 2;
         render_mix(wl, wr, SECS(7));
         for (i = 0; i < NTRK; i++)

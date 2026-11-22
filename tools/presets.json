@@ -1555,6 +1555,91 @@
     "note": "square wave, short gate"
    },
    {
+    "uid": 152,
+    "name": "MINSTAB",
+    "model": "CHORD",
+    "k": [
+     0,
+     1,
+     0,
+     40,
+     0,
+     80,
+     0,
+     20
+    ],
+    "source": "designed",
+    "note": "minor saw stab (today's default)"
+   },
+   {
+    "uid": 153,
+    "name": "DUBCHORD",
+    "model": "CHORD",
+    "k": [
+     0,
+     3,
+     0,
+     55,
+     1,
+     45,
+     0,
+     30
+    ],
+    "source": "designed",
+    "note": "dub minor 7th: square, dark, short"
+   },
+   {
+    "uid": 154,
+    "name": "SOFTPAD",
+    "model": "CHORD",
+    "k": [
+     0,
+     4,
+     1,
+     110,
+     0,
+     60,
+     80,
+     70
+    ],
+    "source": "designed",
+    "note": "major 7th pad: slow attack, wide detune"
+   },
+   {
+    "uid": 155,
+    "name": "GLASSORG",
+    "model": "CHORD",
+    "k": [
+     0,
+     9,
+     2,
+     90,
+     2,
+     127,
+     8,
+     8
+    ],
+    "source": "designed",
+    "note": "9th chord in sines, organ-like"
+   },
+   {
+    "uid": 156,
+    "name": "POWER5",
+    "model": "CHORD",
+    "k": [
+     -12,
+     11,
+     0,
+     60,
+     0,
+     100,
+     0,
+     40
+    ],
+    "source": "designed",
+    "note": "low power fifth, bright saw"
+   },
+   {
     "uid": 148,
     "name": "SMPKICK",
     "model": "SMPL",
