@@ -309,7 +309,7 @@ static void ui_leds(void)
             else
                 led_put(nb, 14u + CUE_BK[k], arm);
         }
-    } else if (comp_mode()) {                         /* COMP: the ducked tracks' keys */
+    } else if (comp_mode() && !keys_mode()) {                      /* COMP: the ducked tracks' keys */
         for (k = 0; k < NTRK; k++)
             led_put(nl, 14u + KEY_TRK_KEY[k], trk[k].p[P_DUCK] && k != comp_src());
     } else if (track_keys()) {                        /* HOME, EDIT, FX, LFO: the selected track's key (item 2) */
@@ -1658,7 +1658,7 @@ static void ui_input(void)
                 step_hold_on(k);                        /* an off step on now */
             }
         }
-    } else if (comp_mode()) {
+    } else if (comp_mode() && !keys_mode()) {
         for (k = 0; k < NTRK; k++)                      /* COMP: a white key ducks / unducks its track */
             if ((notes >> KEY_TRK_KEY[k]) & 1u)
                 track_duck_toggle(k);

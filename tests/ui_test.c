@@ -3263,7 +3263,8 @@ static void test_backlight_beats_everywhere(void)
         printf("      (beats missing on:%s)\n", bad);
     check("BACKLIGHT ON, every page and the HOME screen, KEYS off / on, armed or not: where the keys are steps (every "
           "SEQ page, TRACKS unarmed) on steps full, the unlit beats 1 5 9 13 at 25 % in bank 1 and bank 2, the rest 5 %",
-          ok_steps && mix_seen && n_steps == 4u);    /* PATTERN x armed / not, TRACKS unarmed x KEYS off / on */
+          ok_steps && mix_seen && n_steps == 3u);    /* PATTERN x armed / not, TRACKS unarmed; KEYS off only (SEL lit:
+                                                      * every key KEYS') */
     check("BACKLIGHT ON: where the keys are not steps (EDIT FX LFO GLOBAL SAVE COMP, the HOME screen, KEYS, "
           "TRACKS armed) no key at 25 %", ok_other && n_other > 0u);
     ui.home = 0;                                     /* a SEQ page under the menu, the MUTE screen, PERFORM: their
@@ -6244,11 +6245,11 @@ static void test_keys_release_anywhere(void)
     check("KEYS: the track changed while held: the release ends track 1's note", song.sel == 1 && !(trk[0].v[0].x[2] & 1));
     keys(1u << 7);                                   /* C4 on track 2 */
     ui_frame();
-    tap(B_HOME);                                     /* a HOME tap: HOME's TRACKS mode (its own keys) */
+    tap(B_HOME);                                     /* a HOME tap: HOME's TRACKS mode (KEYS still on: SEL lit) */
     keys(0);
     ui_frame();
-    check("KEYS: TRACKS opened while held: the release ends the note", mix_mode() && song.seq_mode == 1u &&
-          !(trk[1].v[0].x[2] & 1));
+    check("KEYS: TRACKS opened while held: the release ends the note, the keys stay KEYS'", mix_mode() &&
+          keys_mode() && song.seq_mode == 3u && !(trk[1].v[0].x[2] & 1));
     tap(B_HOME);
     keys(1u << 7);                                   /* C4 on track 2, held */
     ui_frame();
@@ -6281,21 +6282,37 @@ static void test_keys_owners(void)
     fx_hold_frames(1);
     release_all();
     ui_frame();
-    open_tracks();                                   /* HOME's TRACKS mode, nothing armed: its step grid */
+    open_tracks();                                   /* HOME's TRACKS mode, nothing armed (FREITAKT: SEL lit = KEYS) */
+    keys(1u << STEP_KEY[2]);
+    ui_frame();
+    a = trk[0].v[0].active;
+    keys(0);
+    ui_frame();
+    check("KEYS + TRACKS: a white key plays the track (KEYS wins, SEL lit), no step",
+          mix_mode() && keys_mode() && song.seq_mode == 3u && !trk[0].step[2].on && a);
+    tap(B_SCL);                                      /* KEYS off: TRACKS' step grid again */
     keys(1u << STEP_KEY[2]);
     ui_frame();
     keys(0);
     ui_frame();
-    check("KEYS + TRACKS: a white key is the track's step (seq_mode 1), no note",
-          mix_mode() && song.seq_mode == 1u && trk[0].step[2].on && !trk[0].v[0].active);
+    check("TRACKS, KEYS off: a white key is the track's step (seq_mode 1)",
+          mix_mode() && song.seq_mode == 1u && trk[0].step[2].on);
+    tap(B_SCL);                                      /* KEYS on again */
     open_comp(0);
     duck = trk[3].p[P_DUCK];
     keys(1u << KEY_TRK_KEY[3]);
     ui_frame();
     keys(0);
     ui_frame();
-    check("KEYS + COMP: a white key ducks its track, no note", comp_mode() && trk[3].p[P_DUCK] != duck &&
-          !trk[0].v[0].active);
+    check("KEYS + COMP: a white key plays the track, no duck", comp_mode() && keys_mode() &&
+          trk[3].p[P_DUCK] == duck);
+    tap(B_SCL);                                      /* KEYS off: COMP's duck keys */
+    keys(1u << KEY_TRK_KEY[3]);
+    ui_frame();
+    keys(0);
+    ui_frame();
+    check("COMP, KEYS off: a white key ducks its track", comp_mode() && trk[3].p[P_DUCK] != duck);
+    tap(B_SCL);
     hold(B_HOME);                                    /* the menu */
     check("KEYS + the menu: the keys are not KEYS' (as without it)", ui.menu && !keys_mode() && song.seq_mode == 0u);
     hold(B_HOME);

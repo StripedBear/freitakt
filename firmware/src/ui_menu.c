@@ -370,7 +370,7 @@ static void menu_close(void)
     go_home();                                         /* HOME in the mode last shown */
 }
 
-#define SPLASH_MS 1200u
+#define SPLASH_MS 3200u                                /* FREITAKT (owner): 2 s longer; any key skips it */
 #define SP_Y 76u                                       /* the name's band: y 76..135 */
 #define SP_SUB "Form folgt Function"   /* (MD_F3: drawn in caps) */
 /* the start screen (main.c fm1_main, right after lcd_init, while the rest starts): the theme reversed (ORANGE: orange
@@ -380,6 +380,7 @@ static void draw_boot_title(void)
     lcd_fill(0, 0, 240, 240, C_INK);
     lcd_fill(0, SP_Y + 29u, 240, 2, C_BG);
     ui.splash = 1;
+    ui.keys = 1;                                       /* FREITAKT (owner): KEYS on at power-on, SEL lit */
 }
 
 /* the FREITAKT boot splash (FREITAKT: Model:Cycles style, light): SPLASH_MS of UI frames after boot, no blocking, no

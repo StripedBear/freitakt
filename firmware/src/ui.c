@@ -109,7 +109,7 @@ static struct {
     uint32_t seq_t0;             /* SEQ's press time | SQ_DOWN DEAD PLAIN KEY (ui_tools.c seq_input) */
     uint32_t clr_t0;             /* REC + SEL held: the time both were | 1; bit 1: done or dead (ui_input.c clr_input) */
     uint8_t clr, clr_trk;        /* .. the countdown's digit shown (5..1, 0: none), the track it clears */
-    uint8_t keys;                /* KEYS (spec §5): an SCL tap; off at power-on, never stored */
+    uint8_t keys;                /* KEYS (spec §5): an SCL tap; ON at power-on (draw_boot_title), never stored */
     uint8_t env;                 /* ENV (spec 2026-10-24 parameter locks): 1 STEPS (the white keys the selected track's
                                   * steps on every page), 0 TRACKS (as before); off at power-on, never stored */
     uint32_t env_t0;             /* ENV's press time | 1; bit 1: used (ENV + OCT+-, or pressed under a dialog): its
@@ -224,19 +224,20 @@ static int ui_locked(void)
 
 static int mix_mode(void) { return !ui.home && !ui.menu && cur_page()->scope == SC_MIX; }   /* HOME's TRACKS mode */
 static int comp_mode(void) { return !ui.home && !ui.menu && cur_page()->graph == GR_COMP; }   /* COMP: keys DUCK */
-/* KEYS (spec §5): the keys a chromatic keyboard of the selected track on every page but TRACKS and COMP (their step /
- * duck keys); NAME and the menu keep theirs, and FX held takes its keys first (seq.c keyboard_block) */
+/* KEYS (spec §5): the keys a chromatic keyboard of the selected track on every page, TRACKS and COMP too (FREITAKT,
+ * owner: SEL lit = KEYS, always); NAME and the menu keep theirs, and FX held takes its keys first (seq.c
+ * keyboard_block) */
 static int keys_mode(void)
 {
-    return ui.keys && !ui.menu && !name_on() &&
-           (ui.home || (cur_page()->scope != SC_MIX && cur_page()->graph != GR_COMP));
+    return ui.keys && !ui.menu && !name_on();
 }
 /* the white keys are the selected track's steps (the bank's 16): every SEQ page while KEYS is off, and TRACKS while
  * nothing is armed (user, 2026-10-08) */
 static int seq_keys(void)
 {
     return !ui.home && !ui.menu &&
-           ((cur_page()->fam == FAM_SEQ && !keys_mode()) || (cur_page()->scope == SC_MIX && !song.rec));
+           !keys_mode() &&
+           (cur_page()->fam == FAM_SEQ || (cur_page()->scope == SC_MIX && !song.rec));
 }
 /* ENV's STEPS mode (spec 2026-10-24 parameter locks): the white keys the selected track's steps on every page (HOME,
  * TRACKS armed, SOUND, FX, LFO, COMP ...); not in the menu or NAME */
