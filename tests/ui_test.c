@@ -3442,9 +3442,11 @@ static void test_theme_menu(void)
 }
 
 /* ---- the carousel (FREITAKT redesign phase D, ui_menu.c car_draw): the MENU and SAVE's PROJECT / TOOLS / COPY, one
- * item at a time: the title and a dot an item (rows 16..43), the item's name centred about row 88, as large as fits
- * (F3 at 5x at most; on two lines at a space when one would be under 3x), its value about row 151 (4x at most), a
- * note at row 180 (2x), the hints' keycaps in rows 200..239 */
+ * item at a time (owner 2026-11-22: the title 3x, the hints 2x): the title (F3 at 6x, a page count after it at 3x)
+ * and a dot an item (rows 16..59), the item's name centred about row 95 (F3 at 5x at most; on two lines at a space
+ * when one would be under 3x), its value about row 146 (4x at most), a note at row 167 (2x), the hints' keycaps at
+ * 4x in rows 182..239 (their text at row 188 / 215) */
+#define CAR_IMID 95
 static int car_item_is(const char *s)
 {
     char a[24];
@@ -3464,25 +3466,45 @@ static int car_item_is(const char *s)
             }
         }
     if (!cut)
-        return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, 44 + 44 - 5 * (int32_t)sc / 2, sc, s);
+        return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, CAR_IMID - 5 * (int32_t)sc / 2, sc, s);
     snprintf(a, sizeof a, "%.*s", (int)cut, s);
-    return region_is_text(120 - md_text_w(&MD_F3, best, a) / 2, 88 - 6 * (int32_t)best, best, a) &&
-           region_is_text(120 - md_text_w(&MD_F3, best, s + cut + 1u) / 2, 88 + (int32_t)best, best, s + cut + 1u);
+    return region_is_text(120 - md_text_w(&MD_F3, best, a) / 2, CAR_IMID - 6 * (int32_t)best, best, a) &&
+           region_is_text(120 - md_text_w(&MD_F3, best, s + cut + 1u) / 2, CAR_IMID + (int32_t)best, best,
+                          s + cut + 1u);
 }
 static int car_val_is(const char *s)
 {
     uint32_t sc = md_fit_sc(s, 224, 4u);
-    return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, 132 + 19 - 5 * (int32_t)sc / 2, sc, s);
+    return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, 130 + 16 - 5 * (int32_t)sc / 2, sc, s);
 }
-static int car_note_is(const char *s) { return region_is_text(120 - md_text_w(&MD_F3, 2, s) / 2, 180, 2, s); }
-static int car_title_is(const char *s) { return region_is_text(120 - md_text_w(&MD_F3, 2, s) / 2, 19, 2, s); }
-/* s in F3 at 2x in the hints' rows (a keycap's key at row 208 / 225, its action beside it), whole, anywhere along */
+static int car_note_is(const char *s) { return region_is_text(120 - md_text_w(&MD_F3, 2, s) / 2, 167, 2, s); }
+/* the title s ("PROJECT 1/3": the name at 6x, "1/3" after it at 3x on its baseline; "MENU": no count) */
+static int car_title_is(const char *s)
+{
+    char t[24];
+    const char *c = strrchr(s, ' ');
+    int32_t cw, x;
+    uint32_t sc;
+    if (c && strchr(c, '/')) {
+        snprintf(t, sizeof t, "%.*s", (int)(c - s), s);
+        c++;
+    } else {
+        snprintf(t, sizeof t, "%s", s);
+        c = 0;
+    }
+    cw = c ? md_text_w(&MD_F3, 3, c) + 12 : 0;
+    sc = md_fit_sc(t, 236 - cw, 6u);
+    x = 120 - (md_text_w(&MD_F3, sc, t) + cw) / 2;
+    return sc == 6u && region_is_text(x, 18, sc, t) &&
+           (!c || region_is_text(x + md_text_w(&MD_F3, sc, t) + 12, 18 + 5 * (int32_t)(sc - 3u), 3, c));
+}
+/* s in F3 at 4x in the hints' rows (a keycap's key at row 188 / 215, its action beside it), whole, anywhere along */
 static int car_hint_has(const char *s)
 {
-    uint32_t y, x, w = (uint32_t)md_text_w(&MD_F3, 2, s);
-    for (y = 208; y <= 225u; y += 17u)
+    uint32_t y, x, w = (uint32_t)md_text_w(&MD_F3, 4, s);
+    for (y = 188; y <= 215u; y += 27u)
         for (x = 0; x + w <= 240u; x++)
-            if (region_is_text((int32_t)x, (int32_t)y, 2, s))
+            if (region_is_text((int32_t)x, (int32_t)y, 4, s))
                 return 1;
     return 0;
 }
@@ -3494,10 +3516,10 @@ static uint32_t car_dot(uint32_t n, uint32_t i)       /* dot i of n: its centre 
 }
 static int car_pos_is(uint32_t n, uint32_t i)        /* the dots: n of them, the i-th the big one */
 {
-    uint32_t d, ok = fb_count(car_dot(n, i) - 3u, 34, 6, 6, C_INK) == 36u;
+    uint32_t d, ok = fb_count(car_dot(n, i) - 3u, 52, 6, 6, C_INK) == 36u;
     for (d = 0; d < n; d++)
         if (d != i)
-            ok &= fb_count(car_dot(n, d) - 3u, 34, 6, 6, C_INK) == 4u;
+            ok &= fb_count(car_dot(n, d) - 3u, 52, 6, 6, C_INK) == 4u;
     return (int)ok;
 }
 static int menu_value_is(uint32_t item, const char *s)   /* the MENU's carousel on item, its value s */
@@ -8767,10 +8789,10 @@ static void test_menu_carousel(void)
     ui_host_init();
     hold(B_HOME);
     check("MENU (HOME held): a carousel on COLOR: its value ORANGE under it, the title MENU, a dot an item (the first "
-          "big), the hints K1 SET  OCT+ NEXT / SEL MOVE  OCT- BACK",
+          "big), the hints K1 SET  OCT+ NEXT / OCT- BACK (no SEL MOVE: the < > and the dots say it)",
           ui.menu == 1u && ui.menu_sel == MI_COLOR && car_title_is("MENU") && menu_value_is(MI_COLOR, "ORANGE") &&
               car_pos_is(MI_COUNT, 0) && car_hint_has("K1") && car_hint_has("SET") && car_hint_has("OCT+") &&
-              car_hint_has("NEXT") && car_hint_has("SEL") && car_hint_has("MOVE") && car_hint_has("OCT-") &&
+              car_hint_has("NEXT") && !car_hint_has("SEL") && !car_hint_has("MOVE") && car_hint_has("OCT-") &&
               car_hint_has("BACK"));
     snap_page("menu_carousel_color");
     sel(1);
@@ -8812,7 +8834,7 @@ static void test_menu_carousel(void)
     px = host_blit_px;
     menu_glob_text(G_DRCH, v);
     check("MENU: KNOB 1 sets the item's value (MIDI CHANNEL + 1), drawn under it; that frame sends the value's band alone "
-          "(240 x 38), an idle frame nothing", song.g[G_DRCH] == ch + 1 && car_val_is(v) && px == 240u * 38u &&
+          "(240 x 32), an idle frame nothing", song.g[G_DRCH] == ch + 1 && car_val_is(v) && px == 240u * 32u &&
                                                     idle == 0u);
     snap_page("menu_carousel_midi_channel");
     press(B_OCTUP);
@@ -8876,10 +8898,26 @@ static void test_save_carousel(void)
     ui_frame();
     OK0(car_title_is("PROJECT 1/3"));
     OK0(car_item_is("A") && car_val_is("EMPTY") && car_pos_is(4, 0));
-    OK0(car_hint_has("K3") && car_hint_has("LOAD") && car_hint_has("K4") && car_hint_has("SAVE"));
-    OK0(car_hint_has("SEL") && car_hint_has("SLOT") && car_hint_has("K2") && car_hint_has("NAME"));
+    OK0(car_hint_has("K3") && car_hint_has("LOAD") && car_hint_has("K4") && car_hint_has("SAVE x2"));
+    OK0(car_hint_has("K2") && car_hint_has("NAME") && !car_hint_has("SEL"));
     check("SAVE > PROJECT: a carousel of the slots: A, EMPTY under it, the title PROJECT 1/3, four dots (A's big), the "
-          "hints K3 LOAD  K4 SAVE / SEL SLOT  K2 NAME", ok);
+          "hints K2 NAME  K3 LOAD / K4 SAVE x2", ok);
+    {                                                /* owner 2026-11-22: the title 3x, the hints 2x, apart */
+        int32_t w2 = md_text_w(&MD_F3, 4, "K4") + 6 + 8 + md_text_w(&MD_F3, 4, "SAVE x2"), y, x, top = 240, bot = 0;
+        ok = region_is_text(7, 188, 4, "K2") && region_is_text(236 - md_text_w(&MD_F3, 4, "LOAD"), 188, 4, "LOAD") &&
+             region_is_text(120 - w2 / 2 + 3, 215, 4, "K4");
+        for (y = 16; y < 52; y++)                    /* the title's ink: rows 18..47 (the dots: 52..57) */
+            for (x = 0; x < 240; x++)
+                if (fb_count((uint32_t)x, (uint32_t)y, 1, 1, C_INK)) {
+                    top = y < top ? y : top;
+                    bot = y > bot ? y : bot;
+                }
+        ok &= top == 18 && bot == 47 && fb_count(0, 60, 240, 4, C_INK) == 0u && fb_count(0, 178, 240, 4, C_INK) == 0u;
+        ok &= md_text_w(&MD_F3, 6, "PROJECT") + 12 + md_text_w(&MD_F3, 3, "1/3") <= 236;
+        check("SAVE > PROJECT: the title 3x (PROJECT at 6x, 30 px tall, 1/3 at 3x), the hints 2x (4x keycaps, K2 NAME at "
+              "the left edge, K3 LOAD at the right, K4 SAVE x2 centred under them); nothing between the bands", ok);
+        ok = 1;
+    }
     ok = 1;
     sel(1);
     ok &= song.g[G_SLOT] == 2 && car_item_is("B") && car_pos_is(4, 1);
@@ -8921,8 +8959,22 @@ static void test_save_carousel(void)
     check("PROJECT: B saved, edited (LOADED EDITED); K3 twice on A loads A (B keeps its edits: EDITED)", ok);
     memset(proj_slot, 0, sizeof proj_slot);
 }
-/* SAVE > PROJECT's questions over the carousel: OVERWRITE B*? (SAVE onto an edited slot not loaded), DISCARD EDITS?
- * (LOAD of an edited slot); the carousel whole again after */
+/* OVERWRITE B*? / DISCARD EDITS? (owner 2026-11-22): a screen of their own, nothing of the page under them: the
+ * question at 4x about row 86, what it means at 3x at row 124, OCT- NO at the left edge and OCT+ YES at the right
+ * one as the carousels' 4x hints (row 188), a dotted rule over them; the rest of the screen ground */
+static int confirm_full_is(const char *q, const char *q2)
+{
+    uint32_t ink = fb_count(0, 0, 240, 240, C_INK), want;
+    int32_t qw = md_text_w(&MD_F3, 4, q), q2w = md_text_w(&MD_F3, 3, q2);
+    if (!region_is_text(120 - qw / 2, 76, 4, q) || !region_is_text(120 - q2w / 2, 124, 3, q2) ||
+        !region_is_text(7, 188, 4, "OCT-") || !region_is_text(236 - md_text_w(&MD_F3, 4, "YES"), 188, 4, "YES") ||
+        !region_is_text(236 - md_text_w(&MD_F3, 4, "YES") - 8 - 6 - md_text_w(&MD_F3, 4, "OCT+") + 3, 188, 4, "OCT+"))
+        return 0;
+    want = fb_count(0, 76, 240, 20, C_INK) + fb_count(0, 124, 240, 15, C_INK) + fb_count(0, 182, 240, 58, C_INK);
+    return ink == want && fb_count(0, 0, 240, 76, C_INK) == 0u;   /* (no top bar, no title: a screen of its own) */
+}
+/* SAVE > PROJECT's questions: OVERWRITE B*? (SAVE onto an edited slot not loaded), DISCARD EDITS? (LOAD of an
+ * edited slot), each a screen of its own; the carousel whole again after */
 static void test_save_carousel_confirms(void)
 {
     uint32_t ok;
@@ -8942,27 +8994,33 @@ static void test_save_carousel_confirms(void)
     save_turn(3, 2);
     ok = 1;
     OK0(ui.confirm == CONFIRM_OVERWRITE && ui.confirm_trk == 1u);
-    OK0(text_whole("OVERWRITE B*?", 82, 120, C_INK, C_BG));
-    OK0(car_title_is("PROJECT 1/3") && car_hint_has("SLOT"));
+    OK0(confirm_full_is("OVERWRITE B*?", "ITS EDITS ARE LOST"));
+    OK0(!car_title_is("PROJECT 1/3"));
     snap_page("save_project_overwrite");
+    host_blit_px = 0;
+    ui_frame();
+    OK0(host_blit_px == 0u);                         /* (an idle frame under it: nothing sent) */
     press(B_OCTDN);
     ui_frame();
     release_all();
     ui_frame();
     OK0(!ui.confirm && proj_loaded() == 0 && slot_dirty(1));
     msg_wait();                                      /* (AGAIN: SAVE's time out) */
-    OK0(car_item_is("B") && car_val_is("USED") && car_note_is("EDITED") && !text_whole("OVERWRITE B*?", 82, 120, C_INK, C_BG));
-    check("PROJECT: SAVE onto B (edited, not loaded) asks OVERWRITE B*? over the carousel; OCT- (NO) keeps it, the "
+    OK0(car_item_is("B") && car_val_is("USED") && car_note_is("EDITED") && car_title_is("PROJECT 1/3") &&
+        !confirm_full_is("OVERWRITE B*?", "ITS EDITS ARE LOST"));
+    check("PROJECT: SAVE onto B (edited, not loaded) asks OVERWRITE B*? on a screen of its own (the question big, OCT- "
+          "NO / OCT+ YES as 4x hints, no carousel under it; an idle frame sends nothing); OCT- (NO) keeps it, the "
           "carousel whole again", ok);
     save_turn(2, 2);
-    ok = ui.confirm == CONFIRM_DISCARD && text_whole("DISCARD EDITS?", 82, 120, C_INK, C_BG) &&
-         car_title_is("PROJECT 1/3");
+    ok = ui.confirm == CONFIRM_DISCARD && confirm_full_is("DISCARD EDITS?", "LOAD SLOT B SAVED") &&
+         !car_title_is("PROJECT 1/3");
+    snap_page("save_project_discard");
     press(B_OCTUP);
     ui_frame();
     release_all();
     msg_wait();
     ok &= !ui.confirm && proj_loaded() == 1 && !slot_dirty(1) && car_item_is("B") && car_note_is("LOADED");
-    check("PROJECT: LOAD of B (edited) asks DISCARD EDITS? over the carousel; OCT+ (YES) loads it as saved (LOADED)",
+    check("PROJECT: LOAD of B (edited) asks DISCARD EDITS? on a screen of its own; OCT+ (YES) loads it as saved (LOADED)",
           ok);
     memset(proj_slot, 0, sizeof proj_slot);
 }
@@ -8979,10 +9037,10 @@ static void test_tools_copy_carousels(void)
     ui.force = 1;
     ui_frame();
     check("SAVE > TOOLS: a carousel of its four actions: CLEAR TRACK (TRACK n, STEPS, MOTION, LOCKS), the title TOOLS "
-          "2/3, the hints K1 TURN TWICE / SEL MOVE",
+          "2/3, the hints K1 TURN TWICE",
           car_title_is("TOOLS 2/3") && car_item_is("CLEAR TRACK") && car_val_is("TRACK 1") &&
               car_note_is("STEPS, MOTION, LOCKS") && car_pos_is(4, 0) && car_hint_has("K1") &&
-              car_hint_has("TURN TWICE") && car_hint_has("MOVE"));
+              car_hint_has("TURN TWICE") && !car_hint_has("MOVE"));
     sel(1);
     ok = ui.tool == 1u && car_item_is("INIT SOUND") && car_hint_has("K2");
     sel(-1);
@@ -9003,7 +9061,7 @@ static void test_tools_copy_carousels(void)
     song.g[G_SLOT] = 1;
     ui_frame();
     ok = car_title_is("COPY 3/3") && car_item_is("A") && car_val_is("EMPTY") && car_hint_has("COPY") &&
-         car_hint_has("PASTE") && car_hint_has("LEARN OFF") && car_hint_has("SLOT");
+         car_hint_has("PASTE") && car_hint_has("LEARN OFF") && !car_hint_has("SLOT");
     project_save(0);
     msg_wait();
     save_turn(1, 1);

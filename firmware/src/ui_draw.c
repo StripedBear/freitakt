@@ -814,6 +814,60 @@ static int draw_tempo(void)                          /* 1: drawn */
     return 1;
 }
 
+/* the big hints (the carousels' and the full-screen questions'; owner 2026-11-22: twice the keycaps' 2x): a key name
+ * in a 1 px box (3 px in, 5 x sc + 4 tall), the action 2 x sc px after it, F3 at sc; hint_w its width, hint_cap
+ * draws it at x, y and returns its end x */
+static int32_t hint_w(const char *k, const char *a, uint32_t sc)
+{
+    return md_text_w(&MD_F3, sc, k) + 6 + (a && a[0] ? 2 * (int32_t)sc + md_text_w(&MD_F3, sc, a) : 0);
+}
+static int32_t hint_cap(int32_t x, int32_t y, const char *k, const char *a, uint32_t sc)
+{
+    int32_t w = md_text_w(&MD_F3, sc, k) + 6;
+    cv_frame(x, y, w, 5 * (int32_t)sc + 4, C_INK);
+    md_text(x + 3, y + 2, &MD_F3, sc, k, C_INK);
+    return a && a[0] ? md_text(x + w + 2 * (int32_t)sc, y + 2, &MD_F3, sc, a, C_INK) : x + w;
+}
+/* a row of up to two hints (k0 a0 at the left edge, k1 a1 at the right one; one alone centred) at row y of the
+ * canvas: 4x (24 px tall), smaller only when the row would not fit the screen's width with 8 px between them */
+#define HINT_SC 4u
+static void hint_row(const char *k0, const char *a0, const char *k1, const char *a1, int32_t y)
+{
+    uint32_t sc = HINT_SC;
+    int32_t w;
+    if (!k0 && !k1)
+        return;
+    for (;; sc--) {
+        w = (k0 ? hint_w(k0, a0, sc) : 0) + (k1 ? hint_w(k1, a1, sc) : 0);
+        if (sc <= 2u || w + (k0 && k1 ? 8 : 0) <= 232)
+            break;
+    }
+    y += (int32_t)(HINT_SC - sc) * 5 / 2;              /* (a smaller row: in the 4x row's middle) */
+    if (k0 && k1) {
+        hint_cap(4, y, k0, a0, sc);
+        hint_cap(236 - hint_w(k1, a1, sc), y, k1, a1, sc);
+    } else {
+        hint_cap(120 - w / 2, y, k0 ? k0 : k1, k0 ? a0 : a1, sc);
+    }
+}
+
+/* OVERWRITE B*? and DISCARD EDITS? (owner 2026-11-22): a window of their own, the whole screen: the question big in
+ * the middle, what it means under it, OCT- NO / OCT+ YES as the carousels' big hints at the bottom (as there: under
+ * a dotted rule, rows 182..239). Drawn once (ui.force), two strips */
+static void draw_confirm_full(const char *q, const char *q2)
+{
+    uint32_t sc = md_fit_sc(q, 232, 4u), sc2 = q2 ? md_fit_sc(q2, 232, 3u) : 2u;
+    cv_begin_at(240, 120, 0, C_BG);
+    md_text(120 - md_text_w(&MD_F3, sc, q) / 2, 96 - 5 * (int32_t)sc, &MD_F3, sc, q, C_INK);
+    cv_blit(0, 0);
+    cv_begin_at(240, 120, 120, C_BG);
+    if (q2)
+        md_text(120 - md_text_w(&MD_F3, sc2, q2) / 2, 4, &MD_F3, sc2, q2, C_INK);
+    cv_hdot(4, 235, 62, C_INK);
+    hint_row("OCT-", "NO", "OCT+", "YES", 66);
+    cv_blit(0, 120);
+}
+
 /* a confirm (spec §7): a popup over the page, the question's first word its title, OCT- NO / OCT+ YES as keycaps */
 static void draw_confirm(const char *q, const char *q2)
 {
@@ -1233,6 +1287,13 @@ __attribute__((always_inline)) static inline void ui_draw(void)
                 str_cpy(b, "OVERWRITE A*?", sizeof b);
                 b[10] = (char)('A' + ui.confirm_trk % 4u);
             }
+            if (ui.confirm == CONFIRM_DISCARD || ui.confirm == CONFIRM_OVERWRITE) {   /* their own screen */
+                char q2[20] = "LOAD SLOT A SAVED";
+                q2[10] = (char)('A' + ui.confirm_trk % 4u);
+                draw_confirm_full(b, ui.confirm == CONFIRM_DISCARD ? q2 : "ITS EDITS ARE LOST");
+                ui.force = 0;
+                return;
+            }
             bank_fix();                               /* the page under it, then the popup */
             if (save_car_on()) {                      /* (SAVE's carousel) */
                 draw_save();
@@ -1245,12 +1306,7 @@ __attribute__((always_inline)) static inline void ui_draw(void)
                 draw_columns();
                 draw_graph();
             }
-            {
-                char q2[20] = "LOAD SLOT A SAVED";
-                q2[10] = (char)('A' + ui.confirm_trk % 4u);
-                draw_confirm(b, ui.confirm == 5u ? "START NEW PROJECT?" : ui.confirm == CONFIRM_DISCARD ? q2
-                                : ui.confirm == CONFIRM_OVERWRITE ? "ITS EDITS ARE LOST" : 0);
-            }
+            draw_confirm(b, ui.confirm == 5u ? "START NEW PROJECT?" : 0);
             ui.force = 0;
         }
         return;

@@ -72,20 +72,24 @@ static void menu_value(uint32_t i, char *b)         /* item i's value (b: 16 byt
 static int menu_ok_job(uint32_t i) { return menu_glob(i) != G_MIDI; }   /* OCT+ does something on item i */
 
 /* ---- CAROUSEL (FREITAKT redesign, phase D): the MENU and SAVE's PROJECT / TOOLS / COPY show one item at a time
- * under the top bar. Bands (screen rows): 16..43 the section's title and a dot an item (the item's a big one);
- * 44..131 the item's name, big and centred between a < and a > (the largest MD_F3 that fits, up to 5x; on two lines
- * at a space when one line would be under 3x); 132..169 its value (up to 4x); 170..199 a note (a state, or the
- * message ui_say put up; 2x); 200..239 the keys' hints under a dotted rule, two rows of up to two keycaps. SELECT
- * scrolls the items (the input's). A band is drawn only when what it shows changed (car_sig), all of them on
- * ui.force: a value's change sends its band, a SELECT detent the item's few */
+ * under the top bar. Bands (screen rows; owner 2026-11-22: the title 3x, the hints 2x what they were): 16..59 the
+ * section's title (F3 at 6x; a page count after it at 3x) and a dot an item (the item's a big one); 60..129 the
+ * item's name, big and centred between a < and a > (the largest MD_F3 that fits, up to 5x; on two lines at a space
+ * when one line would be under 3x); 130..161 its value (up to 4x); 162..181 a note (a state, or the message ui_say
+ * put up; 2x); 182..239 the keys' hints under a dotted rule, two rows of up to two (hint_row: 4x, the left one at
+ * the left edge, the right one at the right). SELECT scrolls the items (the input's; the < > and the dots say so).
+ * A band is drawn only when what it shows changed (car_sig), all of them on ui.force: a value's change sends its
+ * band, a SELECT detent the item's few */
 typedef struct {
-    const char *title, *item, *val, *note;
+    const char *title, *count, *item, *val, *note; /* (count: "1/3", 0 none) */
     const char *hk[4], *ha[4];                      /* the hints: key, action; [0] [1] the first row, [2] [3] the
                                                      * second (hk 0: none) */
     uint32_t pos, n;                                /* the item's place, the items' count */
 } car_t;
 #define CAR_BANDS 5u
-static const uint8_t CAR_Y[CAR_BANDS + 1u] = {16, 44, 132, 170, 200, 240};
+#define CAR_TSC 6u                                  /* the title's scale (3x the 2x it was) */
+static const uint8_t CAR_Y[CAR_BANDS + 1u] = {16, 60, 130, 162, 182, 240};
+#define CAR_MID 35                                  /* the item band's middle row */
 static uint32_t car_sig[CAR_BANDS];
 
 static void car_text(int32_t y, const char *s, uint32_t sc)    /* centred at band row y */
@@ -96,7 +100,7 @@ static void car_arrow(int32_t x, int32_t dir)       /* a solid triangle 6 px wid
 {
     int32_t i;
     for (i = 0; i < 6; i++)
-        cv_rect(x + dir * i, 44 - i, 1, 2 * i + 1, C_INK);
+        cv_rect(x + dir * i, CAR_MID - i, 1, 2 * i + 1, C_INK);
 }
 static void car_name(const char *s)                 /* band 1: the item's name */
 {
@@ -120,37 +124,31 @@ static void car_name(const char *s)                 /* band 1: the item's name *
         str_cpy(a, s, sizeof a);
         while (a[0] && md_text_w(&MD_F3, sc, a) > 196)
             a[str_len(a) - 1u] = 0;
-        car_text(44 - (int32_t)(5u * sc) / 2, a, sc);
+        car_text(CAR_MID - (int32_t)(5u * sc) / 2, a, sc);
         return;
     }
     str_cpy(a, s, cut + 1u);                        /* (two rows of 5 x sc, 2 x sc apart, about the middle) */
-    car_text(44 - (int32_t)(6u * best), a, best);
-    car_text(44 + (int32_t)best, s + cut + 1u, best);
+    car_text(CAR_MID - (int32_t)(6u * best), a, best);
+    car_text(CAR_MID + (int32_t)best, s + cut + 1u, best);
 }
-static int32_t car_cap_w(const char *k, const char *a)   /* a keycap's width (cv_keycap) */
+/* band 0's title: the name at CAR_TSC (less only if it would not fit), the page count after it at half that, on
+ * the same baseline; the pair centred */
+static void car_title(const char *t, const char *c)
 {
-    return md_text_w(&MD_F3, 2, k) + 6 + (a && a[0] ? 4 + md_text_w(&MD_F3, 2, a) : 0);
-}
-static void car_hints(const car_t *v, uint32_t r, int32_t y)   /* hint row r (its two keycaps, centred) */
-{
-    const char *const *k = v->hk + 2u * r, *const *a = v->ha + 2u * r;
-    int32_t w = 0, x;
-    if (k[0])
-        w += car_cap_w(k[0], a[0]);
-    if (k[1])
-        w += (w ? 14 : 0) + car_cap_w(k[1], a[1]);
-    x = 120 - w / 2;
-    if (k[0])
-        x = cv_keycap(x, y, k[0], a[0], C_INK) + 14;
-    if (k[1])
-        cv_keycap(x, y, k[1], a[1], C_INK);
+    uint32_t cs = CAR_TSC / 2u, sc;
+    int32_t cw = c ? md_text_w(&MD_F3, cs, c) + 4 * (int32_t)cs : 0, x;
+    sc = md_fit_sc(t, 236 - cw, CAR_TSC);
+    x = 120 - (md_text_w(&MD_F3, sc, t) + cw) / 2;
+    x = md_text(x, 2, &MD_F3, sc, t, C_INK);
+    if (c)
+        md_text(x - (int32_t)sc + 4 * (int32_t)cs, 2 + 5 * (int32_t)(sc - cs), &MD_F3, cs, c, C_INK);
 }
 /* the carousel v: the bands whose content changed (all on ui.force), the top bar as everywhere; 1 when any band was
  * sent */
 static int car_draw(const car_t *v)
 {
     uint32_t s[CAR_BANDS], i, any = 0;
-    s[0] = str_hash(v->n * 131u + v->pos * 7u + 1u, v->title);
+    s[0] = str_hash(str_hash(v->n * 131u + v->pos * 7u + 1u, v->title), v->count ? v->count : "");
     s[1] = str_hash(2u, v->item);
     s[2] = str_hash(3u, v->val);
     s[3] = str_hash(4u, v->note);
@@ -172,12 +170,12 @@ static int car_draw(const car_t *v)
             uint32_t d;
             p = p > 12 ? 12 : p;
             x0 = 120 - p * (int32_t)(v->n - 1u) / 2;
-            car_text(3, v->title, 2);
+            car_title(v->title, v->count);
             for (d = 0; d < v->n && v->n > 1u; d++)
                 if (d == v->pos)
-                    cv_rect(x0 + p * (int32_t)d - 3, 18, 6, 6, C_INK);
+                    cv_rect(x0 + p * (int32_t)d - 3, 36, 6, 6, C_INK);
                 else
-                    cv_rect(x0 + p * (int32_t)d - 1, 20, 2, 2, C_INK);
+                    cv_rect(x0 + p * (int32_t)d - 1, 38, 2, 2, C_INK);
             break;
         }
         case 1:                                     /* the item, < > when there are others */
@@ -194,19 +192,19 @@ static int car_draw(const car_t *v)
                 str_cpy(b, v->val, sizeof b);
                 while (b[0] && md_text_w(&MD_F3, sc, b) > 224)
                     b[str_len(b) - 1u] = 0;
-                car_text(19 - (int32_t)(5u * sc) / 2, b, sc);
+                car_text(16 - (int32_t)(5u * sc) / 2, b, sc);
             }
             break;
         case 3: {                                   /* the note */
             char b[32];
             md_fit(b, v->note, sizeof b, 228);
-            car_text(10, b, 2);
+            car_text(5, b, 2);
             break;
         }
-        default:                                    /* the hints */
+        default:                                    /* the hints: two rows of 4x keycaps */
             cv_hdot(4, 235, 0, C_INK);
-            car_hints(v, 0, 6);
-            car_hints(v, 1, 23);
+            hint_row(v->hk[0], v->ha[0], v->hk[1], v->ha[1], 4);
+            hint_row(v->hk[2], v->ha[2], v->hk[3], v->ha[3], 31);
             break;
         }
         cv_blit(0, CAR_Y[i]);
@@ -234,10 +232,8 @@ static void draw_menu(void)
     c.note = ui.msg_t ? ui.msg : i == MI_PANEL ? "TEACH BUTTONS AND KNOBS" : "";
     c.pos = i;
     c.n = MI_COUNT;
-    c.hk[2] = "SEL";
-    c.ha[2] = "MOVE";
-    c.hk[3] = "OCT-";
-    c.ha[3] = "BACK";
+    c.hk[2] = "OCT-";                              /* (SELECT: the < > and the dots say it) */
+    c.ha[2] = "BACK";
     if (i == MI_PANEL) {
         c.hk[0] = "OCT+";
         c.ha[0] = "START";
@@ -290,16 +286,13 @@ static void draw_save(void)
     car_t c;
     uint32_t pos, np = fam_pages(FAM_SAVE, &pos), k;
     memset(&c, 0, sizeof c);
-    str_cpy(t, pg->title, 12);                      /* PROJECT 1/3 */
-    k = str_len(t);
-    t[k] = ' ';
-    t[k + 1u] = (char)('0' + pos);
-    t[k + 2u] = '/';
-    t[k + 3u] = (char)('0' + np);
-    t[k + 4u] = 0;
+    str_cpy(t, pg->title, 12);                      /* PROJECT, 1/3 */
+    t[13] = (char)('0' + pos);
+    t[14] = '/';
+    t[15] = (char)('0' + np);
+    t[16] = 0;
     c.title = t;
-    c.hk[2] = "SEL";
-    c.ha[2] = "MOVE";
+    c.count = t + 13;
     n[0] = 0;
     if (save_slots()) {                             /* a slot: its letter, its name, its state */
         uint32_t s = (uint32_t)(song.g[G_SLOT] - 1) & 3u;
@@ -316,21 +309,20 @@ static void draw_save(void)
             car_word(n, "COPIED");
         c.item = it;
         c.pos = s;
-        c.ha[2] = "SLOT";
-        if (pg->id[1] == G_NAME) {                  /* PROJECT */
-            c.hk[0] = "K3";
-            c.ha[0] = "LOAD";
-            c.hk[1] = "K4";
-            c.ha[1] = "SAVE";
-            c.hk[3] = "K2";
-            c.ha[3] = "NAME";
-        } else {                                    /* COPY */
+        if (pg->id[1] == G_NAME) {                  /* PROJECT: K2 NAME  K3 LOAD / K4 SAVE x2 */
+            c.hk[0] = "K2";
+            c.ha[0] = "NAME";
+            c.hk[1] = "K3";
+            c.ha[1] = "LOAD";
+            c.hk[2] = "K4";
+            c.ha[2] = "SAVE x2";
+        } else {                                    /* COPY: K2 COPY  K3 PASTE / K4 LEARN OFF */
             c.hk[0] = "K2";
             c.ha[0] = "COPY";
             c.hk[1] = "K3";
             c.ha[1] = "PASTE";
-            c.hk[3] = "K4";
-            c.ha[3] = ui.ml.on ? "LEARN ON" : "LEARN OFF";
+            c.hk[2] = "K4";
+            c.ha[2] = ui.ml.on ? "LEARN ON" : "LEARN OFF";
         }
     } else {                                        /* TOOLS: the action, whom it hits, what it does */
         k = ui.tool & 3u;
