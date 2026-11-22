@@ -110,6 +110,6 @@ static void cltrx_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
         dm_end(v);
 }
 
-#define DM_CLTRX_DEF {"CLTRX", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_CLTRX_DEF {"CLTRX", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("DUAL", F_INT, 0, 127, 0), PD("ENH", F_INT, 0, 127, 0), PD("TUNE2", F_INT, 0, 127, 64), \
     PD("CLICK", F_INT, 0, 127, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, cltrx_trigger, cltrx_render}

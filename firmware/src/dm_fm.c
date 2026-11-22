@@ -57,6 +57,6 @@ static void fm_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
         dm_end(v);
 }
 
-#define DM_FM_DEF {"FM", 2, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 50), \
+#define DM_FM_DEF {"FM", 2, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 50), \
     PD("INDEX", F_INT, 0, 127, 60), PE("RATIO", N_FMRATIO, 2), PD("MDEC", F_INT, 0, 127, 40), \
     PD("SWEEP", F_INT, 0, 127, 0), PD("FBK", F_INT, 0, 127, 0), PD("VEL", F_INT, 0, 127, 64)}, fm_trigger, fm_render}

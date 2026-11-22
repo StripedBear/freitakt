@@ -85,15 +85,15 @@ static void rim_trigger(track_t *t, dvoice_t *v)
     dsvf_coef(&v->c[0], CUT_600, 0);
 }
 
-#define DM_TOM_DEF {"TOM", 2, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_TOM_DEF {"TOM", 2, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("NOISE", F_INT, 0, 127, 30), PD("DROP", F_INT, 0, 127, 50), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, tom_trigger, body_render}
-#define DM_CONGA_DEF {"CONGA", 2, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_CONGA_DEF {"CONGA", 2, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("SLAP", F_INT, 0, 127, 60), PD("DROP", F_INT, 0, 127, 30), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, conga_trigger, body_render}
-#define DM_RIM_DEF {"RIM", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_RIM_DEF {"RIM", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("TONE", F_INT, 0, 127, 64), PD("DRIVE", F_INT, 0, 127, 40), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, rim_trigger, rim_render}
-#define DM_CLAVE_DEF {"CLAVE", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_CLAVE_DEF {"CLAVE", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("CLICK", F_INT, 0, 127, 30), PD("DROP", F_INT, 0, 127, 20), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, clave_trigger, body_render}

@@ -3787,7 +3787,7 @@ static void test_graph_model_name(void)              /* FREITAKT LIST: the MODEL
     ui.force = 1;
     ui_frame();
     check("SOUND: row 1 the machine (K909) and its preset, row 2 TUNE; the hit waveform's band above (y 16..63)",
-          col_has(0, "K909|") && col_has(1, "TUNE|") && fb_count(0, 16, 240, 48, C_INK) > 50u &&
+          col_has(0, "K909|") && col_has(1, "PITCH|") && fb_count(0, 16, 240, 48, C_INK) > 50u &&
               fb_count(0, 16, 240, 48, C_BG) > 240u * 48u / 2u);
 }
 
@@ -6010,7 +6010,7 @@ static void test_fm_screens(void)
     ui.force = 1;
     snap_page("fm/sound_1");
     check("FM: SOUND 1/4 holds MODEL TUNE DECAY INDEX; the graph draws the sidebands",
-          str_eq(page_desc(cur_page(), 1, &vp)->label, "TUNE") && str_eq(page_desc(cur_page(), 3, &vp)->label, "INDEX") &&
+          str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "INDEX") &&
           str_eq(N_FMRATIO[TSEL->p[P_E3]], "1.41") && fm_graph_lit() > 150u);
     page_turn(1);
     ui.force = 1;
@@ -6019,7 +6019,7 @@ static void test_fm_screens(void)
           str_eq(page_desc(cur_page(), 0, &vp)->label, "RATIO") && str_eq(page_desc(cur_page(), 3, &vp)->label, "FBK"));
 }
 
-/* KTRX: SOUND 1/4 holds MODEL TUNE DECAY SWEEP, 2/4 SDEC PUNCH NOISE SUB; the graph draws the pitch and the level,
+/* KTRX: SOUND 1/4 holds MODEL PITCH DECAY SWEEP, 2/4 SDEC PUNCH NOISE SUB; the graph draws the pitch and the level,
  * SWEEP raising the pitch curve (more lit rows high in the graph); the CHOKE label stays out of it */
 static uint32_t ktrx_high_lit(void)                  /* lit pixels in the graph's upper half (the pitch above ~2 oct) */
 {
@@ -6043,7 +6043,7 @@ static void test_ktrx_screens(void)
                                                       * starts at 0: the first column stays low) */
         uint32_t x, y, n = 0;
         for (y = Y_GRAPH + 66u; y < Y_GRAPH + 80u; y++)
-            for (x = 100u; x < 102u; x++)
+            for (x = 104u; x < 106u; x++)   /* (past a 5-letter row label: PITCH) */
                 n += fb[y * 240u + x] == C_INK;
         check("KTRX graph: SWEEP 0: nothing at the top of its first columns (no spike from the level's start)", n == 0u);
     }
@@ -6058,7 +6058,7 @@ static void test_ktrx_screens(void)
     plain = fm_graph_area(0u, 110u);
     printf("     KTRX graph: upper half lit %u (SWEEP 0) / %u (SWEEP 127, SDEC 96)\n", flat, swept);
     check("KTRX: SOUND 1/4 holds MODEL TUNE DECAY SWEEP (FREITAKT LIST: the hit's band, no pitch graph)",
-          str_eq(page_desc(cur_page(), 1, &vp)->label, "TUNE") && str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
+          str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
     TSEL->p[P_CHOKE] = 2;
     ui.force = 1;
     ui_frame();
@@ -6076,8 +6076,8 @@ static void test_ktrx_screens(void)
 static void test_trx_drum_screens(void)
 {
     static const struct { uint32_t m; const char *dir, *l1, *l3, *l4, *l7; } S[] = {
-        {DM_SDTRX, "trxdrums/sdtrx", "TUNE", "SNAP", "TONE", "CLIP"},
-        {DM_B2TRX, "trxdrums/b2trx", "TUNE", "RAMP", "HOLD", "DIRT"}};
+        {DM_SDTRX, "trxdrums/sdtrx", "PITCH", "SNAP", "TONE", "CLIP"},
+        {DM_B2TRX, "trxdrums/b2trx", "PITCH", "RAMP", "HOLD", "DIRT"}};
     uint32_t i, k, ok = 1;
     int16_t *vp;
     for (i = 0; i < 2u; i++) {
@@ -6115,7 +6115,7 @@ static void test_trxn_screens(void)
             tap(B_EDIT);
         ui.force = 1;
         snap_page(M[i].s1);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "TUNE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
               str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
         page_turn(1);
         ui.force = 1;
@@ -6146,7 +6146,7 @@ static void test_efmn_screens(void)
             tap(B_EDIT);
         ui.force = 1;
         snap_page(M[i].s1);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "TUNE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
+        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 2, &vp)->label, "DECAY") &&
               str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
         page_turn(1);
         ui.force = 1;

@@ -200,7 +200,7 @@ static void acid_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
 }
 
 static const char *const N_ACIDWAVE[2] = {"SAW", "SQR"};
-#define DM_ACID_DEF {"ACID", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 50), \
+#define DM_ACID_DEF {"ACID", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 50), \
     PD("CUTOF", F_INT, 0, 127, 40), PD("RESO", F_INT, 0, 127, 64), PD("ENVMD", F_INT, 0, 127, 64), \
     PD("ACCNT", F_INT, 0, 127, 64), PE("WAVE", N_ACIDWAVE, 0), PD("GATE", F_INT, 0, 127, 56)}, acid_trigger, \
     acid_render, 1, acid_glide, acid_gate}

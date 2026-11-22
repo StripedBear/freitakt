@@ -143,7 +143,7 @@ static void chord_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
         dm_end(v);
 }
 
-#define DM_CHORD_DEF {"CHORD", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PE("CHORD", N_CHSHAPE, 1), \
+#define DM_CHORD_DEF {"CHORD", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PE("CHORD", N_CHSHAPE, 1), \
     PD("INV", F_INT, 0, 3, 0), \
     PD("DECAY", F_INT, 0, 127, 40), PE("WAVE", N_CHWAVE, 0), PD("TONE", F_INT, 0, 127, 80), \
     PD("ATTACK", F_INT, 0, 127, 0), PD("DETUNE", F_INT, 0, 127, 20)}, chord_trigger, chord_render, 2}

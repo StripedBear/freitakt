@@ -126,7 +126,7 @@ static void ref_state(const smp_zone_t *z, uint32_t pos, int32_t *pred, int32_t 
 /* ---------------------------------------------------------------- labels */
 static void t_labels(void)
 {
-    static const char *const S[8] = {"TUNE", "DECAY", "TONE", "DRIVE", "SET", "SLOT", "START", "END"};
+    static const char *const S[8] = {"PITCH", "DECAY", "TONE", "DRIVE", "SET", "SLOT", "START", "END"};
     uint32_t i, ok = 1, w = 1;
     for (i = 0; i < 8u; i++) {
         ok &= !strcmp(DMODELS[DM_SMPL].edit[i].label, S[i]);

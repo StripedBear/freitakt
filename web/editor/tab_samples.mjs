@@ -648,7 +648,7 @@ export function mountSamples(el, ctx) {
     <span class="snd-load" hidden>Reading the FM-1…</span></div>
     <div class="smp-acts"><button type="button" class="smp-btn main" data-a="open">Load a sound file…</button>
       <button type="button" class="smp-btn" data-a="reload">Read again</button></div>
-    <p class="smp-note">Each set holds up to 16 samples: SLOT 1, 2, 3 … on the FM-1 play them in this order (TUNE sets the pitch;
+    <p class="smp-note">Each set holds up to 16 samples: SLOT 1, 2, 3 … on the FM-1 play them in this order (PITCH sets the pitch;
       a MIDI note plays the selected one transposed). USR1 holds 80 KiB, USR2 and USR3 48 KiB each: about 3.7 s and 2.2 s
       at 44.1 kHz, twice that at 22 kHz. Adding a sample, replacing one or chopping writes the whole set; moving, renaming
       and deleting wait for Write. Writing needs the FM-1 stopped; a cancelled or failed write leaves the set empty on the

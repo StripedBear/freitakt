@@ -66,10 +66,10 @@ static void k808_trigger(track_t *t, dvoice_t *v)
     v->x[3] = 1;
 }
 
-#define DM_K808_DEF {"K808", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 80), \
+#define DM_K808_DEF {"K808", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 80), \
     PD("TONE", F_INT, 0, 127, 40), PD("DIP", F_INT, 0, 127, 40), PD("DRIVE", F_PCT, 0, 127, 30), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, k808_trigger, body_render}
-#define DM_K909_DEF {"K909", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_K909_DEF {"K909", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("SWEEP", F_INT, 0, 127, 70), PD("CLICK", F_INT, 0, 127, 50), PD("SWPT", F_INT, 0, 127, 40), \
     PD("DRIVE", F_PCT, 0, 127, 20), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, k909_trigger, body_render}
 
@@ -175,7 +175,7 @@ static void kboom_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
     dm_qend(v, n, pk, FS * 3 / 10);
 }
 
-#define DM_KBOOM_DEF {"BOOM", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_KBOOM_DEF {"BOOM", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("TONE", F_INT, 0, 127, 64), PD("PUNCH", F_INT, 0, 127, 32), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, kboom_trigger, kboom_render, 2}
 
@@ -273,6 +273,6 @@ static void kpunc_render(track_t *t, dvoice_t *v, int32_t *out, uint32_t n)
     dm_qend(v, n, pk, FS / 20);
 }
 
-#define DM_KPUNC_DEF {"PUNCH", 1, 0, {PD("TUNE", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
+#define DM_KPUNC_DEF {"PUNCH", 1, 0, {PD("PITCH", F_SEMI, -24, 24, 0), PD("DECAY", F_INT, 0, 127, 64), \
     PD("TONE", F_INT, 0, 127, 64), PD("FM", F_INT, 0, 127, 64), PD("-", F_INT, 0, 0, 0), \
     PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0), PD("-", F_INT, 0, 0, 0)}, kpunc_trigger, kpunc_render, 2}
