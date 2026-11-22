@@ -84,6 +84,9 @@ static struct {
                                   * STEP_HOLD_MS, edited, accented or let go of: grid_drop_holds), bit 2: edited */
     uint16_t step_si[16];        /* the step it pressed, 0xFFFF none */
     uint8_t held;                /* the grid key pressed last (valid while step_t0[held] is set) */
+    uint16_t step_lit;           /* the grid keys whose hold turned an off step on (nothing edited since): a copy /
+                                  * paste combo (ui_input.c step_combo) puts it back as it was, step_was */
+    step_t step_was[16];
     uint8_t confirm;             /* (1: the removed CLEAR TRACK n?, now REC + SEL held; 2: the removed MOTION page's, 3, 4: the removed SONG's), 5 the last project
                                   * failed to load (START NEW PROJECT?; confirm_trk its slot), 6 CLEAR ALL LEARNED?
                                   * (MIDI LEARN: ui_learn.c), 7 DISCARD EDITS? (a LOAD of slot confirm_trk with unsaved

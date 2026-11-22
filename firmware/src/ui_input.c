@@ -386,6 +386,7 @@ static int step_edit(uint32_t knob, int32_t steps)
     for (i = 0; i < 16u; i++)                         /* edited: no key down is a tap any more */
         if (ui.step_t0[i])
             ui.step_t0[i] |= 2u;
+    ui.step_lit = 0;                                  /* (an edited step stays on) */
     if (ui.step_si[k] >= (uint32_t)TSEL->p[P_SLEN] || ui_locked())   /* outside LEN, a restore */
         return 1;
     s = &TSEL->step[ui.step_si[k]];
@@ -1012,6 +1013,50 @@ static void combo_input(uint32_t *pressed)
     *pressed &= ~(rb | pb);
 }
 
+/* steps copy / paste (owner 2026-11-22; Elektron style, no screen): in the step views, step keys held + REC: their
+ * steps (the lowest held .. the highest, inside LEN) to the clipboard (COPIED 3-8; one: COPIED 5); held + PLAY: the
+ * clipboard's steps onto the selected track from the held step (one held: as many as were copied, past LEN dropped;
+ * several held: the lowest .. the highest filled, the copy repeated / cut). The keys' release toggles nothing, REC
+ * neither arms nor FILLs, PLAY neither starts nor stops; a hold's off step turned on goes back first (ui.step_lit).
+ * A step goes whole (step_t) with its locks, machine locks too (ui_tools.c clip_steps_*) */
+static void step_combo(uint32_t *pressed)
+{
+    uint32_t rb = 1u << panel.btn[B_REC], pb = 1u << panel.btn[B_PLAY], k, lo = NSTEP, hi = 0, any = 0;
+    if (!(*pressed & (rb | pb)) || !step_keys() || ui.ml.on || ui.clr || ui.confirm || ui.menu || name_on() || pl_on())
+        return;
+    for (k = 0; k < 16u; k++) {
+        uint32_t si = ui.step_si[k];
+        if (!ui.step_t0[k] || !((fm1_in.notes >> STEP_KEY[k]) & 1u))
+            continue;
+        any = 1;
+        if (((ui.step_lit >> k) & 1u) && si < NSTEP && TSEL->step[si].on) {
+            fm1_irq_off();
+            TSEL->step[si] = ui.step_was[k];            /* (the hold's off step: off again) */
+            fm1_irq_on();
+        }
+        ui.step_t0[k] |= 6u;                            /* (no tap on the release, no hold's step on) */
+        if (si < (uint32_t)TSEL->p[P_SLEN]) {
+            lo = si < lo ? si : lo;
+            hi = si > hi ? si : hi;
+        }
+    }
+    if (!any)
+        return;
+    ui.step_lit = 0;
+    rb &= *pressed;
+    pb &= *pressed;
+    *pressed &= ~(rb | pb);
+    if (rb)
+        ui.rec_t0 |= 2u;                                /* (no tap, no FILL) */
+    if (lo >= NSTEP || ui_locked())                     /* (all outside LEN; a web editor restore) */
+        return;
+    if (rb)
+        clip_steps_copy(lo, hi);
+    if (pb)
+        clip_steps_paste(lo, hi);
+    ui.force = 1;
+}
+
 /* REC + SEL held together CLR_MS (either first): the selected track cleared (its steps, motion and locks: ui.c
  * track_clear, as the old CLEAR TRACK dialog), then CLEARED T3. While both are held the screen is the warning CLEAR T3
  * and its countdown 5..1 (ui_draw.c draw_clr), the panel its own (the knob popup closed, OCT- no undo, keys and knobs
@@ -1135,6 +1180,7 @@ static void lock_knob(uint32_t c, int32_t s)
     for (i = 0; i < 16u; i++)                         /* edited: no key down is a tap any more */
         if (ui.step_t0[i])
             ui.step_t0[i] |= 2u;
+    ui.step_lit = 0;                                  /* (an edited step stays on) */
     step_hold_on(ui.held);
     if (!lock_get(song.sel, st, id, &cur))
         cur = motion_rest(song.sel, id);
@@ -1413,6 +1459,7 @@ static void ui_input(void)
     if (seq_owns_keys())
         notes = 0;                                      /* (its keys: no step, no select, no record) */
     combo_input(&pressed);                              /* SAVE / GLO + REC / PLAY: copy / paste */
+    step_combo(&pressed);                               /* held steps + REC / PLAY: copy / paste steps */
     rec_fill(now);                                      /* REC held: FILL */
     fx_layer(now, home == BT_TAP);                      /* PERFORM: FX tap / hold, the PAGE screen */
     if (acc_oct && (ui.clr || ui.layer || fx_knobs))
@@ -1596,6 +1643,7 @@ static void ui_input(void)
                     step_grab(k);
                     *t0 = (now | 1u) & ~6u;
                 }
+                ui.step_lit &= (uint16_t)~(1u << k);
                 ui.held = (uint8_t)k;
             } else if (*t0 && !((fm1_in.notes >> STEP_KEY[k]) & 1u)) {
                 if (!(*t0 & 2u) && !held_long)
@@ -1603,6 +1651,10 @@ static void ui_input(void)
                 *t0 = 0;
             } else if (held_long && !(*t0 & 2u)) {
                 *t0 |= 2u;                              /* a hold: no tap; the STEP n PROB RATCH line; */
+                if (!(*t0 & 4u) && ui.step_si[k] < (uint32_t)TSEL->p[P_SLEN] && !TSEL->step[ui.step_si[k]].on) {
+                    ui.step_was[k] = TSEL->step[ui.step_si[k]];   /* (a copy / paste combo puts it back) */
+                    ui.step_lit |= (uint16_t)(1u << k);
+                }
                 step_hold_on(k);                        /* an off step on now */
             }
         }

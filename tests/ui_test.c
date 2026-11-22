@@ -2198,6 +2198,121 @@ static void test_paste_locks_full(void)
 
 /* spec §5: not in the menu, NAME, a confirm or the PERFORM layer */
 
+/* ---- steps copy / paste (owner 2026-11-22; ui_input.c step_combo): in the step views, step keys held + REC copies
+ * the lowest .. the highest held step, held + PLAY pastes from the held step (one) or over the held range (several).
+ * No transport, no arm, no FILL, no tap toggled on the release, no hold's step left on */
+static uint32_t sk(uint32_t k) { return 1u << STEP_KEY[k]; }
+static void steps_combo(uint32_t mask, uint32_t b, uint32_t hold_ms)   /* the keys down, b tapped, all let go */
+{
+    uint32_t t;
+    keys(mask);
+    ui_frame();
+    for (t = 0; t < hold_ms; t += 50u) {
+        host_ticks += 50u * 1000u * FM1_TICKS_PER_US;
+        ui_frame();
+    }
+    press(b);
+    ui_frame();
+    release_all();
+    ui_frame();
+    keys(0);
+    ui_frame();
+}
+static int steps_quiet(void) { return !song.playing && !transport_req && song.rec == 0u && !ui.rec_all && !fill_on; }
+static void test_steps_copy_paste(void)
+{
+    static track_t snap[NTRK];
+    static lk_bank_t bsnap;
+    uint32_t s, ok, id;
+    int16_t v;
+    ui_host_init();
+    rich_session();
+    open_step_page();
+    track_select(0);
+    ui_frame();
+    clip_kind = CB_NONE;
+    memcpy(snap, trk, sizeof snap);
+    bsnap = mo.b;
+    steps_combo(sk(3), B_PLAY, 0);
+    check("steps: held + PLAY with nothing copied: NO STEPS COPIED, nothing changed, no start",
+          str_eq(ui.msg, "NO STEPS COPIED") && !memcmp(trk, snap, sizeof snap) && !memcmp(&mo.b, &bsnap, sizeof bsnap) &&
+              steps_quiet());
+    steps_combo(sk(5), B_REC, 0);
+    check("steps: step 6 held + REC: COPIED 6; nothing changed (no tap), no arm, no FILL, no start",
+          str_eq(ui.msg, "COPIED 6") && !memcmp(trk, snap, sizeof snap) && !memcmp(&mo.b, &bsnap, sizeof bsnap) &&
+              steps_quiet() && step_keys());
+    lock_set(0, 3, P_MODEL, 1);                       /* step 4 (no trig): a machine lock */
+    memcpy(snap, trk, sizeof snap);
+    bsnap = mo.b;
+    steps_combo(sk(2) | sk(7), B_REC, 0);
+    check("steps: steps 3 and 8 held + REC: COPIED 3-8, nothing changed", str_eq(ui.msg, "COPIED 3-8") &&
+          !memcmp(trk, snap, sizeof snap) && !memcmp(&mo.b, &bsnap, sizeof bsnap) && steps_quiet());
+    track_select(1);
+    trk[1].p[P_SLEN] = 16;
+    ui_frame();
+    steps_combo(sk(9), B_PLAY, 0);
+    ok = 1;
+    for (s = 9; s < 15u; s++)
+        ok &= same_step(1, s, 0, s - 7u);
+    check("steps: onto track 2 from step 10: PASTED 10-15, the steps whole with their locks", ok &&
+          str_eq(ui.msg, "PASTED 10-15") && steps_quiet());
+    check("steps: the machine lock travelled (step 4's MODEL lock now on track 2's step 11)",
+          lock_get(1, 10, P_MODEL, &v) && v == 1);
+    ok = 1;
+    for (s = 0; s < NSTEP; s++)
+        if (s < 9u || s >= 15u)
+            ok &= !memcmp(&trk[1].step[s], &snap[1].step[s], sizeof(step_t)) && step_locks(1, s, 0, 0) == 0u;
+    check("steps: track 2's other steps untouched, no stray lock; the other tracks untouched", ok &&
+          !memcmp(trk[0].step, snap[0].step, sizeof snap[0].step) && !memcmp(trk[2].step, snap[2].step, sizeof snap[2].step));
+    steps_combo(sk(12), B_PLAY, 0);
+    ok = trk[1].p[P_SLEN] == 16;
+    for (s = 12; s < 16u; s++)
+        ok &= same_step(1, s, 0, s - 10u);
+    for (s = 16; s < NSTEP; s++)
+        ok &= !memcmp(&trk[1].step[s], &snap[1].step[s], sizeof(step_t)) && step_locks(1, s, 0, 0) == 0u;
+    check("steps: from step 13 with LEN 16: PASTED 13-16, the rest dropped (nothing past LEN)", ok &&
+          str_eq(ui.msg, "PASTED 13-16"));
+    track_select(0);
+    ui_frame();
+    steps_combo(sk(5), B_REC, 0);
+    track_select(3);
+    ui_frame();
+    memcpy(snap, trk, sizeof snap);
+    steps_combo(sk(0) | sk(3), B_PLAY, 0);
+    ok = 1;
+    for (s = 0; s < 4u; s++)
+        ok &= same_step(3, s, 0, 5);
+    for (s = 4; s < NSTEP; s++)
+        ok &= !memcmp(&trk[3].step[s], &snap[3].step[s], sizeof(step_t));
+    check("steps: one step copied, steps 1 and 4 held + PLAY: 1..4 filled with it, PASTED 1-4", ok &&
+          str_eq(ui.msg, "PASTED 1-4") && steps_quiet());
+    track_select(4);
+    ui_frame();
+    for (s = 0; s < NSTEP; s++)
+        memset(&trk[4].step[s], 0, sizeof(step_t));
+    lock_clear_track(4);
+    memcpy(snap, trk, sizeof snap);
+    bsnap = mo.b;
+    steps_combo(sk(2), B_REC, 1000u);                  /* held long: the hold turns the off step on .. */
+    check("steps: an off step held long + REC: COPIED 3, the step off again on the release (no toggle, no lock)",
+          str_eq(ui.msg, "COPIED 3") && !memcmp(trk, snap, sizeof snap) && !memcmp(&mo.b, &bsnap, sizeof bsnap) &&
+              steps_quiet());
+    check("steps: .. the copy is the off step", clip_kind == CB_STEPS && clip_sn == 1u && !clip.st[0][0].on);
+    track_select(0);
+    ui_frame();
+    steps_combo(sk(5), B_REC, 0);                     /* (a rich step: 2 locks) */
+    for (s = 0; s < NSTEP && mo.b.count < LK_MAX - 1u; s++)   /* the bank full but 1 place */
+        for (id = 0; id < P_COUNT && mo.b.count < LK_MAX - 1u; id++)
+            if (motion_param(id))
+                lk_put(&mo.b, lk_key(5, s, id), 1, 1);
+    track_select(2);
+    ui_frame();
+    steps_combo(sk(1), B_PLAY, 0);
+    check("steps: LOCKS FULL: the step pasted, as many locks as fit (1 of 2), says so",
+          !memcmp(&trk[2].step[1], &trk[0].step[5], sizeof(step_t)) && step_locks(2, 1, 0, 0) == 1u &&
+              mo.b.count == LK_MAX && str_eq(ui.msg, "LOCKS FULL") && steps_quiet());
+}
+
 /* ---- the cue map on SAVE held (spec 2026-10-26): SAVE's tap opens the projects page on its release; held (or with a
  * key) the white keys are the cue's: no note, no MIDI, nothing recorded */
 static uint32_t save_bit(void) { return 1u << panel.btn[B_SAVE]; }
@@ -9171,6 +9286,7 @@ int main(void)
     test_clr_combo();
     test_copy_paste_combos();
     test_paste_locks_full();
+    test_steps_copy_paste();
     test_save_tap_opens_projects();
     test_cue_keys_no_notes();
     test_save_dead();

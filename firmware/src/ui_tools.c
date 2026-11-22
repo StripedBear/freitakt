@@ -73,7 +73,7 @@ static void seq_input(uint32_t now, uint32_t notes)
  * old tools; the edits are RAM edits as any (SAVE keeps them, LOAD asks DISCARD EDITS?) */
 #define CB_NT 3u
 static const uint8_t CB_TM[CB_NT] = {P_SLEN, P_SDIV, P_SSWING};   /* (cue.c PAT_TIMING: a variation's timing) */
-enum { CB_NONE, CB_TRACK, CB_PAT };
+enum { CB_NONE, CB_TRACK, CB_PAT, CB_STEPS };   /* CB_STEPS: clip_sn steps (row 0), their locks step offset << 7 | knob */
 typedef struct {
     step_t st[NTRK][NSTEP];         /* a track's: row 0 */
     int16_t tm[NTRK][CB_NT];
@@ -83,6 +83,7 @@ typedef struct {
 static clip_t clip __attribute__((section(".pool")));   /* ~4.7 KB: the pool's (not zeroed: clip_kind says) */
 static uint8_t clip_kind;                               /* CB_*: what it holds */
 static uint16_t clip_lkn;                               /* .. its locks */
+static uint8_t clip_sn;                                 /* CB_STEPS: how many steps */
 
 static void clip_take(uint32_t row, uint32_t k)        /* track k -> the clipboard's row, its locks after the ones in */
 {
@@ -159,4 +160,69 @@ static void clip_paste(int pat)                         /* SAVE + PLAY: onto the
         m[1] = (char)('1' + song.sel);
         ui_say("PASTED ", m);
     }
+}
+
+/* the steps copy / paste (ui_input.c step_combo): steps a .. b of the selected track (inside LEN) */
+static void clip_steps_say(const char *a, uint32_t lo, uint32_t hi)    /* COPIED 3-8 / PASTED 5 */
+{
+    char m[8];
+    uint32_t n = 0;
+    if (lo >= 9u)
+        m[n++] = (char)('0' + (lo + 1u) / 10u);
+    m[n++] = (char)('0' + (lo + 1u) % 10u);
+    if (hi != lo) {
+        m[n++] = '-';
+        if (hi >= 9u)
+            m[n++] = (char)('0' + (hi + 1u) / 10u);
+        m[n++] = (char)('0' + (hi + 1u) % 10u);
+    }
+    m[n] = 0;
+    ui_say(a, m);
+}
+static void clip_steps_copy(uint32_t a, uint32_t b)
+{
+    uint32_t k = song.sel, i;
+    memcpy(clip.st[0], &trk[k].step[a], (b - a + 1u) * sizeof(step_t));
+    clip_sn = (uint8_t)(b - a + 1u);
+    clip_lkn = 0;
+    for (i = lk_seek(&mo.b, k, a); i < mo.b.count && (uint32_t)(mo.b.key[i] >> 7) <= (k << 6 | b); i++)
+        if (lk_is_lock(&mo.b, i) && clip_lkn < LK_MAX) {
+            clip.lk[clip_lkn] = (uint16_t)((((uint32_t)(mo.b.key[i] >> 7) & (NSTEP - 1u)) - a) << 7 | (mo.b.key[i] & 0x7Fu));
+            clip.lv[clip_lkn++] = mo.b.val[i];
+        }
+    clip_kind = CB_STEPS;
+    clip_steps_say("COPIED ", a, b);
+}
+/* one step held (a == b): the copy from a, as long as it was (past LEN dropped); a range: a .. b, the copy repeated
+ * or cut; each target step's locks replaced by its source's */
+static void clip_steps_paste(uint32_t a, uint32_t b)
+{
+    uint32_t k = song.sel, len = (uint32_t)trk[k].p[P_SLEN], s, i;
+    int full = 0;
+    if (clip_kind != CB_STEPS || !clip_sn) {
+        ui_message("NO STEPS COPIED");
+        return;
+    }
+    if (a == b)
+        b = a + clip_sn - 1u;
+    if (b >= len)
+        b = len - 1u;
+    for (s = a; s <= b; s++) {
+        uint32_t j = (s - a) % clip_sn;
+        lock_clear_step(k, s, 0);
+        fm1_irq_off();
+        trk[k].step[s] = clip.st[0][j];
+        fm1_irq_on();
+        for (i = 0; i < clip_lkn; i++)
+            if ((uint32_t)(clip.lk[i] >> 7) == j) {
+                fm1_irq_off();
+                if (lk_put(&mo.b, lk_key(k, s, clip.lk[i] & 0x7Fu), clip.lv[i], 1) < 0)
+                    full = 1;
+                fm1_irq_on();
+            }
+    }
+    if (full)
+        ui_message("LOCKS FULL");
+    else
+        clip_steps_say("PASTED ", a, b);
 }

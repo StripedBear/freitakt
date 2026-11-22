@@ -116,10 +116,14 @@ There is no TOOLS screen (Elektron Model:Cycles style, no screen, only a short m
 | [[SAVE]] + [[PLAY]] | paste it onto the selected track (`PASTED T5`, `NO TRACK COPIED`) |
 | [[GLO]] + [[REC]] | copy the pattern, all six tracks (`COPIED PATTERN`) |
 | [[GLO]] + [[PLAY]] | paste it over the pattern playing (`PASTED PATTERN`, `NO PATTERN COPIED`) |
+| step(s) held + [[REC]] | copy steps of the selected track: one, or the lowest to the highest held (`COPIED 3-8`, `COPIED 5`) |
+| step(s) held + [[PLAY]] | paste them onto the selected track: from the one held step, or over the held range, repeated / cut (`PASTED 9-14`, `NO STEPS COPIED`) |
 | [[REC]] + [[SEL]] held 5 s | clear the selected track (`CLEAR T3` counting 5 to 1, then `CLEARED T3`) |
 
 A copy takes the pattern and variation playing: every step whole (accent, PROB, ratchet, note, slide and tie, its NUDGE), its parameter locks, and the track's LEN, DIV and SWG. A paste replaces the target's steps, locks and LEN / DIV / SWG; the track's motion and its sound stay. With the locks full a paste brings what fits and says `LOCKS FULL`. The clipboard holds one track or one pattern (a new copy replaces it) and is kept until power-off, across projects, so a track can go to another track, pattern, variation or project. There is no undo.
 
+The step combos work in the step views (where the white keys are the selected track's steps), within the bank shown. Hold the step key first, then press REC or PLAY; a range is the lowest to the highest of the step keys held (hold step 3, add step 8: steps 3 to 8). A copied step goes whole, with its parameter locks and machine locks. A paste from one held step lays the whole copy from there and drops what falls past LEN; with two or more held, it fills exactly that range, repeating a short copy or cutting a long one. The target steps' old locks go. Steps share the clipboard with the track and pattern copies (a step copy replaces a copied track and the other way round). The held keys toggle nothing on their release, and an off step that a long hold had lit goes back off before the copy.
+
 None of these buttons does its own job in the combo: no transport start / stop, no REC ALL, fill or arm, no projects page or cue map, no GLOBAL page, no track select or KEYS toggle. The clear works in either order (REC or SEL first); let either go before the countdown ends and nothing changes.
 
-The single-step copy, the bank copy, REPLACE / MERGE / FILL, COPY SEL / PASTE SEL and DUPLICATE are gone with the TOOLS screen. Holding SEQ while switching on is still the safe start.
+The bank copy, REPLACE / MERGE / FILL, COPY SEL / PASTE SEL and DUPLICATE are gone with the TOOLS screen. Holding SEQ while switching on is still the safe start.
