@@ -47,6 +47,13 @@ static const uint8_t CUE_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
 #define MOD_PLAIN 8u                                /* pressed with the PERFORM layer up or FX held: a plain button */
 #define GLO_SLOTS 4u                                /* the pattern slots A..D (project.c proj_slot): GLO + white 1..4 */
 static int mod_live(uint32_t t0) { return t0 && !(t0 & (MOD_DEAD | MOD_PLAIN)); }   /* held, its keys its own */
+static int32_t knob_take(uint32_t role)                 /* panel_enc; a knob turned with ARP held: no ARP tap */
+{
+    int32_t s = panel_enc(role);
+    if (s && ui.arp_t0)
+        ui.arp_t0 |= MOD_KEY;
+    return s;
+}
 /* things the boot found that the first frames say, once each (project.c persist_boot): USR2 / USR3 shortened to 48 KiB,
  * a lock bank lost (spec 2026-10-24 parameter locks), the variations' (spec 2026-10-26) */
 #define PN_USR3 1u
@@ -704,7 +711,7 @@ static void fx_layer(uint32_t now, int home_tap)
     fx_knobs = (down && !(*t0 & FX_DEAD)) || ui.pg_open || (kb_layer && fx_allowed()) ? 1u : fx_knobs == 1u ? 2u : 0u;
     if (fx_knobs)                                       /* the knobs follow the screen: */
         for (k = 0; k < 4u; k++)                        /* the macros (FILTER CRUSH THROW DEPTH) while it is PERFORM's */
-            if ((s = panel_enc(EN_K1 + k)) != 0) {
+            if ((s = knob_take(EN_K1 + k)) != 0) {
                 int32_t v = clamp(perf_k[k] + accel(EN_K1 + k, s, 200), k ? 0 : -100, 100);
                 if (!k && perf_k[0] && (v < 0) != (perf_k[0] < 0))
                     v = 0;                              /* FILTER: a turn across 0 stops at 0, its off point */
@@ -740,7 +747,8 @@ static void fx_layer(uint32_t now, int home_tap)
  * entry, its pattern and that pattern's last-played variation (chain_ent), a black key after it that entry's
  * variation. A black key before any white of the hold: a plain variation cue; after the first white (still one): its
  * variation, cued too (a plain cue so far); black 9 / 10 (C#5 / D#5): nothing. SEL: + black 1..6 selects track 1..6; let go with no key pressed: KEYS on /
- * off. ARP: + black 1..6 SOLO of tracks 1..6 (TOGGLE, or MOMENTARY: while the key is held), + F#5 the SOLO mode.
+ * off. ARP: + black 1..6 SOLO of tracks 1..6 (TOGGLE, or MOMENTARY: while the key is held), + F#5 the SOLO mode; let
+ * go with no key, knob nor other button used meanwhile (plain or not): the ARP pages (arp_tap).
  * SEQ + black 1..6 (mutes): ui_tools.c seq_input */
 #define GLO_HOLD_MS 400u
 static uint8_t glo_ch[CHAIN_N], glo_chn, glo_wh;       /* GLO held: the chain entries its white keys picked, in press
@@ -819,24 +827,17 @@ static void mod_keys(uint32_t hits)                    /* the keys the ISR gave 
         ui_message(solo_mom ? "SOLO: MOMENTARY" : "SOLO: TOGGLE");
     }
 }
-/* ARP + EDIT (ARP held, its keys its own: not in the menu, a confirm, NAME, the PRESETS list, the clear, with the PERFORM
- * layer up or FX held): the selected track's ARP page, again ARP 2/2 (a pitched model's) and back; returns 1 if so */
-static int arp_edit(void)
+/* an ARP tap (pressed and let go with no key, knob nor other button used while held; not dead): the selected track's
+ * ARP page 1 (MODE RATE GATE FADE); on page 1 again, page 2 (DIR CHORD RANGE, a pitched model's; a drum's: page 1) */
+static void arp_tap(void)
 {
-    uint32_t i = page_first(FAM_SND);
-    if (!((fm1_in.buttons >> panel.btn[B_ARP]) & 1u) || (ui.arp_t0 & (MOD_DEAD | MOD_PLAIN)) || mod_dead() ||
-        ui.layer || ui.fx_t0)
-        return 0;
-    while (i < NPAGES && PAGES[i].id[0] != P_AMODE)
-        i++;
+    uint32_t i = page_first(FAM_ARP);
     if (!ui.home && ui.page == i && !page_hidden(i + 1u))
         i++;
-    ui.arp_t0 |= ui.arp_t0 ? MOD_KEY : 0u;
     ui.page = (uint8_t)i;
-    ui.fam_last[FAM_SND] = ui.page;
+    ui.fam_last[FAM_ARP] = ui.page;
     ui.home = 0;
     page_entered();
-    return 1;
 }
 static void mute_ups(void)                             /* SOLO MOMENTARY: an ARP solo key let go (ARP held or not)
                                                         * unsolos */
@@ -867,6 +868,8 @@ static void mod_input(uint32_t now, uint32_t notes)
     }
     mod_hold(B_GLO, &ui.glo_t0, now, notes | hits);
     mod_hold(B_ARP, &ui.arp_t0, now, notes | hits);
+    if (ui.arp_t0 && (notes | hits))                    /* (a key with it, plain or not: no tap) */
+        ui.arp_t0 |= MOD_KEY;
     mod_hold(B_SCL, &ui.sel_t0, now, notes | hits);
     if (hits && !mod_dead())
         mod_keys(hits);
@@ -879,7 +882,9 @@ static void mod_input(uint32_t now, uint32_t notes)
             open_family(FAM_GLO);                       /* a tap: the GLOBAL pages */
         glo_chn = glo_wh = 0;
     }
-    (void)mod_up(B_ARP, &ui.arp_t0);
+    f = mod_up(B_ARP, &ui.arp_t0);
+    if (f && !(f & (MOD_KEY | MOD_DEAD)) && !mod_dead())
+        arp_tap();                                      /* an ARP tap: the ARP pages */
     f = mod_up(B_SCL, &ui.sel_t0);
     if (f && !(f & (MOD_KEY | MOD_DEAD)) && !mod_dead())
         keys_toggle();                                  /* a SEL tap: KEYS on / off (spec §5) */
@@ -1609,10 +1614,8 @@ static void ui_input(void)
         if (!((pressed >> id) & 1u))
             continue;
         b = panel_btn_of(id);
-        if (b == B_EDIT && arp_edit()) {                /* ARP held: the ARP page (no PRESETS) */
-            ui.pr.e_st = 2;
-            continue;
-        }
+        if (b != B_ARP && ui.arp_t0)                    /* (another button with ARP held: no ARP tap) */
+            ui.arp_t0 |= MOD_KEY;
         if (b == B_EDIT)
             edit_down(now);                             /* PRESETS: held, the list (ui_preset.c edit_hold) */
         switch (b) {
@@ -1653,8 +1656,8 @@ static void ui_input(void)
         default: {
             uint32_t f;
             for (f = FAM_HOME + 1u; f < FAM_COUNT; f++)
-                if (FAM_BTN[f] == b && b != B_FX && b != B_GLO && b != B_SAVE && b != B_SEQ)
-                                                        /* (FX, GLO, SAVE, SEQ: on the release) */
+                if (FAM_BTN[f] == b && b != B_FX && b != B_GLO && b != B_SAVE && b != B_SEQ && b != B_ARP)
+                                                        /* (FX, GLO, SAVE, SEQ, ARP: on the release) */
                     open_family(f);
             break;
         }
@@ -1699,13 +1702,13 @@ static void ui_input(void)
             if ((notes >> KEY_TRK_KEY[k]) & 1u)
                 track_duck_toggle(k);
     }
-    if ((s = panel_enc(EN_PRESET)) != 0 && (fx_knobs || ui.layer)) {
+    if ((s = knob_take(EN_PRESET)) != 0 && (fx_knobs || ui.layer)) {
         /* PERFORM up: no preset loaded under it (item 7; the turn dropped) */
     } else if (s) {                                     /* PRESETS: each detent the next / previous preset, loaded */
         for (; s; s += s > 0 ? -1 : 1)                  /* (ui_preset.c: the popup) */
             preset_popup_turn(s > 0 ? 1 : -1);
     }
-    if ((s = panel_enc(EN_ALGO)) != 0 && (fx_knobs || ui.layer)) {
+    if ((s = knob_take(EN_ALGO)) != 0 && (fx_knobs || ui.layer)) {
         /* PERFORM up: no track change under it (item 7; the turn dropped) */
     } else if (s) {
         if (ui.ml.on)
@@ -1718,7 +1721,7 @@ static void ui_input(void)
     }
     if (dt)                                             /* NEXT / PREV TRACK learned (MIDI LEARN) */
         track_select((uint32_t)clamp((int32_t)song.sel + dt, 0, NTRK - 1));
-    if ((s = panel_enc(EN_SELECT)) != 0 && (fx_knobs || ui.layer)) {
+    if ((s = knob_take(EN_SELECT)) != 0 && (fx_knobs || ui.layer)) {
         /* PERFORM up: SELECT turns no page under it (item 7; the turn dropped) */
     } else if (s) {                                     /* SELECT: the section's pages; SAVE's: the carousel's items;
                                                          * HOME's TRACKS mode: BPM */
@@ -1737,7 +1740,7 @@ static void ui_input(void)
     for (k = 0; k < 4u && !fx_knobs; k++) {            /* (PERFORM's: fx_layer's alone, item 7) */
         const page_t *pg = cur_page();
         int16_t *hv;
-        if ((s = panel_enc(EN_K1 + k)) == 0)
+        if ((s = knob_take(EN_K1 + k)) == 0)
             continue;
         if (note_knob(k)) {                             /* SOUND 1's NOTE: a held step's note, else the track's */
             if (ui.ml.on) {                             /* (MIDI LEARN: not a parameter, as MODEL) */

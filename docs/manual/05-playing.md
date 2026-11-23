@@ -57,7 +57,7 @@ Black keys 1 to 6 (F#3 G#3 A#3 C#4 D#4 F#4) are tracks 1 to 6. Hold a button and
 | --- | --- |
 | [[SEQ]] + black 1 to 6 | toggle the mute of tracks 1 to 6 (their LEDs lit while heard, while SEQ is held) |
 | [[ARP]] + black 1 to 6 | **solo** tracks 1 to 6 (several at once; their LEDs lit while soloed, while ARP is held) |
-| [[ARP]] + [[EDIT]] | the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2, see Sequencer; the MODE also plays the KEYS live); solo is not touched |
+| [[ARP]] tap (no key) | the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2, see Sequencer; the MODE also plays the KEYS live); tapped again, page 2; solo is not touched |
 | [[ARP]] + F#5 | solo mode: **TOGGLE** (a press solos / unsolos) or **MOMENTARY** (soloed only while the key is held, also after ARP is let go); kept over power-off (`SOLO: TOGGLE` / `SOLO: MOMENTARY`; F#5 lit while MOMENTARY) |
 | [[SCL]] (SEL) + black 1 to 6 | select track 1 to 6 (its key lit while SEL is held) |
 

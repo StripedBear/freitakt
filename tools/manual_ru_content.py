@@ -37,7 +37,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <tr><td><kbd class="k">PRESETS</kbd> (энкодер)</td><td>Каждый щелчок загружает в выбранный трек следующий или предыдущий пресет; вместо страницы на весь экран появляется список пресетов, страница возвращается через 3 с после последнего щелчка.</td></tr>
 <tr><td><kbd class="k">KNOB 1–4</kbd></td><td>Четыре строки текущей страницы, сверху вниз.</td></tr>
 <tr><td><kbd>HOME</kbd></td><td>Тап: экран HOME ⇄ TRACKS (с любой другой страницы — тот из них, что был последним). Удержание 0,7 с: меню устройства.</td></tr>
-<tr><td><kbd>EDIT</kbd></td><td>Звук выбранного трека: страницы SOUND, затем ARP. Срабатывает на нажатии. Удержание 0,4 с: список пресетов.</td></tr>
+<tr><td><kbd>EDIT</kbd></td><td>Звук выбранного трека: страницы SOUND (у ARP своя кнопка). Срабатывает на нажатии. Удержание 0,4 с: список пресетов.</td></tr>
 <tr><td><kbd>FX</kbd></td><td>Тап: страницы фильтра, посылов, инсерта и компрессора. Удержание 0,4 с: PERFORM.</td></tr>
 <tr><td><kbd>LFO</kbd></td><td>Страницы LFO и его назначений (DEST).</td></tr>
 <tr><td><kbd>SEQ</kbd></td><td>Страница PATTERN (LEN / DIV / SWG / MLEN). Удержание + чёрная 1–6: mute.</td></tr>
@@ -45,7 +45,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <tr><td><kbd>SAVE</kbd></td><td>Тап: карусель PROJECT / TOOLS / COPY. Удержание: карта переключения паттернов и вариаций; копирование трека.</td></tr>
 <tr><td><kbd>ENV</kbd></td><td>Страница огибающих выбранного трека: ATTACK / DECAY машины (у SAMPL — ATK DECAY SUS REL) и FDEC — спад огибающей фильтра (см. <a href="#env">ENV</a>). Повторное нажатие — следующая страница ENV, если есть.</td></tr>
 <tr><td><kbd>SEL</kbd></td><td>Тап: KEYS (горит: клавиатура играет трек по нотам) ⇄ STEPS (не горит: белые клавиши — шаги выбранного трека на любой странице). Удержание + чёрная 1–6: выбор трека.</td></tr>
-<tr><td><kbd>ARP</kbd></td><td>Только в комбинациях: + <kbd>EDIT</kbd> — страницы ARP; + чёрная 1–6 — solo.</td></tr>
+<tr><td><kbd>ARP</kbd></td><td>Короткое нажатие (на отпускании, без клавиш, ручек и других кнопок): страница ARP 1 выбранного трека; ещё раз — ARP 2 (у барабанов её нет, остаётся ARP 1). Пока открыта страница ARP, светодиод ARP горит. + чёрная 1–6 — solo, + F#5 — режим solo (такое нажатие страницу не открывает).</td></tr>
 <tr><td><kbd>PLAY</kbd> / <kbd>REC</kbd></td><td>Старт/стоп. REC: запись (см. раздел 6); удержание 0,4 с — FILL.</td></tr>
 <tr><td><kbd>OCT-</kbd> / <kbd>OCT+</kbd></td><td>Зависят от экрана: банк шагов (на PATTERN и TRACKS), октава, «назад/да», отмена правки (см. раздел 3).</td></tr>
 <tr><td>Белые 1–16</td><td>При выключенном KEYS — шаги выбранного трека (16 шагов показанного банка) на любой странице.</td></tr>
@@ -157,7 +157,7 @@ TRACKS со взведённым треком (клавиши пишут уда�
 
 <h3 id="sound">EDIT: страницы SOUND</h3>
 <div class="shots">{{shot:01_sound.png|SOUND 1 (K909)}}{{shot:02_sound_2.png|SOUND 2}}{{shot:03_sound_3.png|SOUND 3}}{{shot:93_sound_kboom.png|SOUND 1 машины BOOM}}</div>
-<p><b>Как открыть:</b> <kbd>EDIT</kbd>; повторные нажатия листают страницы SOUND, а за ними ARP. Удержание <kbd>EDIT</kbd> 0,4 с открывает список пресетов.</p>
+<p><b>Как открыть:</b> <kbd>EDIT</kbd>; повторные нажатия листают страницы SOUND (страниц ARP в этом цикле нет). Удержание <kbd>EDIT</kbd> 0,4 с открывает список пресетов.</p>
 <p>Вверху нарисована форма удара трека. Страницы — список параметров по четыре на страницу:
 <code>MODEL</code>, <code>NOTE</code>, ручки машины (первая — <code>PITCH</code>; ручки огибающей — DECAY, ATTACK — живут на странице ENV), затем
 <code>LVL</code> (громкость), <code>PAN</code>, <code>MNOTE</code> (MIDI-нота трека, раньше называлась NOTE), <code>CHOKE</code> (группа глушения OFF/1–4)
@@ -220,10 +220,11 @@ ARP2 по клавишам KEYS играет целый аккорд на каж
 <tr><td><kbd>EDIT</kbd> / <kbd>HOME</kbd></td><td>Выйти. <kbd>PLAY</kbd> работает как обычно.</td></tr>
 </tbody></table>
 
-<h3 id="arp">EDIT: страницы ARP (арпеджиатор и ретриггер)</h3>
+<h3 id="arp">ARP: страницы ARP (арпеджиатор и ретриггер)</h3>
 {{screen:04_arp.png|ARP 1}}
-<p><b>Как открыть:</b> держите <kbd>ARP</kbd> и нажмите <kbd>EDIT</kbd>. Следующее <kbd>ARP</kbd> + <kbd>EDIT</kbd> откроет ARP 2.
-Страницы ARP также идут в цикле <kbd>EDIT</kbd> сразу после SOUND.</p>
+<p><b>Как открыть:</b> коротко нажмите <kbd>ARP</kbd> (срабатывает на отпускании). Следующее нажатие <kbd>ARP</kbd> на ARP 1 откроет ARP 2
+(у барабанов ARP 2 нет — остаётся ARP 1); <kbd>SELECT</kbd> тоже листает ARP 1 / 2. Пока открыта страница ARP, светодиод ARP горит.
+В цикле <kbd>EDIT</kbd> страниц ARP больше нет.</p>
 <table><thead><tr><th>Ручка</th><th>ARP 1</th><th>ARP 2 (только у ACID, SAMPL, FM, SKIN, CHORD)</th></tr></thead><tbody>
 <tr><td>1</td><td><code>MODE</code>: OFF / RTRG / ARP1 / ARP2 (ARP1 и ARP2 — только у машин с высотой тона)</td><td><code>DIR</code>: UP DOWN UPDN RND</td></tr>
 <tr><td>2</td><td><code>RATE</code>: 1/4 4T 1/8 8T 1/16 16T 1/32 (по умолчанию 1/16)</td><td><code>CHORD</code>: OCT 5TH MAJ MIN SUS4 MAJ7 MIN7 DOM7 (ARP2 его не использует)</td></tr>
@@ -532,8 +533,8 @@ AUTOSTART включает Bluetooth через 5 с после старта. Е
 <table class="cheat"><thead><tr><th>Тема</th><th>Комбинация</th><th>Действие</th></tr></thead><tbody>
 <tr><td rowspan="9">Навигация</td><td><kbd>HOME</kbd></td><td>HOME ⇄ TRACKS</td></tr>
 <tr><td><kbd>HOME</kbd> 0,7 с</td><td>Меню устройства</td></tr>
-<tr><td><kbd>EDIT</kbd> / удержание 0,4 с</td><td>SOUND → ARP / список пресетов</td></tr>
-<tr><td><kbd>ARP</kbd> + <kbd>EDIT</kbd></td><td>Страницы ARP 1 / 2</td></tr>
+<tr><td><kbd>EDIT</kbd> / удержание 0,4 с</td><td>SOUND / список пресетов</td></tr>
+<tr><td><kbd>ARP</kbd> (короткое нажатие)</td><td>Страницы ARP 1 / 2</td></tr>
 <tr><td><kbd>FX</kbd> / удержание 0,4 с</td><td>Страницы FX / PERFORM</td></tr>
 <tr><td><kbd>LFO</kbd>, <kbd>SEQ</kbd>, <kbd>GLO</kbd> (тап), <kbd>SAVE</kbd> (тап)</td><td>LFO, PATTERN, глобальные страницы, PROJECT/TOOLS/COPY</td></tr>
 <tr><td><kbd class="k">SELECT</kbd></td><td>Страница вперёд/назад; на TRACKS — BPM</td></tr>

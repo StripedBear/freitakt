@@ -29,7 +29,7 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. With KEYS off (SE
 
 ## ARP and RETRIG
 
-Each track has a MODE: **OFF**, **RTRG** (retrig), **ARP1** or **ARP2**, one at a time. Open its page with [[ARP]] + [[EDIT]] (hold ARP, press EDIT; press EDIT again for page 2), or turn EDIT's pages to the end: page 1 is MODE, RATE, GATE, FADE; page 2 is DIR, CHORD, RANGE.
+Each track has a MODE: **OFF**, **RTRG** (retrig), **ARP1** or **ARP2**, one at a time. Open its page with a tap of [[ARP]] (on its release; a hold used to solo opens nothing), tap ARP again for page 2, or turn [[SELECT]] between the two: page 1 is MODE, RATE, GATE, FADE; page 2 is DIR, CHORD, RANGE (a drum has no page 2: ARP stays on page 1). The ARP LED is lit while an ARP page is shown. The ARP pages are not in EDIT's cycle.
 
 | Knob | What it does | Values |
 | --- | --- | --- |

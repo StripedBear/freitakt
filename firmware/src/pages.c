@@ -3,7 +3,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Drum UI pages: a family per page button (pressing it again steps through its pages), and what
  * the four knobs edit on each page. */
-enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_EDT, FAM_ENV, FAM_COUNT };
+enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_EDT, FAM_ENV, FAM_ARP, FAM_COUNT };
 /* FAM_EDT: no button, never shown on the FM-1: the web editor's own pages (editor.c ed_pages: GLOBAL, SYSTEM) */
 enum { SC_TRACK, SC_GLOBAL, SC_MIX };   /* knobs edit: the selected track, song.g, the mixer */
 enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, GR_LFO, GR_MOTION, GR_FILTER,
@@ -32,10 +32,10 @@ static const page_t PAGES[] = {
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 12, SND_SLOT + 13, SND_SLOT + 14, SND_SLOT + 15}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 16, SND_SLOT + 17, SND_SLOT + 18, SND_SLOT + 19}},   /* SAMPLE:
                                                                                 * PLAY CUT LOOP */
-    /* ARP / RTRG (seq.c roll_*): after the SOUND pages in EDIT's cycle (ARP + EDIT: here at once, ui_input.c); the
-     * second ARP's only (hidden on a drum: page_hidden) */
-    {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_AMODE, P_ARATE, P_AGATE, P_AFADE}},
-    {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_ADIR, P_ACHORD, P_ARANGE, 0xFF}},
+    /* ARP / RTRG (seq.c roll_*): the ARP button's own pages (2026-11: a tap opens page 1, again page 2, ui_input.c
+     * arp_tap; no longer in EDIT's cycle); the second a pitched model's only (hidden on a drum: page_hidden) */
+    {"ARP", FAM_ARP, SC_TRACK, GR_NONE, {P_AMODE, P_ARATE, P_AGATE, P_AFADE}},
+    {"ARP", FAM_ARP, SC_TRACK, GR_NONE, {P_ADIR, P_ACHORD, P_ARANGE, 0xFF}},
     /* ENV (2026-11): the track's envelope knobs gathered (env_list: its machine's ATTACK / DECAY, a SAMPLE's ATK DECAY
      * SUS REL, the filter's DECAY last), 4 a page; a page past the list's end is not shown */
     {"ENV", FAM_ENV, SC_TRACK, GR_NONE, {ENV_SLOT + 0, ENV_SLOT + 1, ENV_SLOT + 2, ENV_SLOT + 3}},
@@ -74,8 +74,8 @@ static const page_t PAGES[] = {
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
 
 /* the button (and LED) of each family; TRACKS (HOME's TRACKS mode) HOME's; SCL is free; the editor's pages none (0xFF:
- * no button's) */
-static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME, 0xFFu, B_ENV};
+ * no button's); ARP's open on its tap (ui_input.c mod_input), not on the press */
+static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME, 0xFFu, B_ENV, B_ARP};
 
 /* a model's envelope knob (its ATTACK, DECAY: ENV's page, 2026-11; not SOUND's) */
 static int env_knob(const dmodel_t *m, uint32_t k)

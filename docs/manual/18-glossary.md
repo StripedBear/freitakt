@@ -8,7 +8,7 @@
 | **ACCENT / ACC** | a louder step; with [[OCT+]] held, tap a step to toggle it. |
 | **ACID** | the 303-style bass model; at most two tracks. |
 | **ACCEL** | knob acceleration (MENU). |
-| **ARP** | the button (ARP + EDIT: the ARP page; ARP + black keys: solo); see ARP1, ARP2. |
+| **ARP** | the button (a tap: the ARP pages, again: page 2; ARP + black keys: solo); see ARP1, ARP2. |
 | **ARP1** | the arpeggiator MODE (pitched models): the step's (or held key's) note spread by CHORD over RANGE octaves in DIR's order, a note every RATE. Older projects' ARP. |
 | **ARP2** | the arpeggiator MODE over the keys held in KEYS (pitched models): the held notes by pitch in DIR's order over RANGE octaves, a note every RATE; on a step, as ARP1. |
 | **BANK** | 16 steps; a track has up to four. |

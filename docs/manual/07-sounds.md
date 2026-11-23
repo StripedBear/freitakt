@@ -3,7 +3,7 @@
 
 ## How a track's sound works
 
-Press [[EDIT]] to open the selected track's sound. **SOUND 1**'s [[KNOB 1]] picks the **MODEL**; the SOUND pages are lists of four rows: SOUND 1 is MODEL, **NOTE**, PITCH and the model's next knob, the next pages the rest of the model's knobs (pages with nothing on them are skipped), followed by LEVEL, PAN, MNOTE, CHOKE and PRIO (SAMPL adds a fifth page with PLAY CUT LOOP). The envelope knobs are not on SOUND: they are on the **ENV** page (below). Every model has **PITCH** (-24 to +24 semitones, shown with its sign: the machine's tuning, lockable; it was called TUNE before), **DECAY** (on ENV), and then its own knobs (all 0 to 127 unless stated). K909, for one: MODEL NOTE PITCH SWEEP, then CLICK SWPT DRIVE LVL, then PAN MNOTE CHOKE PRIO. ARP follows in EDIT's cycle.
+Press [[EDIT]] to open the selected track's sound. **SOUND 1**'s [[KNOB 1]] picks the **MODEL**; the SOUND pages are lists of four rows: SOUND 1 is MODEL, **NOTE**, PITCH and the model's next knob, the next pages the rest of the model's knobs (pages with nothing on them are skipped), followed by LEVEL, PAN, MNOTE, CHOKE and PRIO (SAMPL adds a fifth page with PLAY CUT LOOP). The envelope knobs are not on SOUND: they are on the **ENV** page (below). Every model has **PITCH** (-24 to +24 semitones, shown with its sign: the machine's tuning, lockable; it was called TUNE before), **DECAY** (on ENV), and then its own knobs (all 0 to 127 unless stated). K909, for one: MODEL NOTE PITCH SWEEP, then CLICK SWPT DRIVE LVL, then PAN MNOTE CHOKE PRIO. ARP (the arpeggiator and retrig) is not in EDIT's cycle: it has its own button, [[ARP]].
 
 ## ENV: the envelope page
 

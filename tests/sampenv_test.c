@@ -296,9 +296,9 @@ static void t_knobs(void)
     }
     {
         uint32_t pos, np = fam_pages(FAM_SND, &pos), i5 = page_first(FAM_SND) + 4u;
-        check("SOUND has 5 pages on a SAMPLE track (then ARP's 2), the fifth shown", np == 7u &&
-                  !page_hidden(i5) && PAGES[i5].fam == FAM_SND && PAGES[i5 + 1u].fam == FAM_SND &&
-                  str_eq(PAGES[i5 + 1u].title, "ARP"));
+        check("SOUND has 5 pages on a SAMPLE track (ARP has its own button), the fifth shown", np == 5u &&
+                  !page_hidden(i5) && PAGES[i5].fam == FAM_SND && PAGES[i5 + 1u].fam != FAM_SND &&
+                  fam_pages(FAM_ARP, &pos) == 2u);
         old_set_model(TSEL, DM_K909);
         n = snd_list(TSEL, ids);
         ok = 1;
