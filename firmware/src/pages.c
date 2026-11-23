@@ -3,7 +3,7 @@
  * Drum machine fork: 2026 DEADACTIVE */
 /* Drum UI pages: a family per page button (pressing it again steps through its pages), and what
  * the four knobs edit on each page. */
-enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_EDT, FAM_COUNT };
+enum { FAM_HOME, FAM_SND, FAM_FX, FAM_SEQ, FAM_GLO, FAM_SAVE, FAM_LFO, FAM_MIX, FAM_EDT, FAM_ENV, FAM_COUNT };
 /* FAM_EDT: no button, never shown on the FM-1: the web editor's own pages (editor.c ed_pages: GLOBAL, SYSTEM) */
 enum { SC_TRACK, SC_GLOBAL, SC_MIX };   /* knobs edit: the selected track, song.g, the mixer */
 enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, GR_LFO, GR_MOTION, GR_FILTER,
@@ -11,7 +11,9 @@ enum { GR_NONE, GR_MODEL, GR_FX, GR_GRID, GR_STEPS, GR_SLOTS, GR_MIX, GR_COMP, G
                                                           * removed STEP page's, keeps its number) */
 
 #define SND_SLOT 0xC0u                            /* EDIT page ids: SND_SLOT + n = the track's n-th sound knob */
-#define SND_N 24u                                 /* .. at most: 6 SOUND pages (the fifth and sixth the SAMPLE model's) */
+#define SND_N 20u                                 /* .. at most: 5 SOUND pages (the fifth the SAMPLE model's) */
+#define ENV_SLOT (SND_SLOT + SND_N)               /* ENV page ids: ENV_SLOT + n = the track's n-th envelope knob (env_list) */
+#define ENV_N 8u                                  /* .. at most: 2 ENV pages */
 #define PG_MLEN 0xFEu                             /* PATTERN's MLEN: MASTER LENGTH (song.mlen, the slot's; not a track's) */
 #define PG_NOTE 0xFDu                             /* SOUND 1's NOTE (KNOB 2): the track's note for new steps (key_nt;
                                                    * a held step's own note: ui_input.c note_turn) */
@@ -29,15 +31,16 @@ static const page_t PAGES[] = {
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 8, SND_SLOT + 9, SND_SLOT + 10, SND_SLOT + 11}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 12, SND_SLOT + 13, SND_SLOT + 14, SND_SLOT + 15}},
     {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 16, SND_SLOT + 17, SND_SLOT + 18, SND_SLOT + 19}},   /* SAMPLE:
-                                                                                * PLAY CUT */
-    {"SOUND", FAM_SND, SC_TRACK, GR_MODEL, {SND_SLOT + 20, SND_SLOT + 21, SND_SLOT + 22, SND_SLOT + 23}},   /* SAMPLE:
-                                                                                * ATK SUS REL LOOP */
+                                                                                * PLAY CUT LOOP */
     /* ARP / RTRG (seq.c roll_*): after the SOUND pages in EDIT's cycle (ARP + EDIT: here at once, ui_input.c); the
      * second ARP's only (hidden on a drum: page_hidden) */
     {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_AMODE, P_ARATE, P_AGATE, P_AFADE}},
     {"ARP", FAM_SND, SC_TRACK, GR_NONE, {P_ADIR, P_ACHORD, P_ARANGE, 0xFF}},
-    {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FTYPE, P_FCUT, P_FRESO, P_FENV}},   /* filter.c */
-    {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FDEC, 0xFF, 0xFF, 0xFF}},
+    /* ENV (2026-11): the track's envelope knobs gathered (env_list: its machine's ATTACK / DECAY, a SAMPLE's ATK DECAY
+     * SUS REL, the filter's DECAY last), 4 a page; a page past the list's end is not shown */
+    {"ENV", FAM_ENV, SC_TRACK, GR_NONE, {ENV_SLOT + 0, ENV_SLOT + 1, ENV_SLOT + 2, ENV_SLOT + 3}},
+    {"ENV", FAM_ENV, SC_TRACK, GR_NONE, {ENV_SLOT + 4, ENV_SLOT + 5, ENV_SLOT + 6, ENV_SLOT + 7}},
+    {"FILTER", FAM_FX, SC_TRACK, GR_FILTER, {P_FTYPE, P_FCUT, P_FRESO, P_FENV}},   /* filter.c (its DECAY: ENV's) */
     {"FX", FAM_FX, SC_TRACK, GR_FX, {P_DIST, P_CHOR, P_DLY, P_REV}},
     {"INSERT", FAM_FX, SC_TRACK, GR_INSERT, {P_ITYPE, P_IA, P_IB, P_IC}},   /* insert.c: after DIST; A B C by the TYPE */
     {"INSERT", FAM_FX, SC_TRACK, GR_INSERT, {P_IMIX, P_SRR, 0xFF, 0xFF}},   /* its dry / wet; SRR (before DIST) */
@@ -70,13 +73,19 @@ static const page_t PAGES[] = {
 };
 #define NPAGES (sizeof(PAGES) / sizeof(PAGES[0]))
 
-/* the button (and LED) of each family; TRACKS (HOME's TRACKS mode) HOME's; ENV and SCL are free; the editor's pages
- * none (0xFF: no button's) */
-static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME, 0xFFu};
+/* the button (and LED) of each family; TRACKS (HOME's TRACKS mode) HOME's; SCL is free; the editor's pages none (0xFF:
+ * no button's) */
+static const uint8_t FAM_BTN[FAM_COUNT] = {B_HOME, B_EDIT, B_FX, B_SEQ, B_GLO, B_SAVE, B_LFO, B_HOME, 0xFFu, B_ENV};
 
-/* the EDIT list of track t: MODEL, NOTE (the sequencer's: PG_NOTE), its model's PITCH DECAY TONE and 4th knob, its
- * extra knobs, then LVL PAN MNOTE CHOKE PRIO (at most 16: 15); the SAMPLE model's then PLAY CUT on the 5th page and
- * ATK SUS REL LOOP on the 6th (0xFF, an empty column, up to each); returns how many (SND_N at most) */
+/* a model's envelope knob (its ATTACK, DECAY: ENV's page, 2026-11; not SOUND's) */
+static int env_knob(const dmodel_t *m, uint32_t k)
+{
+    const char *l = m->edit[k].label;
+    return l && (str_eq(l, "DECAY") || str_eq(l, "ATTACK"));
+}
+/* the EDIT list of track t: MODEL, NOTE (the sequencer's: PG_NOTE), its model's PITCH, TONE and the rest of its knobs
+ * but the envelope ones (ENV's), then LVL PAN MNOTE CHOKE PRIO (at most 16); the SAMPLE model's then PLAY CUT LOOP on
+ * the 5th page (0xFF, an empty column, up to it); returns how many (SND_N at most) */
 static uint32_t snd_list(const track_t *t, uint8_t *ids)
 {
     const dmodel_t *m = &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS];
@@ -84,7 +93,7 @@ static uint32_t snd_list(const track_t *t, uint8_t *ids)
     ids[n++] = P_MODEL;
     ids[n++] = PG_NOTE;
     for (k = 0; k < 8u; k++)
-        if (k < 4u || (m->edit[k].label && m->edit[k].label[0] != '-'))
+        if ((k < 4u || (m->edit[k].label && m->edit[k].label[0] != '-')) && !env_knob(m, k))
             ids[n++] = (uint8_t)(P_E0 + k);
     ids[n++] = P_LEVEL;
     ids[n++] = P_PAN;
@@ -92,15 +101,37 @@ static uint32_t snd_list(const track_t *t, uint8_t *ids)
     ids[n++] = P_CHOKE;
     ids[n++] = P_PRIO;
     if ((uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL) {
-        while (n < 16u)                             /* (SOUND 4/6: MNOTE CHOKE PRIO) */
+        while (n < 16u)                             /* (SOUND 4/5: CHOKE PRIO) */
             ids[n++] = 0xFFu;
-        ids[n++] = P_SPLAY;                         /* SOUND 5/6: PLAY CUT */
+        ids[n++] = P_SPLAY;                         /* SOUND 5/5: PLAY CUT LOOP */
         ids[n++] = P_SCUT;
-        while (n < 20u)
-            ids[n++] = 0xFFu;
-        for (k = 0; k < 4u; k++)
-            ids[n++] = (uint8_t)(P_SATK + k);
+        ids[n++] = P_SLOOP;
     }
+    return n;
+}
+/* the ENV list of track t (2026-11, option 1: the knobs it has, gathered; no new sound): a SAMPLE's ATK DECAY SUS REL;
+ * another machine's ATTACK and DECAY as its knobs order them (CHORD: ATTACK, DECAY; a drum: DECAY); the filter's DECAY
+ * last; returns how many (ENV_N at most) */
+static uint32_t env_list(const track_t *t, uint8_t *ids)
+{
+    const dmodel_t *m = &DMODELS[(uint32_t)t->p[P_MODEL] % NMODELS];
+    uint32_t n = 0, k;
+    if ((uint32_t)t->p[P_MODEL] % NMODELS == DM_SMPL) {
+        ids[n++] = P_SATK;
+        for (k = 0; k < 8u; k++)
+            if (env_knob(m, k))
+                ids[n++] = (uint8_t)(P_E0 + k);
+        ids[n++] = P_SSUS;
+        ids[n++] = P_SREL;
+    } else {
+        for (k = 0; k < 8u && n < ENV_N - 1u; k++)  /* (ATTACK first: the knob before DECAY in time) */
+            if (env_knob(m, k) && str_eq(m->edit[k].label, "ATTACK"))
+                ids[n++] = (uint8_t)(P_E0 + k);
+        for (k = 0; k < 8u && n < ENV_N - 1u; k++)
+            if (env_knob(m, k) && !str_eq(m->edit[k].label, "ATTACK"))
+                ids[n++] = (uint8_t)(P_E0 + k);
+    }
+    ids[n++] = P_FDEC;
     return n;
 }
 
@@ -113,6 +144,11 @@ static uint32_t page_id(const page_t *pg, uint32_t slot)
         uint8_t ids[SND_N];
         uint32_t n = snd_list(TSEL, ids);
         return id - SND_SLOT < n ? ids[id - SND_SLOT] : 0xFFu;
+    }
+    if (id >= ENV_SLOT && id < ENV_SLOT + ENV_N) {
+        uint8_t ids[ENV_N];
+        uint32_t n = env_list(TSEL, ids);
+        return id - ENV_SLOT < n ? ids[id - ENV_SLOT] : 0xFFu;
     }
     if (pg->graph == GR_LDEST)
         return slot & 3u ? LS_ID[song.lslot & 3u][(slot & 3u) - 1u] : 0xFFu;
@@ -152,5 +188,9 @@ static const param_desc_t *page_desc(const page_t *pg, uint32_t slot, int16_t **
         return &NOTE_DESC;
     }
     *valp = &TSEL->p[id];
+    if (id == P_FDEC && pg->fam == FAM_ENV) {        /* (beside the machine's DECAY: the filter's, by its own name) */
+        static const param_desc_t FDEC_ENV = PD("FDEC", F_FDEC, 0, 127, 40);
+        return &FDEC_ENV;
+    }
     return track_desc(TSEL, id);
 }

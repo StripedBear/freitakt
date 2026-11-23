@@ -706,14 +706,21 @@ export class MockDevice {
   pages() {
     const out = [], d = this.d, t = this.tracks[this.sel], P = this.P;
     const snd = [P.MODEL, undefined]; // (SOUND 1's NOTE: the device's own, pages.c PG_NOTE)
-    for (let k = 0; k < 8; k++) { const l = d.models[t.p[P.MODEL]].edit[k].label; if (k < 4 || (l && l[0] !== "-")) snd.push(P.E0 + k); }
+    const ed = d.models[t.p[P.MODEL]].edit, envK = (k) => ["DECAY", "ATTACK"].includes(ed[k].label);
+    for (let k = 0; k < 8; k++) { const l = ed[k].label; if ((k < 4 || (l && l[0] !== "-")) && !envK(k)) snd.push(P.E0 + k); }
     snd.push(P.LEVEL, P.PAN, P.NOTE, P.CHOKE, P.PRIO);
-    if (t.p[P.MODEL] === d.consts.DM_SMPL) { // pages.c snd_list: SAMPLE's PLAY CUT; ATK SUS REL LOOP, pages of their own
+    const env = []; // pages.c env_list: the envelope knobs gathered on ENV (2026-11), the filter's DECAY last
+    if (t.p[P.MODEL] === d.consts.DM_SMPL) { // pages.c snd_list: SAMPLE's PLAY CUT LOOP on SOUND 5
       while (snd.length < 16) snd.push(undefined);
-      snd.push(P.SPLAY, P.SCUT);
-      while (snd.length < 20) snd.push(undefined);
-      snd.push(P.SATK, P.SSUS, P.SREL, P.SLOOP);
+      snd.push(P.SPLAY, P.SCUT, P.SLOOP);
+      env.push(P.SATK);
+      for (let k = 0; k < 8; k++) if (envK(k)) env.push(P.E0 + k);
+      env.push(P.SSUS, P.SREL);
+    } else {
+      for (let k = 0; k < 8; k++) if (envK(k) && ed[k].label === "ATTACK") env.push(P.E0 + k);
+      for (let k = 0; k < 8; k++) if (envK(k) && ed[k].label !== "ATTACK") env.push(P.E0 + k);
     }
+    env.push(P.FDEC);
     for (const pg of d.pages) {
       if (pg.scope > d.sc.GLOBAL || [d.gr.SLOTS, d.gr.MOTION].includes(pg.graph)) continue;
       if (pg.scope === d.sc.GLOBAL && pg.id.some((x) => x !== 255 && x >= d.gp.length)) continue;
@@ -723,6 +730,7 @@ export class MockDevice {
       }
       const ids = pg.id.map((x) => {
         if (x === 255) return U14_NONE;
+        if (pg.scope === d.sc.TRACK && x >= d.envSlot) return env[x - d.envSlot] ?? U14_NONE;
         if (pg.scope === d.sc.TRACK && x >= d.sndSlot) return snd[x - d.sndSlot] ?? U14_NONE;
         return x;
       });

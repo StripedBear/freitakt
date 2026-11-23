@@ -35,7 +35,7 @@ def panel_svg():
          '<rect x="4" y="4" width="992" height="612" rx="40" fill="#1b1b1b"/>',
          '<rect x="270" y="36" width="268" height="268" rx="10" fill="#333"/>',
          f'<image x="284" y="50" width="240" height="240" style="image-rendering:pixelated" '
-         f'href="data:image/png;base64,{png_b64("25_tracks.png")}"/>',
+         f'href="data:image/png;base64,{png_b64("24_tracks.png")}"/>',
          '<rect x="572" y="158" width="394" height="156" rx="12" fill="#2a2a2a"/>',
          '<rect x="52" y="262" width="196" height="64" rx="12" fill="#2a2a2a"/>',
          '<rect x="40" y="336" width="920" height="262" rx="14" fill="#2a2a2a"/>']

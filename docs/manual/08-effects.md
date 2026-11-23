@@ -5,21 +5,21 @@
 
 Each track runs: voice, then **FILTER**, **SRR**, **DIST**, **INSERT**, the compressor's duck, then LEVEL and PAN and the three sends (**chorus**, **delay**, **reverb**). The sends and the track mix go into the master: the PERFORM effects, the metronome, SPEAKER EQ, a DC blocker, the limiter and a soft clip.
 
-Press [[FX]] for the track's effect pages. Its pages: **FILTER 1/2**, **FILTER 2/2**, **FX** (the sends), **INSERT 1/2**, **INSERT 2/2**, then **COMP 1/2** and **COMP 2/2** (the compressor, see *Modulation and compressor*). Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
+Press [[FX]] for the track's effect pages. Its pages: **FILTER**, **FX** (the sends), **INSERT 1/2**, **INSERT 2/2**, then **COMP 1/2** and **COMP 2/2** (the compressor, see *Modulation and compressor*). Press [[FX]] again (it wraps to the first page) or turn [[SELECT]] (it stops at the ends) to move. The family reopens at the last page used. Hold [[FX]] for PERFORM instead.
 
 All FX pages edit the selected track. **Delay, reverb and chorus** are global and live on the [[GLO]] pages DLY 1, DLY 2, REVERB and CHORUS (stored in the project); their send knobs (CHO, DLY, REV) stay on the FX page.
 
-## FILTER (1/2 and 2/2)
+## FILTER
 
-A filter on every track, after the voice and before DIST. Each hit sweeps it by ENV (accents sweep further).
+A filter on every track, after the voice and before DIST. Each hit sweeps it by ENV (accents sweep further); the sweep's time is FDEC on the [[ENV]] page.
 
 | Page | Knob | Label | Values (default) |
 | --- | --- | --- | --- |
-| 1/2 | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
-| 1/2 | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
-| 1/2 | **KNOB 3** | RESO | 0 to 127 (0) |
-| 1/2 | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
-| 2/2 | **KNOB 1** | DECAY | 5 ms to 2 s (40, about 32 ms) |
+| FILTER | **KNOB 1** | TYPE | OFF (default), LP, BP, HP, NOT (notch) |
+| FILTER | **KNOB 2** | CUT | 30 Hz to 16 kHz, exponential (127 = 16 kHz) |
+| FILTER | **KNOB 3** | RESO | 0 to 127 (0) |
+| FILTER | **KNOB 4** | ENV | -64 to +63 (0): cutoff offset by the hit envelope times velocity |
+| ENV | last row | FDEC | the filter envelope's decay, 5 ms to 2 s (40, about 32 ms) |
 
 LFO destinations F.CUT and F.RES move the filter.
 

@@ -1598,10 +1598,11 @@ static void ui_input(void)
     song.act[7] = (int16_t)mkb_kbd;
     song.act[8] = (int16_t)!mkb_local_off;
     bank_fix();                                         /* LEN may have changed (knob, load) */
-    if (!ui.home && page_hidden(ui.page)) {             /* the engine changed: its last EDIT page */
-        while (ui.page > page_first(FAM_SND) && page_hidden(ui.page))
+    if (!ui.home && page_hidden(ui.page)) {             /* the engine changed: its last EDIT (ENV) page */
+        uint32_t f = cur_fam();
+        while (ui.page > page_first(f) && page_hidden(ui.page))
             ui.page--;
-        ui.fam_last[FAM_SND] = ui.page;
+        ui.fam_last[f] = ui.page;
         page_entered();
     }
     for (id = 0; id < 14u; id++) {

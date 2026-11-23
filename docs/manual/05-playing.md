@@ -104,7 +104,7 @@ With KEYS off (SEL unlit) the white keys are the selected track's steps on **eve
 
 ### Locking a step
 
-With KEYS off, on any page whose knobs MOTION can record (SOUND, FX, INSERT and SRR, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFO's RATE and MORPH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
+With KEYS off, on any page whose knobs MOTION can record (SOUND, ENV, FX, INSERT and SRR, FILTER, a SAMPLE's PLAY CUT LOOP, the LFO's RATE and MORPH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
 
 - The top bar says `LOCK STEP 5` while a step is held; the rows show that step's values (a locked one inverted).
 - Knobs MOTION cannot record (FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.

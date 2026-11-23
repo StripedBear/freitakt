@@ -62,8 +62,8 @@ static void knob(uint32_t k, int32_t s)
     if (ui.home && k < 4u) {                         /* FREITAKT: HOME's knobs are BPM / SWING; the old HOME knob k (the
                                                       * model's macro P_E0 + k) turned where it is now, a SOUND page */
         uint32_t p, j;
-        for (p = page_first(FAM_SND); p < NPAGES && PAGES[p].fam == FAM_SND; p++)
-            for (j = 0; j < 4u; j++)
+        for (p = 0; p < NPAGES; p++)                 /* (SOUND, or ENV for DECAY since 2026-11) */
+            for (j = 0; j < 4u && (PAGES[p].fam == FAM_SND || PAGES[p].fam == FAM_ENV); j++)
                 if (page_id(&PAGES[p], j) == P_E0 + k)
                     goto found;
         check("(the macro knob on a SOUND page)", 0);

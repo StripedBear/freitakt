@@ -181,9 +181,9 @@ int main(void)
                ED_ID(0), ED_ID(1), ED_ID(2), ED_ID(3));
 #undef ED_ID
     }
-    printf("],\n\"sndSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"LDEST\": %u, "
+    printf("],\n\"sndSlot\": %u, \"envSlot\": %u, \"gr\": {\"SLOTS\": %u, \"MOTION\": %u, \"LDEST\": %u, "
            "\"LFO\": %u},\n",
-           SND_SLOT, GR_SLOTS, GR_MOTION, GR_LDEST, GR_LFO);
+           SND_SLOT, ENV_SLOT, GR_SLOTS, GR_MOTION, GR_LDEST, GR_LFO);
     printf("\"sc\": {\"TRACK\": %u, \"GLOBAL\": %u}, \"preNone\": %u, \"preRecUser\": %u,\n", SC_TRACK, SC_GLOBAL,
            PRE_NONE, PRE_REC_USER);
     printf("\"conds\": [");                         /* the PROB knob, position by position: stored code, name */

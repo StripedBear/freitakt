@@ -22,11 +22,11 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | Button | Opens |
 | --- | --- |
 | **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the minimal status screen, KNOB 1 BPM and KNOB 2 SWING; with KEYS off the white keys are the selected track's steps, as everywhere). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
-| **EDIT** | The selected track's sound: the SOUND pages (MODEL, NOTE and the model's knobs), then ARP. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
+| **EDIT** | The selected track's sound: the SOUND pages (MODEL, NOTE and the model's knobs but its envelope, which is on ENV), then ARP. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
 | **SEQ** | PATTERN, with the steps on the white keys (a short tap opens it, on its release). A hold opens it too, on the release (there is no TOOLS screen any more). **SEQ + black key 1 to 6**: mute / unmute track 1 to 6 (see *Combos*); a white key with SEQ does nothing. |
-| **FX** | The track's FILTER, FX (the sends), INSERT (with SRR) and COMP (the compressor): 7 pages. **Hold FX** for PERFORM. |
+| **FX** | The track's FILTER, FX (the sends), INSERT (with SRR) and COMP (the compressor): 6 pages. **Hold FX** for PERFORM. |
 | **LFO** | The track's LFO (two pages), then DEST. |
-| **ENV** | Nothing for now (its STEPS mode is gone: with KEYS off the white keys are the steps on every page). |
+| **ENV** | The selected track's envelope page: its machine's ATTACK / DECAY (a SAMPL's ATK DECAY SUS REL) and the filter's decay FDEC (see *Sounds, ENV*). Pressed again: its next page, if any. |
 | **SCL** | Labelled SEL. KEYS is on at power-on (SEL lit); a tap (on the release, no key pressed while held) toggles it. While SEL is lit the keys play the selected track chromatically on every page, TRACKS and COMP included; while SEL is unlit the white keys are the selected track's steps on every page (see *KEYS and STEPS*). **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): MIDI OUT, DLY 1, DLY 2, REVERB and CHORUS (5 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
 | **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2 and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |

@@ -43,7 +43,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 <tr><td><kbd>SEQ</kbd></td><td>Страница PATTERN (LEN / DIV / SWG / MLEN). Удержание + чёрная 1–6: mute.</td></tr>
 <tr><td><kbd>GLO</kbd></td><td>Тап: глобальные страницы (MIDI OUT, дилей, реверб, хорус). Удержание + клавиши: смена паттерна или вариации, цепочка.</td></tr>
 <tr><td><kbd>SAVE</kbd></td><td>Тап: карусель PROJECT / TOOLS / COPY. Удержание: карта переключения паттернов и вариаций; копирование трека.</td></tr>
-<tr><td><kbd>ENV</kbd></td><td>Пока без своей функции (режима STEPS больше нет: при выключенном KEYS белые клавиши — шаги на любой странице).</td></tr>
+<tr><td><kbd>ENV</kbd></td><td>Страница огибающих выбранного трека: ATTACK / DECAY машины (у SAMPL — ATK DECAY SUS REL) и FDEC — спад огибающей фильтра (см. <a href="#env">ENV</a>). Повторное нажатие — следующая страница ENV, если есть.</td></tr>
 <tr><td><kbd>SEL</kbd></td><td>Тап: KEYS (горит: клавиатура играет трек по нотам) ⇄ STEPS (не горит: белые клавиши — шаги выбранного трека на любой странице). Удержание + чёрная 1–6: выбор трека.</td></tr>
 <tr><td><kbd>ARP</kbd></td><td>Только в комбинациях: + <kbd>EDIT</kbd> — страницы ARP; + чёрная 1–6 — solo.</td></tr>
 <tr><td><kbd>PLAY</kbd> / <kbd>REC</kbd></td><td>Старт/стоп. REC: запись (см. раздел 6); удержание 0,4 с — FILL.</td></tr>
@@ -72,7 +72,7 @@ FIT-деления для полиритмов. Ещё есть общая дл�
 То же можно делать прямо на TRACKS, пока ни один трек не взведён на запись.</li>
 <li><b>Запустите</b>: <kbd>PLAY</kbd>. Повторное нажатие останавливает.</li>
 <li><b>Смените машину.</b> <kbd>EDIT</kbd> открывает первую страницу звука, <kbd class="k">KNOB 1</kbd> (<code>MODEL</code>) выбирает машину,
-<kbd class="k">KNOB 2</kbd> — NOTE трека, <kbd class="k">KNOB 3–4</kbd> — PITCH и DECAY. Быстрее: крутите <kbd class="k">PRESETS</kbd>, каждый щелчок — новый пресет.</li>
+<kbd class="k">KNOB 2</kbd> — NOTE трека, <kbd class="k">KNOB 3</kbd> — PITCH; DECAY — на странице <kbd>ENV</kbd>. Быстрее: крутите <kbd class="k">PRESETS</kbd>, каждый щелчок — новый пресет.</li>
 <li><b>Настройте шаг.</b> Вернитесь на <kbd>SEQ</kbd>, держите белую клавишу шага и крутите ручки:
 <kbd class="k">KNOB 1</kbd> PROB (вероятность или условие), <kbd class="k">KNOB 2</kbd> RATCH (рэтчет 1–4),
 <kbd class="k">KNOB 3</kbd> ACC (акцент), <kbd class="k">KNOB 4</kbd> NUDGE (сдвиг во времени).
@@ -137,7 +137,7 @@ TRACKS со взведённым треком (клавиши пишут уда�
 <p>В режиме MIDI-клавиатуры строка состояния HOME меняется на <code>MIDI KBD CH1 OCT+1</code> (см. <a href="#midikbd">раздел 6</a>).</p>
 
 <h3 id="tracks">TRACKS (микшер)</h3>
-{{screen:25_tracks.png|TRACKS}}
+{{screen:24_tracks.png|TRACKS}}
 <p><b>Как открыть:</b> тап <kbd>HOME</kbd> на экране HOME. Этот экран открывается после включения.</p>
 <p>Шесть строк, по одной на трек: номер, отметка записи (квадрат: залитый, пока играет; контур, пока стоит),
 машина и справа мелко имя пресета (<code>*</code> — пресет изменён). Выбранный трек отмечен <code>&gt;</code>.
@@ -159,10 +159,21 @@ TRACKS со взведённым треком (клавиши пишут уда�
 <div class="shots">{{shot:01_sound.png|SOUND 1 (K909)}}{{shot:02_sound_2.png|SOUND 2}}{{shot:03_sound_3.png|SOUND 3}}{{shot:93_sound_kboom.png|SOUND 1 машины BOOM}}</div>
 <p><b>Как открыть:</b> <kbd>EDIT</kbd>; повторные нажатия листают страницы SOUND, а за ними ARP. Удержание <kbd>EDIT</kbd> 0,4 с открывает список пресетов.</p>
 <p>Вверху нарисована форма удара трека. Страницы — список параметров по четыре на страницу:
-<code>MODEL</code>, <code>NOTE</code>, ручки машины (первые — <code>PITCH</code> и <code>DECAY</code>), затем
+<code>MODEL</code>, <code>NOTE</code>, ручки машины (первая — <code>PITCH</code>; ручки огибающей — DECAY, ATTACK — живут на странице ENV), затем
 <code>LVL</code> (громкость), <code>PAN</code>, <code>MNOTE</code> (MIDI-нота трека, раньше называлась NOTE), <code>CHOKE</code> (группа глушения OFF/1–4)
-и <code>PRIO</code> (приоритет голоса HIGH/LOW). Число страниц зависит от машины; у SAMPL их шесть
-(5: PLAY CUT, 6: ATK SUS REL LOOP).</p>
+и <code>PRIO</code> (приоритет голоса HIGH/LOW). Число страниц зависит от машины; у SAMPL их пять
+(5: PLAY CUT LOOP).</p>
+<h3 id="env">ENV: страница огибающих</h3>
+<div class="shots">{{shot:env/c808.png|ENV (ударная)}}{{shot:env/sampl_1.png|ENV 1 (SAMPL)}}{{shot:env/sampl_2.png|ENV 2 (SAMPL)}}{{shot:env/chord.png|ENV (CHORD)}}</div>
+<p><b>Как открыть:</b> <kbd>ENV</kbd>; повторное нажатие — следующая страница ENV, если она есть (светодиод ENV горит).
+Ручки огибающей выбранного трека собраны в один список (тот же попап ручки, локи, MOTION и MIDI LEARN; звук не изменился, переехали только ручки):</p>
+<table><thead><tr><th>Машина</th><th>ENV 1</th><th>ENV 2</th></tr></thead><tbody>
+<tr><td>ударные, FM, TRX, ACID</td><td><code>DECAY</code>, <code>FDEC</code></td><td>—</td></tr>
+<tr><td>SAMPL</td><td><code>ATK</code>, <code>DECAY</code>, <code>SUS</code>, <code>REL</code></td><td><code>FDEC</code></td></tr>
+<tr><td>CHORD</td><td><code>ATTACK</code>, <code>DECAY</code>, <code>FDEC</code></td><td>—</td></tr>
+</tbody></table>
+<p><code>FDEC</code> — спад огибающей фильтра (5 мс – 2 с, по умолчанию 40 ≈ 32 мс), которой ручка ENV на странице FILTER сдвигает срез.
+Если сменить машину, стоя на ENV 2, а у новой второй страницы нет, экран вернётся на ENV 1.</p>
 <p><code>NOTE</code> (<kbd class="k">KNOB 2</kbd> на SOUND 1) показывается названием ноты (<code>C#4</code>, от C-1 до G9).
 Без удержанных шагов это нота трека: её получает каждый новый включённый шаг, у всех машин, и у ударных (они играют её
 с транспонированием от C4). С удержанными шагами (KEYS выключен, любая страница) ручка пишет ноту во все удержанные шаги сразу. Нота трека
@@ -210,7 +221,7 @@ ARP2 по клавишам KEYS играет целый аккорд на каж
 </tbody></table>
 
 <h3 id="arp">EDIT: страницы ARP (арпеджиатор и ретриггер)</h3>
-{{screen:05_arp.png|ARP 1}}
+{{screen:04_arp.png|ARP 1}}
 <p><b>Как открыть:</b> держите <kbd>ARP</kbd> и нажмите <kbd>EDIT</kbd>. Следующее <kbd>ARP</kbd> + <kbd>EDIT</kbd> откроет ARP 2.
 Страницы ARP также идут в цикле <kbd>EDIT</kbd> сразу после SOUND.</p>
 <table><thead><tr><th>Ручка</th><th>ARP 1</th><th>ARP 2 (только у ACID, SAMPL, FM, SKIN, CHORD)</th></tr></thead><tbody>
@@ -222,12 +233,11 @@ ARP2 по клавишам KEYS играет целый аккорд на каж
 {{/screen}}
 
 <h3 id="fx">FX: фильтр, посылы, инсерт, компрессор</h3>
-<p><b>Как открыть:</b> тап <kbd>FX</kbd> (срабатывает на отпускании); повторные тапы листают 7 страниц по кругу.
-Удержание <kbd>FX</kbd> 0,4 с открывает PERFORM (см. ниже). Страницы 1–5 относятся к выбранному треку, COMP — общий.</p>
-<div class="shots">{{shot:06_filter.png|FILTER 1}}{{shot:07_filter_2.png|FILTER 2}}{{shot:08_fx.png|FX (посылы)}}{{shot:09_insert.png|INSERT 1}}{{shot:10_insert_2.png|INSERT 2}}{{shot:11_comp.png|COMP 1}}{{shot:12_comp_2.png|COMP 2}}</div>
+<p><b>Как открыть:</b> тап <kbd>FX</kbd> (срабатывает на отпускании); повторные тапы листают 6 страниц по кругу.
+Удержание <kbd>FX</kbd> 0,4 с открывает PERFORM (см. ниже). Страницы 1–4 относятся к выбранному треку, COMP — общий.</p>
+<div class="shots">{{shot:06_filter.png|FILTER}}{{shot:07_fx.png|FX (посылы)}}{{shot:08_insert.png|INSERT 1}}{{shot:09_insert_2.png|INSERT 2}}{{shot:10_comp.png|COMP 1}}{{shot:11_comp_2.png|COMP 2}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
-<tr><td>FILTER 1</td><td><code>TYPE</code> OFF LP BP HP NOT</td><td><code>CUT</code> срез (до 16 кГц)</td><td><code>RESO</code> 0–127</td><td><code>ENV</code> −64…+63 (огибающая на срез)</td></tr>
-<tr><td>FILTER 2</td><td><code>DECAY</code> огибающей фильтра</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>FILTER</td><td><code>TYPE</code> OFF LP BP HP NOT</td><td><code>CUT</code> срез (до 16 кГц)</td><td><code>RESO</code> 0–127</td><td><code>ENV</code> −64…+63 (огибающая на срез)</td></tr>
 <tr><td>FX (посылы)</td><td><code>DST</code> дисторшн</td><td><code>CHO</code> хорус</td><td><code>DLY</code> дилей</td><td><code>REV</code> реверб</td></tr>
 <tr><td>INSERT 1</td><td><code>TYPE</code> OFF SOFT HARD FOLD FUZZ CRUSH PHASR FLANG CHOR</td><td colspan="3">A / B / C, названия зависят от TYPE:
 SOFT/HARD/FOLD/FUZZ — DRIVE TONE LEVEL; CRUSH — BITS RATE LPF; PHASR/FLANG/CHOR — RATE DEPTH FDBK</td></tr>
@@ -254,7 +264,7 @@ HIDE — источник никогда не слышен, только кач�
 {{/screen}}
 
 <h3 id="pattern">SEQ: PATTERN</h3>
-{{screen:13_pattern.png|PATTERN}}
+{{screen:12_pattern.png|PATTERN}}
 <p><b>Как открыть:</b> <kbd>SEQ</kbd> (на отпускании). В разделе SEQ одна страница.</p>
 <table><thead><tr><th>Ручка</th><th>Строка</th><th>Значения</th></tr></thead><tbody>
 <tr><td>1</td><td><code>LEN</code></td><td>Длина трека 1–64 шага (16)</td></tr>
@@ -268,7 +278,7 @@ HIDE — источник никогда не слышен, только кач�
 {{shot:seq/20_step_held_prob.png|Удержанный шаг + KNOB 1 (PROB)}}
 
 <h3 id="lfo">LFO</h3>
-<div class="shots">{{shot:22_lfo.png|LFO 1}}{{shot:23_lfo_2.png|LFO 2 (страница)}}{{shot:24_dest.png|DEST}}</div>
+<div class="shots">{{shot:21_lfo.png|LFO 1}}{{shot:22_lfo_2.png|LFO 2 (страница)}}{{shot:23_dest.png|DEST}}</div>
 <p><b>Как открыть:</b> <kbd>LFO</kbd>; повторные нажатия листают 3 страницы. У каждого трека один LFO с четырьмя назначениями.</p>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>1 (с формой волны)</td><td><code>WAVE</code> SQUAR SAW RSAW SINE TRI S&amp;H WANDR EXP+ EXP- RWALK</td><td><code>RATE</code> (в SYNC: от 8BAR до 1/64, с пунктирными и триолями)</td><td><code>MORPH</code></td><td><code>PHASE</code></td></tr>
@@ -282,7 +292,7 @@ PLAY — рестарт по PLAY.</p>
 <h3 id="glo">GLO: MIDI OUT, дилей, реверб, хорус</h3>
 <p><b>Как открыть:</b> короткий тап <kbd>GLO</kbd> (меньше 0,4 с, без клавиш); повторные тапы листают 5 страниц.
 Удержание <kbd>GLO</kbd> с клавишами управляет паттернами (см. <a href="#patterns">раздел 5</a>).</p>
-<div class="shots">{{shot:14_midi out.png|MIDI OUT}}{{shot:15_dly.png|DLY 1}}{{shot:16_dly_2.png|DLY 2}}{{shot:17_reverb.png|REVERB}}{{shot:18_chorus.png|CHORUS}}</div>
+<div class="shots">{{shot:13_midi out.png|MIDI OUT}}{{shot:14_dly.png|DLY 1}}{{shot:15_dly_2.png|DLY 2}}{{shot:16_reverb.png|REVERB}}{{shot:17_chorus.png|CHORUS}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>MIDI OUT</td><td><code>OUT</code> OFF / USB (/ BLE / BOTH)</td><td><code>T1CH</code>…<code>T6CH</code> канал выбранного трека, OFF/1–16</td><td><code>KBD</code> OFF / TRK / 1–16</td><td><code>LOCL</code> ON/OFF</td></tr>
 <tr><td>DLY 1</td><td><code>TIME</code> (1/8; есть пунктирные и триоли)</td><td><code>FDBK</code></td><td><code>COLR</code></td><td><code>MIX</code></td></tr>
@@ -298,7 +308,7 @@ PLAY — рестарт по PLAY.</p>
 внизу подсказки по кнопкам. <kbd class="k">SELECT</kbd> прокручивает пункты по кругу.</p>
 <p><b>Защита от случайностей:</b> LOAD, SAVE, PASTE и все действия TOOLS требуют двух щелчков ручки в течение примерно 1,5 с.
 Первый щелчок показывает <code>AGAIN: …</code>.</p>
-<div class="shots">{{shot:19_project.png|PROJECT}}{{shot:20_tools.png|TOOLS}}{{shot:21_copy.png|COPY}}</div>
+<div class="shots">{{shot:18_project.png|PROJECT}}{{shot:19_tools.png|TOOLS}}{{shot:20_copy.png|COPY}}</div>
 <table><thead><tr><th>Страница</th><th>KNOB 1</th><th>KNOB 2</th><th>KNOB 3</th><th>KNOB 4</th></tr></thead><tbody>
 <tr><td>PROJECT</td><td>Паттерн A–D (на экране <code>SLOT</code>); значение — имя, <code>EMPTY</code> или <code>USED</code></td><td><code>NAME</code>: поворот вправо — переименовать</td><td><code>LOAD</code> ×2</td><td><code>SAVE</code> ×2</td></tr>
 <tr><td>TOOLS</td><td>CLEAR TRACK: шаги, motion и локи трека</td><td>INIT SOUND: звук трека по умолчанию</td><td>CLEAR ALL: все треки (шаги, LEN, DIV, SWG)</td><td>INIT ALL: всё (сохранённые паттерны и настройки остаются)</td></tr>
@@ -394,7 +404,7 @@ SWG 100 — 1,4 / 0,6. С FIT-делением мера — длина свое�
 <p><b>Machine lock:</b> держите шаг и крутите <code>MODEL</code> (SOUND, <kbd class="k">KNOB 1</kbd>). Сообщение — <code>MLOCK STEP n МАШИНА</code>.
 ACID пропускается. Возврат к собственной машине трека снимает machine lock (<code>MLOCK STEP n OFF</code>).</p>
 <p><b>Что можно залочить:</b> ручки машины, LVL, PAN, посылы, CUT/RESO/ENV/DECAY фильтра, SRR, A/B/C/MIX инсерта,
-ATK/SUS/REL/LOOP/PLAY сэмплера, RATE/MORPH/DEPTH LFO, все параметры ARP, MODEL (machine lock).
+ATK/SUS/REL (на ENV) и PLAY/CUT/LOOP сэмплера, RATE/MORPH/DEPTH LFO, все параметры ARP, MODEL (machine lock).
 Нельзя: типы (фильтра, инсерта), глобальные параметры. Ручка, которую залочить нельзя, при удержанном шаге ничего не делает.</p>
 <p><b>Как стереть:</b></p>
 <ul>

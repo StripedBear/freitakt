@@ -587,9 +587,9 @@ static void test_edit_marks(void)
     transport_req = 2;
     render_mix(0, 0, CTL * 4);
     check("an LFO on DECAY: not edited", !t->pre_ed && t->pre == id);
-    open_family(FAM_SND);                            /* (FREITAKT: HOME's knobs BPM SWING; SOUND 1: knob 4 = DECAY) */
+    open_family(FAM_ENV);                            /* (FREITAKT: HOME's knobs BPM SWING; ENV: knob 1 = DECAY, 2026-11) */
     frames(1);
-    turn(EN_K1 + 3, 3);
+    turn(EN_K1, 3);
     frames(1);
     check("a SOUND knob turned (DECAY): edited", t->pre_ed && t->pre == id);
     preset_load(t, id);

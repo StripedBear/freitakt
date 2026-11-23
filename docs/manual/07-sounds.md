@@ -3,7 +3,19 @@
 
 ## How a track's sound works
 
-Press [[EDIT]] to open the selected track's sound. **SOUND 1**'s [[KNOB 1]] picks the **MODEL**; the SOUND pages are lists of four rows: SOUND 1 is MODEL, **NOTE** and the model's first two knobs (PITCH, then DECAY on most models), the next pages the rest of the model's knobs (pages with nothing on them are skipped), followed by LEVEL, PAN, MNOTE, CHOKE and PRIO (SAMPL adds a fifth page with PLAY and CUT, and a sixth with ATK SUS REL LOOP). Every model has **PITCH** (-24 to +24 semitones, shown with its sign: the machine's tuning, lockable; it was called TUNE before), **DECAY**, and then its own knobs (all 0 to 127 unless stated). K909, for one: MODEL NOTE PITCH DECAY, then SWEEP CLICK SWPT DRIVE, then LVL PAN MNOTE CHOKE, then PRIO. ARP follows in EDIT's cycle.
+Press [[EDIT]] to open the selected track's sound. **SOUND 1**'s [[KNOB 1]] picks the **MODEL**; the SOUND pages are lists of four rows: SOUND 1 is MODEL, **NOTE**, PITCH and the model's next knob, the next pages the rest of the model's knobs (pages with nothing on them are skipped), followed by LEVEL, PAN, MNOTE, CHOKE and PRIO (SAMPL adds a fifth page with PLAY CUT LOOP). The envelope knobs are not on SOUND: they are on the **ENV** page (below). Every model has **PITCH** (-24 to +24 semitones, shown with its sign: the machine's tuning, lockable; it was called TUNE before), **DECAY** (on ENV), and then its own knobs (all 0 to 127 unless stated). K909, for one: MODEL NOTE PITCH SWEEP, then CLICK SWPT DRIVE LVL, then PAN MNOTE CHOKE PRIO. ARP follows in EDIT's cycle.
+
+## ENV: the envelope page
+
+Press [[ENV]] to open the selected track's envelope: its envelope knobs gathered on one list page (same knob popup, locks, MOTION and MIDI LEARN as any page; nothing about the sound changed, only where the knobs are). [[ENV]] again goes to the next ENV page if there is one; the ENV LED is lit on it.
+
+| Machine | ENV 1 | ENV 2 |
+| --- | --- | --- |
+| a drum / FM / TRX / ACID model | DECAY, FDEC | - |
+| SAMPL | ATK, DECAY, SUS, REL | FDEC |
+| CHORD | ATTACK, DECAY, FDEC | - |
+
+**FDEC** is the filter's DECAY (5 ms to 2 s, default 40, about 32 ms), the time of the filter envelope that FILTER's ENV knob sweeps the cutoff with. Changing MODEL while on ENV 2 goes back to ENV 1 if the new machine has no second page.
 
 The SOUND pages are lists, one row per knob. The MODEL row shows the track's preset or model name, with `*` once a SOUND knob has moved. At the top each SOUND page shows *the hit*: a small waveform of the voice's real sound (one hit at velocity 100, played silently in the background); it redraws a few frames after MODEL or a knob changes.
 
@@ -68,7 +80,7 @@ Integer ports of Mutable Instruments Plaits drum algorithms (MIT), DaisySP physi
 | 29 | FM | Two-operator FM percussion: a carrier phase-modulated by a sine at RATIO x pitch. MDEC the FM envelope decay, SWEEP a pitch rise, FBK modulator feedback, VEL velocity into INDEX. Bells, metallic toms, woodblocks, zaps, FM kicks. | PITCH DECAY INDEX RATIO / MDEC SWEEP FBK VEL | 2 |
 | 30 | ACID | 303-style mono bass: saw or square into a 24 dB ladder filter, with accent, slide and tie from the steps. Max two ACID tracks. | PITCH DECAY CUTOF RESO / ENVMD ACCNT WAVE GATE | 1 |
 | 31 | CHORD | Polyphonic chord (as Elektron Model:Cycles' CHORD): up to four oscillators playing a chord shape on the note, one chord at a time over all tracks (see below). | PITCH CHORD INV DECAY / WAVE TONE ATTACK DETUNE | 1 |
-| 32 | SAMPL | Sample player: one sample of a set, with start / end, envelope, loop and chop (see Samples). Was SMPL. | PITCH DECAY TONE DRIVE / SET SLOT START END (+ PLAY CUT, ATK SUS REL LOOP) | 2 |
+| 32 | SAMPL | Sample player: one sample of a set, with start / end, envelope, loop and chop (see Samples). Was SMPL. | PITCH DECAY TONE DRIVE / SET SLOT START END (+ PLAY CUT LOOP; ATK SUS REL on ENV) | 2 |
 
 Lists: FM **RATIO** is one of 0.5, 1, 1.41, 1.5, 2, 2.76, 3, 3.5, 4, 5.4, 6, 7, 8, 9.2, 11, 14. ACID **WAVE** is SAW or SQR. ACID **GATE** is how long a hit that no step drives stays open, as a fraction of the step. ACID is skipped in the MODEL list and PRESETS once two ACID tracks exist (`ACID: 2 TRACKS MAX`).
 
@@ -139,7 +151,7 @@ A **preset** is one voice: MODEL plus the eight SOUND knobs (the SAMPLE model's 
 
 SAMPL plays one sample of a **set**. **SET** chooses the set: **PERC** (built in) or **USR1**, **USR2**, **USR3** (yours). **SLOT** steps through the set's samples, shown `3/16` (`--` for an empty set); each plays at its own pitch, and **PITCH** (-24 to +24) transposes it. Turning SET keeps SLOT inside the new set. **START** and **END** (0 to 127 over the sample) play only part of it. **DECAY**, **TONE** (a one-pole low-pass) and **DRIVE** (a soft clip) shape it. An empty set is silent.
 
-The SAMPLE model has six SOUND pages: 1 MODEL NOTE PITCH DECAY; 2 TONE DRIVE SET SLOT; 3 START END LVL PAN; 4 MNOTE CHOKE PRIO; 5 PLAY CUT; 6 ATK SUS REL LOOP.
+The SAMPLE model has five SOUND pages: 1 MODEL NOTE PITCH TONE; 2 DRIVE SET SLOT START; 3 END LVL PAN MNOTE; 4 CHOKE PRIO; 5 PLAY CUT LOOP. Its ATK DECAY SUS REL are on the ENV page.
 
 - **ATK SUS REL.** ATK fades the hit in (0 at once, up to 2 s). SUS 0 plays the sample once with DECAY; above 0, DECAY falls only to that level and the sound holds while the note is held, then REL fades it out. A step holds for one step of its track, longer through TIE steps; a KEYS key, a track's key or a MIDI note holds until you let go.
 - **LOOP** plays the part between START and END again and again: **FWD** (crossfaded seam), **PING** (forward and back; loops up to about a quarter of a second at 44.1 kHz, longer ones play FWD), **LOOPI** (loops until the track's next hit, a choke or STOP; the end of the note does nothing) or **ONE** (START to END whatever the note's length). OFF is the one-shot.

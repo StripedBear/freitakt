@@ -115,22 +115,21 @@ static void test_sound_pages(void)
     edit_next();
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
-    check("EDIT page 1 (C808): MODEL NOTE PITCH DECAY; 4 pages (FREITAKT: ARP's first, a drum's)",
+    check("EDIT page 1 (C808): MODEL NOTE PITCH TONE (DECAY: ENV's, 2026-11); 4 pages (ARP's first, a drum's)",
           n == 4u && k == 1u && page_id(pg, 0) == P_MODEL && page_id(pg, 1) == PG_NOTE && page_id(pg, 2) == P_E0 &&
-              page_id(pg, 3) == P_E1 && str_eq(page_desc(pg, 1, &vp)->label, "NOTE") &&
+              page_id(pg, 3) == P_E2 && str_eq(page_desc(pg, 1, &vp)->label, "NOTE") &&
               str_eq(page_desc(pg, 2, &vp)->label, "PITCH"));
     snap_page("engines/zz_c808_edit_1");
     edit_next();
     pg = cur_page();
-    check("EDIT page 2 (C808): TONE TAIL LVL PAN",
-          page_id(pg, 0) == P_E2 && page_id(pg, 1) == P_E3 && page_id(pg, 2) == P_LEVEL && page_id(pg, 3) == P_PAN);
+    check("EDIT page 2 (C808): TAIL LVL PAN MNOTE",
+          page_id(pg, 0) == P_E3 && page_id(pg, 1) == P_LEVEL && page_id(pg, 2) == P_PAN && page_id(pg, 3) == P_NOTE);
     snap_page("engines/zz_c808_edit_2");
     edit_next();
     pg = cur_page();
     n = fam_pages(FAM_SND, &k);
-    check("EDIT page 3: MNOTE CHOKE PRIO, nothing else (no MUTE)", page_id(pg, 0) == P_NOTE &&
-              str_eq(page_desc(pg, 0, &vp)->label, "MNOTE") && page_id(pg, 1) == P_CHOKE && page_id(pg, 2) == P_PRIO &&
-              page_id(pg, 3) == 0xFFu && k == 3u && n == 4u);
+    check("EDIT page 3: CHOKE PRIO, nothing else (no MUTE)", page_id(pg, 0) == P_CHOKE && page_id(pg, 1) == P_PRIO &&
+              page_id(pg, 2) == 0xFFu && page_id(pg, 3) == 0xFFu && k == 3u && n == 4u);
     snap_page("engines/zz_c808_edit_3");
     edit_next();
     pg = cur_page();
@@ -143,10 +142,9 @@ static void test_sound_pages(void)
     old_set_model(&trk[0], DM_K909);
     edit_next();
     pg = cur_page();
-    check("K909 page 2: TONE CLICK SWPT DRIVE (its extras before LVL)",
-          page_id(pg, 0) == P_E2 && page_id(pg, 1) == P_E3 && page_id(pg, 2) == P_E4 && page_id(pg, 3) == P_E5);
-    edit_next();
-    edit_next();
+    check("K909 page 2: CLICK SWPT DRIVE (its extras before LVL; SWEEP on page 1, DECAY ENV's)",
+          page_id(pg, 0) == P_E3 && page_id(pg, 1) == P_E4 && page_id(pg, 2) == P_E5 && page_id(pg, 3) == P_LEVEL);
+    edit_next();                                     /* 3/3, ARP, then 1 */
     edit_next();
     edit_next();
     turn(EN_K1, 1);
@@ -207,8 +205,7 @@ static void test_select_pages(void)
     check("SELECT back on HOME: stays, the engine unchanged", ui.home && (uint32_t)TSEL->p[P_MODEL] == m0);
     tap(B_FX);
     check("FX opens on FILTER 1/2", str_eq(cur_page()->title, "FILTER") && page_id(cur_page(), 0) == P_FTYPE);
-    sel(1);                                          /* FILTER 2/2 */
-    sel(1);                                          /* FX */
+    sel(1);                                          /* FX (FILTER 2/2, its DECAY: ENV's since 2026-11) */
     sel(1);
     check("SELECT on FX: INSERT 1/2 (TYPE A B C)", str_eq(cur_page()->title, "INSERT") && page_id(cur_page(), 0) == P_ITYPE);
     sel(1);                                          /* INSERT 2/2 */
@@ -4863,8 +4860,8 @@ static void test_key_selects_track(void)
 {
     static const struct { const char *title; uint32_t btn, presses; int want; } C[] = {
         {"SOUND", B_EDIT, 1, 1},
-        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1}, {"INSERT", B_FX, 5, 1},
-        {"COMP", B_FX, 6, 0},
+        {"FILTER", B_FX, 1, 1}, {"FX", B_FX, 2, 1}, {"INSERT", B_FX, 3, 1}, {"INSERT", B_FX, 4, 1},
+        {"COMP", B_FX, 5, 0},
         {"MIDI OUT", B_GLO, 1, 0}, {"DLY", B_GLO, 2, 0}, {"CHORUS", B_GLO, 5, 0},
         {"PATTERN", B_SEQ, 1, 0},
     };
@@ -5722,8 +5719,8 @@ static void test_phys_screens(void)
     snap_page("phys/memb_2");
     {
         int16_t *vp;
-        const param_desc_t *h = page_desc(cur_page(), 1, &vp), *b = page_desc(cur_page(), 3, &vp);
-        check("MEMB: SOUND 2/3 holds TONE HEAD .. BEND", h && b && str_eq(h->label, "HEAD") && str_eq(b->label, "BEND"));
+        const param_desc_t *h = page_desc(cur_page(), 0, &vp), *b = page_desc(cur_page(), 2, &vp);
+        check("MEMB: SOUND 2/3 holds HEAD .. BEND (DECAY: ENV's, 2026-11)", h && b && str_eq(h->label, "HEAD") && str_eq(b->label, "BEND"));
     }
 }
 
@@ -5748,9 +5745,7 @@ static void test_filter_screens(void)
         snap_page(SHOT[ty]);
     }
     page_turn(1);
-    ui.force = 1;
-    snap_page("filter/decay");
-    check("FILTER 2/2 holds DECAY", str_eq(cur_page()->title, "FILTER") && str_eq(page_desc(cur_page(), 0, &vp)->label, "DECAY"));
+    check("FILTER: one page (its DECAY on ENV since 2026-11), the next is FX", str_eq(cur_page()->title, "FX"));
     TSEL->p[P_LFO1 + LF_DEST] = 11;
     for (k = 0; k < NPAGES && (ui.home || cur_page()->fam != FAM_LFO); k++)
         tap(B_LFO);
@@ -6025,15 +6020,15 @@ static void test_fm_screens(void)
         tap(B_EDIT);
     ui.force = 1;
     snap_page("fm/sound_1");
-    check("FM: SOUND 1/4 holds MODEL NOTE PITCH DECAY; the graph draws the sidebands",
-          str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY") &&
+    check("FM: SOUND 1/4 holds MODEL NOTE PITCH INDEX (DECAY: ENV's); the graph draws the sidebands",
+          str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") && str_eq(page_desc(cur_page(), 3, &vp)->label, "INDEX") &&
           str_eq(N_FMRATIO[TSEL->p[P_E3]], "1.41") && fm_graph_lit() > 150u);
     page_turn(1);
     ui.force = 1;
     snap_page("fm/sound_2");
-    check("FM: SOUND 2/4 holds INDEX RATIO MDEC SWEEP",
-          str_eq(page_desc(cur_page(), 0, &vp)->label, "INDEX") && str_eq(page_desc(cur_page(), 1, &vp)->label, "RATIO") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
+    check("FM: SOUND 2/4 holds RATIO MDEC SWEEP FBK",
+          str_eq(page_desc(cur_page(), 0, &vp)->label, "RATIO") && str_eq(page_desc(cur_page(), 1, &vp)->label, "MDEC") &&
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "FBK"));
 }
 
 /* KTRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY, 2/4 SWEEP SDEC PUNCH NOISE; the graph draws the pitch and the level,
@@ -6074,9 +6069,9 @@ static void test_ktrx_screens(void)
     snap_page("ktrx/sound_1");
     plain = fm_graph_area(0u, 110u);
     printf("     KTRX graph: upper half lit %u (SWEEP 0) / %u (SWEEP 127, SDEC 96)\n", flat, swept);
-    check("KTRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY (FREITAKT LIST: the hit's band, no pitch graph)",
+    check("KTRX: SOUND 1/4 holds MODEL NOTE PITCH SWEEP (DECAY: ENV's; LIST: the hit's band, no pitch graph)",
           str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY"));
+              str_eq(page_desc(cur_page(), 3, &vp)->label, "SWEEP"));
     TSEL->p[P_CHOKE] = 2;
     ui.force = 1;
     ui_frame();
@@ -6086,9 +6081,9 @@ static void test_ktrx_screens(void)
     page_turn(1);
     ui.force = 1;
     snap_page("ktrx/sound_2");
-    check("KTRX: SOUND 2/4 holds SWEEP SDEC PUNCH NOISE",
-          str_eq(page_desc(cur_page(), 0, &vp)->label, "SWEEP") && str_eq(page_desc(cur_page(), 1, &vp)->label, "SDEC") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, "NOISE"));
+    check("KTRX: SOUND 2/4 holds SDEC PUNCH NOISE ..",
+          str_eq(page_desc(cur_page(), 0, &vp)->label, "SDEC") && str_eq(page_desc(cur_page(), 1, &vp)->label, "PUNCH") &&
+              str_eq(page_desc(cur_page(), 2, &vp)->label, "NOISE"));
 }
 
 /* SDTRX, B2TRX: their SOUND pages (MODEL NOTE + the first two knobs, then the next four) */
@@ -6108,16 +6103,14 @@ static void test_trx_drum_screens(void)
         ui.force = 1;
         snprintf(name, sizeof name, "%s_sound_1", S[i].dir);
         snap_page(name);
-        ok &= str_eq(page_desc(cur_page(), 2, &vp)->label, S[i].l1) && str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
+        ok &= str_eq(page_desc(cur_page(), 2, &vp)->label, S[i].l1) && str_eq(page_desc(cur_page(), 3, &vp)->label, S[i].l3);
         page_turn(1);
         ui.force = 1;
         snprintf(name, sizeof name, "%s_sound_2", S[i].dir);
         snap_page(name);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l3) && str_eq(page_desc(cur_page(), 1, &vp)->label, S[i].l4);
-        page_turn(1);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l7);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, S[i].l4) && str_eq(page_desc(cur_page(), 3, &vp)->label, S[i].l7);
     }
-    check("SDTRX, B2TRX: SOUND 1/4 holds MODEL NOTE PITCH DECAY, 2/4 SNAP TONE .. / RAMP HOLD .., 3/4 CLIP / DIRT", ok);
+    check("SDTRX, B2TRX: SOUND 1/4 holds MODEL NOTE PITCH SNAP / RAMP (DECAY: ENV's), 2/4 TONE .. CLIP / HOLD .. DIRT", ok);
 }
 
 /* CPTRX / MATRX: their SOUND pages hold the knobs in order (1/4 MODEL NOTE PITCH DECAY, 2/4 the next four, 3/4
@@ -6137,17 +6130,17 @@ static void test_trxn_screens(void)
         ui.force = 1;
         snap_page(M[i].s1);
         ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
+              str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s2);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k3) && str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k4);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k4);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s3);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k7);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k7);
     }
-    check("CPTRX, MATRX: SOUND 1/4 MODEL NOTE PITCH DECAY, 2/4 from CLPY HARD / ATT REV, 3/4 RTUN / HARD second", ok);
+    check("CPTRX, MATRX: SOUND 1/4 MODEL NOTE PITCH CLPY / ATT (DECAY: ENV's), 2/4 from HARD / REV, 3/4 RTUN / HARD first", ok);
 }
 
 /* SDEFM / CPEFM / RSEFM: their SOUND pages hold the knobs in order (1/4 MODEL NOTE PITCH DECAY, 2/4 the next
@@ -6168,18 +6161,18 @@ static void test_efmn_screens(void)
         ui.force = 1;
         snap_page(M[i].s1);
         ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, "NOTE") && str_eq(page_desc(cur_page(), 2, &vp)->label, "PITCH") &&
-              str_eq(page_desc(cur_page(), 3, &vp)->label, "DECAY");
+              str_eq(page_desc(cur_page(), 3, &vp)->label, M[i].k3);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s2);
-        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k3) && str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k4);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k4);
         page_turn(1);
         ui.force = 1;
         snap_page(M[i].s3);
-        ok &= str_eq(page_desc(cur_page(), 1, &vp)->label, M[i].k8);
+        ok &= str_eq(page_desc(cur_page(), 0, &vp)->label, M[i].k8);
     }
-    check("SDEFM, CPEFM, RSEFM: SOUND 1/4 MODEL NOTE PITCH DECAY, 2/4 from NOIS NDEC / CLPS CDEC / MOD HPF, 3/4 HPF / "
-          "HPF / SMOD second", ok);
+    check("SDEFM, CPEFM, RSEFM: SOUND 1/4 MODEL NOTE PITCH NOIS / CLPS / MOD (DECAY: ENV's), 2/4 from NDEC / CDEC / "
+          "HPF, 3/4 HPF / HPF / SMOD first", ok);
 }
 
 /* ---- ACID plan B: KEYS (spec §5) */
@@ -6920,13 +6913,14 @@ static void test_prio_sound_list(void)
     for (m = 0; m < NMODELS; m++) {
         old_set_model(TSEL, m);
         n = snd_list(TSEL, ids);
-        if (m == DM_SMPL)                            /* (SAMPLE: then PLAY CUT, then ATK SUS REL LOOP, pages of their own) */
-            ok &= n == SND_N && ids[14] == P_PRIO && ids[13] == P_CHOKE && ids[15] == 0xFFu && ids[16] == P_SPLAY &&
-                  ids[17] == P_SCUT && ids[20] == P_SATK && ids[23] == P_SLOOP;
+        if (m == DM_SMPL)                            /* (SAMPLE: then PLAY CUT LOOP, a page of their own; ATK SUS REL:
+                                                      * ENV's, 2026-11) */
+            ok &= n == 19u && ids[13] == P_PRIO && ids[12] == P_CHOKE && ids[15] == 0xFFu && ids[16] == P_SPLAY &&
+                  ids[17] == P_SCUT && ids[18] == P_SLOOP;
         else
             ok &= n <= 16u && ids[n - 1u] == P_PRIO && ids[n - 2u] == P_CHOKE;
     }
-    check("PRIO: every model's SOUND list ends CHOKE, PRIO (SAMPLE's before its PLAY CUT and ATK SUS REL LOOP pages)", ok);
+    check("PRIO: every model's SOUND list ends CHOKE, PRIO (SAMPLE's before its PLAY CUT LOOP page)", ok);
     old_set_model(TSEL, DM_CYMB);
     n = snd_list(TSEL, ids);
     ui.home = 0;                                     /* the SOUND page with PRIO */
@@ -8612,6 +8606,100 @@ static void test_lock_while_playing(void)
     check("locks while playing: a held step + KNOB 3 locks it, the popup shows the lock, step 5 plays it and "
           "step 6 the knob's own value", ok);
 }
+/* ENV (2026-11): an ENV tap opens the envelope page of the selected track, its machine's envelope knobs gathered (a
+ * drum: DECAY, FDEC; SAMPL: ATK DECAY SUS REL, FDEC on 2/2; CHORD: ATTACK DECAY FDEC), gone from SOUND / FILTER; a
+ * step held + an ENV knob locks it and the step plays the lock */
+static int env_row(uint32_t pg, const char *const *want, uint32_t n)
+{
+    uint32_t c;
+    int16_t *vp;
+    for (c = 0; c < 4u; c++) {
+        const param_desc_t *d = page_id(&PAGES[pg], c) != 0xFFu ? page_desc(&PAGES[pg], c, &vp) : 0;
+        if (c < n ? !d || !str_eq(d->label, want[c]) : d != 0) {
+            printf("     ENV col %u: %s, want %s\n", (unsigned)c, d ? d->label : "-", c < n ? want[c] : "-");
+            return 0;
+        }
+    }
+    return 1;
+}
+static void test_env_page(void)
+{
+    static const char *const DRUM[] = {"DECAY", "FDEC"}, *const SMP1[] = {"ATK", "DECAY", "SUS", "REL"},
+                             *const SMP2[] = {"FDEC"}, *const CHD[] = {"ATTACK", "DECAY", "FDEC"};
+    uint32_t ok, i, n, k, e0;
+    uint8_t ids[SND_N];
+    int16_t lv = 0, own;
+    ui_host_init();
+    old_set_model(TSEL, DM_C808);
+    tap(B_ENV);
+    e0 = ui.page;
+    n = fam_pages(FAM_ENV, &k);
+    ok = !ui.home && str_eq(cur_page()->title, "ENV") && n == 1u && k == 1u && env_row(e0, DRUM, 2) &&
+         led_lit(panel.btn[B_ENV]);
+    ui.force = 1;
+    snap_page("env/c808");
+    tap(B_ENV);                                      /* (one page: ENV again stays) */
+    ok &= ui.page == e0;
+    check("ENV: an ENV tap opens ENV, a drum's DECAY FDEC (one page), its LED lit", ok);
+    old_set_model(TSEL, DM_SMPL);
+    ui.force = 1;
+    ui_frame();
+    n = fam_pages(FAM_ENV, &k);
+    ok = n == 2u && env_row(e0, SMP1, 4) && env_row(e0 + 1u, SMP2, 1) &&
+         page_id(&PAGES[e0], 0) == P_SATK && page_id(&PAGES[e0], 1) == P_E1 && page_id(&PAGES[e0 + 1u], 0) == P_FDEC;
+    snap_page("env/sampl_1");
+    tap(B_ENV);
+    ok &= ui.page == e0 + 1u;
+    ui.force = 1;
+    snap_page("env/sampl_2");
+    old_set_model(TSEL, DM_CHORD);                   /* (on ENV 2/2: hidden now, back to 1/2) */
+    ui_frame();
+    ok &= ui.page == e0 && fam_pages(FAM_ENV, &k) == 1u && env_row(e0, CHD, 3) && page_id(&PAGES[e0], 0) == P_E6 &&
+          page_id(&PAGES[e0], 1) == P_E3;
+    ui.force = 1;
+    snap_page("env/chord");
+    check("ENV: SAMPL ATK DECAY SUS REL / FDEC (2 pages), CHORD ATTACK DECAY FDEC; a model change off 2/2 goes back", ok);
+    ok = 1;
+    for (i = 0; i < NMODELS; i++) {                  /* the moved knobs: on ENV, not SOUND, not FILTER */
+        uint32_t m, c, s2;
+        old_set_model(TSEL, i);
+        n = snd_list(TSEL, ids);
+        for (m = 0; m < n; m++)
+            ok &= ids[m] != P_SATK && ids[m] != P_SSUS && ids[m] != P_SREL && ids[m] != P_FDEC &&
+                  !(ids[m] >= P_E0 && ids[m] <= P_E7 && (str_eq(track_desc(TSEL, ids[m])->label, "DECAY") ||
+                                                          str_eq(track_desc(TSEL, ids[m])->label, "ATTACK")));
+        for (s2 = 0; s2 < NPAGES; s2++)
+            if (PAGES[s2].fam == FAM_FX)
+                for (c = 0; c < 4u; c++)
+                    ok &= PAGES[s2].id[c] != P_FDEC;
+        n = env_list(TSEL, ids);
+        ok &= n >= 2u && ids[n - 1u] == P_FDEC;
+    }
+    check("ENV: DECAY / ATTACK / ATK SUS REL / the filter's DECAY gone from SOUND and FILTER, on ENV for every machine",
+          ok);
+    lock_fresh();                                    /* a lock entered on ENV plays */
+    old_set_model(TSEL, DM_C808);
+    tap(B_ENV);
+    for (k = 0; k < 16u; k++)
+        trk[0].step[k].on = 1;
+    trk[0].p[P_SLEN] = 16;
+    own = trk[0].p[P_E1];
+    transport_req = 1;
+    seq_play_to(0, 1);
+    grid_down(WHITE[4]);
+    grid_wait(350);
+    turn(EN_K1, -5);
+    ui_frame();
+    ok = lock_id(0) == P_E1 && lock_get(0, 4, P_E1, &lv) && lv != own && trk[0].step[4].on;
+    grid_up(WHITE[4]);
+    seq_play_to(0, 4);
+    ok &= trk[0].seq_idx == 4u && trk[0].p[P_E1] == lv;
+    seq_play_to(0, 5);
+    ok &= trk[0].p[P_E1] == own;
+    transport_req = 2;
+    ui_frame();
+    check("ENV: a held step + KNOB 1 (DECAY) on ENV locks it, step 5 plays the lock, step 6 the knob's own", ok);
+}
 static void test_lock_full(void)
 {
     uint32_t i;
@@ -8632,12 +8720,12 @@ static void oct_dn_for(uint32_t ms)                  /* OCT- held ms, let go (th
     btn_up(B_OCTDN);
     ui_frame();
 }
-static void two_locks(void)                          /* E1 (SOUND 1) and CUT (FILTER) locked at step 5, motion E1 too */
+static void two_locks(void)                          /* E0 (SOUND 1) and CUT (FILTER) locked at step 5, motion E0 too */
 {
-    lock_set(0, 4, P_E1, 100);
+    lock_set(0, 4, P_E0, 100);
     lock_set(0, 4, P_FCUT, 20);
-    lock_set(0, 5, P_E1, 90);
-    motion_add(0, 4, P_E1, 33);
+    lock_set(0, 5, P_E0, 90);
+    motion_add(0, 4, P_E0, 33);
 }
 static void test_lock_clear_page(void)
 {
@@ -8649,7 +8737,7 @@ static void test_lock_clear_page(void)
     grid_down(WHITE[4]);
     grid_wait(350);
     oct_dn_for(100);
-    ok = !lock_get(0, 4, P_E1, &v) && lock_get(0, 4, P_FCUT, &v) && lock_get(0, 5, P_E1, &v) && motion_count(0) == 1u;
+    ok = !lock_get(0, 4, P_E0, &v) && lock_get(0, 4, P_FCUT, &v) && lock_get(0, 5, P_E0, &v) && motion_count(0) == 1u;
     ok &= str_eq(ui.msg, "STEP 5 LOCKS CLEARED") && str_eq(cur_page()->title, "SOUND");
     grid_up(WHITE[4]);
     check("locks: step held + OCT- tap on SOUND clears that step's SOUND locks only (FILTER's, the next step's and "
@@ -8667,7 +8755,7 @@ static void test_lock_clear_all(void)
     press(B_OCTDN);
     ui_frame();
     grid_wait(700);
-    ok = !lock_get(0, 4, P_E1, &v) && !lock_get(0, 4, P_FCUT, &v) && lock_get(0, 5, P_E1, &v) && motion_count(0) == 1u &&
+    ok = !lock_get(0, 4, P_E0, &v) && !lock_get(0, 4, P_FCUT, &v) && lock_get(0, 5, P_E0, &v) && motion_count(0) == 1u &&
          str_eq(ui.msg, "STEP 5 ALL CLEARED");
     btn_up(B_OCTDN);
     ui_frame();
@@ -8710,7 +8798,7 @@ static void test_lock_clear_any_tick_phase(void)
     ui_host_init();
     tap(B_EDIT);
     for (ph = 0; ph < 8u; ph++) {                    /* hold step 5, OCT- tap clears its SOUND locks */
-        lock_set(0, 4, P_E1, 100);
+        lock_set(0, 4, P_E0, 100);
         grid_down(WHITE[4]);
         grid_wait(350);
         host_ticks = (host_ticks & ~7u) + ph;
@@ -8720,7 +8808,7 @@ static void test_lock_clear_any_tick_phase(void)
         btn_up(B_OCTDN);
         ui_frame();
         grid_up(WHITE[4]);
-        ok &= !lock_get(0, 4, P_E1, &v);
+        ok &= !lock_get(0, 4, P_E0, &v);
     }
     check("locks: step held + OCT- tap clears at every phase of the tick counter", ok);
     memset(&mo.b, 0, sizeof mo.b);
@@ -9560,6 +9648,7 @@ int main(void)
     test_name_message_ends();
     test_phys_screens();
     test_filter_screens();
+    test_env_page();
     test_insert_screens();
     test_initsnd_filter();
     test_perform_knobs_follow_screen();

@@ -20,7 +20,7 @@
 | **DEST** | the LFO routing page: four slots of source, destination and depth. |
 | **DIV** | a track's step division. |
 | **E0 to E7** | a model's eight SOUND knobs. |
-| **ENV** | a page button (no job of its own yet). |
+| **ENV** | the envelope page of the selected track: its DECAY (and ATTACK, or a SAMPL's ATK SUS REL) and the filter's decay FDEC. |
 | **FILL** | a step flag; plays only during a fill (hold REC off SEQ). |
 | **FM-Link** | two FM-1s in time over Bluetooth. |
 | **GO action** | a TOOLS / PROJECT knob that needs two detents within 1.5 s. |
@@ -48,7 +48,7 @@
 | **THRU** | pass MIDI from each input to the other outputs (the menu's MIDI THRU). |
 | **THROW** | PERFORM macro that sends the dry mix into the delay and reverb. |
 | **USR1 to USR3** | user sample slots, each a set of up to 16 samples. |
-| **ATK / SUS / REL** | the SAMPLE model's envelope: fade-in, held level, release (SOUND 6/6). |
+| **ATK / SUS / REL** | the SAMPLE model's envelope: fade-in, held level, release (on the ENV page). |
 | **CHOP** | SAMPLE PLAY CHOP: the 16 white keys (and a step's NOTE) pick a sample of the set. Also the editor's Chop tool. |
 | **CUT** | SAMPLE: ON makes each hit cut the one sounding. |
 | **EDITOR** | the web editor (Sound, Presets, Projects, Patterns, Samples). |

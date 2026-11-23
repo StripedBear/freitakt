@@ -13,7 +13,7 @@ You do not need to remember button names yet: every section of the screen is rea
 2. Tap white keys to turn steps on and off. A lit key is an active step.
 3. Press [[PLAY]]. The sequencer runs; the playhead moves along the keys.
 4. Hold [[SCL]] (labelled SEL) and press black key 2, 3, ... to pick another track, then tap in its steps.
-5. Press [[EDIT]]. Turn [[KNOB 1]] to pick a different **model** for the track (kick, snare, hat, ACID bass...). [[KNOB 2]] is the track's NOTE, [[KNOB 3]] and [[KNOB 4]] its PITCH and DECAY.
+5. Press [[EDIT]]. Turn [[KNOB 1]] to pick a different **model** for the track (kick, snare, hat, ACID bass...). [[KNOB 2]] is the track's NOTE, [[KNOB 3]] is its PITCH; DECAY is on the [[ENV]] page.
 6. Turn [[PRESETS]] to try the factory presets on the track, one per detent.
 7. Hold a step and turn [[KNOB 1]] (PROB, chance), [[KNOB 2]] (RATCH, ratchet), [[KNOB 3]] (ACCENT) or [[KNOB 4]] (NUDGE, early or late) to give that step character; turn [[ALGORITHM]] to set its note (with KEYS off, the SEL light out).
 8. Press [[SAVE]] and save the project into slot A to D. The last project saved loads at power-on.

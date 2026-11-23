@@ -285,21 +285,27 @@ static void t_knobs(void)
     ui_host_init();
     old_set_model(TSEL, DM_SMPL);
     n = snd_list(TSEL, ids);
-    check("SAMPLE's sound list: 6 pages, the sixth ATK SUS REL LOOP, the fifth PLAY CUT (the fourth MNOTE CHOKE PRIO)",
-          n == 24u && ids[20] == P_SATK && ids[21] == P_SSUS && ids[22] == P_SREL && ids[23] == P_SLOOP &&
-              ids[12] == P_NOTE && ids[13] == P_CHOKE && ids[14] == P_PRIO && ids[15] == 0xFFu &&
-              ids[16] == P_SPLAY && ids[17] == P_SCUT && ids[18] == 0xFFu && ids[19] == 0xFFu);
+    check("SAMPLE's sound list: 5 pages, the fifth PLAY CUT LOOP (the fourth CHOKE PRIO; ATK SUS REL: ENV's, 2026-11)",
+          n == 19u && ids[11] == P_NOTE && ids[12] == P_CHOKE && ids[13] == P_PRIO && ids[14] == 0xFFu &&
+              ids[15] == 0xFFu && ids[16] == P_SPLAY && ids[17] == P_SCUT && ids[18] == P_SLOOP);
+    {
+        uint8_t ev[SND_N];
+        uint32_t ne = env_list(TSEL, ev);
+        check("SAMPLE's ENV list: ATK DECAY SUS REL, FDEC", ne == 5u && ev[0] == P_SATK && ev[1] == P_E1 &&
+                                                            ev[2] == P_SSUS && ev[3] == P_SREL && ev[4] == P_FDEC);
+    }
     {
         uint32_t pos, np = fam_pages(FAM_SND, &pos), i5 = page_first(FAM_SND) + 4u;
-        check("SOUND has 6 pages on a SAMPLE track (then ARP's 2), the fifth and sixth shown", np == 8u &&
-                  !page_hidden(i5) && !page_hidden(i5 + 1u) && PAGES[i5 + 1u].fam == FAM_SND);
+        check("SOUND has 5 pages on a SAMPLE track (then ARP's 2), the fifth shown", np == 7u &&
+                  !page_hidden(i5) && PAGES[i5].fam == FAM_SND && PAGES[i5 + 1u].fam == FAM_SND &&
+                  str_eq(PAGES[i5 + 1u].title, "ARP"));
         old_set_model(TSEL, DM_K909);
         n = snd_list(TSEL, ids);
         ok = 1;
         for (i = 0; i < n; i++)
             ok &= ids[i] != P_SATK && ids[i] != P_SLOOP && ids[i] != P_SPLAY;
-        check("another model: no ATK .. LOOP, 4 pages at most, the fifth and sixth hidden",
-              ok && n <= 16u && page_hidden(i5) && page_hidden(i5 + 1u) && fam_pages(FAM_SND, &pos) <= 5u);
+        check("another model: no ATK .. LOOP, 4 pages at most, the fifth hidden",
+              ok && n <= 16u && page_hidden(i5) && fam_pages(FAM_SND, &pos) <= 5u);
     }
     ok = 1;
     for (i = 0; i < 4u; i++)
@@ -654,8 +660,8 @@ static void t_play(void)
     check("PLAY reads KEY / CHOP", ok && !strcmp(b, "KEY"));
     old_set_model(TSEL, DM_SMPL);
     snd_list(TSEL, ids);
-    check("PLAY on SOUND 5/6 (PLAY CUT)", ids[13] == P_CHOKE && ids[14] == P_PRIO && ids[16] == P_SPLAY &&
-                                          ids[17] == P_SCUT);
+    check("PLAY on SOUND 5/5 (PLAY CUT LOOP)", ids[12] == P_CHOKE && ids[13] == P_PRIO && ids[16] == P_SPLAY &&
+                                               ids[17] == P_SCUT);
     check("PLAY: LOCK / MOTION, MIDI LEARN take it", motion_param(P_SPLAY) && ml_param_ok(P_SPLAY));
     enc_set(0, pc, zlen, 3, 1);
     /* KEY: the selected SLOT's sample, chromatic from its root */
@@ -765,7 +771,7 @@ static void t_loopi_one_cut(void)
                                                                   ml_param_ok(P_SCUT));
     old_set_model(TSEL, DM_SMPL);
     snd_list(TSEL, ids);
-    check("SOUND 5/6: PLAY CUT", ids[16] == P_SPLAY && ids[17] == P_SCUT);
+    check("SOUND 5/5: PLAY CUT LOOP", ids[16] == P_SPLAY && ids[17] == P_SCUT && ids[18] == P_SLOOP);
     make_sig(40000, 0);
     enc_slot(0, sig, 40000);
     /* LOOPI: no release, the gate's end does nothing; ATK then the full level (SUS 0) */

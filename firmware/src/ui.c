@@ -312,6 +312,8 @@ static int page_hidden(uint32_t i)
     uint8_t ids[SND_N];
     if (i < NPAGES && PAGES[i].id[0] == P_ADIR)        /* ARP's DIR CHORD RANGE: a pitched model's only */
         return !arp_model((uint32_t)TSEL->p[P_MODEL] % NMODELS);
+    if (i < NPAGES && PAGES[i].fam == FAM_ENV && PAGES[i].id[0] >= ENV_SLOT)   /* ENV 2/2: past the list's end */
+        return PAGES[i].id[0] - ENV_SLOT >= env_list(TSEL, ids);
     if (i >= NPAGES || PAGES[i].fam != FAM_SND || PAGES[i].id[0] < SND_SLOT)
         return 0;
     return PAGES[i].id[0] - SND_SLOT >= snd_list(TSEL, ids);
