@@ -69,15 +69,12 @@ static void test_families(void)
         ok &= !ui.home && cur_page()->fam == MAP[i].fam;
     }
     check("buttons open their page families (EDIT SOUND, FX, SEQ, GLO, SAVE, LFO LFO)", ok);
-    press(B_ENV);
-    ui_frame();
-    release_all();
     press(B_SCL);
     ui_frame();
     check("SEL pressed: KEYS waits for the release (SEL + a black key selects a track)", !ui.keys);
     release_all();
     ui_frame();
-    check("ENV (STEPS, 2026-10-24) then SCL: KEYS on (STEPS off), the page stays", !ui.home && cur_page()->fam == FAM_LFO && ui.keys);
+    check("SCL: KEYS on, the page stays", !ui.home && cur_page()->fam == FAM_LFO && ui.keys);
     press(B_SCL);                                    /* KEYS off again */
     ui_frame();
     release_all();
@@ -831,7 +828,9 @@ static void test_comp_keys(void)
     keys(1u << KEY_TRK_KEY[2]);
     ui_frame();
     keys(0);
-    check("leaving COMP: the keys play again", hit_age(&trk[2]) != a);
+    ui_frame();
+    check("leaving COMP: the keys are the steps again (no duck, no hit)", hit_age(&trk[2]) == a && song.seq_mode == 1u &&
+          step_keys());
 }
 
 /* TOOLS: CLR* clears every pattern and its settings (sounds untouched); INIT* puts everything at power-on;
@@ -974,7 +973,7 @@ static void test_lfo_pages(void)                     /* FREITAKT: one LFO in the
     ui_frame();
     keys(0);
     ui_frame();
-    check("DEST: a white key selects its track (the slot stays)", song.sel == 3u && song.lslot == 3u);
+    check("DEST: a white key is a step, no track select (the slot stays)", song.sel != 3u && song.lslot == 3u);
     tap(B_LFO);
     check("LFO on DEST: back to 1/3", ui.page == page_first(FAM_LFO));
     render_mix(0, 0, CTL);
@@ -1096,7 +1095,7 @@ static void test_home_modes(void)
     ui_frame();
     tap(B_HOME);
     check("a HOME tap on TRACKS: HOME's second mode (the HOME screen), HOME lit", ui.home && !mix_mode() &&
-          led_lit(panel.btn[B_HOME]) && song.seq_mode == 0u);
+          led_lit(panel.btn[B_HOME]) && song.seq_mode == 1u);
     snap_page("fixes/home_mode2");
     tap(B_HOME);
     check("a HOME tap on the HOME screen: TRACKS again", mix_mode());
@@ -1327,13 +1326,9 @@ static void test_quick_mute(void)
     ui_frame();
     check("NEXT BAR but stopped: a mute is at once", trk[3].p[P_MUTE] == 1);
     settings.mutebar = 0;
-    tap(B_HOME);                                     /* HOME's second mode: keys play again; track 6 stays muted */
-    a = hit_age(&trk[0]);
-    keys(1u << KEY_TRK_KEY[0]);
-    ui_frame();
-    keys(0);
-    ui_frame();
-    check("leaving TRACKS: the keys play again, the mutes stay", ui.home && hit_age(&trk[0]) != a &&
+    tap(B_HOME);                                     /* HOME's second mode: the keys the steps (2026-11); track 6
+                                                      * stays muted */
+    check("leaving TRACKS: the keys are the steps, the mutes stay", ui.home && song.seq_mode == 1u &&
           trk[5].p[P_MUTE] == 1 && trk[0].p[P_MUTE] == 0);
 }
 
@@ -2726,7 +2721,7 @@ static void test_rec_all(void)
     check("TRACKS: a REC tap again disarms it: T3 REC OFF, REC dark", song.rec == 0u && !ui.rec_all &&
           str_eq(ui.msg, "T3 REC OFF") && !led_lit(panel.btn[B_REC]));
     tap(B_REC);                                      /* track 3 armed */
-    tap(B_FX);                                       /* FX: the keys play their drums */
+    tap(B_FX);                                       /* FX: KEYS off, the keys are the selected track's steps */
     tap(B_REC);
     check("FX: a REC tap: REC ALL, every track armed, REC ALL said, REC lit, no play", song.rec == REC_ALL_MASK &&
           ui.rec_all && str_eq(ui.msg, "REC ALL") && led_lit(panel.btn[B_REC]) && !transport_req && !song.playing);
@@ -2734,15 +2729,10 @@ static void test_rec_all(void)
     tap(B_PLAY);
     steps_clear();
     seq_play_to(0, 3);
+    track_select(4);
     key_hit(0);
-    key_hit(3);
-    key_hit(5);
-    check("REC ALL on FX: keys 1, 4, 6 each record into their own track", only_steps(1u | 8u | 32u));
-    trk[4].p[P_MUTE] = 1;
-    key_hit(4);
-    check("REC ALL: a muted track's key records too (as an armed muted track)", only_steps(1u | 8u | 16u | 32u));
-    trk[4].p[P_MUTE] = 0;
-    check("REC ALL on FX: a key selects its track, as before (track 5 last)", song.sel == 4u);
+    check("REC ALL on FX, KEYS off (2026-11): a white key toggles the selected track's step, records no hit",
+          only_steps(16u) && trk[4].step[KEY_TRK_KEY[0] == WHITE[0] ? 0 : 1].on && song.sel == 4u);
     track_select(2);
     open_tracks();
     steps_clear();
@@ -2752,10 +2742,7 @@ static void test_rec_all(void)
           only_steps(2u | 32u) && song.sel == 2u && song.seq_mode == 2u && ui.rec_all);
     snap_page("fixes/rec_all_tracks");
     tap(B_HOME);                                     /* the HOME screen */
-    steps_clear();
-    key_hit(4);
-    check("REC ALL on HOME: key 5 records into track 5 (and selects it, as before)", ui.home && only_steps(16u) &&
-          song.sel == 4u);
+    track_select(4);
     tap(B_EDIT);                                     /* (HOME's knobs: BPM, SWING since FREITAKT: SOUND's) */
     turn(EN_K3, 3);                                  /* (PITCH) */
     ui_frame();
@@ -2795,7 +2782,9 @@ static void test_rec_all(void)
     tap(B_REC);
     tap(B_REC);
     steps_clear();
+    tap(B_SCL);                                      /* KEYS: the keys play (KEYS off: the steps, 2026-11) */
     key_hit(1);
+    tap(B_SCL);
     check(".. the keys only play again", only_steps(0u));
     transport_req = 2;
     ui_frame();
@@ -2837,17 +2826,22 @@ static int home_line_is(const char *s)
     return region_is_text(120 - md_text_w(&MD_F3, sc, s) / 2, HM_Y_MID + 48 - 5 * (int32_t)sc / 2, sc, s);
 }
 
-/* HOME: a white key selects its track and plays it (the status line's T) */
+/* HOME: a white key is the selected track's step (2026-11; the status line's T the track, L the sheet) */
 static void test_home_keys_and_lfo(void)
 {
     uint32_t a;
     ui_host_init();
+    memset(trk[0].step, 0, sizeof trk[0].step);
     a = hit_age(&trk[3]);
     keys(1u << KEY_TRK_KEY[3]);
     ui_frame();
     keys(0);
     ui_frame();
-    check("HOME: white key 4 selects track 4 and plays it", ui.home && song.sel == 3 && hit_age(&trk[3]) != a);
+    check("HOME: white key 4 toggles track 1's step 4, plays nothing, selects nothing", ui.home && song.sel == 0 &&
+          hit_age(&trk[3]) == a && trk[0].step[3].on);
+    trk[0].step[3].on = 0;
+    track_select(3);
+    ui_frame();
     check("HOME: the status line shows the track (T4)", home_line_is("P- V1 T4 L1"));
 }
 
@@ -3110,7 +3104,7 @@ static void test_backlight_leds(void)
     trk[0].step[1].on = trk[0].step[4].on = 1;      /* steps 2 and 5 (5: a beat) */
     ui_frame();                                      /* (the HOME screen: no OCT LED breathes) */
     check("BACKLIGHT OFF, nothing breathing: ui_leds writes fm1_led, no dimming (the hook idle)",
-          !led_dim_on && led_level(14u + KEY_TRK_KEY[0]) == 100u && led_level(14u + 1u) == 0u);
+          !led_dim_on && led_level(14u + WHITE[1]) == 100u && led_level(14u + WHITE[2]) == 0u);
     seq_open("PATTERN");
     ui_frame();
     ok = 1;
@@ -3169,16 +3163,17 @@ static void test_backlight_leds(void)
     transport_req = 2;
     ui_frame();
     ui_frame();
-    ui.home = 1;                                     /* HOME's second mode: the keys play */
+    ui.home = 1;                                     /* HOME's second mode, KEYS on: the keys play */
     ui.hmode = 1;
     ui.force = 1;
+    ui.keys = 1;
     ui_frame();
     keys(1u << 20);                                  /* (C#5: G#3 .. the first 8 black keys show the variations) */
     ui_frame();
-    check("BACKLIGHT ON, HOME (the keys play): a held key and the selected track's (item 2) full, every other key 5 %",
-          !step_keys() && led_level(14u + 20u) == 100u && led_level(14u + KEY_TRK_KEY[0]) == 100u &&
-          keys_dim_except(1u << 20 | 1u << KEY_TRK_KEY[0]));
+    check("BACKLIGHT ON, HOME, KEYS (the keys play): a held key full, every other key 5 %",
+          !step_keys() && led_level(14u + 20u) == 100u && keys_dim_except(1u << 20));
     keys(0);
+    ui.keys = 0;
     ui_frame();
     {                                                /* SEQ held: audible tracks' black keys full, the rest 5 % */
         uint32_t m = 0;
@@ -3270,11 +3265,20 @@ static void test_backlight_beats_everywhere(void)
                 page_entered();
                 ui_frame();
                 if (step_keys()) {
-                    int ok = ui.bank == 0u && beats_shown(0);
-                    tap(B_OCTUP);
-                    ok &= ui.bank == 1u && beats_shown(1);
-                    tap(B_OCTDN);
-                    ok &= ui.bank == 0u && beats_shown(0);
+                    int ok = shown_bank() == 0u && beats_shown(0);
+                    if (seq_keys()) {                /* SEQ, TRACKS: OCT+ / OCT- page */
+                        tap(B_OCTUP);
+                        ok &= ui.bank == 1u && beats_shown(1);
+                        tap(B_OCTDN);
+                        ok &= ui.bank == 0u && beats_shown(0);
+                    } else {                         /* elsewhere (stopped): the chosen sheet, no paging */
+                        ui.bank = 1;
+                        ui_frame();
+                        ok &= shown_bank() == 1u && beats_shown(1);
+                        ui.bank = 0;
+                        ui_frame();
+                        ok &= shown_bank() == 0u && beats_shown(0);
+                    }
                     if (!ok && str_len(bad) < 120u) {
                         str_cpy(bad + str_len(bad), " ", sizeof bad - str_len(bad));
                         str_cpy(bad + str_len(bad), cur_page()->title, sizeof bad - str_len(bad));
@@ -3293,12 +3297,11 @@ static void test_backlight_beats_everywhere(void)
             ok_steps &= (seq_seen >> i) & 1u;
     if (!ok_steps)
         printf("      (beats missing on:%s)\n", bad);
-    check("BACKLIGHT ON, every page and the HOME screen, KEYS off / on, armed or not: where the keys are steps (every "
-          "SEQ page, TRACKS unarmed) on steps full, the unlit beats 1 5 9 13 at 25 % in bank 1 and bank 2, the rest 5 %",
-          ok_steps && mix_seen && n_steps == 3u);    /* PATTERN x armed / not, TRACKS unarmed; KEYS off only (SEL lit:
-                                                      * every key KEYS') */
-    check("BACKLIGHT ON: where the keys are not steps (EDIT FX LFO GLOBAL SAVE COMP, the HOME screen, KEYS, "
-          "TRACKS armed) no key at 25 %", ok_other && n_other > 0u);
+    check("BACKLIGHT ON, every page and the HOME screen, KEYS off / on, armed or not: where the keys are steps (KEYS "
+          "off: every page but COMP and TRACKS armed) on steps full, the unlit beats 1 5 9 13 at 25 % in bank 1 and bank "
+          "2, the rest 5 %", ok_steps && mix_seen && n_steps > 2u * NPAGES - 8u);
+    check("BACKLIGHT ON: where the keys are not steps (KEYS, COMP, TRACKS armed) no key at 25 %", ok_other &&
+          n_other > NPAGES);
     ui.home = 0;                                     /* a SEQ page under the menu, the MUTE screen, PERFORM: their
                                                       * keys are not steps */
     ui.keys = 0;
@@ -4217,7 +4220,7 @@ static void test_kpop_undo_kinds(void)
     check("HOME KNOB 3 (nothing): no popup", !kp.on);
 }
 
-/* ENV STEPS, a step held: a knob's turn locks it (the popup shows the lock, inverted); OCT- takes the lock away (none
+/* KEYS off, a step held: a knob's turn locks it (the popup shows the lock, inverted); OCT- takes the lock away (none
  * before) or puts the old one back, and does not clear the step's locks (OCT-'s job with a step held) */
 static void test_kpop_undo_lock(void)
 {
@@ -4225,10 +4228,9 @@ static void test_kpop_undo_lock(void)
     uint32_t id;
     ui_host_init();
     tap(B_EDIT);
-    tap(B_ENV);                                      /* STEPS */
     ui_frame();
     id = lock_id(2);
-    check("lock undo: KNOB 3 (PITCH) here can lock", id < P_COUNT && env_steps());
+    check("lock undo: KNOB 3 (PITCH) here can lock", id < P_COUNT && page_steps());
     lock_set(song.sel, 3, P_PAN, 10);                /* (another lock on the step: OCT- would clear it) */
     keys(1u << STEP_KEY[3]);
     ui_frame();
@@ -4250,7 +4252,6 @@ static void test_kpop_undo_lock(void)
     keys(0);
     ui_frame();
     lock_clear_track(song.sel);
-    tap(B_ENV);
 }
 
 static void test_fix_msg_shrink(void)              /* (row y 120: the edges the message added, not the row's own) */
@@ -4870,17 +4871,18 @@ static void test_key_selects_track(void)
     uint32_t i, ok = 1;
     for (i = 0; i < sizeof C / sizeof C[0]; i++) {
         int got = key_selects(C[i].title, C[i].btn, C[i].presses);
-        if (got != C[i].want) {
+        if (got != 0) {                              /* (2026-11: the keys are the steps on every page) */
             printf("     %s: key 3 %s\n", C[i].title, got == 1 ? "selected T3" : got == 0 ? "kept T1" : "unexpected");
             ok = 0;
         }
     }
-    check("a white key on a per-track page selects its track (and plays it); global / sequencer pages keep it", ok);
-    ui_host_init();                                  /* HOME: keys select (and play), as SOUND / FX */
+    check("KEYS off: a white key selects no track on any page (the steps, 2026-11)", ok);
+    ui_host_init();                                  /* HOME: the steps too */
     keys(1u << KEY_TRK_KEY[2]);
     ui_frame();
     keys(0);
-    check("HOME: a white key selects its track", song.sel == 2);
+    ui_frame();
+    check("HOME: a white key selects no track (a step)", song.sel == 0);
 }
 
 /* MENU > SPEAKER EQ (sound pack): KNOB 1 steps FLAT LOWCUT BASS+ and stops at the ends, OCT+ steps and wraps;
@@ -6223,8 +6225,8 @@ static void test_keys_map_oct(void)
     ui_frame();
     keys(0);
     ui_frame();
-    check("KEYS off: the LED dark, no KEYS in the top bar, the keys select and hit tracks again",
-          !ui.keys && !led_on(panel.btn[B_SCL]) && !head_mode(b) && song.sel == 3 && song.seq_mode == 0u);
+    check("KEYS off: the LED dark, no KEYS in the top bar, the keys are the steps again (2026-11)",
+          !ui.keys && !led_on(panel.btn[B_SCL]) && !head_mode(b) && song.sel != 3 && song.seq_mode == 1u);
 }
 
 /* ACID under KEYS: mono, the last key wins; held: the gate stays open past GATE; a key over the sounding one slides
@@ -6274,7 +6276,7 @@ static void test_keys_release_anywhere(void)
     keys(0);
     ui_frame();
     check("KEYS turned off while a key holds an ACID note: its release still ends it",
-          !(trk[0].v[0].x[2] & 1) && song.seq_mode == 0u);
+          !(trk[0].v[0].x[2] & 1) && song.seq_mode == 1u);
     tap(B_SCL);
     keys(1u << 7);
     ui_frame();
@@ -6682,7 +6684,8 @@ static void test_rec_hit_drum_note(void)
     song.rec = 1u;
     transport_req = 1;
     seq_play_to(0, 3);
-    keys(1u << 0);                                   /* F3: track 1's key (HOME, KEYS off) */
+    open_tracks();                                   /* (TRACKS armed: the keys record hits; 2026-11) */
+    keys(1u << 0);                                   /* F3: track 1's key (KEYS off) */
     ui_frame();
     keys(0);
     ui_frame();
@@ -6728,7 +6731,8 @@ static void test_rec_hit_on_tie(void)
     song.rec = 1u;
     transport_req = 1;
     seq_play_to(0, 3);
-    keys(1u << 0);                                   /* F3: track 1's key (HOME, KEYS off) */
+    open_tracks();                                   /* (TRACKS armed: the keys record hits; 2026-11) */
+    keys(1u << 0);                                   /* F3: track 1's key (KEYS off) */
     ui_frame();
     keys(0);
     ui_frame();
@@ -8017,9 +8021,8 @@ static void test_fk_perform_preset_algo(void)
     ui_frame();
 }
 
-/* item 2: the HOME screen and the EDIT (SOUND), FX and LFO pages show the selected track on the keys: its
- * white key (KEY_TRK_KEY) lit, the other keys dark unless held; it follows ALGORITHM and a key's select; KEYS (the
- * keyboard), COMP (DUCK), the step pages and GLOBAL / SAVE keep their own; the menu none */
+/* item 2 superseded (2026-11): with KEYS off the keys show the selected track's steps on every page and the HOME
+ * screen (not COMP, TRACKS armed); KEYS (the keyboard) the held keys; the menu none */
 static int fk_keys_show_only(uint32_t mask)          /* the 27 key LEDs: lit exactly where mask says */
 {
     uint32_t k, ok = 1;
@@ -8029,10 +8032,13 @@ static int fk_keys_show_only(uint32_t mask)          /* the 27 key LEDs: lit exa
 }
 static void test_fk_track_keys(void)
 {
-    uint32_t i, n = 0, ok = 1, other = 1, fams = 0;
+    uint32_t i, k, n = 0, ok = 1;
     ui_host_init();
+    for (k = 0; k < NTRK; k++) {
+        memset(trk[k].step, 0, sizeof trk[k].step);
+        trk[k].step[k + 1u].on = 1;                  /* track k: step k + 2 */
+    }
     for (i = 0; i <= NPAGES; i++) {                  /* (NPAGES: the HOME screen) */
-        uint32_t fam;
         ui.home = i == NPAGES;
         ui.hmode = ui.home;
         if (i < NPAGES)
@@ -8040,44 +8046,28 @@ static void test_fk_track_keys(void)
         page_entered();
         song.sel = (uint8_t)(i % NTRK);
         ui_frame();
-        fam = cur_fam();
-        if ((ui.home || fam == FAM_SND || fam == FAM_FX || fam == FAM_LFO) && !comp_mode()) {   /* (COMP: FX's, DUCK) */
-            ok &= fk_keys_show_only(1u << KEY_TRK_KEY[song.sel]);
-            fams |= 1u << fam;
+        if (step_keys()) {                           /* the selected track's step lit, its black key */
+            ok &= fk_keys_show_only(1u << WHITE[song.sel + 1u] | 1u << CUE_BK[song.sel]);
             n++;
-        } else if (!step_keys() && !comp_mode()) {
-            other &= fk_keys_show_only(0);           /* GLOBAL SAVE: as before, the keys held only */
+        } else {
+            ok &= comp_mode();
         }
     }
-    check("item 2: HOME, EDIT (SOUND), FX, LFO: the selected track's key lit, every other key dark",
-          ok && n > 10u && fams == (1u << FAM_HOME | 1u << FAM_SND | 1u << FAM_FX | 1u << FAM_LFO));
-    check("item 2: GLOBAL, SAVE: no track key (the keys held only, as before)", other);
-    tap(B_FX);
+    check("KEYS off: every page but COMP and the HOME screen show the selected track's steps (its black key lit)",
+          ok && n > NPAGES - 4u);
+    tap(B_EDIT);
     song.sel = 0;
     algo_sel(2);
-    ui_frame();                                      /* (the LEDs with KEYS off again) */
-    check("item 2: FX, ALGORITHM to track 2: its key (G3) lit, F3 dark", song.sel == 1u &&
-          fk_keys_show_only(1u << KEY_TRK_KEY[1]));
-    tap(B_EDIT);
-    keys(1u << KEY_TRK_KEY[4]);                      /* C4: track 5, selected by its key */
     ui_frame();
-    check("item 2: EDIT, track 5's key pressed: selected, lit (held)", song.sel == 4u &&
-          fk_keys_show_only(1u << KEY_TRK_KEY[4]));
-    keys(1u << KEY_TRK_KEY[4] | 1u << 1);            /* a black key held too: lit while held */
-    ui_frame();
-    check("item 2: a key held is lit beside the track's", fk_keys_show_only(1u << KEY_TRK_KEY[4] | 1u << 1));
-    keys(0);
-    ui_frame();
-    check("item 2: let go: track 5's key stays lit", fk_keys_show_only(1u << KEY_TRK_KEY[4]));
+    check("EDIT, ALGORITHM to track 2: its steps", song.sel == 1u &&
+          fk_keys_show_only(1u << WHITE[2] | 1u << CUE_BK[1]));
     tap(B_SCL);                                      /* KEYS: the keyboard's picture (held keys only) */
-    check("item 2: KEYS on: no track key (the keyboard)", fk_keys_show_only(0));
+    check("KEYS on: the held keys only (none)", fk_keys_show_only(0));
     tap(B_SCL);
-    tap(B_LFO);
-    check("item 2: LFO: track 5's key", fk_keys_show_only(1u << KEY_TRK_KEY[4]));
     ui.menu = 1;
     ui.force = 1;
     ui_frame();
-    check("item 2: the menu over it: no track key", fk_keys_show_only(0));
+    check("the menu over it: no step", fk_keys_show_only(0));
     ui.menu = 0;
     ui_frame();
 }
@@ -8225,100 +8215,123 @@ static void test_fk_led_levels(void)
 /* ---- ENV: the white keys as the selected track's steps on every page (STEPS), or as today (TRACKS) (spec
  * 2026-10-24 parameter locks) */
 static void btn_up(uint32_t label) { fm1_in.buttons &= ~(1u << panel.btn[label]); }
-static void env_tap(void) { tap(B_ENV); }
 static void key_tap(uint32_t key) { grid_down(key); grid_wait(50); grid_up(key); }
-static void test_env_toggle(void)
+static uint32_t held_turn(uint32_t c, int32_t dir);
+static void ph_at(uint32_t i) { TSEL->seq_cnt = i; TSEL->seq_idx = (uint16_t)i; }   /* the selected track's playhead */
+/* ---- SEL unlit = the steps everywhere (Model:Cycles style, 2026-11): KEYS off, the white keys are the selected
+ * track's steps on every page (HOME, EDIT, FX, LFO, GLO, SAVE ...); the ENV STEPS mode is gone */
+static void open_where(uint32_t w)                   /* 0 HOME, 1 EDIT, 2 FX, 3 LFO, 4 GLO, 5 SAVE */
+{
+    static const uint32_t F[6] = {0, FAM_SND, FAM_FX, FAM_LFO, FAM_GLO, FAM_SAVE};
+    ui_host_init();
+    if (w)
+        open_family(F[w]);
+    ui_frame();
+}
+static void test_steps_everywhere(void)
+{
+    static const char *const W[6] = {"HOME", "EDIT", "FX", "LFO", "GLO", "SAVE"};
+    uint32_t w, k;
+    for (w = 0; w < 6u; w++) {
+        uint32_t ok, ph;
+        char b[96];
+        open_where(w);
+        song.sel = 1;
+        for (k = 0; k < NTRK; k++)
+            memset(trk[k].step, 0, sizeof trk[k].step);
+        TSEL->p[P_SLEN] = 16;
+        ui_frame();
+        ok = ui.keys == 0u && song.seq_mode == 1u && step_keys() && (w == 0u) == (ui.home != 0u);
+        key_tap(WHITE[2]);
+        ui_frame();
+        ok &= trk[1].step[2].on && song.sel == 1u && !trk[2].step[2].on && led_lit(14u + WHITE[2]) &&
+              !led_lit(14u + WHITE[3]);
+        key_tap(WHITE[3]);                           /* (KEY_TRK_KEY's key: no track select any more) */
+        ok &= trk[1].step[3].on && song.sel == 1u;
+        transport_req = 1;
+        ui_frame();
+        ph_at(6);                                    /* the playhead on step 7 (off): lit */
+        ui_frame();
+        ph = 6;
+        ok &= song.playing && led_lit(14u + WHITE[ph % 16u]) == !TSEL->step[ph].on;
+        transport_req = 2;
+        ui_frame();
+        snprintf(b, sizeof b, "KEYS off on %s: a white key toggles the selected track's step, LEDs and playhead", W[w]);
+        check(b, ok);
+    }
+    open_where(1);                                   /* a step held + a knob on EDIT: a lock */
+    song.sel = 0;
+    memset(&mo.b, 0, sizeof mo.b);
+    {
+        uint32_t id = held_turn(2, 2);
+        int16_t v;
+        grid_up(WHITE[4]);
+        check("KEYS off on EDIT: step 5 held + KNOB 3: a lock on step 5", id < P_COUNT && lock_get(0, 4, id, &v) &&
+              lock_count(0) == 1u);
+    }
+    memset(&mo.b, 0, sizeof mo.b);
+}
+static void test_steps_exceptions(void)
 {
     uint32_t ok;
-    ui_host_init();
-    tap(B_EDIT);                                     /* SOUND */
+    open_where(1);
     song.sel = 0;
     memset(trk[0].step, 0, sizeof trk[0].step);
-    memset(trk[2].step, 0, sizeof trk[2].step);
-    env_tap();
-    ok = ui.env == 1u && led_lit(panel.btn[B_ENV]) && song.seq_mode == 1u;
+    tap(B_SCL);
     key_tap(WHITE[2]);
-    ok &= trk[0].step[2].on && song.sel == 0u && !trk[2].step[2].on && str_eq(cur_page()->title, "SOUND");
-    check("ENV: STEPS mode (LED lit): on SOUND a white key toggles the selected track's step, selects no track, plays "
-          "nothing", ok);
-    env_tap();
-    ok = ui.env == 0u && !led_lit(panel.btn[B_ENV]) && song.seq_mode == 0u;
-    key_tap(WHITE[2]);
-    check("ENV again: TRACKS mode: the key selects its track as before", ok && song.sel == 2u && trk[0].step[2].on);
-}
-static void test_env_tracks_unchanged(void)
-{
-    static const uint32_t FAMS[5] = {FAM_SND, FAM_FX, FAM_LFO, FAM_SEQ, FAM_MIX};
-    uint32_t f, ok = 1, seqm, sel;
-    for (f = 0; f < 5u; f++) {
-        uint32_t lv[2];
-        ui_host_init();
-        open_family(FAMS[f]);
-        ui_frame();
-        seqm = song.seq_mode;
-        lv[0] = led_lit(panel.btn[B_OCTUP]) | led_lit(14u + WHITE[0]) << 1 | led_lit(14u + WHITE[3]) << 2;
-        env_tap();
-        env_tap();
-        lv[1] = led_lit(panel.btn[B_OCTUP]) | led_lit(14u + WHITE[0]) << 1 | led_lit(14u + WHITE[3]) << 2;
-        ok &= ui.env == 0u && song.seq_mode == seqm && lv[0] == lv[1];
-        sel = song.sel;
-        key_tap(WHITE[3]);
-        ok &= FAMS[f] == FAM_SEQ || FAMS[f] == FAM_MIX ? trk[sel].step[3].on : song.sel == 3u;
-    }
-    check("ENV toggled twice: every family's keys, LEDs and key mode as before", ok);
-}
-static void test_env_banks(void)
-{
-    uint32_t ok;
+    check("KEYS on (SEL lit): the keys play (seq_mode 3), no step", ui.keys == 1u && song.seq_mode == 3u &&
+          !trk[0].step[2].on && !step_keys());
+    tap(B_SCL);
     ui_host_init();
-    tap(B_EDIT);
-    TSEL->p[P_SLEN] = 64;
-    env_tap();
-    press(B_ENV);                                    /* ENV held + OCT+: the next bank */
+    song.sel = 1;
+    memset(trk[1].step, 0, sizeof trk[1].step);
+    home_tracks();
+    song.rec = 1u << 1;                              /* TRACKS, track 2 armed: the keys record hits */
     ui_frame();
-    press(B_OCTUP);
+    key_tap(WHITE[7]);
+    check("TRACKS armed: the keys are the drum keys (seq_mode 2), no step toggled", song.seq_mode == 2u &&
+          !trk[1].step[7].on && !step_keys());
+    song.rec = 0;
     ui_frame();
-    btn_up(B_OCTUP);
-    ui_frame();
-    ok = ui.bank == 1u && str_eq(cur_page()->title, "SOUND");
-    btn_up(B_ENV);
-    ui_frame();
-    ok &= ui.env == 1u;
-    press(B_ENV);
-    ui_frame();
-    press(B_OCTDN);
-    ui_frame();
-    release_all();
-    ui_frame();
-    ok &= ui.bank == 0u && ui.env == 1u;
-    check("ENV held + OCT+ / OCT-: the next / previous bank; ENV let go after them: still STEPS", ok);
-    env_tap();
-    press(B_ENV);
-    ui_frame();
-    btn_up(B_ENV);
-    ui_frame();
-    check("(ENV tapped back to STEPS)", ui.env == 1u);
-    env_tap();
-    tap(B_OCTUP);
-    check("ENV off on SOUND: OCT+ no bank (and no page job: no LAYER)", ui.bank == 0u && str_eq(cur_page()->title, "SOUND"));
+    key_tap(WHITE[7]);
+    check("TRACKS unarmed: the steps, as before", song.seq_mode == 1u && trk[1].step[7].on);
+    ui_host_init();
+    song.sel = 0;
+    memset(trk[0].step, 0, sizeof trk[0].step);
+    open_comp(0);
+    ok = comp_mode() && song.seq_mode == 1u && !step_keys();
+    {
+        uint32_t d = (uint32_t)trk[2].p[P_DUCK];
+        key_tap(KEY_TRK_KEY[2]);
+        ok &= (uint32_t)trk[2].p[P_DUCK] != d && !trk[0].step[KEY_TRK_KEY[2] == WHITE[2] ? 2 : 0].on;
+        key_tap(KEY_TRK_KEY[2]);
+    }
+    check("COMP: the white keys still duck tracks, no steps", ok);
+    ui_host_init();
+    hold(B_EDIT);
+    ok = pl_on() && song.seq_mode == 0u && !step_keys();
+    tap(B_OCTDN);
+    tap(B_OCTDN);
+    check("the PRESETS list: the keys play (seq_mode 0), not the steps", ok);
+    ui_host_init();
 }
-static void test_env_oct_jobs(void)
+/* OCT- / OCT+ keep their meanings off SEQ and TRACKS: no sheet paging there */
+static void test_steps_oct_jobs(void)
 {
     uint32_t ok;
-    int16_t m;
+    int16_t m, *vp, v;
     ui_host_init();
     tap(B_EDIT);
     TSEL->p[P_SLEN] = 32;
-    env_tap();
     press(B_OCTUP);
     ui_frame();
     ok = str_eq(cur_page()->title, "SOUND") && led_lit(panel.btn[B_OCTUP]);
     release_all();
     ui_frame();
-    ok &= str_eq(cur_page()->title, "SOUND") && ui.bank == 0u;
-    check("STEPS on SOUND: OCT+ alone does nothing on its release (no bank, no LAYER)", ok);
+    ok &= str_eq(cur_page()->title, "SOUND") && ui.bank == 0u && shown_bank() == 0u;
+    check("SOUND: OCT+ alone does nothing on its release (no sheet, no LAYER)", ok);
     tap(B_OCTDN);
-    check("STEPS on SOUND: OCT- does nothing either", str_eq(cur_page()->title, "SOUND") && ui.bank == 0u);
+    check("SOUND: OCT- does nothing either", str_eq(cur_page()->title, "SOUND") && ui.bank == 0u);
     TSEL->step[5].acc = 0;
     TSEL->step[5].on = 1;
     press(B_OCTUP);
@@ -8327,102 +8340,98 @@ static void test_env_oct_jobs(void)
     btn_up(B_OCTUP);
     ui_frame();
     grid_up(WHITE[5]);
-    check("STEPS: OCT+ held + a step key: its accent, OCT+'s release no page job",
+    check("the steps on SOUND: OCT+ held + a step key: its accent, OCT+'s release no page job",
           TSEL->step[5].acc && TSEL->step[5].on && str_eq(cur_page()->title, "SOUND"));
+    page_desc(cur_page(), 1, &vp);
+    v = *vp;
+    turn(EN_K2, 3);
+    ui_frame();
+    ok = kp_live() && *vp != v;
+    tap(B_OCTDN);
+    check("SOUND: the knob popup's OCT- still undoes the turns", ok && *vp == v);
     tap(B_LFO);
     ui.lfo_l = 0;
     m = TSEL->p[P_LFO1 + LF_MODE];
     tap(B_OCTUP);
-    check("STEPS on an LFO page: OCT+ alone cycles the RATE MODE", TSEL->p[P_LFO1 + LF_MODE] == (m + 1) % 3);
+    check("an LFO page: OCT+ alone still cycles the RATE MODE", TSEL->p[P_LFO1 + LF_MODE] == (m + 1) % 3);
+    open_family(FAM_FX);
+    ui_frame();
+    {
+        uint32_t pg = ui.page;
+        tap(B_OCTUP);
+        tap(B_OCTDN);
+        check("FX: OCT+ / OCT- no sheet, the page stays", ui.page == pg && ui.bank == 0u && shown_bank() == 0u);
+    }
+    open_family(FAM_SAVE);
+    ui_frame();
+    {
+        uint32_t pg = ui.page;
+        tap(B_OCTUP);
+        tap(B_OCTDN);
+        check("SAVE's carousel: OCT+ / OCT- no sheet, the page stays", ui.page == pg && ui.bank == 0u);
+    }
     open_step_page();
     ui_frame();
     tap(B_OCTUP);
-    check("STEPS on SEQ STEP: OCT+ alone is the next bank, as today", ui.bank == 1u && ui.env == 1u);
+    check("SEQ: OCT+ alone is the next sheet, as before", ui.bank == 1u && shown_bank() == 1u);
 }
-static void test_env_keys_exclusive(void)
-{
-    ui_host_init();
-    tap(B_EDIT);
-    tap(B_SCL);
-    check("(KEYS on)", ui.keys == 1u);
-    env_tap();
-    check("ENV with KEYS on: KEYS off, STEPS on", ui.keys == 0u && ui.env == 1u && song.seq_mode == 1u);
-    tap(B_SCL);
-    check("SCL in STEPS: STEPS off, KEYS on", ui.keys == 1u && ui.env == 0u && song.seq_mode == 3u);
-}
-static void test_env_not_saved(void)
-{
-    static uint8_t a[sizeof settings];
-    ui_host_init();
-    memcpy(a, &settings, sizeof a);
-    env_tap();
-    check("ENV: not in the settings (not saved), off at power-on",
-          ui.env == 1u && !memcmp(a, &settings, sizeof a) && (ui_host_init(), ui.env == 0u));
-}
-static void test_env_home_and_tracks(void)
-{
-    uint32_t ok, k;
-    ui_host_init();                                  /* the HOME screen */
-    song.sel = 1;
-    for (k = 0; k < NTRK; k++)
-        memset(trk[k].step, 0, sizeof trk[k].step);
-    env_tap();
-    key_tap(WHITE[6]);
-    ok = ui.home && trk[1].step[6].on && song.sel == 1u;
-    home_tracks();
-    song.rec = 1u << 1;                              /* TRACKS, track 2 armed */
-    ui_frame();
-    key_tap(WHITE[7]);
-    ok &= trk[1].step[7].on && song.seq_mode == 1u;
-    check("STEPS: the HOME screen and TRACKS (armed) keys are the selected track's steps", ok);
-    song.rec = 0;
-    tap(B_EDIT);
-    transport_req = 1;
-    ui_frame();
-    tap(B_REC);                                      /* off TRACKS: REC ALL */
-    ok = ui.rec_all && song.playing;
-    key_tap(WHITE[9]);
-    key_tap(WHITE[10]);
-    for (k = 0; k < NTRK; k++)
-        if (k != 1u)
-            ok &= !trk[k].step[0].on && !trk[k].step[4].on && !trk[k].step[8].on && !trk[k].step[12].on;
-    ok &= trk[1].step[9].on && trk[1].step[10].on;
-    transport_req = 2;
-    ui_frame();
-    check("STEPS + REC ALL playing: the keys toggle steps, record no hits", ok);
-    rec_all_drop();
-    song.rec = 0;
-}
-/* Review Focus 5: ENV while a step key is held: the hold drops, its release toggles nothing, no lock after */
-static void test_env_while_step_held(void)
+/* the sheet follows the selected track's playhead off SEQ and TRACKS while playing, held still while a step key is
+ * down; SEQ keeps its own (ui.bank) */
+static void test_steps_follow(void)
 {
     uint32_t ok;
-    int16_t v;
-    const page_t *pg;
-    int16_t *vp;
     ui_host_init();
-    tap(B_EDIT);
     song.sel = 0;
     memset(trk[0].step, 0, sizeof trk[0].step);
-    env_tap();
-    grid_down(WHITE[4]);
+    TSEL->p[P_SLEN] = 32;
+    open_step_page();
+    ui_frame();
+    tap(B_OCTUP);                                    /* SEQ: sheet 2 chosen */
+    ok = ui.bank == 1u;
+    tap(B_EDIT);
+    ui_frame();
+    ok &= shown_bank() == 1u;                        /* stopped: the chosen sheet */
+    tap(B_OCTDN);                                    /* (no paging on EDIT) */
+    ok &= ui.bank == 1u;
+    transport_req = 1;
+    ui_frame();
+    ph_at(3);
+    ui_frame();
+    ok &= song.playing && shown_bank() == 0u && ui.bank == 1u;
+    key_tap(WHITE[9]);
+    ok &= trk[0].step[9].on && !trk[0].step[25].on;
+    ph_at(20);
+    ui_frame();
+    ok &= shown_bank() == 1u && led_lit(14u + WHITE[4]) && !led_lit(14u + WHITE[9]);   /* (step 21: the playhead) */
+    key_tap(WHITE[10]);
+    ok &= trk[0].step[26].on && !trk[0].step[10].on;
+    check("EDIT, LEN 32 playing: the keys show and address the playhead's sheet (1, then 2)", ok);
+    grid_down(WHITE[12]);                            /* a step held on sheet 2 */
     grid_wait(400);
-    ok = trk[0].step[4].on;                          /* an off step held 0.3 s: on */
-    press(B_ENV);
+    ph_at(2);
     ui_frame();
-    btn_up(B_ENV);
+    ok = shown_bank() == 1u && trk[0].step[28].on;
+    grid_up(WHITE[12]);
     ui_frame();
-    ok &= ui.env == 0u;
-    grid_up(WHITE[4]);
-    ok &= trk[0].step[4].on;
-    pg = cur_page();
-    page_desc(pg, 1, &vp);
-    v = *vp;
-    host_ticks += 300u * 1000u * FM1_TICKS_PER_US;
-    turn(EN_K2, 1);
+    ok &= shown_bank() == 0u;
+    check("a step key held: the sheet stays (the playhead on sheet 1), let go: it follows again", ok);
+    open_step_page();
     ui_frame();
-    ok &= *vp == v + 1 && lock_count(0) == 0u && mo.b.count == 0u;
-    check("ENV while a step key is held: TRACKS mode, the release leaves the step on, a turn edits the knob (no lock)", ok);
+    ok = shown_bank() == 1u && ui.bank == 1u;
+    transport_req = 2;
+    ui_frame();
+    check("back on SEQ: its own chosen sheet (ui.bank), not the followed one", ok);
+    home_screen();
+    ui_frame();
+    ok = ui.home && shown_bank() == 1u;
+    {
+        char s[24];
+        home_status(s);
+        ok &= s[9] == 'L' && s[10] == '2';
+    }
+    check("HOME stopped: the chosen sheet, its status line L2", ok);
+    TSEL->p[P_SLEN] = 16;
+    ui_host_init();
 }
 
 /* ---- parameter locks: hold a step in STEPS and turn a knob (spec 2026-10-24) */
@@ -8432,7 +8441,6 @@ static void lock_fresh(void)                         /* STEPS on, track 1, its s
     song.sel = 0;
     memset(trk[0].step, 0, sizeof trk[0].step);
     memset(&mo.b, 0, sizeof mo.b);
-    env_tap();
 }
 static void open_page_at(uint32_t i)
 {
@@ -8515,8 +8523,8 @@ static void test_lock_entry_every_page(void)
     ok &= (uint32_t)lock_page_ok("HOME");
     home_tracks();
     ui_frame();
-    ok &= (uint32_t)lock_page_ok("TRACKS");
-    check("locks: on every SOUND, FX, INSERT, FILTER, LFO, LFO DEST page, HOME and TRACKS a held step + "
+    ok &= seq_keys() && lock_page() == 0;           /* (TRACKS: a held step's knobs PROB RATCH ACC NUDGE, as SEQ) */
+    check("locks: on every SOUND, FX, INSERT, FILTER, LFO, LFO DEST page and HOME a held step + "
           "a recordable knob writes a lock (its own value + 1; MODEL the next model, a machine lock), the knob and the "
           "base untouched; TYPE, WAVE, DEST, SRC and the rest change nothing", ok && pages > 12u);
 }
@@ -8695,23 +8703,13 @@ static void test_lock_step_page(void)
 /* device test 2026-10-25 ("ENV acts only from the second push"): the FM-1's tick counter has any low bits at a press
  * (the host's advance in steps of 24000: bit 1 always 0); ENV, and OCT- clearing a held step's locks, act on one
  * press at every phase of the clock */
-static void test_env_any_tick_phase(void)
+static void test_lock_clear_any_tick_phase(void)
 {
-    uint32_t ph, ok = 1, n = 0;
+    uint32_t ph, ok = 1;
     int16_t v;
     ui_host_init();
     tap(B_EDIT);
-    for (ph = 0; ph < 8u; ph++) {
-        uint32_t was = ui.env;
-        host_ticks = (host_ticks & ~7u) + ph;
-        env_tap();
-        ok &= ui.env == (was ^ 1u);
-        n += ui.env != was;
-    }
-    check("ENV: one press toggles STEPS at every phase of the tick counter (8 presses, 8 toggles)", ok && n == 8u);
-    for (ph = 0; ph < 8u; ph++) {                    /* in STEPS: hold step 5, OCT- tap clears its SOUND locks */
-        if (!ui.env)
-            env_tap();
+    for (ph = 0; ph < 8u; ph++) {                    /* hold step 5, OCT- tap clears its SOUND locks */
         lock_set(0, 4, P_E1, 100);
         grid_down(WHITE[4]);
         grid_wait(350);
@@ -8727,64 +8725,8 @@ static void test_env_any_tick_phase(void)
     check("locks: step held + OCT- tap clears at every phase of the tick counter", ok);
     memset(&mo.b, 0, sizeof mo.b);
 }
-/* .. one press after: a bank change with ENV held, a held step, a page change, the menu, power-on */
-static int env_one_press(void)
-{
-    uint32_t was = ui.env;
-    host_ticks = (host_ticks & ~7u) + 6u;
-    env_tap();
-    if (ui.env == was)
-        printf("     ENV press did not toggle (env %u, page %s, fx_knobs %u, menu %u)\n", ui.env, cur_page()->title, fx_knobs, ui.menu);
-    return ui.env == (was ^ 1u);
-}
-static void test_env_one_press_after_states(void)
-{
-    uint32_t ok;
-    ui_host_init();                                  /* (power-on) */
-    tap(B_EDIT);
-    TSEL->p[P_SLEN] = 64;
-    ok = env_one_press();                            /* on */
-    press(B_ENV);
-    ui_frame();
-    press(B_OCTUP);
-    ui_frame();
-    release_all();
-    ui_frame();
-    ok &= ui.bank == 1u && ui.env == 1u && env_one_press();   /* after ENV + OCT+: off */
-    ok &= env_one_press();                           /* on */
-    grid_down(WHITE[2]);
-    grid_wait(400);
-    grid_up(WHITE[2]);
-    ok &= env_one_press();                           /* after a held step: off */
-    tap(B_FX);
-    grid_wait(100);                                  /* (a hand's gap: FX's release frame is PERFORM's) */
-    ok &= env_one_press();                           /* after a page change: on */
-    hold(B_HOME);
-    hold(B_HOME);                                    /* the menu, closed */
-    ok &= !ui.menu && env_one_press();               /* after the menu: off */
-    check("ENV: one press toggles after ENV + OCT+, a held step, a page change, the menu, power-on", ok);
-}
-/* .. and lock entry after one ENV press, through the panel's own path (ENV, a step key, KNOB 2) */
-static void test_env_one_press_then_lock(void)
-{
-    int16_t v = 0;
-    uint32_t id;
-    ui_host_init();
-    tap(B_EDIT);
-    song.sel = 0;
-    memset(&mo.b, 0, sizeof mo.b);
-    host_ticks = (host_ticks & ~7u) + 2u;
-    env_tap();
-    id = held_turn(2, 2);
-    grid_up(WHITE[4]);
-    check("one ENV press (tick bit 1 set), step 5 held + KNOB 3: a lock on step 5", ui.env == 1u && id < P_COUNT &&
-          lock_get(0, 4, id, &v) && lock_count(0) == 1u);
-    memset(&mo.b, 0, sizeof mo.b);
-}
-
-/* device test 2026-10-25: STEPS shows a padlock in the top bar (x 207..216, rows 3..12, the icons' 5 x 5 at 2x), on
- * every page; TRACKS none */
-static uint32_t head_lock_px(void)                   /* the padlock's square (FREITAKT: ink on the ground, x 205..214) */
+/* the ENV STEPS padlock is gone: no padlock in the top bar on any page (2026-11) */
+static uint32_t head_lock_px(void)                   /* where the padlock was (ink on the ground, x 205..214) */
 {
     uint32_t x, y, n = 0;
     for (y = 3; y < 13u; y++)
@@ -8792,28 +8734,18 @@ static uint32_t head_lock_px(void)                   /* the padlock's square (FR
             n += fb[(Y_HEAD + y) * 240u + x] == C_INK;
     return n;
 }
-static void test_head_lock_icon(void)
+static void test_head_no_lock_icon(void)
 {
     static const uint32_t FAMS[4] = {FAM_SND, FAM_FX, FAM_LFO, FAM_SEQ};
-    uint32_t f, ok;
+    uint32_t f, ok = 1;
     ui_host_init();
-    tap(B_EDIT);
-    ui_frame();
-    ok = head_lock_px() == 0u;
-    env_tap();
-    ui_frame();
-    ok &= head_lock_px() == 76u;
-    snap_page("locks/head_sound");
     for (f = 0; f < 4u; f++) {
         open_family(FAMS[f]);
         ui_frame();
-        ok &= head_lock_px() == 76u;
+        ok &= head_lock_px() == 0u;
     }
-    snap_page("locks/head_seq");
-    env_tap();
-    ui_frame();
-    ok &= head_lock_px() == 0u;
-    check("STEPS: a padlock in the top bar on every page (SOUND, FX, LFO, SEQ; HOME has no top bar); TRACKS: none", ok);
+    snap_page("locks/head_sound");
+    check("no ENV STEPS padlock in the top bar (SOUND, FX, LFO, SEQ)", ok);
 }
 
 /* release check 2026-10-25: the held step's "LOCK STEP n" line drawn whole (no glyph cut by a neighbour's paint), on
@@ -8872,13 +8804,7 @@ static void test_lock_line_whole_every_page(void)
         grid_up(WHITE[4]);
         grid_wait(100);
     }
-    home_tracks();                                   /* (FREITAKT's HOME has no top bar: TRACKS) */
-    ui_frame();
-    grid_down(WHITE[4]);
-    grid_wait(400);
-    ok &= (uint32_t)lock_line_whole("TRACKS");
-    grid_up(WHITE[4]);
-    check("locks: the LOCK STEP 5 line whole on every page a step can be held in STEPS (top bar)",
+    check("locks: the LOCK STEP 5 line whole on every page a step can lock (top bar)",
           ok && n > 15u);
 }
 
@@ -8912,7 +8838,7 @@ static int sk_ph_key(uint32_t want)                  /* the 16 keys: only key wa
     const track_t *t = TSEL;
     ui_leds();
     for (k = 0; k < 16u; k++) {
-        si = ui.bank * 16u + k;
+        si = shown_bank() * 16u + k;
         if (k != want && ((lkv.mask >> k) & 1u))
             continue;
         int trig = si < view_len(t) && t->step[si].on;
@@ -9001,15 +8927,16 @@ static void test_step_leds(void)
     trk[1].p[P_SLEN] = 20;                            /* LEN 20: page 2 holds steps 17..20 */
     trk[1].p[P_SDIV] = TP[P_SDIV].def;
     trk[1].step[17].on = 1;
-    ui.bank = 1;
+    ui.bank = 1;                                      /* (SEQ's chosen sheet: EDIT follows the playhead) */
     seq_play_to(1, 3);
-    OK0(sk_ph_key(16));                               /* step 4: on page 1, none here */
+    OK0(shown_bank() == 0u && sk_ph_key(3));          /* step 4: sheet 1 shown */
     seq_play_to(1, 18);
-    OK0(sk_ph_key(2));                                /* step 19: key 3 */
+    OK0(shown_bank() == 1u && sk_ph_key(2));          /* step 19: sheet 2, key 3 */
     seq_play_to(1, 17);
     OK0(sk_ph_key(1));                                /* step 18 (a trig): key 2 dark */
     ui.bank = 0;
-    check("step LEDs: the cursor follows the selected track (LEN 5 + FIT, LEN 20 over two pages: its page only)", ok);
+    check("step LEDs: the cursor follows the selected track (LEN 5 + FIT, LEN 20 over two sheets: the sheet follows)",
+          ok);
 
     ok = 1;
     song.rec = (uint8_t)(1u << 3);                    /* track 4 armed, track 2 selected */
@@ -9484,7 +9411,6 @@ static void test_note_held_steps(void)
           t->step[9].nt == -1 && str_eq(l, "STEP 10 NOTE") && str_eq(v, "B3"));
     grid_up(WHITE[9]);
     check("NOTE: .. let go: still on", t->step[9].on);
-    tap(B_ENV);
 }
 
 /* ALGORITHM: KEYS off (SEL unlit) it is NOTE on any page (a held step's on PATTERN, else the track's; its popup, OCT-
@@ -9724,14 +9650,10 @@ int main(void)
     test_fk_track_keys();
     test_fk_oct_breath();
     test_fk_led_levels();
-    test_env_toggle();                               /* parameter locks (2026-10-24): ENV */
-    test_env_tracks_unchanged();
-    test_env_banks();
-    test_env_oct_jobs();
-    test_env_keys_exclusive();
-    test_env_not_saved();
-    test_env_home_and_tracks();
-    test_env_while_step_held();
+    test_steps_everywhere();                         /* SEL unlit = the steps everywhere (2026-11) */
+    test_steps_exceptions();
+    test_steps_oct_jobs();
+    test_steps_follow();
     test_lock_entry_every_page();                    /* parameter locks: entry and clearing */
     test_lock_before_hold();
     test_lock_cells();
@@ -9741,10 +9663,8 @@ int main(void)
     test_lock_clear_all();
     test_lock_oct_dn_alone();
     test_lock_step_page();
-    test_env_any_tick_phase();                       /* device test 2026-10-25 */
-    test_env_one_press_then_lock();
-    test_env_one_press_after_states();
-    test_head_lock_icon();
+    test_lock_clear_any_tick_phase();                /* device test 2026-10-25 */
+    test_head_no_lock_icon();
     test_lock_line_whole_every_page();
     test_step_leds();                                /* the step LEDs: trigs, locks, cursor, tracks */
     test_note_names();                               /* NOTE and PITCH (2026-11) */

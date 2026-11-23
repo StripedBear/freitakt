@@ -414,9 +414,6 @@ static void lock_turn_partial(void)
     press(B_EDIT);
     frame();
     release_all();
-    press(B_ENV);                                     /* STEPS */
-    frame();
-    release_all();
     settle(60);
     memset(&plain, 0, sizeof plain);
     for (i = 0; i < 20u; i++) {
@@ -441,24 +438,6 @@ static void lock_turn_partial(void)
           held.max <= plain.max + 240u * H_HEAD && held.full == 0u && lock_count(0) > 0u);
     keys(0);
     settle(30);
-}
-
-/* the top bar's padlock (STEPS): an ENV tap repaints the top bar only, not the screen */
-static void lock_icon_partial(void)
-{
-    st_t e;
-    ui_host_init();
-    pattern();
-    home_tracks();
-    settle(60);
-    memset(&e, 0, sizeof e);
-    press(B_ENV);
-    add(&e, frame());
-    release_all();
-    add(&e, frame());
-    add(&e, frame());
-    report("TRACKS: ENV tapped (STEPS: the padlock)", &e);
-    check("the padlock: an ENV tap sends no full repaint (the top bar, the keys' strip)", ui.env == 1u && e.full == 0u);
 }
 
 /* FREITAKT combos: SEQ / ARP / SEL + a black key mute, solo or select a track while the page stays up (no screen of
@@ -546,7 +525,6 @@ int main(void)
     fr_t f;
 
     lock_turn_partial();
-    lock_icon_partial();
     clr_redraw();
     popup_redraw();
 

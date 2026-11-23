@@ -10,13 +10,13 @@ Tap [[SCL]] (labelled SEL; on its release): the 27 keys play the selected track 
 - TRACKS, COMP, NAME, the menu, PERFORM (FX held), the combos (GLO, SEL, SEQ or ARP held) and the cue map (SAVE held) keep their own key jobs.
 - The selected track's **MODE** (ARP page) plays the keys live: RTRG repeats the held key, ARP1 arpeggiates its note, ARP2 arpeggiates all held keys (up to 8), at RATE, on the tempo and the track's swing, playing or stopped. Let go and it stops. See *Sequencer, ARP and RETRIG*.
 - KEYS notes send **no MIDI out**. An ACID note (or a tied chain) longer than 5.5 s is cut, a safety limit.
-- [[ENV]] turns KEYS off, and [[SCL]] turns STEPS off.
+- With KEYS off (SEL unlit) the white keys are the selected track's steps on every page (see *The panel, KEYS and STEPS*).
 
 ## Notes on steps
 
 Every step holds a note, C-1 to G9. Drum tracks play their steps transposed from C4 (C4 plays as tuned, by up to two octaves either way). Each track also has a **NOTE**, the note a step you turn on with the white keys takes, on every machine, drums included. Three things set it: a key you play in KEYS, SOUND 1's NOTE ([[KNOB 2]]) and, with KEYS off, [[ALGORITHM]], each with no step held. NOTE is C4 again after LOAD and after clearing the track's pattern.
 
-To set a step's own note, hold the step (or several) and turn [[ALGORITHM]] with KEYS off, or SOUND 1's NOTE under ENV STEPS: every held step gets the note (see *Sequencer, Steps*). Live recording writes the notes you play, as before.
+To set a step's own note, hold the step (or several) and turn [[ALGORITHM]] with KEYS off, or SOUND 1's NOTE (KEYS off, on any page): every held step gets the note (see *Sequencer, Steps*). Live recording writes the notes you play, as before.
 
 ## ACID: the 303-style bass
 
@@ -29,7 +29,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 ## Live recording
 
 - **Arm one track.** On TRACKS, a [[REC]] tap arms or disarms the selected track (`T3 REC ARMED` / `T3 REC OFF`).
-- **REC ALL.** On every other page a [[REC]] tap is REC ALL: every track armed (`REC ALL`, the REC LED lit). Each white track key then plays and records its own track wherever the keys play tracks (HOME, SOUND, FX, TRACKS...). KEYS and knob motion stay the selected track's.
+- **REC ALL.** On every other page a [[REC]] tap is REC ALL: every track armed (`REC ALL`, the REC LED lit). Each white track key then plays and records its own track on TRACKS; on the other pages, with KEYS off, the white keys are the selected track's steps and record no hits (play them with KEYS on, or on TRACKS). KEYS and knob motion stay the selected track's.
 - **Ending REC ALL.** A [[REC]] tap off TRACKS ends it and arms again the tracks armed before (`T3 REC ARMED`, or `REC OFF` if none). On TRACKS it ends it with the selected track armed.
 - **REC never starts the transport.** [[PLAY]] does; an armed track records once playing.
 - **What gets written.** A key writes a step as REC QUANT says (the nearest step by default; see Sequencer). A key held into later steps writes TIEs; a legato overlap writes a SLIDE (TIE and SLIDE on ACID tracks only).
@@ -39,7 +39,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 
 ## Step record
 
-FREITAKT has no step record. Steps are entered with the white keys (on PATTERN and TRACKS, or anywhere with ENV in STEPS mode) and shaped by holding a step and turning a knob (PROB, RATCH, ACCENT, NUDGE, or a parameter lock); notes go in by playing them in KEYS mode on an armed track (see *Live recording*).
+FREITAKT has no step record. Steps are entered with the white keys (with KEYS off, on any page) and shaped by holding a step and turning a knob (PROB, RATCH, ACCENT, NUDGE, or a parameter lock); notes go in by playing them in KEYS mode on an armed track (see *Live recording*).
 
 ## Fill, clear, copy and paste
 
@@ -98,13 +98,13 @@ Hold [[FX]], then hold a track key (F3 = track 1 .. D4 = track 6): the track pla
 
 While playing, the repeats land on the grid of the rate (following swing, the tempo and an incoming MIDI clock), the first on the next grid point; while stopped they start at once at the tempo. Several tracks can repeat together. A change of rate while repeating takes over at the next grid point. The repeats are drum hits from the sequencer, so the master effects work on top of them. *If you used FX plus a white key to mute a track in an older version, hold SEQ and press its black key instead.* A controller button learned to a PERFORM mute now holds that track's REPEAT STEP.
 
-## ENV and parameter locks
+## Parameter locks
 
-[[ENV]] toggles **STEPS / TRACKS** (on its release). In STEPS the LED is lit and a padlock shows in the top bar (HOME has none); the white keys are the selected track's steps on **every page** (HOME, EDIT, FX, LFO, TRACKS armed...), tapped and held as on SEQ. Hold [[ENV]] and press [[OCT+]] / [[OCT-]] for the next / previous bank. [[OCT+]] held plus a step toggles its accent. Finger drumming needs TRACKS. Off at power-on.
+With KEYS off (SEL unlit) the white keys are the selected track's steps on **every page** (HOME, EDIT, FX, LFO, GLO, SAVE...), tapped and held as on SEQ; the exceptions are TRACKS with a track armed, COMP, the PRESETS list, the menu and NAME. While playing, the keys show the sheet of 16 holding the selected track's playhead (PATTERN and TRACKS keep the sheet you chose with OCT- / OCT+); while a step key is held the sheet stays put. [[OCT+]] held plus a step toggles its accent. Finger drumming needs TRACKS (a track armed) or KEYS.
 
 ### Locking a step
 
-In STEPS, on any page whose knobs MOTION can record (TRACKS' LEVEL and PAN, SOUND, FX, INSERT and SRR, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFO's RATE and MORPH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
+With KEYS off, on any page whose knobs MOTION can record (SOUND, FX, INSERT and SRR, FILTER, a SAMPLE's ATK SUS REL LOOP PLAY, the LFO's RATE and MORPH, the DEST slots' DEPTH), **hold a step and turn a knob**: that step plays its own value for that knob, and the next step plays the knob's value again. An LFO on the knob modulates round the locked value.
 
 - The top bar says `LOCK STEP 5` while a step is held; the rows show that step's values (a locked one inverted).
 - Knobs MOTION cannot record (FILTER TYPE, INSERT TYPE, an LFO's WAVE, DEST, SRC) do nothing while a step is held.

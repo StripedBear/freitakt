@@ -100,15 +100,6 @@ static void persist_note_show(void)                 /* every frame: with no mess
         ui_message("USR3 CLAMP FAILED");
     }
 }
-/* fixes 2026-10-21 item 2: the keys show the selected track (its white key lit, as the keys select it there) on the
- * HOME screen and every page of the EDIT (SOUND), FX and LFO families; not under KEYS (the keyboard's), the
- * menu, NAME, the PRESETS list or PERFORM (ui_leds tests those first) */
-static int track_keys(void)
-{
-    uint32_t f = cur_fam();
-    return !ui.menu && !keys_mode() && (ui.home || f == FAM_SND || f == FAM_FX || f == FAM_LFO);
-}
-
 #include "ui_name.c"                               /* NAME: naming a project */
 #include "ui_learn.c"                              /* MIDI LEARN: SAVE > COPY > LEARN, a knob, a CC */
 #include "ui_tools.c"                              /* SEQ, the clipboard, the track clear */
@@ -147,7 +138,7 @@ static uint32_t oct_leds(void)
         uint32_t r = 0;
         if (!ui.home && cur_fam() == FAM_LFO)    /* LFO: OCT+ the RATE MODE of the LFO turned last (item 3); */
             r = OCT_BR_UP;                            /* OCT- does nothing there */
-        if (env_steps() && acc_oct)                   /* STEPS: OCT+ held (its accent) lit, as on the SEQ pages */
+        if (page_steps() && acc_oct)                  /* the steps: OCT+ held (its accent) lit, as on the SEQ pages */
             r = (r & ~OCT_BR_UP) | OCT_LIT_UP;
         return r;
     }
@@ -223,12 +214,12 @@ static void ui_leds(void)
         led_pos_init();
         ready = 1;
     }
+    bank_poll();                                      /* the sheet the keys show (and address) */
     if (FAM_BTN[fam] != 0xFFu)                        /* (FAM_EDT: the editor's own pages, no button) */
         led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     led_put(nl, panel.btn[B_PLAY], song.playing && ((song.tick / 64u) & 1u) == 0u);   /* blinks: intended */
     led_put(nl, panel.btn[B_REC], song.rec != 0u);
     led_put(nl, panel.btn[B_SCL], ui.keys);           /* KEYS (spec §5) */
-    led_put(nl, panel.btn[B_ENV], ui.env);            /* STEPS (spec 2026-10-24) */
     if (ui.cue_map) {                                 /* SAVE held: the cue map (project.c cue_led): white keys
                                                        * 1..4 the slots, the black keys (CUE_BK) the variations */
         uint32_t ms = fm1_ticks() / (1000u * FM1_TICKS_PER_US);
@@ -290,7 +281,7 @@ static void ui_leds(void)
         uint32_t lm = acc_oct ? 0u : lk_view_mask(); /* (cached: ui.c lk_view_mask) */
         int blink = (int)((ms / 250u) & 1u) == 0, wink = (ms % 1000u) >= 125u;
         for (k = 0; k < 16u; k++) {
-            uint32_t si = ui.bank * 16u + k;
+            uint32_t si = shown_bank() * 16u + k;
             int lk = si < len && ((lm >> k) & 1u), on = si < len && view_step(t, si).on &&
                                                        (!acc_oct || view_step(t, si).acc);   /* OCT+ held: the accents */
             if (si == ph)
@@ -312,10 +303,6 @@ static void ui_leds(void)
     } else if (comp_mode() && !keys_mode()) {                      /* COMP: the ducked tracks' keys */
         for (k = 0; k < NTRK; k++)
             led_put(nl, 14u + KEY_TRK_KEY[k], trk[k].p[P_DUCK] && k != comp_src());
-    } else if (track_keys()) {                        /* HOME, EDIT, FX, LFO: the selected track's key (item 2) */
-        led_put(nl, 14u + KEY_TRK_KEY[song.sel % NTRK], 1);
-        for (k = 0; k < 27u; k++)
-            led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
     } else if (keys_mode()) {                         /* KEYS: the keys held lit (OCT- / OCT+: oct_leds) */
         for (k = 0; k < 27u; k++)
             led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
@@ -1453,20 +1440,6 @@ static void ocd_poll(uint32_t now)
     }
     ui.ocd_t0 = 0;
 }
-/* ENV (spec 2026-10-24): a tap toggles STEPS / TRACKS on its release, unless OCT+- changed the bank while it was held
- * or it was pressed under the menu, NAME, the PRESETS list, the clear, PERFORM or a dialog */
-static void env_poll(uint32_t now, uint32_t pressed)
-{
-    int busy = ui.menu || name_on() || pl_on() || ui.clr || ui.layer || fx_knobs || ui.confirm;
-    if ((pressed >> panel.btn[B_ENV]) & 1u)
-        ui.env_t0 = ((now | 1u) & ~2u) | (busy ? 2u : 0u);   /* (the clock's own bit 1 cleared: it is the flag) */
-    if (ui.env_t0 && !((fm1_in.buttons >> panel.btn[B_ENV]) & 1u)) {
-        if (!(ui.env_t0 & 2u) && !busy)
-            env_toggle();
-        ui.env_t0 = 0;
-    }
-}
-
 /* KEYS on a SAMPLE track on PLAY CHOP: the chop the last key played (seq.c keys_on), "CHOP 5/12" (of the set's) */
 static void keys_chop_say(void)
 {
@@ -1508,7 +1481,6 @@ static void ui_input(void)
         kp_undo();
     }
     acc_oct_poll();                                     /* OCT+ let go on the steps: the next bank (item 1) */
-    env_poll(now, pressed);                             /* ENV: STEPS / TRACKS */
     pre_frame(now);                                     /* PRESETS: EDIT's hold, the popup's time (ui_preset.c) */
 #if FELUCCA_BLE
     bt_autostart();                                     /* AUTOSTART: BLUETOOTH ON once, 5 s after power-on (the
@@ -1655,9 +1627,6 @@ static void ui_input(void)
                 ml_oct(b == B_OCTUP);
             } else if (keys_mode()) {
                 keys_octave(b == B_OCTUP ? 1 : -1);
-            } else if (ui.env_t0) {                     /* ENV held: the bank (STEPS' banks; no toggle on its release) */
-                bank_set((int32_t)ui.bank + (b == B_OCTUP ? 1 : -1));
-                ui.env_t0 |= 2u;
             } else if (b == B_OCTDN && lock_step() < NSTEP) {   /* a step held: OCT- clears its locks (ocd_poll), no
                                                                  * page job */
                 uint32_t i;
@@ -1672,8 +1641,8 @@ static void ui_input(void)
                     acc_oct = 1;
                 else
                     bank_set((int32_t)ui.bank - 1);
-            } else if (env_steps()) {                   /* STEPS elsewhere: OCT+ held + a step key its accent, let go
-                                                         * alone the page's job */
+            } else if (page_steps()) {                  /* the steps elsewhere: OCT+ held + a step key its accent,
+                                                         * let go alone the page's job (no sheet paging there) */
                 if (b == B_OCTUP)
                     acc_oct = 1;
             } else if (b == B_OCTUP) {
@@ -1728,10 +1697,6 @@ static void ui_input(void)
         for (k = 0; k < NTRK; k++)                      /* COMP: a white key ducks / unducks its track */
             if ((notes >> KEY_TRK_KEY[k]) & 1u)
                 track_duck_toggle(k);
-    } else if (!keys_mode() && (ui.home || (!ui.menu && cur_page()->scope == SC_TRACK && cur_fam() != FAM_SEQ))) {
-        for (k = 0; k < NTRK; k++)                      /* HOME, a per-track page: a white key selects its track */
-            if ((notes >> KEY_TRK_KEY[k]) & 1u)         /* (it plays it too: seq.c reads the keys itself) */
-                track_select(k);
     }
     if ((s = panel_enc(EN_PRESET)) != 0 && (fx_knobs || ui.layer)) {
         /* PERFORM up: no preset loaded under it (item 7; the turn dropped) */

@@ -1378,22 +1378,20 @@ static void glo_up(void)
 static void cue_black_keys_bare(void)
 {
     uint32_t ok = 1, p, i, env;
-    for (env = 0; env < 2u; env++)
+    for (env = 0; env < 2u; env++)                   /* (twice: once was the removed ENV STEPS mode) */
         for (p = 0; p < PG_N; p++) {                 /* every page: a bare black key queues nothing */
             two_slots();
             play();
             release_all();
-            ui.env = (uint8_t)env;
             go_page(p);
             black(2);
             black(0);
             if (cue.q_var || cue.q_slot || var_cur) {
-                printf("     %s%s: q_var %u var %u\n", PG_NAME[p], env ? " (STEPS)" : "", cue.q_var, var_cur);
+                printf("     %s: q_var %u var %u\n", PG_NAME[p], cue.q_var, var_cur);
                 OK(0);
             }
             stop();
         }
-    ui.env = 0;
     two_slots();                                      /* KEYS: the black keys play the track */
     release_all();
     go_page(PG_HOME);
@@ -1661,7 +1659,8 @@ static void cue_glo_leds(void)
         play();
         release_all();
         go_page(PG_SOUND);
-        OK(!key_led(BK[0]) && key_lay(BK[1]) != 2u);  /* GLO not held: the variation keys not shown */
+        OK(key_led(BK[0]) == (song.sel == 0u) && key_lay(BK[1]) != 2u);   /* GLO not held: the variation keys not
+                                                       * shown (KEYS off: the steps' black 1..6, the selected track) */
         glo_down();
         ui_frame();
         OK(key_led(STEP_KEY[0]) && !key_led(STEP_KEY[1]));
@@ -1696,7 +1695,7 @@ static void cue_glo_leds(void)
         }
         OK(on && off);
         glo_up();
-        OK(!key_led(BK[0]) && !key_led(BK[1]) && key_lay(BK[2]) != 2u);
+        OK(key_led(BK[0]) == (song.sel == 0u) && !key_led(BK[1]) && key_lay(BK[2]) != 2u);
         stop();
     }
     backlight = BL_OFF;

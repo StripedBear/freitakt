@@ -62,7 +62,8 @@ static struct {
     uint8_t hmode;               /* HOME's mode last shown: 0 TRACKS (the TRACKS page), 1 HOME (the HOME screen, COMP) */
     uint8_t page;                /* index into PAGES */
     uint8_t fam_last[FAM_COUNT]; /* last page used per family */
-    uint8_t bank;                /* STEP grid: 16-step bank shown on the keys */
+    uint8_t bank;                /* the 16-step sheet (bank) chosen with OCT-/OCT+ on SEQ and TRACKS */
+    uint8_t vbank;               /* the sheet the white keys show and address (ui_leds: shown_bank) */
     uint8_t hot_col, hot_t;      /* column whose knob was just turned (its value inverted): hot_t on */
     uint32_t hot_t0;             /* .. the last turn (fm1_ticks: HOT_MS after it, off) */
     uint8_t menu;                /* 0 off, 1 the MENU's carousel (HOME held), 3 Bluetooth (BLE build: bt_page.c) */
@@ -110,10 +111,6 @@ static struct {
     uint32_t clr_t0;             /* REC + SEL held: the time both were | 1; bit 1: done or dead (ui_input.c clr_input) */
     uint8_t clr, clr_trk;        /* .. the countdown's digit shown (5..1, 0: none), the track it clears */
     uint8_t keys;                /* KEYS (spec §5): an SCL tap; ON at power-on (draw_boot_title), never stored */
-    uint8_t env;                 /* ENV (spec 2026-10-24 parameter locks): 1 STEPS (the white keys the selected track's
-                                  * steps on every page), 0 TRACKS (as before); off at power-on, never stored */
-    uint32_t env_t0;             /* ENV's press time | 1; bit 1: used (ENV + OCT+-, or pressed under a dialog): its
-                                  * release toggles nothing */
     uint32_t ocd_t0;             /* locks: OCT- pressed with a step held: its time | 1; bit 1: the 0.6 s clear done */
     uint8_t ocd_si;              /* .. the step held then */
     struct {                     /* MIDI LEARN (ui_learn.c; GLO + G4): never stored */
@@ -244,10 +241,15 @@ static int seq_keys(void)
            !keys_mode() &&
            (cur_page()->fam == FAM_SEQ || (cur_page()->scope == SC_MIX && !song.rec));
 }
-/* ENV's STEPS mode (spec 2026-10-24 parameter locks): the white keys the selected track's steps on every page (HOME,
- * TRACKS armed, SOUND, FX, LFO, COMP ...); not in the menu or NAME */
-static int env_steps(void) { return ui.env && !ui.menu && !name_on(); }
-static int step_keys(void) { return seq_keys() || env_steps(); }
+/* the white keys the selected track's steps everywhere else while KEYS is off (Model:Cycles style, 2026-11): HOME,
+ * EDIT / SOUND, ENV, FX, LFO, GLO, SAVE ...; not in the menu, NAME, the PRESETS list, on COMP (its keys duck) or on
+ * TRACKS (seq_keys; armed, the keys record hits) */
+static int page_steps(void)
+{
+    return !keys_mode() && !ui.menu && !name_on() && !pl_on() && !comp_mode() && !mix_mode() &&
+           (ui.home || cur_page()->fam != FAM_SEQ);
+}
+static int step_keys(void) { return seq_keys() || page_steps(); }
 /* seq.c keyboard_block: whose the keys' presses are: 0 the drum keys (hits, MIDI), 1 the UI's (the STEP grid, COMP,
  * TRACKS, NAME), 2 TRACKS armed (hits and recording, as 0), 3 KEYS */
 static uint8_t seq_mode_now(void)
@@ -283,21 +285,9 @@ static void page_entered(void)
 static void keys_toggle(void)
 {
     ui.keys ^= 1u;
-    if (ui.keys)
-        ui.env = 0;                                    /* one key role at a time: STEPS off */
     grid_drop_holds();                                 /* a grid key held edits nothing more */
     song.seq_mode = seq_mode_now();
     ui.force = 1;
-}
-/* ENV (its release): STEPS <-> TRACKS (KEYS off for STEPS: one key role at a time); a held key lets go of its step */
-static void env_toggle(void)
-{
-    ui.env ^= 1u;
-    if (ui.env)
-        ui.keys = 0;
-    grid_drop_holds();
-    song.seq_mode = seq_mode_now();
-    /* (no full repaint: the top bar's padlock, its KEYS line and the strip's marks are in their signatures) */
 }
 /* the MIDI KEYBOARD (MIDI OUT 4/8 KBD not OFF): KEYS has the keys and they send MIDI notes (midi_out.c mkb_keys) */
 static int kbd_mode(void) { return mkb_kbd && keys_mode(); }
@@ -431,7 +421,25 @@ static void bank_fix(void)                             /* LEN shortened (knob, p
     if (ui.bank >= bank_count())
         bank_set((int32_t)bank_count() - 1);
 }
-/* the shown bank's locked steps (bit j: step ui.bank * 16 + j has a parameter or machine lock, lockbank.c
+/* the sheet the white keys show and address (Model:Cycles style, 2026-11): on SEQ and TRACKS the chosen one (ui.bank:
+ * OCT- / OCT+); elsewhere, while playing, the one holding the selected track's playhead (its own LEN, DIV, FIT), held
+ * still while a step key is down (a lock, a copy / paste: no jump under the gesture); stopped, ui.bank. Found once a
+ * frame with the LEDs (bank_poll, ui_input.c ui_leds): a press addresses the sheet its LEDs show */
+static int bank_follows(void) { return ui.home || (cur_page()->fam != FAM_SEQ && cur_page()->scope != SC_MIX); }
+static uint32_t shown_bank(void) { return bank_follows() ? ui.vbank : ui.bank; }
+static void bank_poll(void)
+{
+    uint32_t k, n = bank_count(), b = ui.bank;
+    for (k = 0; k < 16u; k++)
+        if (ui.step_t0[k] && ((fm1_in.notes >> STEP_KEY[k]) & 1u))
+            break;
+    if (k < 16u)
+        b = ui.vbank;                                  /* a step key down: the sheet stays */
+    else if (song.playing && bank_follows())
+        b = (view_idx(TSEL) % NSTEP) / 16u;
+    ui.vbank = (uint8_t)(b < n ? b : n - 1u);
+}
+/* the shown bank's locked steps (bit j: step shown_bank() * 16 + j has a parameter or machine lock, lockbank.c
  * lk_step_mask) for the step LEDs (ui_input.c ui_leds: they blink). Kept, and found again only when the bank's locks
  * may have changed (lk_gen; its count: a bank cleared in place) or another track / bank / variation is shown (a
  * variation swaps mo.b: lk_gen), not each frame */
@@ -442,12 +450,12 @@ static struct {
 } lkv;
 static uint32_t lk_view_mask(void)
 {
-    if (!lkv.ok || lkv.gen != lk_gen || lkv.count != mo.b.count || lkv.trk != song.sel || lkv.bank != ui.bank) {
-        lkv.mask = (uint16_t)lk_step_mask(&mo.b, song.sel, ui.bank * 16u);
+    if (!lkv.ok || lkv.gen != lk_gen || lkv.count != mo.b.count || lkv.trk != song.sel || lkv.bank != shown_bank()) {
+        lkv.mask = (uint16_t)lk_step_mask(&mo.b, song.sel, shown_bank() * 16u);
         lkv.gen = lk_gen;
         lkv.count = mo.b.count;
         lkv.trk = (uint8_t)song.sel;
-        lkv.bank = ui.bank;
+        lkv.bank = (uint8_t)shown_bank();
         lkv.ok = 1;
     }
     return lkv.mask;
@@ -499,7 +507,7 @@ static uint32_t held_step(void)
  * (step_hold_on) and edits it (step_edit) */
 static void step_grab(uint32_t k)
 {
-    uint32_t si = ui.bank * 16u + k;
+    uint32_t si = shown_bank() * 16u + k;
     ui.step_si[k] = 0xFFFFu;
     if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN])
         return;
@@ -550,7 +558,7 @@ static void step_tap(uint32_t k)
  * LEN only, at the press; held, the key's step (a knob turned edits it as it is now; its release toggles nothing) */
 static void step_accent(uint32_t k)
 {
-    uint32_t si = ui.bank * 16u + k;
+    uint32_t si = shown_bank() * 16u + k;
     step_t *s;
     ui.step_si[k] = 0xFFFFu;
     if (k >= 16u || si >= (uint32_t)TSEL->p[P_SLEN])
@@ -749,14 +757,15 @@ static const param_desc_t *home_param(uint32_t k, int16_t **vp)
     return &NONE_DESC;
 }
 
-/* ---- parameter locks (spec 2026-10-24): in STEPS, off the SEQ pages, a held step + a recordable knob locks it */
+/* ---- parameter locks (spec 2026-10-24): KEYS off, off SEQ and TRACKS (page_steps), a held step + a recordable knob
+ * locks it */
 #define LOCK_CLR_MS 600u                               /* step held + OCT- held this long: all its locks cleared */
-static int lock_page(void) { return env_steps() && (ui.home || cur_page()->fam != FAM_SEQ); }
+static int lock_page(void) { return page_steps(); }
 static uint32_t lock_step(void);
 static uint32_t held_step(void);
 /* a step held on a page whose white keys are the steps (TRACKS unarmed, STEP, PATTERN, MOTION; owner
  * 2026-11-01): KNOB 1-4 are its PROB RATCH ACC NUDGE (ui_input.c step_edit), the page's own knobs rest; not where
- * the held step takes locks (ENV's STEPS on TRACKS: lock_step) */
+ * the held step takes locks (page_steps: lock_step) */
 static int step_edit_page(void) { return seq_keys() && lock_step() >= NSTEP; }   /* HOME TRACKS SOUND
                                                                                                 * FX LFO COMP */
 /* the step of the last-pressed key still down (from the press: a turn right after it locks), NSTEP none (not a lock

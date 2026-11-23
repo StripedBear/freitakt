@@ -204,7 +204,7 @@ static int head_text(char *b, int keys)              /* keys 0: not KEYS (draw_h
         str_cpy(b, "FILL", 16);
         return 1;
     }
-    if (ls < NSTEP) {                                 /* a step held in STEPS: its locks on the knobs */
+    if (ls < NSTEP) {                                 /* a step held (KEYS off): its locks on the knobs */
         str_cpy(b, "LOCK STEP ", 16);
         fmt_int(b + 10, (int32_t)ls + 1);
         return 1;
@@ -216,7 +216,7 @@ static int head_text(char *b, int keys)              /* keys 0: not KEYS (draw_h
     return 1;
 }
 
-/* the top bar (FREITAKT redesign): plain ground, the battery; the ENV STEPS padlock; on the left the passing states
+/* the top bar (FREITAKT redesign): plain ground, the battery; on the left the passing states
  * (draw_head). Messages are a popup (draw_msg). */
 static void draw_head(void)
 {
@@ -224,7 +224,7 @@ static void draw_head(void)
     uint32_t k, sig;
     int32_t x = 4, lvl;
     uint32_t rec = (song.rec >> song.sel) & 1u ? 2u : song.rec != 0u;
-    /* FREITAKT redesign: the battery alone, top right; the ENV STEPS padlock left of it; on the left only what is
+    /* FREITAKT redesign: the battery alone, top right; on the left only what is
      * essential and passing: a track armed (the record icon), MIDI LEARN's line, the held modes (CUE, FILL, LOCK STEP;
      * not KEYS: its LED says it) */
     if (ui.ml.on)
@@ -232,7 +232,7 @@ static void draw_head(void)
     else if (!head_text(m, 0))
         m[0] = 0;
     lvl = batt_shown();
-    sig = str_hash(rec * 5u + (uint32_t)lvl * 7777u + ui.env * 15485863u + 0x9E3779B9u, m);
+    sig = str_hash(rec * 5u + (uint32_t)lvl * 7777u + 0x9E3779B9u, m);
     if (!ui.force && sig == ui.head_sig)
         return;
     ui.head_sig = sig;
@@ -240,16 +240,8 @@ static void draw_head(void)
     if (rec)
         x = md_text(4, 3, &MD_ICON, 2, rec == 2u ? "r" : "a", C_INK) + 6;
     if (m[0]) {
-        md_fit(t, m, sizeof t, (ui.env ? 200 : 212) - x);
+        md_fit(t, m, sizeof t, 212 - x);
         md_text(x, 3, &MD_F3, 2, t, C_INK);
-    }
-    if (ui.env) {                                     /* STEPS (parameter locks): a padlock, the icons' 5 x 5 at 2x */
-        static const uint8_t PADLOCK[5] = {0x0E, 0x11, 0x1F, 0x1B, 0x1F};   /* .###. #...# ##### ##.## ##### */
-        uint32_t r, c;
-        for (r = 0; r < 5u; r++)
-            for (c = 0; c < 5u; c++)
-                if ((PADLOCK[r] >> (4u - c)) & 1u)
-                    cv_rect(205 + (int32_t)c * 2, 3 + (int32_t)r * 2, 2, 2, C_INK);
     }
     cv_frame(220, 4, 14, 8, C_INK);                   /* the battery: outline, nub, up to 3 cells */
     cv_rect(234, 6, 2, 4, C_INK);
@@ -929,7 +921,7 @@ static void home_status(char *s)
     s[3] = 'V', s[4] = (char)('1' + var_cur % 9u), s[5] = ' ';
     s[6] = 'T', s[7] = (char)('1' + song.sel % 9u), s[8] = ' ';
     s[9] = 'L';
-    fmt_int(s + 10, (int32_t)ui.bank + 1);
+    fmt_int(s + 10, (int32_t)shown_bank() + 1);   /* (the sheet on the keys) */
 }
 
 static void draw_home(void)

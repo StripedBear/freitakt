@@ -85,7 +85,7 @@ The FM-1 as a plain MIDI keyboard for a DAW or a phone app: each of the 27 keys 
 Both are on **MIDI OUT** and saved with the device settings (not in projects).
 
 - **On**: turn KBD away from OFF. KEYS turns on with it, and HOME's status line reads `MIDI KBD CH1 OCT+1` (channel and octave).
-- **Off**: KBD back to OFF, or turn KEYS off (a SEL tap with no key pressed, or ENV). With KEYS on again and KBD not OFF, it is the MIDI KEYBOARD again.
+- **Off**: KBD back to OFF, or turn KEYS off (a SEL tap with no key pressed). With KEYS on again and KBD not OFF, it is the MIDI KEYBOARD again.
 - **Channel**: TRK sends on the selected track's MIDI OUT channel (T*n*CH; `CH-` on HOME and nothing sent if it is OFF), 1 to 16 a fixed channel.
 - **Notes**: F3 (the leftmost key) is note 53 at octave 0. [[OCT-]] / [[OCT+]] move the keys an octave down / up, -4 to +4 (notes above 127 are clamped). The OCT buttons light the way they do in KEYS.
 - **Velocity**: always 100. The keys are on/off switches; they don't sense velocity.

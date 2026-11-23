@@ -21,44 +21,44 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 
 | Button | Opens |
 | --- | --- |
-| **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the minimal status screen, KNOB 1 BPM and KNOB 2 SWING, the keys play the tracks). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
+| **HOME** | Two modes: **TRACKS** (KNOB 1 TRACK, 2 LEVEL, 3 LEN, 4 PAN; the selected track's steps on the keys) and **HOME** (the minimal status screen, KNOB 1 BPM and KNOB 2 SWING; with KEYS off the white keys are the selected track's steps, as everywhere). A tap on HOME switches between them; from any other screen it opens the one last shown. Power-on: TRACKS. **Hold HOME** for the device menu. |
 | **EDIT** | The selected track's sound: the SOUND pages (MODEL, NOTE and the model's knobs), then ARP. **Hold EDIT** (about 0.4 s) for the PRESETS list. |
 | **SEQ** | PATTERN, with the steps on the white keys (a short tap opens it, on its release). A hold opens it too, on the release (there is no TOOLS screen any more). **SEQ + black key 1 to 6**: mute / unmute track 1 to 6 (see *Combos*); a white key with SEQ does nothing. |
 | **FX** | The track's FILTER, FX (the sends), INSERT (with SRR) and COMP (the compressor): 7 pages. **Hold FX** for PERFORM. |
 | **LFO** | The track's LFO (two pages), then DEST. |
-| **ENV** | STEPS / TRACKS mode and parameter locks (a padlock in the top bar while STEPS). ENV turns KEYS off and SCL turns STEPS off. |
-| **SCL** | Labelled SEL. KEYS is on at power-on (SEL lit); a tap (on the release, no key pressed while held) toggles it. While SEL is lit the keys play the selected track chromatically on every page, TRACKS and COMP included. **SEL + black key 1 to 6**: select track 1 to 6. |
+| **ENV** | Nothing for now (its STEPS mode is gone: with KEYS off the white keys are the steps on every page). |
+| **SCL** | Labelled SEL. KEYS is on at power-on (SEL lit); a tap (on the release, no key pressed while held) toggles it. While SEL is lit the keys play the selected track chromatically on every page, TRACKS and COMP included; while SEL is unlit the white keys are the selected track's steps on every page (see *KEYS and STEPS*). **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): MIDI OUT, DLY 1, DLY 2, REVERB and CHORUS (5 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
 | **ARP** | **ARP + EDIT**: the selected track's ARP page (MODE OFF / RTRG / ARP1 / ARP2 and its settings; again: page 2). **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY. A tap does nothing. |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 carousel pages, the next one each tap; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s (on any page): a fill. **REC + SEL held 5 s**: clear the selected track; **SAVE / GLO + REC**: copy (see *Combos*). See *Playing and recording*. |
-| **OCT- / OCT+** | The previous / next bank of 16 steps; the octave in KEYS (-2 to +2; as the MIDI KEYBOARD -4 to +4, see *MIDI*); NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
+| **OCT- / OCT+** | On PATTERN and TRACKS: the previous / next sheet (bank) of 16 steps; the octave in KEYS (-2 to +2; as the MIDI KEYBOARD -4 to +4, see *MIDI*); NO / YES, BACK / OK in dialogs. They *breathe* (fade in and out) when pressing them would do something. |
 
 ### HOME in detail
 
 HOME has two modes. **TRACKS** is the mixer: the six tracks as a large list, one row each with the track's number, its machine and, at the right, its preset's name (`*` once a SOUND knob moved it). A muted track's row is inverted (MUTE, LEVEL 0 or another track's SOLO), the selected track has a pointer (`>`) at its left, and a REC-armed track a small square after its number (solid while playing). [[KNOB 1]] picks the track, [[KNOB 2]] its LEVEL (a muted track's first turn unmutes it), [[KNOB 3]] its LEN (length), [[KNOB 4]] its PAN; the selected track's steps are on the keys. **HOME** is the performance screen, kept minimal (Model:Cycles style): one large status line such as `P1 V2 T6 L1`, the tempo large as `BPM 120` near the top, the CPU load (`CPU 23%`) and the battery small at the top, and nothing else. In the status line **P** is the pattern playing (1 to 4 for A to D; `P-` before a pattern is loaded), **V** its playing variation (1 to 8), **T** the selected track and **L** the track's step page (bank of 16 steps). While a pattern chain runs, its line (`CH A1 B3 A2`: each entry's pattern and variation, up to 6 shown, the entry playing inverted, the next underlined) shows under the status line. [[KNOB 1]] sets the BPM and [[KNOB 2]] the global SWING; [[KNOB 3]] and [[KNOB 4]] do nothing on HOME. While the tempo follows an external clock the BPM line names the source with the measured tempo (`USB 120`, `TRS 98`), and KNOB 1 only says `CLK USB`. HOME has no top bar: the screen only redraws when something on it changes.
 
-### EDIT, FX, LFO and the selected track
+### KEYS and STEPS (SEL)
 
-On HOME, EDIT, FX and LFO the selected track's key (a white key F3 to D4) is lit, and pressing a white key there selects that track. KEYS, COMP, PATTERN, GLO's pages and SAVE keep their own key jobs.
+SEL switches the white keys between two jobs, Model:Cycles style, on every screen. **SEL lit (KEYS):** the keys play the selected track chromatically. **SEL unlit (STEPS):** the 16 white keys are the selected track's steps on every page: HOME, TRACKS (nothing armed), EDIT, FX, LFO, GLO, SAVE. A tap toggles a step, a held step plus a knob makes a parameter lock (on PATTERN and TRACKS: the step's PROB / RATCH / ACCENT / NUDGE), and the step copy / paste combos work everywhere. A few screens keep their own keys: the menu, NAME, the PRESETS list (the keys play), PERFORM ([[FX]] held), the held-button combos, TRACKS with a track armed (the keys record hits) and COMP (a white key ducks a track). Select tracks with **SEL + black 1 to 6** or [[ALGORITHM]].
 
 ## The keys
 
-- **16 white keys** (white 1 = F3 ... white 16 = G5): the steps 1 to 16 of the current bank (up to four banks, 64 steps); on HOME the white keys F3 to D4 play tracks 1 to 6.
+- **16 white keys** (white 1 = F3 ... white 16 = G5): with KEYS off, the steps 1 to 16 of the sheet shown (up to four sheets of 16, 64 steps). On PATTERN and TRACKS the sheet is the one you chose with OCT- / OCT+; everywhere else, while playing, it follows the selected track's playhead (it stays put while you hold a step, so a lock or a copy does not jump), and stopped it is the one last chosen. HOME's status line `L` shows the sheet on the keys.
 - **11 black keys** (black 1 to 11 = F#3 G#3 A#3 C#4 D#4 F#4 G#4 A#4 C#5 D#5 F#5): with [[FX]] held, live effects on the whole mix. In KEYS, the sharps. Alone they keep their page's job (a black key alone no longer queues a variation). Black keys 1 to 6 are tracks 1 to 6 for the combos below.
 - **Held buttons** change what the keys do: the combos below; [[FX]] held: black keys are effects, white keys F3 to D4 repeat a track's step (REPEAT STEP), D5 to G5 pick its rate; [[SEQ]] held: black keys mute; [[SAVE]] held: the cue map; [[OCT+]] held: a step tap sets its accent.
 
 ### Step LEDs
 
-Wherever the white keys are the selected track's steps (SEQ's PATTERN page, TRACKS with no track armed, and every page in ENV's STEPS mode), the keys light the way Elektron's Model:Cycles does:
+Wherever the white keys are the selected track's steps (with KEYS off: every page but the exceptions above), the keys light the way Elektron's Model:Cycles does:
 
 | Key | Lit | Blinking (250 ms) | Breathing | Winking (dark 1/8 s each second) |
 | --- | --- | --- | --- | --- |
 | **White 1 to 16** (the bank's steps) | A trig on the step | A step with a parameter lock or a machine lock | | |
 | **Black 1 to 6** (the tracks) | The selected track | | An armed track (REC) | The selected track, armed |
 
-While the pattern plays, the **running cursor** is the selected track's own step (its LEN, division and FIT; only on the bank shown): its key is toggled, so a lit or blinking step goes dark and an empty step lights. With [[OCT+]] held the keys show the bank's accents instead (no blinking). A held button's overlay (GLO, SEQ's mutes, SEL, ARP, the cue map, PERFORM, NAME, the PRESETS list) takes the keys over while it is up.
+While the pattern plays, the **running cursor** is the selected track's own step (its LEN, division and FIT; only on the sheet shown): its key is toggled, so a lit or blinking step goes dark and an empty step lights. With [[OCT+]] held the keys show the bank's accents instead (no blinking). A held button's overlay (GLO, SEQ's mutes, SEL, ARP, the cue map, PERFORM, NAME, the PRESETS list) takes the keys over while it is up.
 
 ## Combos
 
@@ -84,7 +84,7 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 
 ## Screens and the top bar
 
-No page has a step strip or a breadcrumb at the bottom. The **top bar** holds the battery icon at the right, with a padlock left of it while ENV is in STEPS mode; at the left it shows only what is going on for the moment: a record icon while a track is armed, MIDI LEARN's line, and held modes (`CUE`, `FILL`, `LOCK STEP`). Messages (such as `T3 DECAY 64`, `LOADED` or `COPIED T3`) appear as a small popup. While REC + SEL are held the whole screen is the clear's warning: `CLEAR T3` and a large countdown from 5 to 1.
+No page has a step strip or a breadcrumb at the bottom. The **top bar** holds the battery icon at the right; at the left it shows only what is going on for the moment: a record icon while a track is armed, MIDI LEARN's line, and held modes (`CUE`, `FILL`, `LOCK STEP`). Messages (such as `T3 DECAY 64`, `LOADED` or `COPIED T3`) appear as a small popup. While REC + SEL are held the whole screen is the clear's warning: `CLEAR T3` and a large countdown from 5 to 1.
 
 Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, [[KNOB 1]] to [[KNOB 4]] the rows top to bottom, with no round dials and no graphs. The SOUND pages show a small waveform of the rendered hit at the top; LFO 1/3 shows a small schematic of one cycle of the wave. TRACKS is a list of the six tracks (see *HOME in detail*); PERFORM keeps its own layout.
 
@@ -94,14 +94,13 @@ Parameter pages are **lists**: one row per knob, `NAME  value` in a large font, 
 
 | Top-bar sign | Meaning |
 | --- | --- |
-| padlock (left of the battery) | ENV is in STEPS mode |
 | record icon (left) | a track is armed |
 | `LEARN: TURN OR PRESS`, `T3 DECAY: SEND A CC`... | MIDI LEARN's line, while MIDI LEARN is on |
 
 ## Common rules
 
 - **Step keys.** A step toggles only on a short tap (released within 0.3 s with no knob turned), on the release. Held 0.3 s, an off step turns on at once, ready to edit; an on step stays on.
-- **Held step.** While a step is held, [[KNOB 1]] / [[KNOB 2]] / [[KNOB 3]] / [[KNOB 4]] set its PROB / RATCH / ACCENT / NUDGE (-50 to +50). This works on PATTERN and TRACKS; the page's own knobs rest while a step is held. [[OCT+]] held plus a step toggles that step's accent.
-- **Bank.** With KEYS off, [[OCT+]] alone (on its release) and [[OCT-]] move to the next / previous bank of 16. While [[OCT+]] is held the keys show the bank's accents.
+- **Held step.** While a step is held, [[KNOB 1]] / [[KNOB 2]] / [[KNOB 3]] / [[KNOB 4]] set its PROB / RATCH / ACCENT / NUDGE (-50 to +50). This works on PATTERN and TRACKS; the page's own knobs rest while a step is held. On every other page a held step plus a knob is a parameter lock (see *Parameter locks* in *Playing*). [[OCT+]] held plus a step toggles that step's accent.
+- **Sheet (bank).** On PATTERN and TRACKS with KEYS off, [[OCT+]] alone (on its release) and [[OCT-]] move to the next / previous sheet of 16. Elsewhere OCT- / OCT+ keep their page jobs (OCT- the knob popup's undo, OCT+ an LFO page's RATE MODE) and the sheet follows the playhead while playing. While [[OCT+]] is held the keys show the sheet's accents.
 - **Knob acceleration.** With MENU ACCEL ON, turning a knob fast over a wide value speeds it up (see Settings).
 - **Safe start.** Hold [[SEQ]] while powering on: nothing is loaded, every LED is dark, Bluetooth does not autostart.

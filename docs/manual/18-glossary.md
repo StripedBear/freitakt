@@ -20,7 +20,7 @@
 | **DEST** | the LFO routing page: four slots of source, destination and depth. |
 | **DIV** | a track's step division. |
 | **E0 to E7** | a model's eight SOUND knobs. |
-| **ENV** | the button that toggles STEPS / TRACKS mode. |
+| **ENV** | a page button (no job of its own yet). |
 | **FILL** | a step flag; plays only during a fill (hold REC off SEQ). |
 | **FM-Link** | two FM-1s in time over Bluetooth. |
 | **GO action** | a TOOLS / PROJECT knob that needs two detents within 1.5 s. |
@@ -41,7 +41,8 @@
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
 | **SMC-Mixer** | M-VAVE's Bluetooth mixer, used in DAW mode. |
 | **SRC** | an LFO slot's source (LFO1 or OFF), or COMP's key track. |
-| **STEPS / TRACKS** | ENV mode: the keys are steps, or play tracks. |
+| **KEYS / STEPS** | SEL lit: the keys play the selected track; SEL unlit: the white keys are its steps on every page. |
+| **Sheet** | a bank of 16 steps on the white keys (up to 4); on PATTERN and TRACKS chosen with OCT- / OCT+, elsewhere following the playhead while playing. |
 | **SYNC** | MIDI clock out (the menu's MIDI SYNC). |
 | **MIDI OUT** | the sequencer's notes out, track n on its channel (GLO MIDI OUT: OUT, TnCH). |
 | **THRU** | pass MIDI from each input to the other outputs (the menu's MIDI THRU). |

@@ -5,7 +5,7 @@
 
 Each of the six tracks has its own pattern of up to **64 steps**, played on the 16 white keys in banks of 16 (bank 1 to 4). Each track also has its own **length**, **division** and **swing**, so tracks can run polyrhythms. The transport (PLAY) starts every track from its first step.
 
-Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and on TRACKS when no track is armed, and anywhere in STEPS mode) the white keys are the selected track's steps. [[SCL]] + a black key 1 to 6 picks the track (with KEYS on, [[ALGORITHM]] too).
+Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. With KEYS off (SEL unlit) the white keys are the selected track's steps on PATTERN and on every other page too (TRACKS only while no track is armed; not on COMP, the PRESETS list, the menu or NAME). [[SCL]] + a black key 1 to 6 picks the track (with KEYS on, [[ALGORITHM]] too).
 
 ## Steps: tapping in a pattern
 
@@ -23,9 +23,9 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. On PATTERN (and o
 - **The note of a new step:** a step you turn on (tap, hold, accent) takes the track's **NOTE**: what [[ALGORITHM]] (KEYS off, no step held) or SOUND 1's NOTE last set, or the last key played in KEYS. Every machine, drums too (a drum plays it transposed from C4). It is C4 again after LOAD and after clearing the track's pattern.
 - **Accent with a tap:** hold [[OCT+]] and tap a step: the step is accented (an off step turns on accented), or plain again. While [[OCT+]] is held the keys show the bank's accents.
 - **The keys' lights:** a trig lit, a step with a parameter or machine lock blinking; while playing the selected track's step (the running cursor) toggles its key; black 1 to 6 light the selected track and breathe for armed ones (see *Panel, Step LEDs*).
-- **Banks:** [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous.
+- **Banks (sheets):** on PATTERN and TRACKS [[OCT+]] alone (on its release) goes to the next bank, [[OCT-]] to the previous. On the other pages the keys show the bank holding the selected track's playhead while playing (held still while a step key is down) and the bank last chosen when stopped; OCT- / OCT+ keep their page jobs there.
 - **Clear:** hold [[REC]] + [[SEL]] together for 5 s (the screen counts `CLEAR T3` down from 5; let go early and nothing changes). It clears the selected track's steps, its MOTION events and its parameter locks (`CLEARED T3`). An off step's first edit turns it on; a held key beyond LEN, or on a Grids track, takes the turn and does nothing.
-- **Where the held-step knobs work:** PATTERN and TRACKS (with no track armed). Under ENV STEPS on other pages the same hold plus a knob is a parameter lock.
+- **Where the held-step knobs work:** PATTERN and TRACKS (with no track armed). On every other page the same hold plus a knob is a parameter lock.
 
 ## ARP and RETRIG
 
@@ -47,7 +47,7 @@ Each track has a MODE: **OFF**, **RTRG** (retrig), **ARP1** or **ARP2**, one at 
 - **Live in KEYS**: the selected track's MODE also applies to the keys. RTRG repeats the held key at RATE (with GATE and FADE) until you let go. ARP1 arpeggiates the held key's note; another key (mono, legato as always) restarts from the new note. ARP2 arpeggiates all held keys (up to 8), sorted by pitch, in DIR's order over RANGE octaves; adding or releasing a key changes the notes without restarting the timing, and letting go of the last key stops it (the last note's gate ends normally). The timing follows the tempo and the track's swing: while playing it is on the track's own steps, while stopped it runs free at the tempo from the moment you press. Letting go, STOP, selecting another track or leaving KEYS ends it. The repeats are not sent to MIDI OUT (the keys never are), and recording records the note you press, not the repeats: the step's MODE plays them back.
 - The repeats stay on the step's grid. With swing, a long step's repeats are spread over it and a short step's are squeezed. With FIT divisions they follow the step's own length, so nothing drifts at any tempo or clock.
 - While MODE is on, a step's RATCH is ignored: the roll replaces the ratchet. With MODE OFF, RATCH works as before.
-- All seven are track parameters, so a step can **lock** them: in STEPS mode hold a step and turn the knob. MODE can be locked too, so one step can roll while the rest of the track stays OFF (or the other way around). They are saved with the project.
+- All seven are track parameters, so a step can **lock** them: with KEYS off hold a step on the ARP page and turn the knob. MODE can be locked too, so one step can roll while the rest of the track stays OFF (or the other way around). They are saved with the project.
 
 ## Fills
 
@@ -126,7 +126,7 @@ There is no TOOLS screen (Elektron Model:Cycles style, no screen, only a short m
 
 A copy takes the pattern and variation playing: every step whole (accent, PROB, ratchet, note, slide and tie, its NUDGE), its parameter locks, and the track's LEN, DIV and SWG. A paste replaces the target's steps, locks and LEN / DIV / SWG; the track's motion and its sound stay. With the locks full a paste brings what fits and says `LOCKS FULL`. The clipboard holds one track or one pattern (a new copy replaces it) and is kept until power-off, across projects, so a track can go to another track, pattern, variation or project. There is no undo.
 
-The step combos work in the step views (where the white keys are the selected track's steps), within the bank shown. Hold the step key first, then press REC or PLAY; a range is the lowest to the highest of the step keys held (hold step 3, add step 8: steps 3 to 8). A copied step goes whole, with its parameter locks and machine locks. A paste from one held step lays the whole copy from there and drops what falls past LEN; with two or more held, it fills exactly that range, repeating a short copy or cutting a long one. The target steps' old locks go. Steps share the clipboard with the track and pattern copies (a step copy replaces a copied track and the other way round). The held keys toggle nothing on their release, and an off step that a long hold had lit goes back off before the copy.
+The step combos work in the step views (where the white keys are the selected track's steps), within the bank shown (on any page with KEYS off). Hold the step key first, then press REC or PLAY; a range is the lowest to the highest of the step keys held (hold step 3, add step 8: steps 3 to 8). A copied step goes whole, with its parameter locks and machine locks. A paste from one held step lays the whole copy from there and drops what falls past LEN; with two or more held, it fills exactly that range, repeating a short copy or cutting a long one. The target steps' old locks go. Steps share the clipboard with the track and pattern copies (a step copy replaces a copied track and the other way round). The held keys toggle nothing on their release, and an off step that a long hold had lit goes back off before the copy.
 
 None of these buttons does its own job in the combo: no transport start / stop, no REC ALL, fill or arm, no projects page or cue map, no GLOBAL page, no track select or KEYS toggle. The clear works in either order (REC or SEL first); let either go before the countdown ends and nothing changes.
 
