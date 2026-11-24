@@ -48,6 +48,9 @@ static volatile uint32_t mute_mask;   /* main: GLO's, SEL's, ARP's bits while th
 static volatile uint32_t kb_mute;     /* ISR: the keys held that are a combo's (pressed with one of those buttons) */
 static volatile uint32_t kb_mute_hit; /* ISR -> main: those presses, until the UI takes them */
 static volatile uint32_t kb_mute_up;  /* ISR -> main: their releases (SOLO MOMENTARY: ui_input.c mute_ups) */
+static volatile uint32_t keys_arp_btn; /* main: ARP's bit while KEYS is on and ARP's combo may take keys (ui_input.c
+                                        * mod_input), 0 = none: ARP held, a white key plays, its roll RTRG (kr.live) */
+#define BLACK_MASK 0x252A52Au         /* the 11 black keys' bits */
 static volatile uint8_t ml_keys;      /* main: MIDI LEARN is on (ui_learn.c): a PERFORM layer key picks its effect */
 static volatile uint32_t ml_kb_hit;   /* ISR -> main: those presses (no effect played), until the UI takes them */
 /* key index (0 = F3, the lowest key) of the white keys F3 G3 A3 B3 C4 D4 -> tracks 1..6 (E4 F4, Hortator's
@@ -337,7 +340,7 @@ static struct {
     uint8_t trk, n;
     uint8_t key[KR_N];
     int8_t nt[KR_N];
-    uint8_t vrem;
+    uint8_t vrem, live;                              /* live: ARP held with the KEYS (keys_live): every key's roll RTRG */
     uint32_t vpos, vcnt;
 } kr;
 /* the next repeat's place: RATE's share of the playing step (cur_len samples, swung), its remainder carried (fr) */
@@ -811,7 +814,7 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     const dmodel_t *m = trk_model(t);
     int32_t nt;
     int legato = kz.key && kz.trk == song.sel;
-    uint32_t am = roll_mode(t);
+    uint32_t am = kr.live ? 1u : roll_mode(t);       /* (ARP held: RTRG, whatever the MODE) */
     if (!keys_note(t, key, &nt))
         return;                                        /* (a black key on a CHOP track: nothing) */
     if (t->p[P_SPLAY] == 1 && voice_model(t) == DM_SMPL) {
@@ -865,10 +868,48 @@ static __attribute__((noinline)) void keys_on(uint32_t key)
     t->key_nt = (int8_t)nt;
 }
 
+/* ARP pressed / let go with the KEYS (kr.live; spec 2026-11-24, live retrigger): the keys roll as RTRG whatever the
+ * MODE. Pressed over a held key: its roll from here (RTRG, a roll already going keeps its time), the first repeat a
+ * RATE step on; let go: the roll over, the key's note on as a plain held key's (a gated model's gate held again,
+ * keys_off closes it) */
+static __attribute__((noinline)) void keys_live(uint32_t live)
+{
+    track_t *t = TSEL;
+    int32_t nt;
+    kr.live = (uint8_t)live;
+    if (!kz.key || kz.trk != song.sel)
+        return;
+    if (!live) {
+        if (kr.r.on | kr.n) {
+            kr.r.on = 0;
+            kr.n = 0;
+            if (trk_model(t)->gate && t->gate_n != GATE_HELD)
+                t->gate_n = 0;
+        }
+        return;
+    }
+    if (!keys_note(t, kz.key - 1u, &nt))
+        return;
+    kr.n = 0;
+    kr.trk = song.sel;
+    if (kr.r.on) {
+        kr.r.arp = 0;
+        kr.r.nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
+        return;
+    }
+    keys_clock(t, 1);
+    roll_set(&kr.r, t, 0u, nt, 100u);
+    kr.r.k = 1;                                        /* (the key's note was the first hit) */
+    roll_next(&kr.r, t, step_samples(t, trk_period(t, kr.vrem), kr.vcnt));
+}
+
 static void keyboard_block(void)
 {
     uint32_t cur = fm1_in.notes, ch = cur ^ kb_prev, i, key;
+    uint32_t live = song.seq_mode == 3u && (fm1_in.buttons & keys_arp_btn);
     kb_prev = cur;
+    if (live != kr.live)
+        keys_live(live);
     for (key = 0; key < 27u; key++) {                     /* PERFORM (perform.c): a key pressed with FX held is the layer's
                                                      * until let go: its effect, no note, no MIDI, nothing recorded */
         uint32_t bit = 1u << key;
@@ -883,8 +924,10 @@ static void keyboard_block(void)
                 else
                     perf_key_down(key);                 /* (a rate key: REPEAT STEP's rate) */
                 ch &= ~bit;
-            } else if (fm1_in.buttons & mute_mask) {   /* a combo button held: its own until let go (ui_input.c
-                                                         * mod_input takes kb_mute_hit): no note, no MIDI */
+            } else if ((fm1_in.buttons & mute_mask) &&
+                       !(live && !((BLACK_MASK >> key) & 1u) && !(fm1_in.buttons & mute_mask & ~keys_arp_btn))) {
+                /* a combo button held: its own until let go (ui_input.c mod_input takes kb_mute_hit): no note, no
+                 * MIDI. ARP alone with the KEYS: a white key plays (its roll RTRG: keys_live) */
                 kb_mute |= bit;
                 kb_mute_hit |= bit;
                 ch &= ~bit;

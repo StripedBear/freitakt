@@ -39,7 +39,6 @@ static uint8_t acc_oct;
  * are tracks 1..6 for the combos (SEL select, SEQ mute, ARP solo: mod_input, ui_tools.c) */
 static const uint8_t CUE_BK[8] = {1, 3, 5, 8, 10, 13, 15, 17};
 #define KEY_SOLO_MODE 25u                           /* F#5 (black 11): ARP + it, SOLO TOGGLE / MOMENTARY */
-#define BLACK_MASK 0x252A52Au                       /* the 11 black keys' bits */
 /* the combo buttons' state (GLO, SEL, ARP: mod_input; ui.glo_t0 ..): the press time | these */
 #define MOD_DOWN 1u
 #define MOD_KEY 2u                                  /* a key pressed with it: no tap */
@@ -885,6 +884,10 @@ static void mod_input(uint32_t now, uint32_t notes)
     f = mod_up(B_ARP, &ui.arp_t0);
     if (f && !(f & (MOD_KEY | MOD_DEAD)) && !mod_dead())
         arp_tap();                                      /* an ARP tap: the ARP pages */
+    keys_arp_btn = song.seq_mode == 3u && ((mute_mask >> panel.btn[B_ARP]) & 1u) ? 1u << panel.btn[B_ARP] : 0u;
+    if (keys_arp_btn && mod_live(ui.arp_t0) && (fm1_in.notes & ~BLACK_MASK))
+        ui.arp_t0 |= MOD_KEY;                           /* KEYS: ARP + a white key, its roll (seq.c keys_live): no
+                                                         * tap, in either order */
     f = mod_up(B_SCL, &ui.sel_t0);
     if (f && !(f & (MOD_KEY | MOD_DEAD)) && !mod_dead())
         keys_toggle();                                  /* a SEL tap: KEYS on / off (spec §5) */
