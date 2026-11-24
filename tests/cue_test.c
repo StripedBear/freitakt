@@ -1659,6 +1659,11 @@ static void cue_glo_leds(void)
         play();
         release_all();
         go_page(PG_SOUND);
+        ui_input();                                   /* (playing: the last hits' flashes on the black keys over, */
+        ui_leds();                                    /* ui_input.c trk_flash) */
+        host_ticks += 60u * 1000u * FM1_TICKS_PER_US;
+        ui_input();
+        ui_leds();
         OK(key_led(BK[0]) == (song.sel == 0u) && key_lay(BK[1]) != 2u);   /* GLO not held: the variation keys not
                                                        * shown (KEYS off: the steps' black 1..6, the selected track) */
         glo_down();
