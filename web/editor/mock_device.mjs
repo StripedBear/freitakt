@@ -706,6 +706,7 @@ export class MockDevice {
   pages() {
     const out = [], d = this.d, t = this.tracks[this.sel], P = this.P;
     const snd = [P.MODEL, undefined]; // (SOUND 1's NOTE: the device's own, pages.c PG_NOTE)
+    if ([14, 23, 45].includes(t.p[P.MODEL])) snd.push(P.NLEN); // NLEN: a gated model's (params.c nlen_model: SAMPL ACID CHORD)
     const ed = d.models[t.p[P.MODEL]].edit, envK = (k) => ["DECAY", "ATTACK"].includes(ed[k].label);
     for (let k = 0; k < 8; k++) { const l = ed[k].label; if ((k < 4 || (l && l[0] !== "-")) && !envK(k)) snd.push(P.E0 + k); }
     snd.push(P.LEVEL, P.PAN, P.NOTE, P.CHOKE, P.PRIO);

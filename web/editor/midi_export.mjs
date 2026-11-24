@@ -16,7 +16,8 @@
 // Notes as MIDI OUT sends them (midi_out.c): a pitched model's (ACID SAMPL FM SKIN) the step's note with ARP's
 // intervals; a drum's the track's NOTE knob. Velocity ACC 127 else 96 (FADE on rolls). One note a track: a new hit ends
 // the sounding one. Its end: ACID's gate (GATE knob E7; held into a SLIDE or TIE step); a roll's hit: GATE of its
-// repeat; else its step (swung) / RATCH. Channels: the track's MIDI OUT channel; OFF exports on track n's channel n
+// repeat; else its step (swung) / RATCH. NLEN (ACID SAMPL CHORD, not a RATCH step's nor a roll's): held that many
+// steps, the last one's end (ACID: its GATE) as far past it as the hit was past its own step; INF to the next hit. Channels: the track's MIDI OUT channel; OFF exports on track n's channel n
 // (a file has no port to switch off). Not rendered: parameter / machine LOCKS (the track's knobs as they are now), the
 // note's own LFO / pitch, live input.
 
@@ -33,6 +34,11 @@ export function chordNotes(s, inv) {
   return o.sort((a, b) => a - b);
 }
 export const ACID = 23; // the gated model (dmodel gate): its GATE knob is E7
+/** NLEN (params.c P_NLEN, seq.c nlen_*): a step's note length in steps, ACID SAMPL CHORD's (nlen_model); INF: to the
+ * next hit */
+export const NLEN_STEPS = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, Infinity];
+export const NLEN_MODELS = new Set([14, 23, 45]); // SAMPL ACID CHORD
+const HELD = Number.MAX_SAFE_INTEGER; // a note NLEN INF holds: the next hit (or the part's end) ends it
 const DIV_DEN = [1, 2, 4, 8, 3, 6], DIV_FIT = 10;
 const ARATE_D = [4, 6, 8, 12, 16, 24, 32];
 const ARP_CHORD = [[0], [0, 7], [0, 4, 7], [0, 3, 7], [0, 5, 7], [0, 4, 7, 11], [0, 3, 7, 10], [0, 4, 7, 10]];
@@ -94,6 +100,7 @@ export function renderTrack(tr, span, opt = {}) {
   const grid = stepGrid(tr, span, ppq, gswing);
   const ap = tr.arp ?? {}, amode0 = Math.min(clamp(ap.mode | 0, 0, 3), 2), amode = amode0 === 2 && !pitched ? 1 : amode0; // (ARP2 on a step: ARP1)
   const gateK = 10 + tdiv(clamp(tr.gate ?? 64, 0, 127) * 90, 127);
+  const nlen = NLEN_MODELS.has(model) ? NLEN_STEPS[clamp(tr.nlen | 0, 0, NLEN_STEPS.length - 1)] : 1; // NLEN (track's knob)
   let rng = (opt.seed ?? 0x2545f491) >>> 0, arng = 0x9e3779b9;
   const die = () => { rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0; return (((rng >>> 16) * 100) >>> 16); };
   const hits = []; // { t, note, vel, off (Infinity: held), legato }
@@ -170,11 +177,16 @@ export function renderTrack(tr, span, opt = {}) {
       continue;
     }
     const r = Math.min(((s.flags >> RAT_SHIFT) & 3) + 1, 4);
+    const nl = nlen > 1 && r === 1 && !(gated && ((s.flags & STEP_SLIDE) || (next.flags & STEP_TIE)));
     for (let h = 0; h < r; h++) {
       const ht = at + Math.floor(h * lenS / r);
       if (ht >= span) break;
       let off;
-      if (gated) {
+      if (nl) { // NLEN: held nlen steps (INF: to the next hit), the last one as a one-step note ends
+        const lg = nlen === Infinity ? null : grid[i + nlen - 1];
+        off = !lg ? HELD : lg.start + at - g.start + (gated ? Math.floor(lg.len * gateK / 100) : lg.len);
+        off = Math.max(ht + 1, off);
+      } else if (gated) {
         const last = h === r - 1;
         off = last && ((s.flags & STEP_SLIDE) || (next.flags & STEP_TIE)) ? Infinity : ht + Math.max(1, Math.floor(Math.floor(lenS / r) * gateK / 100));
       } else off = ht + Math.max(1, Math.floor(g.len / r));

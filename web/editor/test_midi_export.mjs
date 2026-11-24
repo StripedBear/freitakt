@@ -7,7 +7,7 @@
 // - timing as the firmware's: polymetry (LEN 16 1/16 vs LEN 5 FIT over a bar, remainder carried), SWING, NUDGE,
 //   RATCH, MASTER LENGTH, a chain's parts in order
 // - notes / channels as MIDI OUT: pitched (ACID ...) the step's note, a drum the track's NOTE; channel OFF -> track n's
-// - ARP (MAJ, 1/8 on a 1/4 step), RTRG, ACID's gate / SLIDE legato, one note a track
+// - ARP (MAJ, 1/8 on a 1/4 step), RTRG, ACID's gate / SLIDE legato, one note a track; NLEN
 // - the Patterns tab's exportMidi against the mock device
 
 import { pathToFileURL } from "node:url";
@@ -120,6 +120,21 @@ export async function runMidiExportTests(log = console.log) {
     ok(cr.length === 8 && cr[4].on === 240 && J(cr.slice(4).map((n) => n.note)) === J([65, 69, 72, 74]), "CHORD with RTRG: the whole chord each repeat");
     const ca = renderTrack({ ...ch, div: 0, len: 1, steps: steps(() => step({ note: 60 })), arp: { mode: 2, rate: 4, gate: 50, fade: 0, dir: 0, chord: 7, range: 2 } }, 960);
     ok(J(ca.map((n) => n.note)) === J([63, 67, 70, 72, 63, 67, 70, 72]), "ARP1 on CHORD: one note a hit, the machine's own shape (MIN7 INV 1: Eb G Bb C), not ARP's CHORD");
+    // NLEN (P_NLEN: 0..12 = 1 2 3 4 6 8 12 16 24 32 48 64 INF steps), ACID SAMPL CHORD's
+    const sm = { len: 16, div: 2, swing: 0, ...drum({ model: 14 }), steps: steps((i) => (i === 0 ? step({ note: 60 }) : rest())) };
+    ok(renderTrack(sm, 1920)[0].off === 120 && renderTrack({ ...sm, nlen: 3 }, 1920)[0].off === 480
+      && renderTrack({ ...sm, nlen: 7 }, 1920)[0].off === 1920, "NLEN: SAMPL 1 step (as before), 4 steps, 16 steps");
+    const sw = { ...sm, swing: 40, nlen: 2 }, gs = stepGrid(sw, 1920, PPQ, 0);
+    ok(renderTrack(sw, 1920)[0].off === gs[0].len + gs[1].len + gs[2].len && gs[0].len !== gs[1].len, "NLEN: 3 steps on the swung grid");
+    const inf = renderTrack({ ...sm, nlen: 12, steps: steps((i) => (i === 0 || i === 8 ? step({ note: 60 + i }) : rest())) }, 1920);
+    ok(J(inf.map((n) => [n.on, n.off])) === J([[0, 960], [960, 1920]]), "NLEN INF: held to the next hit (the part's end)");
+    const anl = renderTrack({ ...acid, nlen: 1, steps: steps((i) => (i === 0 ? step() : rest())) }, 480);
+    ok(anl[0].off === 240, "NLEN: ACID 2 steps, GATE 100 % of the last, through a rest");
+    ok(renderTrack({ ...sm, model: 0, nlen: 7 }, 1920)[0].off === 120, "NLEN: a drum's ignored (its step)");
+    const rr = renderTrack({ ...sm, nlen: 3, steps: steps((i) => (i === 0 ? step({ flags: ON | (1 << 4) }) : rest())) }, 1920);
+    ok(rr.length === 2 && rr[1].off === 120, "NLEN: a RATCH step plays as before");
+    const cl = renderTrack({ ...ch, nlen: 1 }, 480);
+    ok(cl.length === 4 && cl.every((n) => n.off === 240), "NLEN: CHORD's notes held 2 steps");
   }
 
   /* the Patterns tab against the mock device */

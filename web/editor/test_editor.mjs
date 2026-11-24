@@ -143,7 +143,8 @@ const fresh = (o) => createMockDevice(data, o);
     && P.LAYOUT.pStored + P.LAYOUT.sGap[1] + P.LAYOUT.pGap[1] + P.LAYOUT.rGap[1] === c.PR_NP
     && P.LAYOUT.xpN === c.PROJ_XP && P.LAYOUT.xpAt + P.LAYOUT.xpDef.length === c.PROJ_XP, "layout: counts = the firmware's");
   ok(P.LAYOUT.xp2Def.every((d, j) => data.tp[data.P.indexOf("SATK") + j].def === d) && P.LAYOUT.xp2Def.length === 4
-    && data.P.indexOf("SATK") === c.P_NSTORED + P.LAYOUT.xpDef.length && data.P.indexOf("SCUT") + 1 === data.P.indexOf("AMODE") && data.P.indexOf("ARANGE") === c.P_COUNT - 1
+    && data.P.indexOf("SATK") === c.P_NSTORED + P.LAYOUT.xpDef.length && data.P.indexOf("SCUT") + 1 === data.P.indexOf("AMODE") && data.P.indexOf("ARANGE") + 1 === data.P.indexOf("NLEN")
+    && data.P.indexOf("NLEN") === c.P_COUNT - 1 && same(P.LAYOUT.xp5Def, ["NLEN"].map((n) => data.tp[data.P.indexOf(n)].def))
     && same(P.LAYOUT.xp3Def, ["SPLAY", "SCUT"].map((n) => data.tp[data.P.indexOf(n)].def))
     && same(P.LAYOUT.xp4Def, ["AMODE", "ARATE", "AGATE", "AFADE", "ADIR", "ACHORD", "ARANGE"].map((n) => data.tp[data.P.indexOf(n)].def))
     && P.LAYOUT.smpl === c.DM_SMPL && P.LAYOUT.uprFenv === c.UPR_FENV && P.LAYOUT.uprFx[P.LAYOUT.uprFb.indexOf(c.UPR_FENV)] === data.P.indexOf("FENV")
@@ -205,7 +206,7 @@ m.feed = (f) => { const out = feed0(f); seen.push(...out); return out; };
 const q = (cmd, args) => m.request(cmd, args);
 {
   const info = q(CMD.INFO);
-  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 6 && info.pcount === 71
+  ok(info.rc === 0 && info.magic === "HORTATOR" && info.major === 1 && info.minor === 3 && info.caps === 0xff && info.ntrk === 6 && info.pcount === 72
     && info.gcount === 39 && info.nmodels === 46 && info.nfact === 156 && info.nuser === 96 && info.maxreq === 640
     && info.state.slot === 0 && info.state.used === 7 && info.state.dirty === 0 && P.checkInfo(info).ok, "INFO: the device, A loaded, nothing unsaved");
   ok(info.state.vmask[0] === 0b10111 && info.state.vmask[1] === 0b11 && info.state.vmask[3] === 1, "INFO: the variations used per slot");
@@ -228,8 +229,8 @@ const q = (cmd, args) => m.request(cmd, args);
     && pages[0].title === "SOUND" && same(pages[0].ids, [0, U14_NONE, 1, 3]) && pages.some((p) => p.title === "DLY" && p.ids[0] === data.G.indexOf("DMODE"))
     && pages.some((p) => p.title === "ENV" && same(p.ids, [2, data.P.indexOf("FDEC"), U14_NONE, U14_NONE])),
   "PAGES: paged, DEST x 4, no slot / motion / tools pages, SOUND list (NOTE: the device's, none; DECAY: ENV's), ENV DECAY FDEC, DLY MODE");
-  ok(t0.p.length === 71 && t0.g.length === 39 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
-    "DUMP: 71 parameters, 39 globals, the model");
+  ok(t0.p.length === 72 && t0.g.length === 39 && t0.p[0] === data.models.findIndex((x) => x.name === "BDTRX"),
+    "DUMP: 72 parameters, 39 globals, the model");
   const names = [];
   let d0;
   for (let first = 0; ;) {

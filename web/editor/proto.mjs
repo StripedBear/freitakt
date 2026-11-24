@@ -81,7 +81,7 @@ export const isFullRecord = (m) => m === MAGIC.PROJ;
 export const OLD_PROJECTS = new Map();
 /** byte layouts (little endian) of the objects as flash stores them; checked against the firmware by the tests */
 export const LAYOUT = {
-  ntrk: 6, nstep: 64, pcount: 71, gcount: 39, pStored: 52, gStored: 31,
+  ntrk: 6, nstep: 64, pcount: 72, gcount: 39, pStored: 52, gStored: 31,
   // a record keeps the places of the removed Grids, RESON, SLICER and the sample LAYER (FREITAKT; project.c PR_G /
   // PR_P): [first id after the gap, its count], written 0 (pGap: the LAYER's 5 and Grids' SRC, before DUCK)
   gGap: [22, 10], sGap: [18, 4], pGap: [21, 6], rGap: [38, 7], nuser: 96, nuserOld: 128, nvar: 8, lkMax: 1024, nameLen: 12,
@@ -91,6 +91,7 @@ export const LAYOUT = {
   xp3Def: [0, 0], // P_SPLAY P_SCUT (the SAMPLE model's PLAY: KEY 0, CHOP 1; CUT OFF 0, ON 1): xp3; 0 before them
   xp4Def: [0, 4, 50, 0, 0, 0, 1], // P_AMODE .. P_ARANGE (ARP / RTRG: MODE OFF, RATE 1/16, GATE 50, FADE 0, DIR UP, CHORD OCT,
   // RANGE 1): xp4; 0 before them
+  xp5Def: [0], // P_NLEN (1 step): xp5; 0 before it
   envDef: [0, 0, 40, 0, 0, 0], // a SAMPLE user preset's ATK SUS REL LOOP PLAY CUT: their power-on values
   envMax: [127, 127, 127, 4, 1, 1], // .. their ranges (from 0; LOOP OFF FWD PING LOOPI ONE)
   uprKbit: [3, 1, 2], // the SOUND knobs (DRIVE DECAY TONE) whose bytes' top bits are a SAMPLE preset's bits 23..25
@@ -98,7 +99,7 @@ export const LAYOUT = {
   uprFenv: 15, // FILTER ENV's byte in a user preset's FX bytes (-64..63; the others 0..127)
   timing: [18, 19, 20], // P_SLEN P_SDIV P_SSWING: a variation's own timing (its 4th byte, once Grids' SRC: 0)
   project: { size: 3044, g: 8, sel: 90, rsv: 91, t: 94, trk: 394, trkStep: 138, lk_n: 2458, lk_link: 2460, var_link: 2464,
-    var_len: 2468, xp: 2470, xp2: 2512, xp3: 2536, xp4: 2548, rsv_song: 2974, name: 3010, pre: 3022, pre_ed: 3034, sum: 3040 },
+    var_len: 2468, xp: 2470, xp2: 2512, xp3: 2536, xp4: 2548, xp5: 2590, rsv_song: 2974, name: 3010, pre: 3022, pre_ed: 3034, sum: 3040 },
   locks: { size: 3208, slot: 4, on: 5, count: 6, key: 8, val: 2056, lock: 3080 },
   vars: { slot: 4, used: 6, d: 8 },
   presets: { size: 3204, slot: 33, fx: 10, mv: 3172, sizeV1: 1284 },
@@ -596,6 +597,7 @@ export function decodeProject(b) {
     for (let j = 0; j < n2; j++) p.push(LAYOUT.xp2Def[j] + v.getInt8(L.xp2 + n2 * k + j)); // .. xp2
     LAYOUT.xp3Def.forEach((d, j) => p.push(d + v.getInt8(L.xp3 + LAYOUT.xp3Def.length * k + j))); // .. xp3
     LAYOUT.xp4Def.forEach((d, j) => p.push(d + v.getInt8(L.xp4 + LAYOUT.xp4Def.length * k + j))); // .. xp4
+    LAYOUT.xp5Def.forEach((d, j) => p.push(d + v.getInt8(L.xp5 + LAYOUT.xp5Def.length * k + j))); // .. xp5
     for (let i = 0; i < LAYOUT.nstep; i++) {
       const s = o + L.trkStep + 4 * i;
       steps.push({ flags: b[s] & 0x3f, cond: b[s + 1], note: v.getInt8(s + 2) + STEP.NT_OFFSET,
@@ -642,6 +644,8 @@ export function encodeProject(p) {
     LAYOUT.xp3Def.forEach((d, j) => { b[L.xp3 + LAYOUT.xp3Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + j] ?? d)) - d) & 255; });
     const n3 = LAYOUT.xp3Def.length;
     LAYOUT.xp4Def.forEach((d, j) => { b[L.xp4 + LAYOUT.xp4Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + n3 + j] ?? d)) - d) & 255; });
+    const n4 = LAYOUT.xp4Def.length;
+    LAYOUT.xp5Def.forEach((d, j) => { b[L.xp5 + LAYOUT.xp5Def.length * k + j] = (Math.max(-128, Math.min(255, t.p[LAYOUT.pStored + nx + n2 + n3 + n4 + j] ?? d)) - d) & 255; });
     v.setUint16(L.pre + 2 * k, t.pre, true);
     b[L.pre_ed + k] = t.preEd ? 1 : 0;
   });

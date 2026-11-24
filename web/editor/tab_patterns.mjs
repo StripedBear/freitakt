@@ -241,9 +241,9 @@ export class PatternsModel {
     }
     const dumps = [];
     for (let k = 0; k < NTRK; k++) dumps.push(await this.s.request(CMD.DUMP, { track: k }));
-    const g = dumps[0].g, P_ = { MODEL: 0, E1: 2, E2: 3, E7: 8, NOTE: 13, AMODE: 64 }, G_ = { BPM: 0, SWING: 1, MCH1: 33 };
+    const g = dumps[0].g, P_ = { MODEL: 0, E1: 2, E2: 3, E7: 8, NOTE: 13, AMODE: 64, NLEN: 71 }, G_ = { BPM: 0, SWING: 1, MCH1: 33 };
     const song = { bpm: g[G_.BPM], swing: g[G_.SWING], mlen: mlen | 0, name: ents.map((e) => `${SLOTS[e.slot]}${e.var + 1}`).join(" "),
-      tracks: dumps.map((d, k) => ({ model: d.p[P_.MODEL], note: d.p[P_.NOTE], gate: d.p[P_.E7], chord: [d.p[P_.E1], d.p[P_.E2]], ch: g[G_.MCH1 + k] ?? k + 1,
+      tracks: dumps.map((d, k) => ({ model: d.p[P_.MODEL], note: d.p[P_.NOTE], gate: d.p[P_.E7], chord: [d.p[P_.E1], d.p[P_.E2]], nlen: d.p[P_.NLEN], ch: g[G_.MCH1 + k] ?? k + 1,
         arp: { mode: d.p[P_.AMODE], rate: d.p[P_.AMODE + 1], gate: d.p[P_.AMODE + 2], fade: d.p[P_.AMODE + 3], dir: d.p[P_.AMODE + 4],
           chord: d.p[P_.AMODE + 5], range: d.p[P_.AMODE + 6] } })) };
     const parts = [];
