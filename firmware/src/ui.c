@@ -547,6 +547,7 @@ static void step_tap(uint32_t k)
     s = &TSEL->step[si];
     if (s->on) {
         memset(s, 0, sizeof *s);
+        lock_clear_step(song.sel, si, 0);             /* a trig tapped off: its locks (machine too) go (OCT- held's) */
     } else {
         s->on = 1;
         s->acc = 0;

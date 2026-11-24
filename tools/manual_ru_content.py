@@ -411,6 +411,7 @@ ATK/SUS/REL (на ENV) и PLAY/CUT/LOOP сэмплера, RATE/MORPH/DEPTH LFO, 
 <ul>
 <li>шаг + тап <kbd>OCT-</kbd> — локи этого шага на четырёх ручках текущей страницы (<code>STEP n LOCKS CLEARED</code>);</li>
 <li>шаг + удержание <kbd>OCT-</kbd> 0,6 с — все локи шага (<code>STEP n ALL CLEARED</code>);</li>
+<li>тап, выключающий триг, тоже стирает все его локи (и machine lock); включённый снова, шаг будет без локов;</li>
 <li><kbd>REC</kbd> + <kbd>SEL</kbd> 5 с — весь трек (см. ниже).</li>
 </ul>
 <p>На паттерн отводится 1024 события локов и motion на все треки; при переполнении — <code>LOCKS FULL</code> / <code>MOTION FULL</code>.</p>

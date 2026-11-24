@@ -411,6 +411,7 @@ Not lockable: types (filter, insert) and global parameters. A knob that cannot b
 <ul>
 <li>step + tap <kbd>OCT-</kbd> — this step's locks on the four knobs of the current page (<code>STEP n LOCKS CLEARED</code>);</li>
 <li>step + hold <kbd>OCT-</kbd> 0.6 s — all of the step's locks (<code>STEP n ALL CLEARED</code>);</li>
+<li>tapping a trig off also clears its locks (machine locks too); tapped on again it is a plain step;</li>
 <li><kbd>REC</kbd> + <kbd>SEL</kbd> 5 s — the whole track (see below).</li>
 </ul>
 <p>A pattern has room for 1024 lock and motion events across all tracks; when that runs out you get <code>LOCKS FULL</code> / <code>MOTION FULL</code>.</p>

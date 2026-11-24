@@ -9099,6 +9099,52 @@ static int sk_ph_key(uint32_t want)                  /* the 16 keys: only key wa
     }
     return ok;
 }
+/* user report 2026-11-24 ("a step with a lock cannot be removed"), Model:Cycles: a trig tapped off takes its locks
+ * (parameter and machine) with it, as OCT- held long would; on again it is a plain step. Other steps' locks stay */
+static void test_step_tap_off_locks(void)
+{
+    uint32_t ok = 1, id;
+    int off1;
+    lock_fresh();
+    tap(B_EDIT);
+    trk[0].p[P_SLEN] = 16;
+    trk[0].step[3].on = 1;
+    trk[0].step[7].on = 1;
+    id = lock_id(2);
+    lock_set(0, 3, id, 3);
+    lock_set(0, 3, P_MODEL, 1);                      /* a machine lock too */
+    lock_set(0, 7, id, 5);
+    lock_set(0, 9, id, 6);                           /* (no trig: a lock alone) */
+    ui_frame();
+    OK0(lkv.mask == ((1u << 3) | (1u << 7) | (1u << 9)));
+    grid_down(WHITE[3]);
+    grid_wait(50);
+    grid_up(WHITE[3]);
+    OK0(!trk[0].step[3].on);
+    OK0(!lock_get(0, 3, id, &(int16_t){0}) && !lock_get(0, 3, P_MODEL, &(int16_t){0}));
+    ui_leds();
+    OK0(lkv.mask == ((1u << 7) | (1u << 9)));
+    sk_blinks(STEP_KEY[3], 12, 0, &off1);
+    OK0(off1);
+    check("step tap: a locked trig tapped off: its locks (parameter and machine) gone, its key dark", ok);
+
+    ok = 1;
+    grid_down(WHITE[3]);
+    grid_wait(50);
+    grid_up(WHITE[3]);
+    OK0(trk[0].step[3].on && !lock_get(0, 3, id, &(int16_t){0}) && !lock_get(0, 3, P_MODEL, &(int16_t){0}));
+    ui_leds();
+    OK0(!((lkv.mask >> 3) & 1u));
+    check("step tap: .. tapped on again: a plain trig, no old locks", ok);
+
+    ok = 1;
+    { int16_t v = 0; OK0(lock_get(0, 7, id, &v) && v == 5); }
+    { int16_t v = 0; OK0(lock_get(0, 9, id, &v) && v == 6); }
+    OK0(trk[0].step[7].on);
+    check("step tap: the other steps' locks untouched", ok);
+    lock_clear_track(0);
+}
+
 static void test_step_leds(void)
 {
     uint32_t ok = 1, k, id;
@@ -10090,6 +10136,7 @@ int main(void)
     test_head_no_lock_icon();
     test_lock_line_whole_every_page();
     test_step_leds();                                /* the step LEDs: trigs, locks, cursor, tracks */
+    test_step_tap_off_locks();                       /* a trig tapped off: its locks gone */
     test_trk_flash();                                /* the tracks' black keys flash on each hit */
     test_note_names();                               /* NOTE and PITCH (2026-11) */
     test_pitch_label();

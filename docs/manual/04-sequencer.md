@@ -9,7 +9,7 @@ Press [[SEQ]] for the sequencer. It has one page, **PATTERN**. With KEYS off (SE
 
 ## Steps: tapping in a pattern
 
-- **Tap** a white key: the step toggles on or off, on the release.
+- **Tap** a white key: the step toggles on or off, on the release. Tapping a trig off also clears its locks (parameter and machine locks, as [[OCT-]] held 0.6 s would); tapped on again it is a plain step.
 - **Hold** a step (0.3 s): an off step turns on at once and the step can be edited; an on step stays on. While held:
 
 | Knob | Sets | Values |
