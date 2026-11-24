@@ -177,6 +177,9 @@ static void chord_claim(track_t *t, dvoice_t *v)
                     dv_cut(&trk[i], &trk[i].v[k]);
 }
 
+/* the audible hits per track (bumped by drum_play, read by ui_input.c trk_flash: the black keys 1..6 flash) */
+static volatile uint8_t trk_hits[NTRK];
+
 /* one hit of track t at velocity vel (1..127), playing note nt (an offset from C4) */
 static void drum_play(track_t *t, uint32_t vel, int32_t nt)
 {
@@ -208,6 +211,8 @@ static void drum_play(track_t *t, uint32_t vel, int32_t nt)
         v = dv_alloc(t, t->v, nv, m->weight ? m->weight : 1u);
         dv_init(v, vel);
         m->trigger(t, v);
+        if (!trk_silent(t))                             /* heard (a muted COMP ghost source plays unheard): its */
+            trk_hits[t - trk]++;                        /* black key flashes */
     }
 }
 

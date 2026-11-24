@@ -203,11 +203,48 @@ static void leds_out(uint8_t *nl, const uint8_t *nb, uint32_t beats, uint32_t di
 
 static uint32_t in_now;                               /* ui_input's fm1_ticks (the step LEDs' blinks: no read of
                                                        * their own) */
+/* the tracks' black keys 1..6 flash on each audible hit (Model:Cycles style; drum_core.c trk_hits): the tracks
+ * flashing now (bit k), FLASH_MS from their last hit; on ui_input's time */
+#define FLASH_MS 50u
+static uint32_t trk_flash(void)
+{
+    static uint8_t seen[NTRK];
+    static uint32_t t0[NTRK], on;
+    uint32_t k;
+    for (k = 0; k < NTRK; k++) {
+        uint8_t h = trk_hits[k];
+        if (h != seen[k]) {                           /* a hit since the last frame: (re)starts its flash */
+            seen[k] = h;
+            t0[k] = in_now;
+            on |= 1u << k;
+        } else if (((on >> k) & 1u) && in_now - t0[k] >= FLASH_MS * 1000u * FM1_TICKS_PER_US) {
+            on &= ~(1u << k);
+        }
+    }
+    return on;
+}
+/* the tracks' black keys (where they are free): the selected one lit, dark for a flash; another dark, lit for a
+ * flash; an armed one (REC) breathing (selected: lit, winking), lit through its flash */
+static void trk_keys(uint8_t *nl, uint8_t *nb, uint32_t fl)
+{
+    uint32_t k, ms = in_now / (1000u * FM1_TICKS_PER_US);
+    int wink = (ms % 1000u) >= 125u;
+    for (k = 0; k < NTRK; k++) {
+        int arm = (int)((song.rec >> k) & 1u), f = (int)((fl >> k) & 1u);
+        if (k == song.sel) {
+            led_put(nl, 14u + CUE_BK[k], (!arm || wink) && !f);
+        } else {
+            led_put(nl, 14u + CUE_BK[k], f);
+            led_put(nb, 14u + CUE_BK[k], arm && !f);
+        }
+    }
+}
+
 static void ui_leds(void)
 {
     uint8_t nl[FM1_NCOL] = {0}, nb[FM1_NCOL] = {0};
-    uint32_t k, fam = cur_fam(), beats = 0, dimk = 0; /* beats: the keys of steps 1 5 9 13 (step keys); dimk: the
-                                                       * keys dim (leds_out) */
+    uint32_t k, fam = cur_fam(), beats = 0, dimk = 0, fl; /* beats: the keys of steps 1 5 9 13 (step keys); dimk:
+                                                       * the keys dim (leds_out); fl: trk_flash */
     static uint8_t ready;
     if (safe_start) {                                 /* safe start: LEDs off */
         uint32_t c0;
@@ -221,6 +258,7 @@ static void ui_leds(void)
         ready = 1;
     }
     bank_poll();                                      /* the sheet the keys show (and address) */
+    fl = trk_flash();                                 /* (every frame: a combo's keys let go show no stale flash) */
     if (FAM_BTN[fam] != 0xFFu)                        /* (FAM_EDT: the editor's own pages, no button) */
         led_put(nl, panel.btn[FAM_BTN[fam]], 1);
     led_put(nl, panel.btn[B_PLAY], song.playing && ((song.tick / 64u) & 1u) == 0u);   /* blinks: intended */
@@ -285,7 +323,7 @@ static void ui_leds(void)
         uint32_t ms = in_now / (1000u * FM1_TICKS_PER_US), len = view_len(t);   /* (ui_input's time) */
         uint32_t ph = song.playing ? view_idx(t) : NSTEP;   /* (the selected track's own step: its LEN, DIV, FIT) */
         uint32_t lm = acc_oct ? 0u : lk_view_mask(); /* (cached: ui.c lk_view_mask) */
-        int blink = (int)((ms / 250u) & 1u) == 0, wink = (ms % 1000u) >= 125u;
+        int blink = (int)((ms / 250u) & 1u) == 0;
         for (k = 0; k < 16u; k++) {
             uint32_t si = shown_bank() * 16u + k;
             int lk = si < len && ((lm >> k) & 1u), on = si < len && view_step(t, si).on &&
@@ -298,23 +336,22 @@ static void ui_leds(void)
             if ((k & 3u) == 0u)
                 beats |= 1u << STEP_KEY[k];
         }
-        for (k = 0; k < NTRK; k++) {                  /* the tracks' black keys (SEL + one selects): the selected
-                                                       * lit, an armed one (REC) breathing, both: lit, winking */
-            int arm = (int)((song.rec >> k) & 1u);
-            if (k == song.sel)
-                led_put(nl, 14u + CUE_BK[k], !arm || wink);
-            else
-                led_put(nb, 14u + CUE_BK[k], arm);
-        }
+        trk_keys(nl, nb, fl);                         /* the tracks' black keys (SEL + one selects) */
     } else if (comp_mode() && !keys_mode()) {                      /* COMP: the ducked tracks' keys */
         for (k = 0; k < NTRK; k++)
             led_put(nl, 14u + KEY_TRK_KEY[k], trk[k].p[P_DUCK] && k != comp_src());
-    } else if (keys_mode()) {                         /* KEYS: the keys held lit (OCT- / OCT+: oct_leds) */
+        trk_keys(nl, nb, fl);                         /* (the black keys free: the tracks') */
+    } else if (keys_mode()) {                         /* KEYS: the keys held lit (OCT- / OCT+: oct_leds); black */
+        for (k = 0; k < 27u; k++)                     /* 1..6 lit for a hit's flash too (no selected track lit: the
+                                                       * keyboard's picture), the notes played flash their track's */
+            led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
+        for (k = 0; k < NTRK; k++)
+            led_put(nl, 14u + CUE_BK[k], (int)((fl >> k) & 1u));
+    } else {                                          /* the menu; TRACKS armed: the keys held lit */
         for (k = 0; k < 27u; k++)
             led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
-    } else {
-        for (k = 0; k < 27u; k++)
-            led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
+        if (mix_mode())                               /* (TRACKS armed: the white keys play, the black ones free) */
+            trk_keys(nl, nb, fl);
     }
     k = oct_leds();                                   /* OCT- / OCT+: lit, or breathing (item 5) */
     led_put(nl, panel.btn[B_OCTDN], (int)(k & OCT_LIT_DN));

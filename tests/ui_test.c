@@ -27,6 +27,7 @@ static void safe_boot(int seq_held);
 static void kit_session(void);
 static void fx_hold_frames(uint32_t n);
 static void vg_settle(void);
+static void fl_expire(void);
 static int led_on(uint32_t id)                       /* the LED of button / key id lit (ui_leds' last frame: fm1_led,
                                                       * or the full layer while the scan's hook composes them) */
 {
@@ -3319,6 +3320,7 @@ static void test_backlight_leds(void)
     ui.force = 1;
     ui.keys = 1;
     ui_frame();
+    fl_expire();                                     /* (the last hits played: their black keys' flashes over) */
     keys(1u << 20);                                  /* (C#5: G#3 .. the first 8 black keys show the variations) */
     ui_frame();
     check("BACKLIGHT ON, HOME, KEYS (the keys play): a held key full, every other key 5 %",
@@ -9054,6 +9056,15 @@ static void test_lock_line_whole_every_page(void)
  * machine lock) blinking, the selected track's playhead toggling its key (on its own LEN / FIT, its own page), black
  * 1..6 the tracks: the selected lit, an armed one breathing, the selected armed winking; GLO held over it all. The
  * lock mask cached (ui.c lk_view_mask), found again when a lock comes or goes */
+static void fl_expire(void)                          /* the tracks' black keys' flashes over (ui_input.c trk_flash):
+                                                      * the last block's hits seen, 60 ms on, no block between */
+{
+    ui_input();
+    ui_leds();
+    host_ticks += 60u * 1000u * FM1_TICKS_PER_US;
+    ui_input();
+    ui_leds();
+}
 static int sk_blinks(uint32_t key, uint32_t frames, int *always_on, int *always_off)
 {
     uint32_t i, on = 0, off = 0;
@@ -9159,6 +9170,7 @@ static void test_step_leds(void)
     trk[1].step[0].on = 1;
     track_select(1);
     ui_frame();
+    fl_expire();                                      /* (playing: no hit's flash on the black keys) */
     OK0(song.sel == 1u && led_on(14u + CUE_BK[1]) && !led_on(14u + CUE_BK[0]));
     for (k = 0; k < 5u; k++) {
         seq_play_to(1, k);
@@ -9183,6 +9195,7 @@ static void test_step_leds(void)
     ok = 1;
     song.rec = (uint8_t)(1u << 3);                    /* track 4 armed, track 2 selected */
     ui_frame();
+    fl_expire();                                      /* (playing: no hit's flash on the black keys) */
     OK0(led_breathes(14u + CUE_BK[3]) && !led_breathes(14u + CUE_BK[1]) && led_on(14u + CUE_BK[1]));
     OK0(!led_on(14u + CUE_BK[0]) && !led_breathes(14u + CUE_BK[0]));
     song.rec = (uint8_t)(1u << 1);                    /* the selected armed: lit, winking */
@@ -9204,6 +9217,172 @@ static void test_step_leds(void)
     ui_frame();
     song.rec = 0;
     check("step LEDs: GLO held shows the cue map over them (no steps, no armed breathing), let go: back", ok);
+}
+
+/* the tracks' black keys flash on each audible hit (Model:Cycles style; drum_core.c trk_hits, ui_input.c trk_flash):
+ * another track's key lit for FLASH_MS, the selected one's dark for it; muted / soloed-out tracks no flash; the
+ * combos (GLO, SEQ held) keep theirs; an armed track still breathes (lit through its flash) */
+#define FL_MS(n) ((n) * 1000u * FM1_TICKS_PER_US)
+static void fl_align(void)                           /* the time at x.500 s: no REC wink, no 250 ms blink edge near */
+{
+    host_ticks = (host_ticks / FL_MS(1000u) + 1u) * FL_MS(1000u) + FL_MS(500u);
+}
+static void test_trk_flash(void)
+{
+    uint32_t ok = 1, k, glo[8], h;
+    ui_host_init();
+    kit_session();                                   /* track 6 muted */
+    song.rec = 0;
+    song.sel = 0;
+    fl_align();
+    ui_frame();
+    ui_frame();
+    OK0(step_keys() && led_on(14u + CUE_BK[0]) && !led_on(14u + CUE_BK[2]));
+    drum_hit(&trk[2], 100u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[2]) && led_on(14u + CUE_BK[0]) && !led_on(14u + CUE_BK[1]));
+    host_ticks += FL_MS(20u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[2]));                     /* (20 ms on: still lit) */
+    host_ticks += FL_MS(40u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[2]) && led_on(14u + CUE_BK[0]));
+    check("track flash: a hit on track 3 (not selected) lights black key 3, dark again after 50 ms", ok);
+
+    ok = 1;
+    drum_hit(&trk[0], 100u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[0]));
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[0]));
+    check("track flash: a hit on the selected track darkens its black key, then it is lit again", ok);
+
+    ok = 1;
+    h = trk_hits[5];
+    drum_hit(&trk[5], 100u);                          /* muted */
+    ui_frame();
+    OK0(trk_hits[5] == h && !led_on(14u + CUE_BK[5]));
+    song.solo = 1u << 1;                              /* track 2 soloed: track 4 silenced */
+    h = trk_hits[3];
+    drum_hit(&trk[3], 100u);
+    drum_hit(&trk[1], 100u);
+    ui_frame();
+    OK0(trk_hits[3] == h && !led_on(14u + CUE_BK[3]) && led_on(14u + CUE_BK[1]));
+    song.solo = 0;
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[1]));
+    check("track flash: a muted track and a track silenced by SOLO do not flash", ok);
+
+    ok = 1;
+    fl_align();
+    press(B_GLO);
+    glo_hold_frames(2);
+    for (k = 0; k < 8u; k++)
+        glo[k] = (uint32_t)led_on(14u + CUE_BK[k]);
+    drum_hit(&trk[2], 100u);
+    drum_hit(&trk[0], 100u);
+    glo_hold_frames(1);
+    for (k = 0; k < 8u; k++)
+        OK0(glo[k] == (uint32_t)led_on(14u + CUE_BK[k]));
+    release_all();
+    ui_frame();
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    press(B_SEQ);
+    btn_hold_frames(B_SEQ, 2);
+    drum_hit(&trk[2], 100u);
+    drum_hit(&trk[0], 100u);
+    btn_hold_frames(B_SEQ, 1);
+    for (k = 0; k < NTRK; k++)
+        OK0(led_on(14u + CUE_BK[k]) == !trk[k].p[P_MUTE]);   /* the audible ones, no flash */
+    release_all();
+    ui_frame();
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    check("track flash: GLO held (the cue map) and SEQ held (the mutes) keep their lighting on a hit", ok);
+
+    ok = 1;
+    fl_align();
+    song.rec = 1u << 3;                               /* track 4 armed (not selected) */
+    ui_frame();
+    OK0(led_breathes(14u + CUE_BK[3]));
+    drum_hit(&trk[3], 100u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[3]) && !led_breathes(14u + CUE_BK[3]));
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(led_breathes(14u + CUE_BK[3]));
+    song.rec = 1u << 0;                               /* the selected one armed: lit (winking), not breathing */
+    fl_align();
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[0]) && !led_breathes(14u + CUE_BK[0]));
+    drum_hit(&trk[0], 100u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[0]) && !led_breathes(14u + CUE_BK[0]));
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[0]));
+    OK0(sk_blinks(CUE_BK[0], 24, 0, 0));             /* (the REC wink kept) */
+    song.rec = 0;
+    check("track flash: an armed track still breathes (lit through its flash); the selected armed one lit, winking",
+          ok);
+
+    ok = 1;
+    open_tracks();
+    song.rec = 1u << 2;                               /* TRACKS armed: the white keys play, the black ones the tracks' */
+    fl_align();
+    ui_frame();
+    OK0(mix_mode() && !step_keys() && led_on(14u + CUE_BK[0]) && led_breathes(14u + CUE_BK[2]));
+    drum_hit(&trk[1], 100u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[1]));
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[1]));
+    song.rec = 0;
+    check("track flash: TRACKS armed too (the black keys free there)", ok);
+
+    ok = 1;
+    tap(B_EDIT);
+    ui.keys = 1;                                      /* KEYS, stopped: the keyboard's picture, the notes' flashes */
+    song.sel = 2;
+    fl_align();
+    ui_frame();
+    h = trk_hits[2];
+    OK0(keys_mode() && !song.playing && !led_on(14u + CUE_BK[2]) && !led_on(14u + CUE_BK[0]));
+    keys(1u << STEP_KEY[4]);
+    ui_frame();
+    ui_frame();
+    OK0(trk_hits[2] != h && led_on(14u + CUE_BK[2]) && !led_on(14u + CUE_BK[0]));
+    keys(0);
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[2]));
+    ui.keys = 0;
+    song.sel = 0;
+    ui_frame();
+    check("track flash: KEYS, stopped: a note played flashes its track's black key (none lit otherwise)", ok);
+
+    ok = 1;
+    for (k = 0; k < 12u && !comp_mode(); k++) {      /* COMP (FX's pages): the white keys duck, the black ones free */
+        press(B_FX);
+        ui_frame();
+        release_all();
+        ui_frame();
+    }
+    fl_align();
+    ui_frame();
+    OK0(comp_mode() && !step_keys() && led_on(14u + CUE_BK[0]) && !led_on(14u + CUE_BK[4]));
+    drum_hit(&trk[4], 100u);
+    drum_hit(&trk[0], 100u);
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[4]) && !led_on(14u + CUE_BK[0]));
+    host_ticks += FL_MS(60u);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[4]) && led_on(14u + CUE_BK[0]));
+    check("track flash: COMP too (the selected track lit, a hit's flash)", ok);
 }
 
 /* ---- the carousels (FREITAKT redesign phase D) ---- */
@@ -9911,6 +10090,7 @@ int main(void)
     test_head_no_lock_icon();
     test_lock_line_whole_every_page();
     test_step_leds();                                /* the step LEDs: trigs, locks, cursor, tracks */
+    test_trk_flash();                                /* the tracks' black keys flash on each hit */
     test_note_names();                               /* NOTE and PITCH (2026-11) */
     test_pitch_label();
     test_note_default();
