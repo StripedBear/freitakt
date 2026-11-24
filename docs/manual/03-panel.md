@@ -29,7 +29,7 @@ Pressing a section button opens its first page. Pressing it again (it wraps to t
 | **ENV** | The selected track's envelope page: its machine's ATTACK / DECAY (a SAMPL's ATK DECAY SUS REL) and the filter's decay FDEC (see *Sounds, ENV*). Pressed again: its next page, if any. |
 | **SCL** | Labelled SEL. KEYS is on at power-on (SEL lit); a tap (on the release, no key pressed while held) toggles it. While SEL is lit the keys play the selected track chromatically on every page, TRACKS and COMP included; while SEL is unlit the white keys are the selected track's steps on every page (see *KEYS and STEPS*). **SEL + black key 1 to 6**: select track 1 to 6. |
 | **GLO** | A tap (on the release, within 0.4 s, no key pressed): MIDI OUT, DLY 1, DLY 2, REVERB and CHORUS (5 pages). **GLO + a white key**: queue a pattern; several white keys: a chain; **GLO + black 1 to 8**: a variation (see *Combos*). |
-| **ARP** | A tap (on the release, no key, knob or other button used while held): the selected track's ARP page 1 (MODE OFF / RTRG / ARP1 / ARP2, RATE, GATE, FADE); tapped again there, page 2 (DIR CHORD RANGE; a drum has no page 2, so it stays on page 1). The ARP LED is lit while an ARP page is shown. **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY (a hold used for a combo opens no page). |
+| **ARP** | A tap (on the release, no key, knob or other button used while held): the selected track's ARP page 1 (MODE OFF / RTRG / ARP1 / ARP2, RATE, GATE, FADE); tapped again there, page 2 (DIR CHORD RANGE; a drum has no page 2, so it stays on page 1). The ARP LED is lit while an ARP page is shown. **ARP + black key 1 to 6**: solo track 1 to 6; **ARP + F#5**: SOLO TOGGLE / MOMENTARY; with KEYS on (SEL lit), **ARP + a white key** retriggers that key's note (live RTRG, see [Playing live](05-playing.md)). A hold used for a combo opens no page. |
 | **SAVE** | A tap (on the release): PROJECT, TOOLS and COPY (3 carousel pages, the next one each tap; COPY's KNOB 4 turns MIDI LEARN on and off). **Hold SAVE**: the cue map. |
 | **PLAY** | Play and stop. |
 | **REC** | On TRACKS a tap arms the selected track; elsewhere it is REC ALL. Hold 0.4 s (on any page): a fill. **REC + SEL held 5 s**: clear the selected track; **SAVE / GLO + REC**: copy (see *Combos*). See *Playing and recording*. |
@@ -62,7 +62,7 @@ While the pattern plays, the **running cursor** is the selected track's own step
 
 ## Combos
 
-Hold the button, press the key (Elektron Model:Cycles style). They work on every page; a key pressed with the button plays no note, sends no MIDI and records nothing. Not in the menu, a dialog, NAME, the PRESETS list or the clear's countdown; with PERFORM up the buttons are plain buttons.
+Hold the button, press the key (Elektron Model:Cycles style). They work on every page; a key pressed with the button plays no note, sends no MIDI and records nothing (one exception: with KEYS on, a white key pressed with ARP plays and retriggers, see ARP + white key below). Not in the menu, a dialog, NAME, the PRESETS list or the clear's countdown; with PERFORM up the buttons are plain buttons.
 
 | Combo | What it does | LEDs while the button is held |
 | --- | --- | --- |
@@ -70,6 +70,7 @@ Hold the button, press the key (Elektron Model:Cycles style). They work on every
 | **SEQ + black 1 to 6** | Mute / unmute track 1 to 6, at once or on the next bar (the menu's MUTE MODE). No page for that hold. White keys with SEQ do nothing (no step, no note). | The audible tracks' black keys; a mute waiting for the bar blinks |
 | **ARP + black 1 to 6** | Solo track 1 to 6: TOGGLE (a press on / off) or MOMENTARY (while the key is held). An ARP tap with no key pressed opens the ARP pages instead, on its release. | The soloed tracks' black keys |
 | **ARP + F#5** (black 11) | SOLO TOGGLE / MOMENTARY (saved). | F#5 lit while MOMENTARY |
+| **ARP + white key** (KEYS on, SEL lit) | Live retrigger: the key plays and its note repeats at the track's RATE (RTRG, whatever the track's MODE) while both are held, in either order. Let go of ARP: the repeats stop, the key goes on as a plain held key. With SEL unlit it does nothing. | as ARP |
 | **GLO + white n** | Queue pattern n (A to D: white 1 to 4; whites 5 to 16 do nothing), as the cue map does. A black key after it (still the only white of the hold) queues that pattern's variation too. | The playing pattern's white key; a queued one blinks |
 | **GLO + black n** (1 to 8) | Queue variation n of the playing pattern (of the queued one, if one is queued), at the pattern end, as the cue map does. Black 9 / 10 (C#5 / D#5) do nothing with GLO. | Black 1 to 8: the playing variation lit, a queued one blinks, used ones dim, unused dark |
 | **SAVE + REC** | Copy the selected track: its 64 steps (everything a step holds, micro timing too), their parameter locks, and its LEN, DIV and SWG, from the pattern and variation playing. The message `COPIED T3`. No REC tap, fill or arm, no projects page, no cue map after it. | as usual |

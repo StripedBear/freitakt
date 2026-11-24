@@ -8,7 +8,7 @@
 | **ACCENT / ACC** | a louder step; with [[OCT+]] held, tap a step to toggle it. |
 | **ACID** | the 303-style bass model; at most two tracks. |
 | **ACCEL** | knob acceleration (MENU). |
-| **ARP** | the button (a tap: the ARP pages, again: page 2; ARP + black keys: solo); see ARP1, ARP2. |
+| **ARP** | the button (a tap: the ARP pages, again: page 2; ARP + black keys: solo; KEYS on, ARP + a white key: live retrigger); see ARP1, ARP2. |
 | **ARP1** | the arpeggiator MODE (pitched models): the step's (or held key's) note spread by CHORD over RANGE octaves in DIR's order, a note every RATE. Older projects' ARP. |
 | **ARP2** | the arpeggiator MODE over the keys held in KEYS (pitched models): the held notes by pitch in DIR's order over RANGE octaves, a note every RATE; on a step, as ARP1. |
 | **BANK** | 16 steps; a track has up to four. |
@@ -35,7 +35,7 @@
 | **PRIO** | HIGH or LOW voice priority. |
 | **PROB** | a step's probability. |
 | **RATCH** | a step's ratchet repeats (1 to 4). |
-| **RTRG** | retrig: a track (or locked step) MODE that repeats the hit (or the key held in KEYS) at RATE; see ARP1. |
+| **RTRG** | retrig: a track (or locked step) MODE that repeats the hit (or the key held in KEYS) at RATE; see ARP1. KEYS on, ARP held with a white key plays RTRG on that key whatever the MODE (live retrigger). |
 | **ROUT** | MIDI-in routing: NOTE, SEL, TRACK (the menu's MIDI ROUTE). |
 | **SCL** | the button labelled SEL: a tap KEYS; held + black key 1 to 6 selects a track. |
 | **SLIDE / TIE** | legato glide and held note on ACID steps. |
