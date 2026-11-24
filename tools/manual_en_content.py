@@ -428,9 +428,16 @@ RATE is calculated from the track's step length (with swing and FIT). FADE fades
 <tr><td><b>Blinking</b> (250 ms)</td><td>The step has a parameter lock or machine lock</td><td>—</td></tr>
 <tr><td><b>Breathing</b> (smoothly)</td><td>—</td><td>Track armed for recording</td></tr>
 <tr><td><b>Winking</b> (lit with a short gap once a second)</td><td>—</td><td>Selected and armed track</td></tr>
+<tr><td><b>Flashing</b> (50 ms per hit)</td><td>—</td><td>A hit of the track sounds: a dark key lights up, the selected track's key goes dark for a moment</td></tr>
 <tr><td>Inverted</td><td>Running playhead (current step of the selected track)</td><td>—</td></tr>
-<tr><td>Dark</td><td>Step is off or beyond LEN</td><td>—</td></tr>
+<tr><td>Dark</td><td>Step is off or beyond LEN</td><td>A track not selected, between its hits</td></tr>
 </tbody></table>
+<p>Black keys 1–6 flash on every audible hit of their track, like the track buttons on the Model:Cycles: hits from the
+sequencer, retrigger, ARP, CHORD and notes played on the keys (also while stopped). A muted track and a track silenced
+by solo do not flash. The keys do this wherever they are free: on every page with the steps on the white keys, on COMP
+and on TRACKS with recording armed. In KEYS the black keys stay a keyboard (a held key is lit, the selected track is not)
+and only flash, so the notes you play flash their track's key. While a modifier is held (GLO, SEQ, ARP, SEL, SAVE), and
+in the menu, NAME, the PRESETS list and PERFORM, the keys keep their own lighting.</p>
 <p>Keys 1, 5, 9, 13 are dimly lit as beat markers (depends on BACKLIGHT). While a combo button is held, black 1–6 show:
 <kbd>SEQ</kbd> — the audible tracks (a mute waiting for the bar blinks), <kbd>ARP</kbd> — solo (F#5 is lit if MOMENTARY), <kbd>SEL</kbd> — the selected track.
 Buttons: <kbd>PLAY</kbd> blinks while playing, <kbd>REC</kbd> is lit if anything is armed, <kbd>SEL</kbd> shows KEYS mode,
