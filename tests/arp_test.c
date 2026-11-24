@@ -518,6 +518,170 @@ static void live(void)
     }
 }
 
+/* ARP held with the KEYS (spec 2026-11-24, seq.c keys_live): the keys roll as RTRG whatever the MODE. BARP: ARP's
+ * button bit as the UI arms it (keys_arp_btn, mute_mask) */
+#define BARP (1u << 5)
+static void kafresh(uint32_t model, int mode, int rate, int play)
+{
+    kfresh(model, mode, rate, play);
+    fm1_in.buttons = 0;
+    keys_arp_btn = BARP;
+    mute_mask = BARP;
+    kb_mute = kb_mute_hit = kb_mute_up = 0;
+    events_block(CTL);                                 /* (kr.live follows the button) */
+    H_n = 0;
+    K_blk = 0;
+}
+static int same_nt(uint32_t from, int32_t nt)            /* the hits H[from..) all note nt */
+{
+    uint32_t k, ok = H_n > from;
+    for (k = from; k < H_n && k < MAXH; k++)
+        ok &= H_nt[k] == nt;
+    return ok;
+}
+static void live_arp(void)
+{
+    uint32_t play, ok, k, kp, n0;
+    for (play = 0; play < 2u; play++) {
+        const char *pl = play ? "playing" : "stopped";
+        char what[200];
+        kafresh(DM_K808, 0, 4, play);                  /* MODE OFF, 1/16: ARP, then the key */
+        fm1_in.buttons = BARP;
+        kblocks(4, 0);
+        H_n = 0;
+        K_blk = 0;
+        kblocks(BEAT / CTL, 1u << KC);
+        ok = H_n == 4u && k_grid(4, 16) && kr.live && kr.r.on;
+        fm1_in.buttons = 0;                            /* ARP let go: the repeats stop, the key still held */
+        kblocks(BEAT / CTL, 1u << KC);
+        ok &= H_n == 4u && !kr.r.on && kz.key == KC + 1u;
+        kblocks(BEAT / CTL / 4u, 0);
+        snprintf(what, sizeof what, "KEYS + ARP on a MODE OFF drum (%s): ARP then the key, RTRG 1/16 (4 a beat); ARP let"
+                 " go, no more repeats (the key held), none after the release", pl);
+        check(what, ok && H_n == 4u && quiet() && !kb_mute_hit);
+
+        kafresh(DM_K808, 0, 4, play);                  /* the key, then ARP half a beat later */
+        kblocks(BEAT / CTL / 2u, 1u << KC);
+        ok = H_n == 1u;
+        kp = K_blk;
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL + BEAT / CTL / 8u, 1u << KC);
+        ok &= H_n == 5u;
+        for (k = 1; k < H_n && k < 5u; k++) {         /* the first repeat a 1/16 after the ARP press, then every 1/16 */
+            uint32_t b = kp + (uint32_t)((uint64_t)k * BEAT / 4u / CTL);
+            ok &= H_at[k] + 1u >= b && H_at[k] <= b + 1u;
+        }
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL / 4u, 0);
+        snprintf(what, sizeof what, "KEYS + ARP (%s): the key then ARP, its repeats from the ARP press every 1/16", pl);
+        check(what, ok && quiet());
+
+        kafresh(DM_FM, 2, 4, play);                    /* ARP1 MAJ 2 octaves: RTRG of the key's note */
+        trk[0].p[P_ACHORD] = 2;
+        trk[0].p[P_ARANGE] = 2;
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL, 1u << KE);
+        snprintf(what, sizeof what, "KEYS + ARP on an ARP1 track (%s): RTRG, every hit the key's note", pl);
+        check(what, H_n == 4u && k_grid(4, 16) && same_nt(0, 4));
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL / 4u, 0);
+
+        kafresh(DM_FM, 3, 4, play);                    /* ARP2, two keys: the latest one rolls (mono, as the keys) */
+        kblocks(BEAT / CTL / 2u, 1u << KC);
+        n0 = H_n;
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL / 4u, 1u << KC);
+        kblocks(BEAT / CTL, 1u << KC | 1u << KG);
+        snprintf(what, sizeof what, "KEYS + ARP on an ARP2 track (%s): RTRG, the latest key's note rolls", pl);
+        check(what, n0 >= 2u && !kr.n && H_n >= n0 + 5u && same_nt(H_n - 4u, 7));
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL / 4u, 0);
+    }
+    /* ACID (MODE OFF): ARP let go with the key held, the note goes on held (its gate open) until the release */
+    {
+        kafresh(DM_ACID, 0, 4, 1);
+        trk[0].p[P_AGATE] = 100;
+        kblocks(BEAT / CTL / 2u, 1u << KC);
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL + BEAT / CTL / 8u, 1u << KC);   /* (let go mid-way between two repeats) */
+        ok = H_n == 5u;
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL, 1u << KC);
+        ok &= H_n == 5u && trk[0].v[0].active && (trk[0].v[0].x[2] & 1) && trk[0].gate_n == 0u;
+        kblocks(BEAT / CTL / 4u, 0);
+        check("KEYS + ARP on ACID: ARP let go, the note held on (gate open), closed at the key's release",
+              ok && quiet());
+    }
+    /* no note left on after a STOP, another track, KEYS off with ARP and the key held */
+    for (k = 0; k < 3u; k++) {
+        static const char *const W[3] = {"STOP then the release", "another track selected", "KEYS off"};
+        char what[200];
+        kafresh(DM_ACID, 0, 4, 1);
+        trk[0].p[P_AGATE] = 50;
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL, 1u << KC);
+        ok = H_n == 4u;
+        if (k == 0u) {
+            transport_req = 2;
+            kblocks(BEAT / CTL, 1u << KC);
+            ok &= H_n == 8u;                           /* stopped: free-running on */
+        } else if (k == 1u) {
+            song.sel = 1;
+        } else {
+            song.seq_mode = 0;
+        }
+        kblocks(BEAT / CTL, 0);
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL / 4u, 0);
+        snprintf(what, sizeof what, "KEYS + ARP on ACID (MODE OFF): no note left on after %s", W[k]);
+        check(what, ok && quiet() && H_n == (k == 0u ? 8u : 4u));
+    }
+    {
+        uint32_t i, on = 0;
+        kafresh(DM_FM, 0, 6, 1);                       /* armed, playing: ARP + a key held a beat, 1/32 */
+        song.rec = 1;
+        kblocks(BEAT / CTL / 2u, 0);
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL, 1u << KE);
+        fm1_in.buttons = 0;
+        kblocks(BEAT / CTL, 0);
+        song.rec = 0;
+        for (i = 0; i < 16u; i++)
+            on += trk[0].step[i].on;
+        check("KEYS + ARP recording: the key's note (one step), not its repeats", H_n == 8u && on == 1u);
+    }
+    {
+        uint32_t bk = 0;                               /* a black key with ARP: its combo's (SOLO), no note */
+        while (!((BLACK_MASK >> bk) & 1u))
+            bk++;
+        kafresh(DM_FM, 0, 4, 0);
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL, 1u << bk);
+        check("KEYS + ARP + a black key: the combo's (kb_mute_hit), no note", H_n == 0u && ((kb_mute_hit >> bk) & 1u));
+        fm1_in.buttons = 0;
+        kblocks(4, 0);
+        kafresh(DM_FM, 0, 4, 0);                       /* another combo button held too: the key its */
+        mute_mask = BARP | 1u << 6;
+        fm1_in.buttons = BARP | 1u << 6;
+        kblocks(BEAT / CTL, 1u << KC);
+        check("KEYS + ARP + another combo button: the white key the combo's, no note", H_n == 0u &&
+              ((kb_mute_hit >> KC) & 1u));
+        fm1_in.buttons = 0;
+        kblocks(4, 0);
+        kafresh(DM_FM, 0, 4, 1);                       /* SEL unlit (the steps): ARP + a white key, the combo's */
+        song.seq_mode = 1;
+        fm1_in.buttons = BARP;
+        kblocks(BEAT / CTL, 1u << KC);
+        check("SEL unlit: ARP + a white key, no note, no roll", H_n == 0u && !kr.r.on && !kr.live &&
+              ((kb_mute_hit >> KC) & 1u));
+        fm1_in.buttons = 0;
+        kblocks(4, 0);
+        mute_mask = 0;
+        keys_arp_btn = 0;
+        kb_mute = kb_mute_hit = kb_mute_up = 0;
+    }
+}
+
 static double cost_key(const char *key)             /* tests/drum_cost_ref.txt "key value" */
 {
     FILE *f = fopen("tests/drum_cost_ref.txt", "r");
@@ -593,8 +757,30 @@ static double seq_only(uint32_t keys)
     fm1_in.notes = 0;
     return i0 ? (double)(instr_now() - i0) / SECS(2) : 0;
 }
+/* the sequencer alone, a KEYS key held 2 s at 1/32 on track 0 (FM): forced (MODE OFF, ARP held) or the track's MODE
+ * RTRG. Host instructions / sample */
+static double seq_live(int forced)
+{
+    uint32_t f;
+    uint64_t i0;
+    kafresh(DM_FM, forced ? 0 : 1, 6, 1);
+    fm1_in.buttons = forced ? BARP : 0u;
+    kblocks(SECS(0.5) / CTL, 1u << KC);
+    i0 = instr_now();
+    for (f = 0; f < SECS(2); f += CTL) {
+        fm1_in.notes = 1u << KC;
+        events_block(CTL);
+    }
+    fm1_in.notes = 0;
+    fm1_in.buttons = 0;
+    events_block(CTL);
+    keys_arp_btn = 0;
+    mute_mask = 0;
+    return i0 ? (double)(instr_now() - i0) / SECS(2) : 0;
+}
 static void cpu(void)
 {
+    double lrt = seq_live(0), larp = seq_live(1);
     double off = heavy(0, 0, 0), rt = heavy(1, 0, 0), rat = heavy(0, 0, 1), poff = heavy(0, 1, 0), arp = heavy(2, 1, 0);
     double prat = heavy(0, 1, 1), ref = cost_key("ref"), emax = cost_key("extreme_max");
     double karp = heavy_k(2, 1, 0, 1u << KC | 1u << KE | 1u << KG | 1u << KB);
@@ -604,6 +790,7 @@ static void cpu(void)
            emax);
     printf("     .. with 4 KEYS held in ARP2 1/32 on track 0: %.0f; the sequencer alone, track 0 at 1/32: its steps' ARP1 "
            "%.1f, the KEYS' ARP2 %.1f\n", karp, sstep, skeys);
+    printf("     the sequencer alone, a KEYS key at 1/32: MODE RTRG %.1f, ARP held (MODE OFF) %.1f\n", lrt, larp);
 #ifndef ARP_COST
     printf("     (cost: measured by the -O2 build, arp_cost)\n");
 #else
@@ -616,6 +803,8 @@ static void cpu(void)
           !sstep || skeys <= sstep * 1.1);
     check("cost: the heavy pitched kit's ARP 1/32 x6 with the KEYS' ARP2 1/32 on top: within the stock reference",
           !off || ref == 0 || karp <= ref);
+    check("cost: KEYS + ARP's RTRG schedules its hits for what the KEYS' MODE RTRG does (+10 % at most)",
+          !lrt || larp <= lrt * 1.1);
     check("cost: either within the extreme kit's limit", !off || emax == 0 || (rt <= emax && arp <= emax && karp <= emax));
 #endif
 }
@@ -631,6 +820,7 @@ int main(void)
     no_drift();
     tempo_change();
     live();
+    live_arp();
     cpu();
     printf("%s\n", fails ? "ARP TESTS FAILED" : "all ARP tests passed");
     return fails ? 1 : 0;

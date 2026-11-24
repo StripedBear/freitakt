@@ -1350,6 +1350,91 @@ static void btn_key(uint32_t b, uint32_t key)          /* a key tapped while but
 static void glo_hold_frames(uint32_t n) { btn_hold_frames(B_GLO, n); }
 static void glo_key(uint32_t key) { btn_key(B_GLO, key); }
 static const uint8_t SOLO_BK[NTRK] = {1, 3, 5, 8, 10, 13};   /* black keys 1..6 */
+/* KEYS (SEL lit) + ARP held + a white key, in either order (spec 2026-11-24): the key's note retriggers (RTRG at the
+ * track's RATE, whatever its MODE; seq.c keys_live); ARP let go: no more repeats, the key plays on; no ARP page on
+ * its release; ARP + black still SOLO; SEL unlit: nothing new (the key the combo's) */
+static uint32_t arp_frames(uint32_t n, int arp)      /* n frames (a block each), ARP held or not: track 0's hits */
+{
+    uint32_t i, a = hit_age(&trk[0]), h = 0;
+    for (i = 0; i < n; i++) {
+        if (arp)
+            fm1_in.buttons |= 1u << panel.btn[B_ARP];
+        else
+            fm1_in.buttons &= ~(1u << panel.btn[B_ARP]);
+        ui_frame();
+        if (hit_age(&trk[0]) != a) {
+            a = hit_age(&trk[0]);
+            h++;
+        }
+    }
+    return h;
+}
+static void test_arp_keys(void)
+{
+    const uint32_t beat = FS * 60u / 120u / CTL, kc = 7u;   /* C4, a white key */
+    uint32_t h1, h2, h3;
+    ui_host_init();
+    song.g[G_BPM] = 120;
+    solo_mom = 0;
+    song.solo = 0;
+    old_set_model(&trk[0], DM_K808);
+    trk[0].p[P_AMODE] = 0;
+    trk[0].p[P_ARATE] = 4;                           /* 1/16: 4 a beat */
+    trk[0].p[P_SDIV] = 2;
+    home_screen();
+    ui.keys = 0;
+    tap(B_SCL);
+    check("KEYS + ARP: SEL tapped, KEYS on", ui.keys && song.seq_mode == 3u);
+    h1 = arp_frames(3, 1);                           /* ARP, then the key */
+    keys(1u << kc);
+    h1 += arp_frames(beat, 1);
+    h2 = arp_frames(beat, 0);                        /* ARP let go, the key held */
+    keys(0);
+    h3 = arp_frames(4, 0);
+    check("KEYS + ARP then a white key (MODE OFF drum): RTRG 1/16, 4 hits a beat; ARP let go: none more; no ARP page",
+          h1 == 4u && h2 == 0u && h3 == 0u && ui.home && !kr.r.on && !kz.key);
+    keys(1u << kc);                                  /* the key, then ARP */
+    h1 = arp_frames(beat / 2u, 0);
+    h2 = arp_frames(beat + beat / 8u, 1);
+    h3 = arp_frames(beat / 2u, 0);
+    keys(0);
+    arp_frames(4, 0);
+    check("KEYS: a white key then ARP: one hit, then its repeats (4 a beat) while ARP is held; no ARP page",
+          h1 == 1u && h2 == 4u && h3 == 0u && ui.home);
+    trk[0].p[P_AMODE] = 1;                           /* MODE RTRG: the key alone rolls as before */
+    keys(1u << kc);
+    h1 = arp_frames(beat, 0);
+    keys(0);
+    arp_frames(4, 0);
+    trk[0].p[P_AMODE] = 0;
+    check("KEYS, MODE RTRG, no ARP: the key's roll as before", h1 == 4u);
+    press(B_ARP);                                    /* ARP + black 3: SOLO, no note */
+    btn_key(B_ARP, SOLO_BK[2]);
+    h1 = arp_frames(beat / 4u, 1);
+    release_all();
+    ui_frame();
+    check("KEYS + ARP + black key 3: SOLO track 3, no note, no ARP page", song.solo == 1u << 2 && h1 == 0u &&
+          ui.home && !kr.r.on);
+    press(B_ARP);
+    btn_key(B_ARP, SOLO_BK[2]);
+    release_all();
+    ui_frame();
+    tap(B_ARP);
+    check("KEYS: a plain ARP tap still opens ARP 1/2", !ui.home && page_id(cur_page(), 0) == P_AMODE);
+    home_screen();
+    ui_frame();
+    tap(B_SCL);                                      /* SEL unlit: ARP + a white key, the combo's (nothing new) */
+    h1 = arp_frames(3, 1);
+    keys(1u << kc);
+    h1 += arp_frames(beat, 1);
+    keys(0);
+    h1 += arp_frames(4, 0);
+    check("SEL unlit: ARP + a white key plays nothing, no roll", !ui.keys && h1 == 0u && !kr.r.on && !kz.key &&
+          !keys_arp_btn);
+    song.solo = 0;
+    release_all();
+    ui_frame();
+}
 /* ARP + black 1..6: SOLO tracks 1..6 (TOGGLE: a tap on / off; MOMENTARY: while held), ARP + F#5 flips the mode (a
  * device setting, its key lit while ARP is held and MOMENTARY); the soloed keys lit while ARP is held; no sound */
 static void test_arp_solo(void)
@@ -9650,6 +9735,7 @@ int main(void)
     test_glo_keys();
     test_glo_vars();
     test_arp_solo();
+    test_arp_keys();
     test_arp_page();
     test_sel_select();
     test_seq_mute();
