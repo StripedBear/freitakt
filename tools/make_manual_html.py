@@ -8,9 +8,22 @@ from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHOTS = os.path.join(ROOT, 'build', 'ui_shots')
-OUT = sys.argv[1] if len(sys.argv) > 1 else 'build/FREITAKT_manual.html'
+# Options: --lang en builds the English manual (tools/manual_en_content.py) to FREITAKT_manual_EN.html.
+_args = sys.argv[1:]
+LANG = 'ru'
+if '--lang' in _args:
+    _i = _args.index('--lang'); LANG = _args[_i + 1]; del _args[_i:_i + 2]
+OUT = _args[0] if _args else {'ru': 'build/FREITAKT_manual.html',
+                              'en': 'build/FREITAKT_manual_EN.html'}[LANG]
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from manual_ru_content import CONTENT  # noqa: E402  (the text: tools/manual_ru_content.py)
+import importlib  # noqa: E402
+CONTENT = importlib.import_module(f'manual_{LANG}_content').CONTENT  # the text: tools/manual_<lang>_content.py
+T = {'ru': {'aria': 'Схема панели FM-1', 'power': 'питание — на верхнем торце', 'toc': 'СОДЕРЖАНИЕ',
+            'title': 'FREITAKT — руководство пользователя',
+            'sub': 'Прошивка-грувбокс для M-VAVE FM-1 · руководство пользователя'},
+     'en': {'aria': 'FM-1 panel schematic', 'power': 'power: on the top edge', 'toc': 'CONTENTS',
+            'title': 'FREITAKT — user manual',
+            'sub': 'Groovebox firmware for the M-VAVE FM-1 · user manual'}}[LANG]
 
 _cache = {}
 def png_b64(name):
@@ -31,7 +44,7 @@ def shot(name, caption):
 NAMES = ['F', 'F#', 'G', 'G#', 'A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E']
 def panel_svg():
     o = ['<svg class="panel" viewBox="0 0 1000 620" xmlns="http://www.w3.org/2000/svg" role="img" '
-         'aria-label="Схема панели FM-1">',
+         f'aria-label="{T["aria"]}">',
          '<rect x="4" y="4" width="992" height="612" rx="40" fill="#1b1b1b"/>',
          '<rect x="270" y="36" width="268" height="268" rx="10" fill="#333"/>',
          f'<image x="284" y="50" width="240" height="240" style="image-rendering:pixelated" '
@@ -74,7 +87,7 @@ def panel_svg():
             tc = '#000' if bi <= 6 else '#ccc'
             o.append(f'<rect x="{x:.1f}" y="350" width="44" height="100" rx="5" fill="{fill}" stroke="#555"/>'
                      f'<text x="{x+22:.1f}" y="438" class="kb" fill="{tc}">{bi}</text>')
-    o.append('<text x="500" y="20" class="pl" fill="#aaa">питание — на верхнем торце</text>')
+    o.append(f'<text x="500" y="20" class="pl" fill="#aaa">{T["power"]}</text>')
     o.append('</svg>')
     return ''.join(o)
 
@@ -151,7 +164,7 @@ def build():
     body = re.sub(r'\{\{screen:([^|}]+)\|([^}]*)\}\}', screen, body)
     body = body.replace('{{/screen}}', '</div></div>')
     # the table of contents from the h2 / h3 with ids
-    toc, open3 = ['<nav class="toc"><b>СОДЕРЖАНИЕ</b><ol>'], False
+    toc, open3 = [f'<nav class="toc"><b>{T["toc"]}</b><ol>'], False
     for lvl, hid, title in re.findall(r'<h([23]) id="([^"]+)"[^>]*>(.*?)</h\1>', body):
         title = re.sub('<[^>]+>', '', title)
         if lvl == '2':
@@ -163,10 +176,10 @@ def build():
     if open3: toc.append('</ol>')
     toc.append('</li></ol></nav>')
     toc_html = ''.join(toc).replace('<ol></li>', '<ol>', 1)
-    html = ('<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">'
+    html = (f'<!DOCTYPE html><html lang="{LANG}"><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            '<title>FREITAKT — руководство пользователя</title><style>' + CSS + '</style></head><body>'
-            '<header class="top"><h1>FREITAKT</h1><p>Прошивка-грувбокс для M-VAVE FM-1 · руководство пользователя</p></header>'
+            f'<title>{T["title"]}</title><style>' + CSS + '</style></head><body>'
+            f'<header class="top"><h1>FREITAKT</h1><p>{T["sub"]}</p></header>'
             '<div class="wrap">' + toc_html + '<main>' + body + '</main></div></body></html>')
     with open(OUT, 'w', encoding='utf-8') as f:
         f.write(html)
