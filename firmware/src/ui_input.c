@@ -1507,6 +1507,7 @@ static void ui_input(void)
     smp_slots_sync();                                   /* dm_sample.c: a user slot changed (an upload): its lists,
                                                          * START states (the main loop's) */
     keys_chop_say();                                    /* KEYS on a CHOP track: CHOP 5/12 */
+    nlen_rec_poll();                                    /* KEYS live record: a SAMPL / CHORD note's NLEN (seq.c) */
     pressed = fm1_input_edges(0);
     notes = fm1_input_note_edges();
     now = in_now = fm1_ticks();

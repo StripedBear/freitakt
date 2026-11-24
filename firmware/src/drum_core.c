@@ -180,12 +180,15 @@ static void chord_claim(track_t *t, dvoice_t *v)
 /* the audible hits per track (bumped by drum_play, read by ui_input.c trk_flash: the black keys 1..6 flash) */
 static volatile uint8_t trk_hits[NTRK];
 
+static void nlen_end(track_t *t);                 /* seq.c: NLEN's long note ends */
+
 /* one hit of track t at velocity vel (1..127), playing note nt (an offset from C4) */
 static void drum_play(track_t *t, uint32_t vel, int32_t nt)
 {
     const dmodel_t *m = trk_model(t);
     uint32_t i, nv = m->voices < NDV ? m->voices : NDV;
     dvoice_t *v;
+    nlen_end(t);                                    /* (one note a track: a long one ends) */
     chord_mono = chord_one;                         /* (seq.c: ARP1's note on a CHORD voice: one note) */
     chord_one = 0;
     t->nt = (int8_t)clamp(nt, NT_MIN, NT_MAX);
@@ -223,6 +226,7 @@ static uint32_t hit_gate_len(const track_t *t);          /* seq.c */
 #define SH_KEYS (1u << 16)                               /* who holds: the KEYS keyboard */
 #define SH_PAD (2u << 16)                                /* .. | the track: its pad */
 #define SH_MIDI (3u << 16)                               /* .. | channel << 8 | note */
+#define SH_NLEN (4u << 16)                               /* .. | the track: NLEN's long note (seq.c nlen_*) */
 static int smpl_gated(const track_t *t, const dvoice_t *v)   /* a SAMPLE voice with SUS, its gate open */
 {
     return v->active && (t->model % NMODELS == DM_SMPL || t->model % NMODELS == DM_CHORD) &&

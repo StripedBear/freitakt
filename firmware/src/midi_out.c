@@ -223,6 +223,12 @@ static __attribute__((noinline)) void mon_note(track_t *t, uint32_t vel, int leg
         mon.left[k] = len > 2u * CTL ? len : 2u * CTL;
     }
 }
+/* seq.c NLEN: track k's sounding note (not a gated model's: its gate decides) ends len samples on (NL_HOLD: held) */
+static void mon_nlen(uint32_t k, uint32_t len)
+{
+    if (((mon.on >> k) & 1u) && !mon.gate[k])
+        mon.left[k] = len > 2u * CTL ? len : 2u * CTL;
+}
 static void mon_hit(track_t *t, uint32_t vel)       /* drum_core.c drum_play (the hit plays: not muted) */
 {
     if (mon_seq)

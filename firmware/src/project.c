@@ -48,9 +48,11 @@ typedef struct {
 #define PR_XP(id) ((uint32_t)(id) - P_NSTORED + 1u)
 #define PROJ_XP2 (P_SPLAY - P_SATK)             /* .. and after them (xp2: the SAMPLE model's ATK SUS REL LOOP) */
 #define PROJ_XP3 (P_AMODE - P_SPLAY)            /* .. (xp3: its PLAY CUT) */
-#define PROJ_XP4 (P_COUNT - P_AMODE)            /* .. (xp4: ARP / RTRG's MODE RATE GATE FADE DIR CHORD RANGE) */
-typedef char proj_xp_fit[PROJ_XP == 7 && PROJ_XP2 == 4 && PROJ_XP3 == 2 && PROJ_XP4 == 7 && PR_NP == 69 && PR_NG == 41
-                         ? 1 : -1];   /* (FDRE's block: 69; xp 56 B, xp2 32 B, xp3 16 B, xp4 42 B of rsv_mo's) */
+#define PROJ_XP4 (P_NLEN - P_AMODE)             /* .. (xp4: ARP / RTRG's MODE RATE GATE FADE DIR CHORD RANGE) */
+#define PROJ_XP5 (P_COUNT - P_NLEN)             /* .. (xp5: NLEN) */
+typedef char proj_xp_fit[PROJ_XP == 7 && PROJ_XP2 == 4 && PROJ_XP3 == 2 && PROJ_XP4 == 7 && PROJ_XP5 == 1 &&
+                         PR_NP == 69 && PR_NG == 41
+                         ? 1 : -1];   /* (FDRE's block: 69; xp 56 B, xp2 32 B, xp3 16 B, xp4 42 B, xp5 6 B of rsv_mo's) */
 /* a parameter past the block as stored (0 = the power-on value) */
 static uint8_t proj_xp_enc(uint32_t id, int32_t v) { return (uint8_t)(clamp(v, -128, 255) - TP[id].def); }
 typedef struct {
@@ -68,7 +70,8 @@ typedef struct {
                                                  * before them: the power-on values; an older firmware ignores them) */
     uint8_t xp3[NTRK][PROJ_XP3];                /* FDRG (1.0.0): PLAY CUT (as xp2; 0 before them: KEY, OFF) */
     uint8_t xp4[NTRK][PROJ_XP4];                /* FRT6 (FREITAKT ARP / RTRG): as xp2 (0 before them: OFF, the defaults) */
-    uint8_t rsv_mo[504 - NTRK * (PROJ_XP + PROJ_XP2 + PROJ_XP3 + PROJ_XP4)];   /* FDRF: reserved, 0 */
+    uint8_t xp5[NTRK][PROJ_XP5];                /* FREITAKT NLEN: as xp2 (0 before it: 1 step, as before) */
+    uint8_t rsv_mo[504 - NTRK * (PROJ_XP + PROJ_XP2 + PROJ_XP3 + PROJ_XP4 + PROJ_XP5)];   /* FDRF: reserved, 0 */
     uint8_t rsv_song[36];                       /* FDR9: the song (SONG, removed in FREITAKT): reserved, 0; but
                                                  * [0..1] MASTER LENGTH (proj_mlen) */
     char name[NAME_LEN];                        /* FDR9: the name (NAME_SET, 0-padded; "" = none) */
@@ -82,7 +85,8 @@ static int16_t proj_xp_get(const project_t *p, uint32_t k, uint32_t id)   /* tra
 {
     return (int16_t)(TP[id].def + (int8_t)(id < P_SATK ? p->xp[k][PR_XP(id)]
                                            : id < P_SPLAY ? p->xp2[k][id - P_SATK]
-                                           : id < P_AMODE ? p->xp3[k][id - P_SPLAY] : p->xp4[k][id - P_AMODE]));
+                                           : id < P_AMODE ? p->xp3[k][id - P_SPLAY]
+                                           : id < P_NLEN ? p->xp4[k][id - P_AMODE] : p->xp5[k][id - P_NLEN]));
 }
 static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .. stored */
 {
@@ -92,8 +96,10 @@ static void proj_xp_set(project_t *p, uint32_t k, uint32_t id, int32_t v)   /* .
         p->xp2[k][id - P_SATK] = proj_xp_enc(id, v);
     else if (id < P_AMODE)
         p->xp3[k][id - P_SPLAY] = proj_xp_enc(id, v);
-    else
+    else if (id < P_NLEN)
         p->xp4[k][id - P_AMODE] = proj_xp_enc(id, v);
+    else
+        p->xp5[k][id - P_NLEN] = proj_xp_enc(id, v);
 }
 /* global i of a record: the block (G_NSTORED), past it G_DMODE in the reserved byte rsv[0] (0 in every record before
  * it: NORMAL) */

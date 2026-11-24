@@ -7070,8 +7070,8 @@ static void test_prio_sound_list(void)
         old_set_model(TSEL, m);
         n = snd_list(TSEL, ids);
         if (m == DM_SMPL)                            /* (SAMPLE: then PLAY CUT LOOP, a page of their own; ATK SUS REL:
-                                                      * ENV's, 2026-11) */
-            ok &= n == 19u && ids[13] == P_PRIO && ids[12] == P_CHOKE && ids[15] == 0xFFu && ids[16] == P_SPLAY &&
+                                                      * ENV's, 2026-11; NLEN third) */
+            ok &= n == 19u && ids[14] == P_PRIO && ids[13] == P_CHOKE && ids[15] == 0xFFu && ids[16] == P_SPLAY &&
                   ids[17] == P_SCUT && ids[18] == P_SLOOP;
         else
             ok &= n <= 16u && ids[n - 1u] == P_PRIO && ids[n - 2u] == P_CHOKE;
@@ -9771,10 +9771,11 @@ static void test_pitch_label(void)
     for (m = 0; m < NMODELS; m++) {
         ok &= str_eq(DMODELS[m].edit[0].label, "PITCH") && DMODELS[m].edit[0].fmt == F_SEMI;
         old_set_model(TSEL, m);
-        own &= snd_list(TSEL, ids) > 3u && ids[0] == P_MODEL && ids[1] == PG_NOTE && ids[2] == P_E0;
+        own &= snd_list(TSEL, ids) > 4u && ids[0] == P_MODEL && ids[1] == PG_NOTE &&
+               (nlen_model(m) ? ids[2] == P_NLEN && ids[3] == P_E0 : ids[2] == P_E0);
     }
     check("PITCH: every machine's tuning knob (P_E0, semitones) is named PITCH (no TUNE)", ok);
-    check("SOUND 1 of every machine: MODEL NOTE PITCH ..", own);
+    check("SOUND 1 of every machine: MODEL NOTE PITCH .. (ACID SAMPL CHORD: MODEL NOTE NLEN PITCH)", own);
     ui_host_init();
 }
 

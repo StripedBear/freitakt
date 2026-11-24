@@ -68,6 +68,8 @@ enum {                          /* per-track parameters */
                                   * arp_model) */
     P_ARATE, P_AGATE, P_AFADE,   /* .. RATE (N_ARATE: 1/4 .. 1/32), GATE (% of a repeat: ACID, a SAMPL with SUS), FADE */
     P_ADIR, P_ACHORD, P_ARANGE,  /* .. ARP's DIR (UP DOWN UPDN RND), CHORD (N_ACHORD), RANGE 1..4 octaves; project.c xp4 */
+    P_NLEN,                      /* NLEN (seq.c nlen_*): a step's note length, 0..11 = 1 2 3 4 6 8 12 16 24 32 48 64 steps
+                                  * of the track, 12 INF (to the track's next hit); ACID, SAMPL, CHORD; project.c xp5 */
     P_COUNT
 };
 #define P_NSTORED P_SRR          /* the parameters in a project's block (FDRE: P_MODEL .. P_LS4DEPTH) */
@@ -206,6 +208,8 @@ typedef struct track {
     uint8_t rat_n, rat_k, rat_vel;   /* its hits, the next hit, their velocity; rat_n 0 = no roll */
     int32_t rat_off;             /* MICRO: where the roll's first hit was, in the playing step's samples (0 unnudged;
                                   * an early hit's < 0 once its own step plays) */
+    uint8_t nl_left;             /* NLEN (seq.c nlen_*): step starts the long note has still to cross (0 none, NL_INF) */
+    int32_t nl_off;              /* .. its hit's offset into its step (MICRO), samples */
     uint8_t mic, mic_idx;        /* MICRO (seq.c): MIC_DUE the playing step's late hit is to come, MIC_EARLY step
                                   * mic_idx's early hit has played (the step before it playing) */
     roll_t ar;                   /* ARP / RTRG (seq.c roll_*): the roll of the track's step (a TIE goes on with it) */

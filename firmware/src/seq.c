@@ -229,6 +229,83 @@ static void acid_gate_off(track_t *t)
         m->gate(t, &t->v[0], 0);
 }
 
+/* ---- NLEN (P_NLEN; Model:Cycles' LEN): a step's hit on a gated model (nlen_model: ACID, SAMPL with SUS, CHORD) holds
+ * its gate NLEN steps of the track, counted on the track's own steps (DIV, FIT, swing, the tempo as it plays: no
+ * drift): held (NL_HOLD) until the last step starts, then closed as a one-step note's is (ACID: GATE of that step;
+ * SAMPL, CHORD: that step and a block). INF: held to the track's next hit (or STOP). The next hit on the track ends it
+ * (nlen_end), a roll (ARP / RTRG) or a RATCH step plays as before, a SLIDE or a TIE after it (ACID) holds as before.
+ * 1 step (0, the default) touches nothing: as before, bit for bit */
+#define NL_INF 0xFFu                                /* track_t.nl_left: INF */
+#define NL_HOLD 0x7FFFFFF0u                          /* a gate NLEN holds: counted as any (gate_n, a voice's x[1]) */
+static const uint8_t NLEN_STEPS[12] = {1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64};
+static uint32_t nlen_steps(const track_t *t)        /* the hit's note length in steps (NL_INF); 1: as before */
+{
+    uint32_t v = (uint32_t)t->p[P_NLEN];
+    if (!v || !nlen_model(voice_model(t)))
+        return 1u;
+    return v < 12u ? NLEN_STEPS[v] : NL_INF;
+}
+static void mon_nlen(uint32_t k, uint32_t len);     /* midi_out.c: MIDI OUT, the note's Off len samples on */
+static int32_t nl_at;                               /* MICRO: the hit step_fire plays, samples into its step */
+static uint8_t nl_pre;                              /* .. 1: an early hit (in the step before its own) */
+/* the hit step_fire just played (its voices younger than age a): its gate held n steps */
+static void nlen_start(track_t *t, uint32_t n, uint32_t a)
+{
+    uint32_t i, k = trk_index(t);
+    if (n <= 1u)
+        return;
+    if (DMODELS[t->model % NMODELS].gate) {
+        if (t->gate_n == GATE_HELD)
+            return;                                 /* (ACID: a SLIDE or the next step's TIE holds it, as before) */
+        t->gate_n = NL_HOLD;
+    } else {
+        for (i = 0; i < NDV; i++)
+            if (t->v[i].age > a && smpl_gated(t, &t->v[i])) {
+                t->v[i].x[1] = (int32_t)NL_HOLD;
+                t->v[i].inc[1] = SH_NLEN | k;
+            }
+    }
+    mon_nlen(k, NL_HOLD);
+    t->nl_left = (uint8_t)(n == NL_INF ? NL_INF : n - 1u + nl_pre);
+    t->nl_off = nl_at;
+}
+/* the track's next hit (drum_play), PLAY, STOP: the long note ends (its gate closes: the release) */
+static void nlen_end(track_t *t)
+{
+    if (!t->nl_left)
+        return;
+    t->nl_left = 0;
+    smpl_release(SH_NLEN | trk_index(t));
+    mon_nlen(trk_index(t), 0);
+    if (t->gate_n != GATE_HELD && t->gate_n > NL_HOLD / 2u)
+        t->gate_n = 1;                              /* (ACID: a new hit sets its own) */
+}
+/* a step of the track starts (cur_len long): the long note's last one closes its gate at its end (MICRO: as far past
+ * it as the hit was past its own step's start) */
+static __attribute__((noinline)) void nlen_step(track_t *t, uint32_t cur_len)
+{
+    uint32_t i, k = trk_index(t);
+    int32_t e;
+    if (t->nl_left == NL_INF || --t->nl_left)
+        return;
+    if (DMODELS[t->model % NMODELS].gate) {
+        if (t->gate_n == GATE_HELD || t->gate_n <= NL_HOLD / 2u)
+            return;
+        e = (int32_t)acid_gate_len(t, cur_len) + t->nl_off;
+        t->gate_n = e > 1 ? (uint32_t)e : 1u;       /* (MIDI OUT's Off follows the gate) */
+        return;
+    }
+    e = (int32_t)cur_len + t->nl_off;
+    if (e < 0)
+        e = 0;
+    for (i = 0; i < NDV; i++)
+        if (t->v[i].inc[1] == (SH_NLEN | k) && t->v[i].active) {
+            t->v[i].x[1] = e + (int32_t)CTL;        /* (a block more, as a step's gate: a TIE then holds it on) */
+            t->v[i].inc[1] = 0;
+        }
+    mon_nlen(k, (uint32_t)e);
+}
+
 /* REPEAT STEP: track k's hit (as drum_hit, at its note and velocity; a gated model's gate closes after GATE) */
 static void rep_hit(uint32_t k)
 {
@@ -306,6 +383,7 @@ static __attribute__((noinline)) void acid_gates_close(void)
 {
     uint32_t i;
     for (i = 0; i < NTRK; i++) {
+        nlen_end(&trk[i]);                          /* (NLEN: a long note too) */
         acid_gate_off(&trk[i]);
         trk[i].slide_in = 0;
     }
@@ -539,6 +617,8 @@ static __attribute__((noinline)) void acid_step(track_t *t, const step_t *s, con
     acid_gate_set(t, next);
     if (t->ar.on)
         t->gate_n = ar_glen;                           /* a roll's hit: GATE of its repeat, never held */
+    else if (t->rat_n == 1u)
+        nlen_start(t, nlen_steps(t), 0);               /* NLEN: a long note (a SLIDE, the next TIE: held as before) */
     ar_glen = 0;
 }
 
@@ -548,7 +628,7 @@ static void step_fire(track_t *t, uint32_t len_s)
 {
     const step_t *s = &t->step[t->seq_idx];
     uint32_t len = t->p[P_SLEN] > 0 ? (uint32_t)t->p[P_SLEN] : 1u;
-    uint32_t vel;
+    uint32_t vel, a;
     int32_t nt;
     t->rat_off = 0;                                 /* (a nudged hit's roll: its callers set where it began) */
     if (!s->tie)
@@ -570,7 +650,10 @@ static void step_fire(track_t *t, uint32_t len_s)
     vel = s->acc ? 127u : 96u;
     nt = roll_begin(t, s->nt, &vel);                /* ARP / RTRG: its roll (ARP's first note, FADE's velocity) */
     t->rat_vel = (uint8_t)vel;
+    a = dvage;
     drum_play(t, vel, nt);
+    if (!t->ar.on && !s->rat)
+        nlen_start(t, nlen_steps(t), a);            /* NLEN: a long note (not a roll's, nor RATCH's) */
     ar_glen = 0;
     t->rat_nt = t->nt;
     t->rat_n = (uint8_t)(t->ar.on ? 1u : s->rat < 3u ? s->rat + 1u : 4u);   /* (a roll: no RATCH) */
@@ -659,6 +742,45 @@ static void input_hit(track_t *t, uint32_t vel)
  * the key's note is being written, last the step it wrote last, first the step its phrase started on (the TIEs stop
  * there: a note held longer than LEN does not erase itself) */
 static struct { uint8_t key, trk, rec, last, first; } kz;
+/* KEYS live record of a SAMPL / CHORD note (NLEN, not TIEs: ACID's): the step it went to, where the press was (the
+ * track's steps since PLAY, 1/256 into the step); let go, the held length goes to the step as an NLEN lock, handed to
+ * the main loop (nlen_rec_poll: the lock bank is the main loop's to write) */
+static struct { uint8_t on, trk, idx; uint32_t at; } kn;
+static volatile struct { uint8_t on, trk, idx, v; } kn_out;
+static uint32_t keys_steps_now(const track_t *t)    /* the track's position: steps since PLAY x 256 */
+{
+    uint32_t cur, f = 0;
+    if (t->seq_pos < 0x7FFFFFFFu) {
+        cur = step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt);
+        f = t->seq_pos < (1u << 23) ? (t->seq_pos << 8) / (cur ? cur : 1u) : 255u;   /* (a step is < 3 min) */
+        if (f > 255u)
+            f = 255u;
+    }
+    return (t->seq_cnt << 8) + f;
+}
+/* the held note let go (or another took over): its NLEN, the nearest to the steps it was held (1 at least) */
+static void keys_nlen_done(void)
+{
+    const track_t *t = &trk[kn.trk % NTRK];
+    uint32_t h = keys_steps_now(t) - kn.at, i, b = 0, d, bd = 0xFFFFFFFFu;
+    if (!kn.on)
+        return;
+    kn.on = 0;
+    if (!song.playing || !((song.rec >> kn.trk) & 1u) || h > 0x7FFFFFFFu)
+        return;
+    for (i = 0; i < 12u; i++) {
+        uint32_t s8 = (uint32_t)NLEN_STEPS[i] << 8;
+        d = s8 > h ? s8 - h : h - s8;
+        if (d < bd) {
+            bd = d;
+            b = i;
+        }
+    }
+    kn_out.trk = kn.trk;
+    kn_out.idx = kn.idx;
+    kn_out.v = (uint8_t)b;
+    kn_out.on = 1;
+}
 
 static int32_t keys_nt(uint32_t key) { return (int32_t)key - 7 + 12 * song.octave; }   /* NOTE - 60 */
 /* the note key plays on t (NOTE - 60) into *nt: keys_nt's; a SAMPLE track on PLAY CHOP (dm_sample.c smpl_chop): the 16
@@ -686,6 +808,7 @@ static __attribute__((noinline)) void keys_off(void)
     if (DMODELS[t->model % NMODELS].gate && t->gate_n == 0u)
         acid_gate_off(t);
     smpl_release(SH_KEYS);                             /* (a SAMPLE note the key held) */
+    keys_nlen_done();                                  /* (live record: its NLEN) */
     kz.key = 0;
     kz.rec = 0;
     kr.r.on = 0;                                       /* KEYS' roll: over (its last hit's gate ends as it counts) */
@@ -775,6 +898,13 @@ static __attribute__((noinline)) void keys_rec(track_t *t, int32_t nt, int legat
         kz.first = (uint8_t)idx;                       /* a phrase starts here (a legato note goes on with it) */
     kz.rec = (uint8_t)gated;
     kz.last = (uint8_t)idx;
+    keys_nlen_done();                                  /* (a legato key: the note before it ends here) */
+    if (!gated && nlen_model((uint32_t)t->p[P_MODEL] % NMODELS)) {
+        kn.on = 1;                                     /* SAMPL, CHORD: held, the step's NLEN (keys_nlen_done) */
+        kn.trk = (uint8_t)trk_index(t);
+        kn.idx = (uint8_t)idx;
+        kn.at = keys_steps_now(t);
+    }
 }
 
 /* KEYS live record, every block while a gated model's key records: held past the middle of the step after the one it
@@ -1082,6 +1212,28 @@ static void midi_block(void)
 #include "lockbank.c"               /* the lock bank: motion events and parameter locks, sorted (spec 2026-10-24) */
 #include "varpack.c"                /* the variations 2..8 of a slot, packed (spec 2026-10-26 cue / variations) */
 #include "motion.c"                 /* knob moves per step (upstream 1.0's motion recording) */
+
+/* the main loop (ui_input): a KEYS live-recorded SAMPL / CHORD note's NLEN (keys_nlen_done) onto its step: a lock,
+ * none when it is the track's own NLEN */
+static void nlen_rec_poll(void)
+{
+    uint32_t k, st, ids[MO_W] = {0};
+    int32_t v;
+    if (!kn_out.on)
+        return;
+    fm1_irq_off();
+    k = kn_out.trk % NTRK;
+    st = kn_out.idx % NSTEP;
+    v = kn_out.v;
+    kn_out.on = 0;
+    fm1_irq_on();
+    if (v == motion_rest(k, P_NLEN)) {
+        ids[P_NLEN >> 5] = 1u << (P_NLEN & 31u);
+        (void)lock_clear_step(k, st, ids);
+    } else {
+        lock_set(k, st, P_NLEN, v);
+    }
+}
 static void seq_stop(void);
 /* the project's name (project.c, ui_name.c) and the slot loaded or saved last */
 #define NAME_LEN 12u
@@ -1187,7 +1339,9 @@ static __attribute__((noinline)) void mic_due(track_t *t, uint32_t cur)
         return;
     t->mic &= (uint8_t)~MIC_DUE;
     motion_step(t, t->seq_idx, MS_LOCK);
+    nl_at = (int32_t)at;
     step_fire(t, cur - at);
+    nl_at = 0;
     t->rat_off = (int32_t)at;
     t->ar.at += (int32_t)at;                        /* (its roll from the hit) */
 }
@@ -1211,7 +1365,11 @@ static __attribute__((noinline)) void mic_early(track_t *t, uint32_t cur)
     t->seq_idx = (uint16_t)nx;
     t->seq_cnt = cnt;
     motion_step(t, nx, MS_REL | MS_LOCK);
+    nl_at = (int32_t)at - (int32_t)cur;             /* (NLEN: its steps counted from its own) */
+    nl_pre = 1;
     step_fire(t, cur - at + nl);
+    nl_at = 0;
+    nl_pre = 0;
     t->seq_idx = (uint16_t)idx;
     t->seq_cnt = cnt - 1u;
     t->rat_off = (int32_t)at;
@@ -1267,6 +1425,8 @@ static void seq_tick(track_t *t, uint32_t n)
         t->seq_cnt++;                               /* the step: steps since PLAY mod LEN, so a LEN change keeps
                                                      * the track on the shared clock (and LEN back = in sync) */
         t->seq_idx = (uint16_t)(t->seq_cnt % (len ? len : 1u));
+        if (t->nl_left)
+            nlen_step(t, step_samples(t, trk_period(t, t->seq_rem), t->seq_cnt));   /* NLEN: its last step? */
         if ((t->mic & MIC_EARLY) && t->mic_idx == t->seq_idx) {
             mic_enter(t, cur_len);                  /* MICRO: its hit played early */
             continue;

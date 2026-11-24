@@ -83,7 +83,7 @@ static int env_knob(const dmodel_t *m, uint32_t k)
     const char *l = m->edit[k].label;
     return l && (str_eq(l, "DECAY") || str_eq(l, "ATTACK"));
 }
-/* the EDIT list of track t: MODEL, NOTE (the sequencer's: PG_NOTE), its model's PITCH, TONE and the rest of its knobs
+/* the EDIT list of track t: MODEL, NOTE (the sequencer's: PG_NOTE), NLEN (ACID SAMPL CHORD: nlen_model), its model's PITCH, TONE and the rest of its knobs
  * but the envelope ones (ENV's), then LVL PAN MNOTE CHOKE PRIO (at most 16); the SAMPLE model's then PLAY CUT LOOP on
  * the 5th page (0xFF, an empty column, up to it); returns how many (SND_N at most) */
 static uint32_t snd_list(const track_t *t, uint8_t *ids)
@@ -92,6 +92,8 @@ static uint32_t snd_list(const track_t *t, uint8_t *ids)
     uint32_t n = 0, k;
     ids[n++] = P_MODEL;
     ids[n++] = PG_NOTE;
+    if (nlen_model((uint32_t)t->p[P_MODEL] % NMODELS))
+        ids[n++] = P_NLEN;                          /* NLEN: SOUND 1's third knob (a gated model's; the others' PITCH) */
     for (k = 0; k < 8u; k++)
         if ((k < 4u || (m->edit[k].label && m->edit[k].label[0] != '-')) && !env_knob(m, k))
             ids[n++] = (uint8_t)(P_E0 + k);

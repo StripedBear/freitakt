@@ -294,6 +294,43 @@ static void gate(void)
                                                                                                 b <= 4u * step + 16u);
 }
 
+/* ---- NLEN (Model:Cycles' LEN): a hit's gate held its steps; a lock on the step; INF to the next hit ---- */
+static uint32_t nlen_blocks(int nlen, int lock, uint32_t next)
+{
+    uint32_t b, last = 0;
+    fresh();
+    set_chord(&trk[0], 0, 0, 0, 0, 127, 0, 0);       /* DECAY 0: ends at the gate */
+    trk[0].p[P_NLEN] = (int16_t)nlen;
+    trk[0].step[0].on = 1;
+    if (next)
+        trk[0].step[next].on = 1;
+    if (lock >= 0)
+        lock_set(0, 0, P_NLEN, lock);
+    transport_req = 1;
+    for (b = 0; b < (uint32_t)(4u * BEAT / CTL); b++) {
+        events_block(CTL);
+        if (sounding(&trk[0]))
+            last = b;
+        drum_block_begin();
+        track_render(&trk[0], blk, CTL);
+        if (next && b >= next * (BEAT / 4u / CTL) - 2u)
+            break;                                    /* (INF: up to the next hit) */
+    }
+    return last;
+}
+static void nlen(void)
+{
+    uint32_t step = BEAT / 4u / CTL, one = nlen_blocks(0, -1, 0), tie = held_blocks(3), four = nlen_blocks(3, -1, 0),
+             lk = nlen_blocks(0, 3, 0), six = nlen_blocks(4, -1, 0), inf = nlen_blocks(12, -1, 12);
+    printf("     NLEN: 1 step %u blocks, 4 steps %u (3 TIEs %u), locked 4 %u, 6 steps %u, INF %u (a step: %u)\n",
+           (unsigned)one, (unsigned)four, (unsigned)tie, (unsigned)lk, (unsigned)six, (unsigned)inf, (unsigned)step);
+    check("NLEN 1 (the default): the gate of a plain step, as before", one == held_blocks(0));
+    check("NLEN 4: the chord held 4 steps (as 3 TIE steps)", four + 2u >= tie && four <= tie + 2u);
+    check("NLEN 4 as a lock on the step (the track's NLEN 1): held 4 steps", lk == four);
+    check("NLEN 6: held 6 steps", six >= 6u * step - 1u && six <= 6u * step + 16u);
+    check("NLEN INF: held up to the next hit (12 steps on)", inf >= 12u * step - 4u);
+}
+
 /* ---- KEYS: the chord rooted on the key ---- */
 static void keys(void)
 {
@@ -507,6 +544,7 @@ int main(void)
     click();
     bounds();
     gate();
+    nlen();
     keys();
     modes();
     presets();

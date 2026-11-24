@@ -42,7 +42,8 @@ static int motion_param(uint32_t id)
            (id >= P_FCUT && id <= P_FDEC) ||                  /* the FILTER's knobs, not its TYPE */
            id == P_SRR || (id >= P_IA && id <= P_IMIX) ||   /* SRR; the INSERT's A B C MIX, not its TYPE */
            (id >= P_SATK && id <= P_SPLAY) ||              /* the SAMPLE model's ATK SUS REL LOOP (SOUND 5/5), PLAY */
-           (id >= P_AMODE && id <= P_ARANGE);              /* ARP / RTRG: MODE too (a step's own repeats) */
+           (id >= P_AMODE && id <= P_ARANGE) ||            /* ARP / RTRG: MODE too (a step's own repeats) */
+           id == P_NLEN;                                   /* NLEN: a step's own note length */
 }
 /* the knobs a step can lock: the ones motion records, and MODEL (a machine lock: the step's hit plays that model with
  * the track's knobs, drum_core.c voice_model; motion never records it). ACID is no machine lock's (ACID_MAXTRK, its

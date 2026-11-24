@@ -73,6 +73,8 @@ static const char *const N_SPLAY[] = {"KEY", "CHOP"};                /* P_SPLAY:
 static const char *const N_AMODE[] = {"OFF", "RTRG", "ARP1", "ARP2"};   /* (2: the ARP before ARP2) */
 static const char *const N_ARATE[] = {"1/4", "4T", "1/8", "8T", "1/16", "16T", "1/32"};
 static const char *const N_ADIR[] = {"UP", "DOWN", "UPDN", "RND"};
+/* NLEN (P_NLEN): a step's note length in steps of the track (Model:Cycles' LEN), INF: to the track's next hit */
+static const char *const N_NLEN[] = {"1", "2", "3", "4", "6", "8", "12", "16", "24", "32", "48", "64", "INF"};
 static const char *const N_ACHORD[] = {"OCT", "5TH", "MAJ", "MIN", "SUS4", "MAJ7", "MIN7", "DOM7"};
 static const char *const N_LSRC[] = {"LFO1", "OFF"};   /* an LFO DEST slot's SRC (FREITAKT: one LFO; OFF the value
                                                          * LFO2 was, so a stored LFO2 routes nothing: lfo.c) */
@@ -139,6 +141,7 @@ static const param_desc_t TP[P_COUNT] = {
     [P_ADIR] = PE("DIR", N_ADIR, 0),
     [P_ACHORD] = PE("CHORD", N_ACHORD, 0),
     [P_ARANGE] = PD("RANGE", F_INT, 1, 4, 1),      /* octaves */
+    [P_NLEN] = PE("NLEN", N_NLEN, 0),              /* 1 step: as before */
 };
 /* MODE on a model that plays no notes (arp_model): OFF or RTRG (a stored ARP1 / ARP2 plays and shows as RTRG) */
 static const param_desc_t AMODE_DRUM = {"MODE", F_ENUM, 0, 1, 0, N_AMODE, 0};
@@ -147,6 +150,9 @@ static int arp_model(uint32_t m)
 {
     return m == DM_ACID || m == DM_SMPL || m == DM_FM || m == DM_MEMB || m == DM_CHORD;
 }
+/* NLEN (P_NLEN, seq.c nlen_*): a model whose note has a gate to hold (ACID; SAMPL with SUS; CHORD); the drums and FM,
+ * MEMB (a hit, its own DECAY) neither show nor play it */
+static int nlen_model(uint32_t m) { return m == DM_ACID || m == DM_SMPL || m == DM_CHORD; }
 
 /* PATTERN's MLEN (pages.c PG_MLEN): MASTER LENGTH, song.mlen (cue.c): 1 OFF, 2..1024 1/16 steps */
 static const param_desc_t MLEN_DESC = PD("MLEN", F_MLEN, 1, 1024, 1);

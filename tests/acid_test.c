@@ -378,6 +378,24 @@ static void test_seq_tie(void)                       /* TIE: no restart, the sam
           t->v[0].env[1] < fe && t->v[0].x[1] == p && rms(buf + len * 3 / 4, len / 8) > 200.0);
 }
 
+static void test_seq_nlen(void)  /* NLEN 3 steps: held through steps 0, 1; closed at GATE of step 2 (1 step: as before) */
+{
+    track_t *t = acid_seq();
+    uint32_t len = (uint32_t)step_samples(t, div_period((uint32_t)t->p[P_SDIV], 0), 0);
+    double r1, r2a, r2b;
+    t->p[P_NLEN] = 2;                                  /* (index 2: 3 steps) */
+    t->step[0].on = 1;
+    seq_run(t, 1, buf);
+    seq_run(t, 1, buf);
+    r1 = rms(buf + len * 3 / 4, len / 8);
+    seq_run(t, 1, buf);
+    r2a = rms(buf + len / 8, len / 4);
+    r2b = rms(buf + len * 3 / 4, len / 8);
+    check("acid seq: NLEN 3 holds the note through step 1 and into step 2, closed at GATE of step 2",
+          r1 > 200.0 && r2a > 200.0 && r2b < 20.0 && !(t->v[0].x[2] & 1) && t->gate_n == 0u);
+    t->p[P_NLEN] = 0;
+}
+
 static void test_seq_rest(void)                      /* a rest after a held gate closes it */
 {
     track_t *t = acid_seq();
@@ -721,6 +739,7 @@ int main(void)
     test_seq_gate();
     test_seq_slide();
     test_seq_tie();
+    test_seq_nlen();
     test_seq_rest();
     test_seq_prob_tie();
     test_seq_stop_closes();
