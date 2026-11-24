@@ -90,3 +90,14 @@ Felucca never enables the Bluetooth / Wi-Fi radio of the hardware.
 The screen's pixel fonts (`assets/fonts/md_font.txt`) and the VU logo (`cv_vu`, `firmware/src/gfx.c`) are drawn by
 hand for this fork, in the style of the Elektron Machinedrum's LCD (no Elektron material is included): GPL-3.0-only,
 2026 DEADACTIVE.
+
+## FREITAKT
+
+FREITAKT is a fork of Hortator (https://github.com/DeadActive/hortator, by DEADACTIVE),
+which is itself a fork of Felucca. The FREITAKT changes (sequencer, interface, CHORD machine,
+MIDI OUT, the tools and documents added for FREITAKT) are Copyright (C) 2026 StripedBear and are
+licensed under GPL-3.0-only, the same as the rest of the code. The copyright notices of Leo Kuroshita /
+Hügelton Instruments and DEADACTIVE in the files are kept unchanged. The terms above for the
+Felucca Assets and for third-party material apply to FREITAKT unchanged.
+
+FREITAKT is not affiliated with, endorsed by or supported by DEADACTIVE, Hügelton Instruments or M-VAVE.

@@ -13,8 +13,8 @@ _args = sys.argv[1:]
 LANG = 'ru'
 if '--lang' in _args:
     _i = _args.index('--lang'); LANG = _args[_i + 1]; del _args[_i:_i + 2]
-OUT = _args[0] if _args else {'ru': 'build/FREITAKT_manual.html',
-                              'en': 'build/FREITAKT_manual_EN.html'}[LANG]
+OUT = _args[0] if _args else os.path.join(ROOT, 'build', {'ru': 'FREITAKT_manual.html',
+                                                       'en': 'FREITAKT_manual_EN.html'}[LANG])
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import importlib  # noqa: E402
 CONTENT = importlib.import_module(f'manual_{LANG}_content').CONTENT  # the text: tools/manual_<lang>_content.py
