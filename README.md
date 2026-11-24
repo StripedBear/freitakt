@@ -4,6 +4,8 @@
 
 **FREITAKT** is alternative firmware for the **M-VAVE FM-1** pocket synth, with a workflow in the style of Elektron Model:Cycles: free polymeter and polyrhythm, parameter and machine locks, per-track Arp/Retrig and a minimal orange UI.
 
+![FREITAKT screens: splash, BPM, sound page, tracks, note, ARP, presets, project, envelope, pitch](docs/img/screens.png)
+
 > FREITAKT is a fork of **[Hortator](https://github.com/DeadActive/hortator)** by DEADACTIVE,
 > which is built on **[Felucca](https://github.com/hugelton/Felucca)** by Leo Kuroshita (Hügelton Instruments).
 > The sound engine, the loader, the update path and the recovery tools are theirs; FREITAKT reworks the
