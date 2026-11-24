@@ -24,6 +24,7 @@
 | Parameter Lock | yes | yes, on any screen with SEL unlit |
 | Machine Lock | no | **yes** (hold a step and turn MODEL) |
 | Step note | only from keys | **NOTE** knob with names (C#4) + separate **PITCH** |
+| Note length | only ACID's TIE steps | **NLEN** (Model:Cycles' LEN): 1…64 steps or INF, per track and per step lock, ACID / SAMPL (SUS) / CHORD; live recording keeps the held length |
 | Arp / Retrig | no | **OFF / RTRG / ARP1 / ARP2** per track and step, live on the keys |
 | Patterns | 16 rows | 4 patterns × 8 variations, Elektron-style chain (A1 B3 A2) |
 | Copy / paste | TOOLS screen | button combos (track, pattern, step range) |

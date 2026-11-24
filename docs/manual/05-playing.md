@@ -33,7 +33,7 @@ ACID is a bass voice: a saw or square into a resonant 24 dB filter, with accent,
 - **REC ALL.** On every other page a [[REC]] tap is REC ALL: every track armed (`REC ALL`, the REC LED lit). Each white track key then plays and records its own track on TRACKS; on the other pages, with KEYS off, the white keys are the selected track's steps and record no hits (play them with KEYS on, or on TRACKS). KEYS and knob motion stay the selected track's.
 - **Ending REC ALL.** A [[REC]] tap off TRACKS ends it and arms again the tracks armed before (`T3 REC ARMED`, or `REC OFF` if none). On TRACKS it ends it with the selected track armed.
 - **REC never starts the transport.** [[PLAY]] does; an armed track records once playing.
-- **What gets written.** A key writes a step as REC QUANT says (the nearest step by default; see Sequencer). A key held into later steps writes TIEs; a legato overlap writes a SLIDE (TIE and SLIDE on ACID tracks only).
+- **What gets written.** A key writes a step as REC QUANT says (the nearest step by default; see Sequencer). A key held into later steps writes TIEs; a legato overlap writes a SLIDE (TIE and SLIDE on ACID tracks only). On SAMPL and CHORD tracks a held key writes the step's **NLEN** as a lock instead, the nearest value to how long it was held (no lock when that is the track's NLEN).
 - **MIDI notes** into an armed track while playing are recorded, with their pitch on MIDI ROUTE SEL and TRACK.
 - **Motion.** Knob turns on an armed, playing track are recorded as MOTION (see below).
 - REC ALL is not saved in projects.

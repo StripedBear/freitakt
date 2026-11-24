@@ -181,6 +181,12 @@ If you change the machine while on ENV 2 and the new machine has no second page,
 With no steps held it is the track note: every newly enabled step gets it, on all machines, drums included (they play it
 transposed relative to C4). With steps held (KEYS off, any page) the knob writes the note into all held steps at once. The track note
 can also be set with a key in KEYS mode; after LOAD and after clearing the pattern it is C4 again. It is not a sound knob: no locks, motion, presets or MIDI LEARN.</p>
+<p><code>NLEN</code> (note length; <kbd class="k">KNOB 3</kbd> on SOUND 1 of ACID, SAMPL and CHORD, which then show MODEL, NOTE, NLEN, PITCH;
+drum machines have no gate and do not show it) is how long a hit's note holds, in steps of the track (its DIV, FIT and swing, as Model:Cycles' LEN):
+<code>1 2 3 4 6 8 12 16 24 32 48 64</code> or <code>INF</code> (held until the track's next hit or STOP). 1 (the default) is the old behaviour.
+ACID keeps the note through the following steps and closes it with GATE in the last one; SAMPL (with SUS above 0) and CHORD hold at the SUS level and then release.
+A new hit on the track ends the note. SLIDE and TIE steps on ACID work as before; a roll (ARP / RTRG) and a RATCH step play their own short hits.
+Lockable per step (hold a step and turn the knob), recorded by motion, MIDI LEARN-able, sent to MIDI OUT as the Note Off's time, and saved in the project.</p>
 <p><code>MODEL</code> shows the machine and the preset name. Turning <kbd class="k">KNOB 1</kbd> cycles through the 46 machines:</p>
 <p class="mono">BDTRX SDTRX TMTRX CGTRX CPTRX RSTRX CBTRX CHTRX OHTRX CYTRX SHTRX CLTRX B2TRX ·
 BDEFM SDEFM TMEFM CPEFM RSEFM CBEFM HHEFM CYEFM · BOOM PUNCH SNAP CRACK METAL HISS SKIN FM ACID CHORD SAMPL ·
@@ -189,7 +195,7 @@ K808 K909 S808 S909 C808 C909 HATC HATO CYMB COWB TOM CONGA RIM CLAVE</p>
 With a step held (KEYS off) the knobs set a parameter lock, and <code>MODEL</code> sets a machine lock (see <a href="#locks">section 4</a>).</p>
 <p><b>CHORD</b> is a polyphonic chord machine (like CHORD on the Elektron Model:Cycles): up to four oscillators play a chord
 from a note (PITCH + the step's NOTE, a key in KEYS mode or a MIDI note; C4 is the root at PITCH 0). The knobs in order: <code>PITCH</code>, <code>CHORD</code>,
-<code>INV</code>, <code>DECAY</code>, <code>WAVE</code>, <code>TONE</code>, <code>ATTACK</code>, <code>DETUNE</code> (on SOUND 1: MODEL, NOTE, PITCH, CHORD).</p>
+<code>INV</code>, <code>DECAY</code>, <code>WAVE</code>, <code>TONE</code>, <code>ATTACK</code>, <code>DETUNE</code> (on SOUND 1: MODEL, NOTE, NLEN, PITCH).</p>
 <ul>
 <li><code>CHORD</code> is the shape: MAJ (0 4 7), MIN (0 3 7), 7 (0 4 7 10), MIN7 (0 3 7 10), MAJ7 (0 4 7 11), SUS2 (0 2 7), SUS4 (0 5 7),
 DIM (0 3 6), 6 (0 4 7 9), 9 (0 4 10 14: root, third, seventh, ninth; the fifth is dropped to fit in 4 notes), OCT (0 12), 5TH (0 7).</li>
@@ -197,7 +203,7 @@ DIM (0 3 6), 6 (0 4 7 9), 9 (0 4 10 14: root, third, seventh, ninth; the fifth i
 <li><code>DECAY</code> is the fade after the gate closes, 5 ms … ~4 s; <code>ATTACK</code> is the rise, 1 ms … 2 s (it plays through to the end even on a short step).</li>
 <li><code>WAVE</code> is SAW, SQR (anti-aliased) or SIN; <code>TONE</code> is a gentle low-pass filter (~100 Hz at 0, fully open at 127);
 <code>DETUNE</code> slightly detunes the chord notes (up to ~30 cents on the outer ones); the root stays in tune.</li>
-<li>The gate works like SAMPL with SUS: the chord is held for the step length (on a roll, the repeat GATE), through TIE steps and for as long as a key, pad or MIDI note is held; then DECAY.</li>
+<li>The gate works like SAMPL with SUS: the chord is held for NLEN steps (1 by default; on a roll, the repeat GATE), through TIE steps and for as long as a key, pad or MIDI note is held; then DECAY.</li>
 <li><b>One chord for the whole machine.</b> There is a single chord engine: a new CHORD hit from any track (its MODEL or a step's machine lock) replaces the sounding
 chord with a short fade, without a click. The chord sounds through the track of the latest hit (its LEVEL, PAN, FILTER, INSERT, FX sends);
 the other tracks play as usual. CPU load is never more than one 4-note chord (roughly one ACID voice).</li>
@@ -501,6 +507,7 @@ The chain starts when you release <kbd>GLO</kbd>. Example: <kbd>GLO</kbd> + A, b
 <li>REC does not start the transport. Recording begins once <kbd>PLAY</kbd> is running.</li>
 <li>Play the tracks with white 1–6 on TRACKS, with notes in KEYS mode or from external MIDI: the hits land on the steps of the armed tracks,
 with quantisation set in the REC QUANT menu item (OFF keeps your timing via NUDGE). With KEYS off, outside TRACKS the white keys are steps, so you can't finger-record there.</li>
+<li><b>Note length:</b> a held key on ACID writes TIE steps (and SLIDE for legato); on SAMPL and CHORD it writes the step's NLEN as a lock, the nearest value to how long you held the key (none when it equals the track's NLEN).</li>
 <li><b>Motion:</b> knob turns are recorded if the selected track is armed and playback is running.</li>
 </ul>
 

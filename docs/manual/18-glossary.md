@@ -29,6 +29,7 @@
 | **MD / MODERN / CLASSIC** | the three sound banks. |
 | **MNOTE** | the MIDI note a track answers to (ROUT NOTE). |
 | **MOTION** | recorded knob turns. |
+| **NLEN** | note length of ACID, SAMPL and CHORD hits in the track's steps (1 to 64, INF), SOUND 1's KNOB 3; Model:Cycles' LEN. Not LEN, the track length. |
 | **NOTE** | a step's note (C-1 to G9, shown `C#4`); also the track's NOTE, the note a new step gets (SOUND 1's KNOB 2, or ALGORITHM with KEYS off). |
 | **PERFORM** | live master effects while [[FX]] is held. |
 | **PITCH** | every machine's tuning knob, -24 to +24 semitones (was TUNE). |
