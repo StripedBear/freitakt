@@ -52,7 +52,7 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_947"                # FREITAKT's own package identity (Hortator/Felucca use FM-1_900/91x); every build
+PRODUCT = "FM-1_94726"                # FREITAKT's own package identity (Hortator/Felucca use FM-1_900/91x); every build
 VERSION = None                      # FELUCCA_VERSION for release builds (default: the drum version, VERSION.txt)
 
 
@@ -467,7 +467,7 @@ def drum_label():
 def main():
     global PRODUCT, VERSION
     ap = argparse.ArgumentParser()
-    ap.add_argument("--release", metavar="X.Y", help="release build: version string X.Y (the identity stays FM-1_947)")
+    ap.add_argument("--release", metavar="X.Y", help="release build: version string X.Y (the identity stays FM-1_94726)")
     ap.add_argument("--sdk", type=Path, help="JieLi AC79 SDK checkout (default: $AC79_SDK)")
     ap.add_argument("--gen-only", action="store_true", help="only the generated headers (host tests)")
     a = ap.parse_args()

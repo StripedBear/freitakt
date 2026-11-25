@@ -34,7 +34,7 @@
 #define FELUCCA_OTA_DRYRUN 0     /* 1 = stage, ask "success", then undo: no record, no reset */
 #endif
 #ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_947"    /* package identity (build.py: the .fwsc marker string) */
+#define FELUCCA_ID "FM-1_94726"    /* package identity (build.py: the .fwsc marker string) */
 #endif
 #ifndef FELUCCA_CDC
 #define FELUCCA_CDC 1            /* USB CDC-ACM serial console */
