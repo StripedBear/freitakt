@@ -9392,7 +9392,7 @@ static void test_trk_flash(void)
 
     ok = 1;
     tap(B_EDIT);
-    ui.keys = 1;                                      /* KEYS, stopped: the keyboard's picture, the notes' flashes */
+    ui.keys = 1;                                      /* KEYS, stopped: the keyboard's picture, no hit flashes */
     song.sel = 2;
     fl_align();
     ui_frame();
@@ -9401,15 +9401,21 @@ static void test_trk_flash(void)
     keys(1u << STEP_KEY[4]);
     ui_frame();
     ui_frame();
-    OK0(trk_hits[2] != h && led_on(14u + CUE_BK[2]) && !led_on(14u + CUE_BK[0]));
+    OK0(trk_hits[2] != h && !led_on(14u + CUE_BK[2]) && !led_on(14u + CUE_BK[0]));
     keys(0);
     host_ticks += FL_MS(60u);
     ui_frame();
     OK0(!led_on(14u + CUE_BK[2]));
+    keys(1u << CUE_BK[0]);                            /* a black key held as a note: lit */
+    ui_frame();
+    OK0(led_on(14u + CUE_BK[0]));
+    keys(0);
+    ui_frame();
+    OK0(!led_on(14u + CUE_BK[0]));
     ui.keys = 0;
     song.sel = 0;
     ui_frame();
-    check("track flash: KEYS, stopped: a note played flashes its track's black key (none lit otherwise)", ok);
+    check("KEYS: no hit flash on the black keys (only held keys lit)", ok);
 
     ok = 1;
     for (k = 0; k < 12u && !comp_mode(); k++) {      /* COMP (FX's pages): the white keys duck, the black ones free */

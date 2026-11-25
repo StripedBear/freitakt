@@ -341,12 +341,9 @@ static void ui_leds(void)
         for (k = 0; k < NTRK; k++)
             led_put(nl, 14u + KEY_TRK_KEY[k], trk[k].p[P_DUCK] && k != comp_src());
         trk_keys(nl, nb, fl);                         /* (the black keys free: the tracks') */
-    } else if (keys_mode()) {                         /* KEYS: the keys held lit (OCT- / OCT+: oct_leds); black */
-        for (k = 0; k < 27u; k++)                     /* 1..6 lit for a hit's flash too (no selected track lit: the
-                                                       * keyboard's picture), the notes played flash their track's */
+    } else if (keys_mode()) {                         /* KEYS: only the keys held lit (OCT- / OCT+: oct_leds), the */
+        for (k = 0; k < 27u; k++)                     /* keyboard's picture: no hit flashes on the black keys 1..6 */
             led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
-        for (k = 0; k < NTRK; k++)
-            led_put(nl, 14u + CUE_BK[k], (int)((fl >> k) & 1u));
     } else {                                          /* the menu; TRACKS armed: the keys held lit */
         for (k = 0; k < 27u; k++)
             led_put(nl, 14u + k, (int)((fm1_in.notes >> k) & 1u));
