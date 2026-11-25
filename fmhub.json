@@ -1,0 +1,11 @@
+{
+  "what": "A Model:Cycles-style groovebox: 6 tracks with free polymeter and polyrhythm, parameter and machine locks, per-step note length, ARP/retrigger, a CHORD machine and MIDI out. A fork of Hortator.",
+  "author": "StripedBear",
+  "kinds": [
+    "groove",
+    "drums"
+  ],
+  "image": "docs/img/card.png",
+  "color": "#FF6600",
+  "sounds": "licensed: Hügelton Sample Pack (Felucca Assets, Hügelton Instruments, see LICENSING.md); instrument samples CC0: Versilian Studios VSCO-2 CE / VCSL"
+}
