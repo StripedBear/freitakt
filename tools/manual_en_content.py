@@ -442,8 +442,8 @@ RATE is calculated from the track's step length (with swing and FIT). FADE fades
 <p>Black keys 1–6 flash on every audible hit of their track, like the track buttons on the Model:Cycles: hits from the
 sequencer, retrigger, ARP, CHORD and notes played on the keys (also while stopped). A muted track and a track silenced
 by solo do not flash. The keys do this wherever they are free: on every page with the steps on the white keys, on COMP
-and on TRACKS with recording armed. In KEYS the black keys stay a keyboard (a held key is lit, the selected track is not)
-and only flash, so the notes you play flash their track's key. While a modifier is held (GLO, SEQ, ARP, SEL, SAVE), and
+and on TRACKS with recording armed. In KEYS the black keys do not flash at all: there they are piano keys, and only
+the keys you hold are lit (the selected track is not, and there are no hit flashes). While a modifier is held (GLO, SEQ, ARP, SEL, SAVE), and
 in the menu, NAME, the PRESETS list and PERFORM, the keys keep their own lighting.</p>
 <p>Keys 1, 5, 9, 13 are dimly lit as beat markers (depends on BACKLIGHT). While a combo button is held, black 1–6 show:
 <kbd>SEQ</kbd> — the audible tracks (a mute waiting for the bar blinks), <kbd>ARP</kbd> — solo (F#5 is lit if MOMENTARY), <kbd>SEL</kbd> — the selected track.
